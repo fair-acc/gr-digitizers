@@ -67,23 +67,23 @@ list(APPEND digitizers_sources
 
 set(digitizers_sources "${digitizers_sources}" PARENT_SCOPE)
 if(NOT digitizers_sources)
-	MESSAGE(STATUS "No C++ sources... skipping lib/")
-	return()
+    MESSAGE(STATUS "No C++ sources... skipping lib/")
+    return()
 endif(NOT digitizers_sources)
 
 add_library(gnuradio-digitizers SHARED ${digitizers_sources})
 target_link_libraries(gnuradio-digitizers 
-	${Boost_LIBRARIES} 
-	${GNURADIO_ALL_LIBRARIES} 
-	ps3000a
-	ps4000a
-	ps6000
-	# ROOT's cmake does not work correctly on some platforms, if you want
-	# to link against libs that are really needed uncomment the following two lines:
-	#/usr/lib64/root/libMathCore.so
-	#/usr/lib64/root/libGraf.so
-	${ROOT_LIBRARIES}
-	)
+    ${Boost_LIBRARIES} 
+    ${GNURADIO_ALL_LIBRARIES} 
+    ps3000a
+    ps4000a
+    ps6000
+    # ROOT's cmake does not work correctly on some platforms, if you want
+    # to link against libs that are really needed uncomment the following two lines:
+    /opt/cern/root/lib/libMathCore.so
+    /opt/cern/root/lib/libGraf.so
+    #${ROOT_LIBRARIES}
+    )
 set_target_properties(gnuradio-digitizers PROPERTIES DEFINE_SYMBOL "gnuradio_digitizers_EXPORTS")
 
 if(APPLE)
@@ -171,4 +171,3 @@ GR_ADD_TEST(test_digitizers test-digitizers)
 ########################################################################
 message(STATUS "Using install prefix: ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
-

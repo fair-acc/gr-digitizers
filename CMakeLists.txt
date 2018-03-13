@@ -109,7 +109,7 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 # TODO: the following does not wokr correctly, for some reason all the libraries gets pulled in
 #       and not just MathCore and Graf as specified.
-find_package(ROOT REQUIRED COMPONENTS MathCore Graf)
+#find_package(ROOT REQUIRED COMPONENTS MathCore Graf)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
 # include(${ROOT_USE_FILE})
@@ -119,18 +119,20 @@ find_package(ROOT REQUIRED COMPONENTS MathCore Graf)
 # Install directories
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
-set(GR_RUNTIME_DIR      bin)
-set(GR_LIBRARY_DIR      lib${LIB_SUFFIX})
-set(GR_INCLUDE_DIR      include/digitizers)
-set(GR_DATA_DIR         share)
-set(GR_PKG_DATA_DIR     ${GR_DATA_DIR}/${CMAKE_PROJECT_NAME})
-set(GR_DOC_DIR          ${GR_DATA_DIR}/doc)
-set(GR_PKG_DOC_DIR      ${GR_DOC_DIR}/${CMAKE_PROJECT_NAME})
-set(GR_CONF_DIR         etc)
-set(GR_PKG_CONF_DIR     ${GR_CONF_DIR}/${CMAKE_PROJECT_NAME}/conf.d)
-set(GR_LIBEXEC_DIR      libexec)
-set(GR_PKG_LIBEXEC_DIR  ${GR_LIBEXEC_DIR}/${CMAKE_PROJECT_NAME})
-set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
+set(GR_RUNTIME_DIR          bin)
+set(GR_LIBRARY_DIR          lib${LIB_SUFFIX})
+set(GR_INCLUDE_DIR          include/digitizers)
+set(GR_DATA_DIR             share)
+set(GR_PKG_DATA_DIR         ${GR_DATA_DIR}/${CMAKE_PROJECT_NAME})
+set(GR_DOC_DIR              ${GR_DATA_DIR}/doc)
+set(GR_PKG_DOC_DIR          ${GR_DOC_DIR}/${CMAKE_PROJECT_NAME})
+set(GR_CONF_DIR             etc)
+set(GR_PKG_CONF_DIR         ${GR_CONF_DIR}/${CMAKE_PROJECT_NAME}/conf.d)
+set(GR_LIBEXEC_DIR          libexec)
+set(GR_PKG_LIBEXEC_DIR      ${GR_LIBEXEC_DIR}/${CMAKE_PROJECT_NAME})
+set(GRC_BLOCKS_DIR          ${GR_PKG_DATA_DIR}/grc/blocks)
+set(PICOSCOPE_INCLUDE_DIR   /home/bel/schwinn/lnx/picoscope)
+set(ROOT_DIR                /opt/cern/root)
 
 set(GR_DIGITIZERS_EXAMPLES_DIR      ${GR_PKG_DATA_DIR}/examples)
 
@@ -174,6 +176,21 @@ if(NOT CPPUNIT_FOUND)
     message(FATAL_ERROR "CppUnit required to compile digitizers")
 endif()
 
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps3000a-1.1/ps3000aApi.h)
+  message(SEND_ERROR "Can't find libps3000a-1.1/ps3000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
+endif()
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps4000a-1.0/ps4000aApi.h)
+  message(SEND_ERROR "Can't find libps4000a-1.0/ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
+endif()
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps6000-1.4/ps6000Api.h)
+  message(SEND_ERROR "Can't find libps6000-1.4/ps6000Api.h in ${PICOSCOPE_INCLUDE_DIR}")
+endif()
+if(NOT EXISTS ${ROOT_DIR}/include/TF1.h)
+  message(SEND_ERROR "Can't find TF1.h in ${ROOT_DIR}/include")
+endif()
+if(NOT EXISTS ${ROOT_DIR}/lib/libMathCore.so)
+  message(SEND_ERROR "Can't find libMathCore.so in ${ROOT_DIR}/lib")
+endif()
 include(GrMiscUtils)
 
 # Handle gr_log enable/disable
@@ -183,9 +200,9 @@ GR_LOGGING()
 # Setup doxygen option
 ########################################################################
 if(DOXYGEN_FOUND)
-	option(ENABLE_DOXYGEN "Build docs using Doxygen" ON)
+    option(ENABLE_DOXYGEN "Build docs using Doxygen" ON)
 else(DOXYGEN_FOUND)
-	option(ENABLE_DOXYGEN "Build docs using Doxygen" OFF)
+    option(ENABLE_DOXYGEN "Build docs using Doxygen" OFF)
 endif(DOXYGEN_FOUND)
 
 ########################################################################
@@ -199,12 +216,15 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     ${CPPUNIT_INCLUDE_DIRS}
     ${GNURADIO_ALL_INCLUDE_DIRS}
+    ${PICOSCOPE_INCLUDE_DIR}
+    ${ROOT_DIR}/include
 )
 
 link_directories(
     ${Boost_LIBRARY_DIRS}
     ${CPPUNIT_LIBRARY_DIRS}
     ${GNURADIO_RUNTIME_LIBRARY_DIRS}
+    ${ROOT_DIR}/lib
 )
 
 # Set component parameters
