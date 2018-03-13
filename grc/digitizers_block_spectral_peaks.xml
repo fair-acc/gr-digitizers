@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<block>
+  <name>B.6.2 Fitting of spectral peaks</name>
+  <key>digitizers_block_spectral_peaks</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.block_spectral_peaks($samp_rate, $fft_win, $lo_fq, $hi_fq, $med_n, $avg_n, $prox_n)</make>
+
+  <param>
+    <name>Sample rate</name>
+    <key>samp_rate</key>
+    <value>samp_rate</value>
+    <type>float</type>
+  </param>
+  <param>
+    <name>FFT window size half</name>
+    <key>fft_win</key>
+    <value>1024</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Lower frequency</name>
+    <key>lo_fq</key>
+    <value>0</value>
+    <type>float</type>
+  </param>
+  <param>
+    <name>Upper frequency</name>
+    <key>hi_fq</key>
+    <value>1000</value>
+    <type>float</type>
+  </param>
+  <param>
+    <name>Median window</name>
+    <key>med_n</key>
+    <value>10</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Average window</name>
+    <key>avg_n</key>
+    <value>10</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Proximity window</name>
+    <key>prox_n</key>
+    <value>10</value>
+    <type>int</type>
+  </param>
+
+   <sink>
+    <name>in</name>
+	<type>float</type>
+    <vlen>$fft_win</vlen>
+  </sink>
+  
+  <source>
+    <name>avg_med</name>
+    <type>float</type>
+    <vlen>$fft_win</vlen>
+  </source>
+  
+  <source>
+    <name>peak_fq</name>
+    <type>float</type>
+  </source>
+  
+  <source>
+    <name>stdev</name>
+    <type>float</type>
+  </source>
+  
+</block>

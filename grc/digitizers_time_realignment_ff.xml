@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<block>
+  <name>B.2 Time-Base Realignment</name>
+  <key>digitizers_time_realignment_ff</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.time_realignment_ff($user_delay, $timing_available, $ignore_realignment)</make>
+  
+  <callback>set_user_delay($user_delay)</callback>
+
+  <param>
+    <name>User Delay (s)</name>
+    <key>user_delay</key>
+    <value>0.0</value>
+    <type>float</type>    
+  </param>
+  <param>
+    <name>Timing Available</name>
+    <key>timing_available</key>
+    <value>1</value>
+    <type>enum</type>
+    <option>
+        <name>No</name>
+        <key>0</key>
+    </option>
+    <option>
+        <name>Yes</name>
+        <key>1</key>
+    </option>
+  </param>
+  <param>
+    <name>Ignore Realignment</name>
+    <key>ignore_realignment</key>
+    <value>0</value>
+    <type>enum</type>
+    <option>
+        <name>No</name>
+        <key>0</key>
+    </option>
+    <option>
+        <name>Yes</name>
+        <key>1</key>
+    </option>
+  </param>
+  <sink>
+    <name>values</name>
+    <type>float</type>
+  </sink>
+  <sink>
+    <name>errors</name>
+    <type>float</type>
+    <optional>True</optional>
+  </sink>
+
+  <source>
+    <name>values</name>
+    <type>float</type>
+  </source>
+  <source>
+    <name>errors</name>
+    <type>float</type>
+    <optional>True</optional>
+  </source>
+</block>

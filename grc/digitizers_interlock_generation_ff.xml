@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<block>
+  <name>B.7 Actual vs. Reference Monitoring</name>
+  <key>digitizers_interlock_generation_ff</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.interlock_generation_ff($max_min, $max_max)</make>
+  
+  <param>
+    <name>Max Threshold</name>
+    <key>max_max</key>
+    <value>1e5</value>
+    <type>float</type>
+  </param>
+  
+  <param>
+    <name>Min Threshold</name>
+    <key>max_min</key>
+    <value>-1e5</value>
+    <type>float</type>
+  </param>
+  
+  <sink>
+    <name>sig</name>
+    <type>float</type>
+  </sink>
+  <sink>
+    <name>min</name>
+    <type>float</type>
+  </sink>
+  <sink>
+    <name>max</name>
+    <type>float</type>
+  </sink>
+  
+  <source>
+  	<name>interlock</name>
+    <type>float</type>
+  </source>
+</block>

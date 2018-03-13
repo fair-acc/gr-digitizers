@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<block>
+  <name>Reference Function</name>
+  <key>digitizers_function_ff</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.function_ff($decimation)
+self.$(id).set_function($time, $reference, $min, $max)</make>
+
+  <param>
+    <name>Decimation</name>
+    <key>decimation</key>
+    <value>1</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Time w.r.t Beam-In (s)</name>
+    <key>time</key>
+    <value>(.0001, .0005, 0.1)</value>
+    <type>real_vector</type>
+  </param>
+  <param>
+    <name>Reference</name>
+    <key>reference</key>
+    <value>(1.0, 1.2, 1.45, 1.0)</value>
+    <type>real_vector</type>
+  </param>
+  <param>
+    <name>Min</name>
+    <key>min</key>
+    <value>(0.8, 1.0, 1.25, 0.8)</value>
+    <type>real_vector</type>
+  </param>
+  <param>
+    <name>Max</name>
+    <key>max</key>
+    <value>(1.2, 1.4, 1.65, 1.2)</value>
+    <type>real_vector</type>
+  </param>
+
+  <sink>
+    <name>timing</name>
+    <type>float</type>
+  </sink>
+
+  <source>
+    <name>ref</name>
+    <type>float</type>
+  </source>
+  <source>
+    <name>min</name>
+    <type>float</type>
+  </source>
+    <source>
+    <name>max</name>
+    <type>float</type>
+  </source>
+</block>

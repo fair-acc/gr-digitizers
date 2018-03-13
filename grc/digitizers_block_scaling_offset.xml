@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<block>
+  <name>B.1 Scaling and Offset</name>
+  <key>digitizers_block_scaling_offset</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.block_scaling_offset($scale, $offset)</make>
+  <callback>self.$(id).update_design($scale, $offset)</callback>
+  
+  <param>
+    <name>Scale factor</name>
+    <key>scale</key>
+    <value>1.0</value>
+    <type>float</type>
+  </param>
+  <param>
+    <name>Offset (after scale)</name>
+    <key>offset</key>
+    <value>0.0</value>
+    <type>float</type>
+  </param>
+
+  <sink>
+    <name>sig</name>
+    <type>float</type>
+  </sink>
+  <sink>
+    <name>err</name>
+    <type>float</type>
+  </sink>
+  <source>
+    <name>sig</name>
+    <type>float</type>
+  </source>
+  <source>
+    <name>err</name>
+    <type>float</type>
+  </source>
+</block>

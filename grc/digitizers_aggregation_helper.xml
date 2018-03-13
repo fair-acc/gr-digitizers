@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<block>
+  <name>Aggregation helper circuit</name>
+  <key>digitizers_aggregation_helper</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.aggregation_helper($sigma_mult)</make>
+  <callback>self.set_sigma_mult($sigma_mult)</callback>
+  
+
+  <param>
+    <name>Sigma Multiplier</name>
+    <key>sigma_mult</key>
+    <type>float</type>
+  </param>
+
+
+  <sink>
+    <name>in</name>
+    <type>float</type>
+    <nports>3</nports>
+  </sink>
+
+  <source>
+    <name>out</name>
+    <type>float</type>
+  </source>
+</block>

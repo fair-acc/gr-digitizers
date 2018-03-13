@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<block>
+  <name>B.4 Short-Time Fourier Transform (Goertzl dynamic)</name>
+  <key>digitizers_stft_goertzl_dynamic</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <import>from gnuradio.filter import firdes</import>
+  <make>digitizers.stft_goertzl_dynamic_decimated($samp_rate, $delta_t, $win_size, $nbins, $effect, $center_fq, $width_fq)</make>
+  
+  <callback>self.$(id).set_samp_rate($samp_rate)</callback>
+  <callback>self.$(id).update_bounds($effect, $center_fq, $width_fq)</callback>
+  
+  <param>
+    <name>Sample rate</name>
+    <key>samp_rate</key>
+    <value>samp_rate</value>
+    <type>float</type>
+  </param>
+  
+  <param>
+    <name>Delta T</name>
+    <key>delta_t</key>
+    <value>0.5</value>
+    <type>float</type>
+  </param>
+  
+  <param>
+    <name>Window size</name>
+    <key>win_size</key>
+    <value>2048</value>
+    <type>int</type>
+  </param>
+  
+  <param>
+    <name>Number of bins</name>
+    <key>nbins</key>
+    <value>win_size/2</value>
+    <type>int</type>
+  </param>
+  
+  <param>
+    <name>Effective time of boundry</name>
+    <key>effect</key>
+    <value>0.5</value>
+    <type>float</type>
+  </param>
+  
+  <param>
+    <name>Center frequency</name>
+    <key>center_fq</key>
+    <value>(samp_rate/4, samp_rate/2)</value>
+    <type>real_vector</type>
+  </param>
+  
+  <param>
+    <name>Frequency width</name>
+    <key>width_fq</key>
+    <value>(samp_rate/2, samp_rate/2)</value>
+    <type>real_vector</type>
+  </param>
+  
+  <sink>
+    <name>sig</name>
+    <type>float</type>
+  </sink>
+  <source>
+  	<name>ampl</name>
+    <type>float</type>
+	<vlen>$nbins</vlen>
+  </source>
+  <source>
+  	<name>phase</name>
+    <type>float</type>
+	<vlen>$nbins</vlen>
+  </source>
+  <source>
+  	<name>freqs</name>
+    <type>float</type>
+	<vlen>$nbins</vlen>
+  </source>
+</block>
