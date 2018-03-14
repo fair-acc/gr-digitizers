@@ -80,9 +80,9 @@ target_link_libraries(gnuradio-digitizers
     ps6000
     # ROOT's cmake does not work correctly on some platforms, if you want
     # to link against libs that are really needed uncomment the following two lines:
-    /opt/cern/root/lib/libMathCore.so
-    /opt/cern/root/lib/libGraf.so
-    #${ROOT_LIBRARIES}
+    #/opt/cern/root/lib/libMathCore.so
+    #/opt/cern/root/lib/libGraf.so
+    ${ROOT_LIBRARIES}
     )
 set_target_properties(gnuradio-digitizers PROPERTIES DEFINE_SYMBOL "gnuradio_digitizers_EXPORTS")
 

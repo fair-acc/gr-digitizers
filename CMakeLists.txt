@@ -104,15 +104,16 @@ endif()
 # You need to tell CMake where to find the ROOT installation. This can be done in a number of ways:
 #   - ROOT built with classic configure/make use the provided $ROOTSYS/etc/cmake/FindROOT.cmake
 #   - ROOT built with CMake. Add in CMAKE_PREFIX_PATH the installation prefix for ROOT
-list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
+#list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
+list(APPEND CMAKE_PREFIX_PATH "/opt/cern/root")
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 # TODO: the following does not wokr correctly, for some reason all the libraries gets pulled in
 #       and not just MathCore and Graf as specified.
-#find_package(ROOT REQUIRED COMPONENTS MathCore Graf)
+find_package(ROOT REQUIRED COMPONENTS MathCore Graf)
 
 #---Define useful ROOT functions and macros (e.g. ROOT_GENERATE_DICTIONARY)
-# include(${ROOT_USE_FILE})
+#include(${ROOT_USE_FILE})
 
 
 ########################################################################
