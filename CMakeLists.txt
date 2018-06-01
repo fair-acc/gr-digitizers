@@ -183,12 +183,6 @@ endif()
 if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps6000Api.h)
   message(SEND_ERROR "Can't find ps6000Api.h in ${PICOSCOPE_INCLUDE_DIR}")
 endif()
-if(NOT EXISTS ${ROOT_DIR}/include/TF1.h)
-  message(SEND_ERROR "Can't find TF1.h in ${ROOT_DIR}/include")
-endif()
-if(NOT EXISTS ${ROOT_DIR}/lib/libMathCore.so)
-  message(SEND_ERROR "Can't find libMathCore.so in ${ROOT_DIR}/lib")
-endif()
 include(GrMiscUtils)
 
 # Handle gr_log enable/disable
