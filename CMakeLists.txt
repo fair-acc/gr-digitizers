@@ -99,7 +99,7 @@ endif()
 #   - ROOT built with CMake. Add in CMAKE_PREFIX_PATH the installation prefix for ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
-# add default path on dal001
+# add default path of gsi-installation
 list(APPEND CMAKE_PREFIX_PATH "/opt/cern/root")
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
