@@ -39,7 +39,7 @@ namespace gr {
       post_mortem_sink::sptr d_pm_1000;
 
       interlock_generation_ff::sptr d_interlock;
-      function_ff::sprt  d_interlock_reference_function;
+      function_ff::sprt d_interlock_reference_function;
       time_domain_sink::sptr d_snk_interlock;
       time_domain_sink::sptr d_snk_interlock_min;
       time_domain_sink::sptr d_snk_interlock_ref;

@@ -64,7 +64,7 @@ namespace gr {
     {
 
       int samp_rate_to_ten_kilo = static_cast<int>(samp_rate / 10000.0);
-      if(samp_rate != (samp_rate_to_one_kilo * 10000.0)) {
+      if(samp_rate != (samp_rate_to_ten_kilo * 10000.0)) {
         GR_LOG_ALERT(logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
       }
 
