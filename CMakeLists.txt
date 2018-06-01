@@ -97,10 +97,12 @@ endif()
 # You need to tell CMake where to find the ROOT installation. This can be done in a number of ways:
 #   - ROOT built with classic configure/make use the provided $ROOTSYS/etc/cmake/FindROOT.cmake
 #   - ROOT built with CMake. Add in CMAKE_PREFIX_PATH the installation prefix for ROOT
-list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
+IF(NOT DEFINED ENV{ROOTSYS})
+    # add default path of gsi-installation
+	set(ENV{ROOTSYS} "/opt/cern/root")
+ENDIF(NOT DEFINED ENV{ROOTSYS})
 
-# add default path of gsi-installation
-list(APPEND CMAKE_PREFIX_PATH "/opt/cern/root")
+list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 # TODO: the following does not work correctly, for some reason all the libraries gets pulled in
@@ -127,7 +129,7 @@ set(GR_PKG_CONF_DIR     ${GR_CONF_DIR}/${CMAKE_PROJECT_NAME}/conf.d)
 set(GR_LIBEXEC_DIR      libexec)
 set(GR_PKG_LIBEXEC_DIR  ${GR_LIBEXEC_DIR}/${CMAKE_PROJECT_NAME})
 set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
-set(ROOT_DIR            /opt/cern/root)
+set(ROOT_DIR            $ENV{ROOTSYS})
 
 set(PICOSCOPE_INCLUDE_DIR   /usr/include/picoscope)
 set(GR_DIGITIZERS_EXAMPLES_DIR      ${GR_PKG_DATA_DIR}/examples)
