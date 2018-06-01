@@ -46,8 +46,8 @@ namespace gr {
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::stft_goertzl_dynamic.
        *
-       * \param max_min lower bound of the min interlock boundry
-       * \param max_max upper bound of the max interlock boundry.
+       * \param max_min lower bound of the min interlock boundary
+       * \param max_max upper bound of the max interlock boundary.
        */
       static sptr make(float max_min, float max_max);
 

@@ -11,6 +11,8 @@
 #include <gnuradio/hier_block2.h>
 #include <digitizers/time_domain_sink.h>
 #include <digitizers/post_mortem_sink.h>
+#include <digitizers/freq_sink_f.h>
+#include <digitizers/function_ff.h>
 
 namespace gr {
   namespace digitizers {
@@ -77,6 +79,18 @@ namespace gr {
        * \brief Returns post-mortem sinks contained by this module.
        */
       virtual std::vector<post_mortem_sink::sptr> get_post_mortem_sinks() = 0;
+
+
+      /*!
+       * \brief Returns all frequency-domain sinks contained by this module.
+       */
+      virtual std::vector<freq_sink_f::sptr> get_frequency_domain_sinks() = 0;
+
+
+      /*!
+       * \brief Returns all frequency-domain sinks contained by this module.
+       */
+      virtual std::vector<function_ff::sptr> get_reference_function_blocks() = 0;
 
     };
 
