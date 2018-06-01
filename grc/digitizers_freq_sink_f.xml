@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<block>
+  <name>Frequency Sink</name>
+  <key>digitizers_freq_sink_f</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.freq_sink_f($signal_name, $samp_rate, $nbins, $nmeasurements, $nbuffers, $acquisition_type)</make>
+ 
+ 
+  <param>
+    <name>Sample Rate (Hz)</name>
+    <key>samp_rate</key>
+    <value>samp_rate</value>
+    <type>float</type>    
+  </param>
+  <param>
+    <name>Mode</name>
+    <key>acquisition_type</key>
+    <value>0</value>
+    <type>enum</type>
+    <option>
+        <name>Triggered</name>
+        <key>0</key>
+    </option>
+    <option>
+        <name>Streaming</name>
+        <key>1</key>
+    </option>
+  </param>
+  <param>
+    <name>Signal Name</name>
+    <key>signal_name</key>
+    <value>My Signal</value>
+    <type>string</type>
+  </param>
+  
+  <param>
+    <name>Number of Bins</name>
+    <key>nbins</key>
+    <value>win_size/2</value>
+    <type>int</type>
+  </param>
+  
+  <param>
+    <name>Nr Measurements</name>
+    <key>nmeasurements</key>
+    <value>1</value>
+    <type>int</type>
+  </param>
+  
+    <param>
+    <name>Nr Buffers</name>
+    <key>nbuffers</key>
+    <value>1</value>
+    <type>int</type>
+  </param> 
+  
+  <sink>
+  	<name>ampl</name>
+    <type>float</type>
+	<vlen>$nbins</vlen>
+  </sink>
+  <sink>
+  	<name>phase</name>
+    <type>float</type>
+	<vlen>$nbins</vlen>
+  </sink>
+  <sink>
+  	<name>freqs</name>
+    <type>float</type>
+	<vlen>$nbins</vlen>
+  </sink>
+  
+  
+</block>

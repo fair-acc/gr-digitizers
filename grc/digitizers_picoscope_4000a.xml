@@ -1,0 +1,1179 @@
+<block>
+    <name>PicoScope 4000a</name>
+    <key>digitizers_picoscope_4000a</key>
+    <category>[digitizers]</category>
+    <flags>throttle</flags>
+    <import>import digitizers</import>
+    <make>digitizers.picoscope_4000a($serial_number, True)
+self.$(id).set_trigger_once($trigger_once)
+self.$(id).set_samp_rate($samp_rate)
+self.$(id).set_downsampling($downsampling_mode, $downsampling_factor)
+self.$(id).set_aichan('A', $enable_ai_a, $range_ai_a, $coupling_ai_a, $offset_ai_a)
+self.$(id).set_aichan('B', $enable_ai_b, $range_ai_b, $coupling_ai_b, $offset_ai_b)
+self.$(id).set_aichan('C', $enable_ai_c, $range_ai_c, $coupling_ai_c, $offset_ai_c)
+self.$(id).set_aichan('D', $enable_ai_d, $range_ai_d, $coupling_ai_d, $offset_ai_d)
+self.$(id).set_aichan('E', $enable_ai_e, $range_ai_e, $coupling_ai_e, $offset_ai_e)
+self.$(id).set_aichan('F', $enable_ai_f, $range_ai_f, $coupling_ai_f, $offset_ai_f)
+self.$(id).set_aichan('G', $enable_ai_g, $range_ai_g, $coupling_ai_g, $offset_ai_g)
+self.$(id).set_aichan('H', $enable_ai_h, $range_ai_h, $coupling_ai_h, $offset_ai_h)
+
+if $trigger_source != 'None':
+    self.$(id).set_aichan_trigger($trigger_source, $trigger_direction, $trigger_threshold)
+
+if $acquisition_mode == 'Streaming':
+    self.$(id).set_buffer_size($buff_size)
+    self.$(id).set_nr_buffers($nr_buffers)
+    self.$(id).set_driver_buffer_size($driver_buff_size)
+    self.$(id).set_streaming($poll_rate)
+else:
+    self.$(id).set_samples($samples, $pre_samples)
+    self.$(id).set_rapid_block($nr_waveforms)
+    </make>
+
+    
+    <!-- BASIC CONFIG -->
+    <param>
+        <name>Serial Number</name>
+        <key>serial_number</key>
+        <value>EW413/152</value>
+        <type>string</type>
+    </param>
+    <param>
+        <name>Sample Rate (Hz)</name>
+        <key>samp_rate</key>
+        <value>samp_rate</value>
+        <type>float</type>
+    </param>
+    <param>
+        <name>Acquisition Mode</name>
+        <key>acquisition_mode</key>
+        <value>Rapid Block</value>
+        <type>string</type>
+        <option>
+            <name>Rapid Block</name>
+            <key>Rapid Block</key>
+        </option>
+        <option>
+            <name>Streaming</name>
+            <key>Streaming</key>
+        </option>
+    </param>
+    <param>
+        <name>Trigger Once</name>
+        <key>trigger_once</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
+        <option>
+            <name>Yes</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>No</name>
+            <key>False</key>
+        </option>
+    </param>
+    <param>
+        <name>Nr Captures</name>
+        <key>nr_waveforms</key>
+        <value>5</value>
+        <type>int</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
+    </param>
+    <param>
+        <name>Buffer Size</name>
+        <key>buff_size</key>
+        <value>8192</value>
+        <type>int</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'None' else 'all'#</hide>
+    </param>
+    <param>
+        <name>Nr. Buffers</name>
+        <key>nr_buffers</key>
+        <value>100</value>
+        <type>int</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'None' else 'all'#</hide>
+    </param>
+    <param>
+        <name>Overview Buffer Size</name>
+        <key>driver_buff_size</key>
+        <value>100000</value>
+        <type>int</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'None' else 'all'#</hide>
+    </param>
+    <param>
+        <name>Poll Rate (s)</name>
+        <key>poll_rate</key>
+        <value>0.0005</value>
+        <type>float</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'None' else 'all'#</hide>
+    </param>
+    <param>
+        <name>Pre-trigger Samples</name>
+        <key>pre_samples</key>
+        <value>5000</value>
+        <type>int</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
+    </param>
+    <param>
+        <name>Post-trigger Samples</name>
+        <key>samples</key>
+        <value>10000</value>
+        <type>int</type>
+        <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
+    </param>
+    <param>
+        <name>Downsampling Mode</name>
+        <key>downsampling_mode</key>
+        <value>0</value>
+        <type>int</type>
+        <option>
+            <name>None</name>
+            <key>0</key>
+        </option>
+        <option>
+            <name>Min Max</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>Decimate</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>Average</name>
+            <key>3</key>
+        </option>
+    </param>
+    <param>
+        <name>Downsampling Factor</name>
+        <key>downsampling_factor</key>
+        <value>16</value>
+        <type>int</type>
+        <hide>#if $downsampling_mode() > 0 then 'None' else 'all'#</hide>
+    </param>
+
+    
+    <!-- Analog Config -->
+    <param>
+        <name>Channel A</name>
+        <key>enable_ai_a</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range A</name>
+        <key>range_ai_a</key>
+        <value>5</value>
+        <type>float</type>
+        <hide>#if $enable_ai_a() then 'part' else 'all'#</hide>
+        <option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset A (V)</name>
+        <key>offset_ai_a</key>
+        <value>0.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_a() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling A</name>
+        <key>coupling_ai_a</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_a() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    
+    <param>
+        <name>Channel B</name>
+        <key>enable_ai_b</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range B</name>
+        <key>range_ai_b</key>
+        <value>5</value>
+        <type>float</type>
+        <hide>#if $enable_ai_b() then 'part' else 'all'#</hide>
+		<option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset B (V)</name>
+        <key>offset_ai_b</key>
+        <value>0.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_b() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling B</name>
+        <key>coupling_ai_b</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_b() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+
+    <param>
+        <name>Channel C</name>
+        <key>enable_ai_c</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range C</name>
+        <key>range_ai_c</key>
+        <value>5.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_c() then 'part' else 'all'#</hide>
+        <option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset C (V)</name>
+        <key>offset_ai_c</key>
+        <value>5.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_c() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling C</name>
+        <key>coupling_ai_c</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_c() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    
+    <param>
+        <name>Channel D</name>
+        <key>enable_ai_d</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range D</name>
+        <key>range_ai_d</key>
+        <value>5.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_d() then 'part' else 'all'#</hide>
+        <option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset D (V)</name>
+        <key>offset_ai_d</key>
+        <value>0.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_d() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling D</name>
+        <key>coupling_ai_d</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_d() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    
+    <param>
+        <name>Channel E</name>
+        <key>enable_ai_e</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range E</name>
+        <key>range_ai_e</key>
+        <value>5</value>
+        <type>float</type>
+        <hide>#if $enable_ai_e() then 'part' else 'all'#</hide>
+        <option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset E (V)</name>
+        <key>offset_ai_e</key>
+        <value>0.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_e() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling E</name>
+        <key>coupling_ai_e</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_e() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    
+    <param>
+        <name>Channel F</name>
+        <key>enable_ai_f</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range F</name>
+        <key>range_ai_f</key>
+        <value>5</value>
+        <type>float</type>
+        <hide>#if $enable_ai_f() then 'part' else 'all'#</hide>
+		<option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset F (V)</name>
+        <key>offset_ai_f</key>
+        <value>0.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_f() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling F</name>
+        <key>coupling_ai_f</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_f() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+
+    <param>
+        <name>Channel G</name>
+        <key>enable_ai_g</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range G</name>
+        <key>range_ai_g</key>
+        <value>5.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_g() then 'part' else 'all'#</hide>
+        <option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset G (V)</name>
+        <key>offset_ai_g</key>
+        <value>5.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_g() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling G</name>
+        <key>coupling_ai_g</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_g() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    
+    <param>
+        <name>Channel H</name>
+        <key>enable_ai_h</key>
+        <value>True</value>
+        <type>bool</type>
+        <hide>part</hide>
+        <option>
+            <name>Enable</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>Disable</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range H</name>
+        <key>range_ai_h</key>
+        <value>5.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_h() then 'part' else 'all'#</hide>
+        <option>
+            <name>10 mV</name>
+            <key>0.01</key>
+        </option>
+        <option>
+            <name>20 mV</name>
+            <key>0.02</key>
+        </option>
+        <option>
+            <name>50 mV</name>
+            <key>0.05</key>
+        </option>
+        <option>
+            <name>100 mV</name>
+            <key>0.1</key>
+        </option>
+        <option>
+            <name>200 mV</name>
+            <key>0.2</key>
+        </option>
+        <option>
+            <name>500 mV</name>
+            <key>0.5</key>
+        </option>
+        <option>
+            <name>1 V</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>2 V</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>5 V</name>
+            <key>5</key>
+        </option>
+        <option>
+            <name>10 V</name>
+            <key>10</key>
+        </option>
+        <option>
+            <name>20 V</name>
+            <key>20</key>
+        </option>
+        <option>
+            <name>50 V</name>
+            <key>50</key>
+        </option>
+        <option>
+            <name>100 V</name>
+            <key>100</key>
+        </option>
+        <option>
+            <name>200 V</name>
+            <key>200</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Range Offset H (V)</name>
+        <key>offset_ai_h</key>
+        <value>0.0</value>
+        <type>float</type>
+        <hide>#if $enable_ai_h() then 'part' else 'all'#</hide>
+        <tab>Analog Config</tab>											 
+    </param>
+    <param>
+        <name>Coupling H</name>
+        <key>coupling_ai_h</key>
+        <value>False</value>
+        <type>bool</type>
+        <hide>#if $enable_ai_h() then 'part' else 'all'#</hide>
+        <option>
+            <name>DC</name>
+            <key>True</key>
+        </option>
+        <option>
+            <name>AC</name>
+            <key>False</key>
+        </option>
+        <tab>Analog Config</tab>											 
+    </param>
+    
+    <!-- Triggers -->
+    <param>
+        <name>Trigger Source</name>
+        <key>trigger_source</key>
+        <value>None</value>
+        <type>string</type>
+        <hide>part</hide>
+        <option>
+            <name>None</name>
+            <key>None</key>
+        </option>
+        <option>
+            <name>A</name>
+            <key>A</key>
+        </option>
+        <option>
+            <name>B</name>
+            <key>B</key>
+        </option>
+        <option>
+            <name>C</name>
+            <key>C</key>
+        </option>
+        <option>
+            <name>D</name>
+            <key>D</key>
+        </option>
+        <option>
+            <name>E</name>
+            <key>E</key>
+        </option>
+        <option>
+            <name>F</name>
+            <key>F</key>
+        </option>
+        <option>
+            <name>G</name>
+            <key>G</key>
+        </option>
+        <option>
+            <name>H</name>
+            <key>H</key>
+        </option>
+        <tab>Triggers</tab>
+    </param>
+    <param>
+        <name>Trigger Direction</name>
+        <key>trigger_direction</key>
+        <value>0</value>
+        <type>int</type>
+        <hide>#if $trigger_source() == 'None'  then 'all' else 'part'#</hide>
+        <option>
+            <name>Rising</name>
+            <key>0</key>
+        </option>
+        <option>
+            <name>Falling</name>
+            <key>1</key>
+        </option>
+        <option>
+            <name>Low</name>
+            <key>2</key>
+        </option>
+        <option>
+            <name>High</name>
+            <key>3</key>
+        </option>
+        <tab>Triggers</tab>
+    </param>
+    <param>
+        <name>Trigger Threshold (V)</name>
+        <key>trigger_threshold</key>
+        <value>2.5</value>
+        <type>float</type>
+        <hide>#if $trigger_source() == 'None' then 'all' else 'part'#</hide>
+        <tab>Triggers</tab>
+    </param>
+
+    <!-- Outputs -->
+    <source>
+        <name>ai_a</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_a</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+
+    <source>
+        <name>ai_b</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_b</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+
+    <source>
+        <name>ai_c</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_c</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+
+    <source>
+        <name>ai_d</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_d</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    
+    <source>
+        <name>ai_e</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_e</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+
+    <source>
+        <name>ai_f</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_f</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+
+    <source>
+        <name>ai_g</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_g</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+
+    <source>
+        <name>ai_h</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+    <source>
+        <name>err_h</name>
+        <type>float</type>
+        <nports>1</nports>
+        <optional>True</optional>
+    </source>
+</block>

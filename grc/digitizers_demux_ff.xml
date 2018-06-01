@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<block>
+  <name>B.2 Demux</name>
+  <key>digitizers_demux_ff</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.demux_ff($samp_rate, $history, $post_trigger_window, $pre_trigger_window)</make>
+
+  <param>
+    <name>Sample Rate (Hz)</name>
+    <key>samp_rate</key>
+    <value>samp_rate</value>
+    <type>float</type>    
+  </param>
+  <param>
+    <name>History</name>
+    <key>history</key>
+    <value>100000</value>
+    <type>int</type>    
+  </param>
+  <param>
+    <name>Pre-Trigger Samples</name>
+    <key>pre_trigger_window</key>
+    <value>0</value>
+    <type>float</type>
+  </param>
+  <param>
+    <name>Post-Trigger Samples</name>
+    <key>post_trigger_window</key>
+    <value>1000</value>
+    <type>float</type>
+  </param>
+  
+  <sink>
+    <name>values</name>
+    <type>float</type>
+  </sink>
+  <sink>
+    <name>errors</name>
+    <type>float</type>
+    <optional>True</optional>
+  </sink>
+
+  <source>
+    <name>values</name>
+    <type>float</type>
+  </source>
+  <source>
+    <name>errors</name>
+    <type>float</type>
+    <optional>True</optional>
+  </source>
+
+</block>

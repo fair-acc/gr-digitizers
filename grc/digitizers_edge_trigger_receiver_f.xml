@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<block>
+  <name>Edge Trigger Receiver</name>
+  <key>digitizers_edge_trigger_receiver_f</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.edge_trigger_receiver_f($addr, $port)</make>
+
+
+  <param>
+    <name>Address</name>
+    <key>addr</key>
+    <type>string</type>
+  </param>
+  
+  <param>
+    <name>Port No.</name>
+    <key>port</key>
+    <type>int</type>
+  </param>
+
+
+  <source>
+    <name>out</name>
+    <type>float</type>
+  </source>
+</block>

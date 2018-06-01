@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<block>
+  <name>B.2 Time Realignment</name>
+  <key>digitizers_time_realignment_ff</key>
+  <category>[digitizers]</category>
+  <import>import digitizers</import>
+  <make>digitizers.time_realignment_ff($samp_rate, $user_delay)</make>
+  
+  <callback>set_user_delay($user_delay)</callback>
+
+  <param>
+    <name>Sample Rate (Hz)</name>
+    <key>samp_rate</key>
+    <value>samp_rate</value>
+    <type>float</type>    
+  </param>
+  
+  <param>
+    <name>User Delay (s)</name>
+    <key>user_delay</key>
+    <value>0.0</value>
+    <type>float</type>    
+  </param>
+  
+  <param>
+    <name>Hide Share Tags</name>
+    <key>share_tags</key>
+    <value>True</value>
+    <type>bool</type>
+    <hide>part</hide>
+    <option>
+        <name>Yes</name>
+        <key>True</key>
+    </option>
+    <option>
+        <name>No</name>
+        <key>False</key>
+    </option>
+  </param>
+
+  <sink>
+    <name>values</name>
+    <type>float</type>
+  </sink>
+  <sink>
+    <name>errors</name>
+    <type>float</type>
+    <optional>True</optional>
+  </sink>
+  <sink>
+    <name>share</name>
+    <type>float</type>
+    <optional>True</optional>
+    <hide>$share_tags</hide>
+  </sink>
+
+  <source>
+    <name>values</name>
+    <type>float</type>
+  </source>
+  
+  <source>
+    <name>errors</name>
+    <type>float</type>
+    <optional>True</optional>
+  </source>
+
+</block>
