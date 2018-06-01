@@ -71,24 +71,24 @@ namespace gr {
           std::string unit_name);
 
       /*!
-       * \brief Returns all time-domain sinks contained by this module.
+       * \brief Returns all time-domain sinks contained within this module.
        */
       virtual std::vector<time_domain_sink::sptr> get_time_domain_sinks() = 0;
 
       /*!
-       * \brief Returns post-mortem sinks contained by this module.
+       * \brief Returns post-mortem sinks contained within this module.
        */
       virtual std::vector<post_mortem_sink::sptr> get_post_mortem_sinks() = 0;
 
 
       /*!
-       * \brief Returns all frequency-domain sinks contained by this module.
+       * \brief Returns all frequency-domain sinks contained within this module.
        */
       virtual std::vector<freq_sink_f::sptr> get_frequency_domain_sinks() = 0;
 
 
       /*!
-       * \brief Returns all frequency-domain sinks contained by this module.
+       * \brief Returns all reference function generator blocks contained within this module.
        */
       virtual std::vector<function_ff::sptr> get_reference_function_blocks() = 0;
 
