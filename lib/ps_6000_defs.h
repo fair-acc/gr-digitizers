@@ -12,7 +12,7 @@
 #ifndef LIB_PS_6000_DEFS_H_
 #define LIB_PS_6000_DEFS_H_
 
-#include <libps6000-1.4/PicoStatus.h>
+#include <PicoStatus.h>
 #include <string>
 
 inline std::string

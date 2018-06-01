@@ -12,8 +12,8 @@
 #include "utils.h"
 #include <system_error>
 
-#include <libps4000a-1.0/ps4000aApi.h>
-#include <libps4000a-1.0/PicoStatus.h>
+#include <ps4000aApi.h>
+#include <PicoStatus.h>
 
 namespace gr {
   namespace digitizers {

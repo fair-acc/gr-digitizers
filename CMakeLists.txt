@@ -99,6 +99,9 @@ endif()
 #   - ROOT built with CMake. Add in CMAKE_PREFIX_PATH the installation prefix for ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
+# add default path on dal001
+list(APPEND CMAKE_PREFIX_PATH "/opt/cern/root")
+
 #---Locate the ROOT package and defines a number of variables (e.g. ROOT_INCLUDE_DIRS)
 # TODO: the following does not work correctly, for some reason all the libraries gets pulled in
 #       and not just MathCore and Graf as specified.
@@ -124,7 +127,9 @@ set(GR_PKG_CONF_DIR     ${GR_CONF_DIR}/${CMAKE_PROJECT_NAME}/conf.d)
 set(GR_LIBEXEC_DIR      libexec)
 set(GR_PKG_LIBEXEC_DIR  ${GR_LIBEXEC_DIR}/${CMAKE_PROJECT_NAME})
 set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
+set(ROOT_DIR            /opt/cern/root)
 
+set(PICOSCOPE_INCLUDE_DIR   /usr/include/picoscope)
 set(GR_DIGITIZERS_EXAMPLES_DIR      ${GR_PKG_DATA_DIR}/examples)
 
 
@@ -167,6 +172,21 @@ if(NOT CPPUNIT_FOUND)
     message(FATAL_ERROR "CppUnit required to compile digitizers")
 endif()
 
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps3000aApi.h)
+  message(SEND_ERROR "Can't find ps3000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
+endif()
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
+  message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
+endif()
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps6000Api.h)
+  message(SEND_ERROR "Can't find ps6000Api.h in ${PICOSCOPE_INCLUDE_DIR}")
+endif()
+if(NOT EXISTS ${ROOT_DIR}/include/TF1.h)
+  message(SEND_ERROR "Can't find TF1.h in ${ROOT_DIR}/include")
+endif()
+if(NOT EXISTS ${ROOT_DIR}/lib/libMathCore.so)
+  message(SEND_ERROR "Can't find libMathCore.so in ${ROOT_DIR}/lib")
+endif()
 include(GrMiscUtils)
 
 # Handle gr_log enable/disable
@@ -192,12 +212,15 @@ include_directories(
     ${Boost_INCLUDE_DIRS}
     ${CPPUNIT_INCLUDE_DIRS}
     ${GNURADIO_ALL_INCLUDE_DIRS}
+    ${PICOSCOPE_INCLUDE_DIR}
+    ${ROOT_INCLUDE_DIR}
 )
 
 link_directories(
     ${Boost_LIBRARY_DIRS}
     ${CPPUNIT_LIBRARY_DIRS}
     ${GNURADIO_RUNTIME_LIBRARY_DIRS}
+    ${ROOT_LIBRARY_DIRS}
 )
 
 # Set component parameters

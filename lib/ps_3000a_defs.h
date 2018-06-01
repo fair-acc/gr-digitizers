@@ -8,7 +8,7 @@
 #define _PS_3000A_DEFS_H_
 
 
-#include <libps3000a-1.1/PicoStatus.h>
+#include <PicoStatus.h>
 #include <string>
 
 inline std::string
