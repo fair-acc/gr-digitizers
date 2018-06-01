@@ -33,6 +33,9 @@ namespace gr {
         d_min{0.0},
         d_max{0.0}
     {
+     if(decimation <= 0) {
+    	 GR_LOG_ALERT(logger, "function_ff_impl::function_ff_impl(int decimation) -decimation must not be <=0");
+      }
       set_tag_propagation_policy(TPP_DONT);
     }
 

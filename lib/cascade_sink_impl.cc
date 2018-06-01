@@ -190,7 +190,7 @@ namespace gr {
       // interlock and interlock reference function definition (ref, min, max)
 
       // function definition
-      d_interlock_reference_function =  function_ff::make(0);
+      d_interlock_reference_function =  function_ff::make(1);
       // make 1 kHz connection to interlock reference function module (needed to receive timing tags, nothing else)
       connect(d_agg1000, 0, d_interlock_reference_function, 0);
 
