@@ -117,8 +117,8 @@ namespace gr {
       // triggered time-domain && frequency domain sinks
       d_snk_raw_triggered  = time_domain_sink::make(signal_name+":RawSampling",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
       d_snk10000_triggered = time_domain_sink::make(signal_name+":RawSampling",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
-      d_freq_snk_triggered      = freq_sink_f::make(signal_name+":Spectrum",       samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
-      d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":Spectrum10kHz",  samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+      d_freq_snk_triggered    = freq_sink_f::make(signal_name+":Spectrum",    samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+      d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":Spectrum10kHz", samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
 
       // streaming frequency domain sinks
       d_freq_snk1000 = freq_sink_f::make(signal_name+":Spectrum@1kHz", 1000.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 10, FREQ_SINK_MODE_STREAMING);
@@ -267,7 +267,8 @@ namespace gr {
       // connect raw-ata-rate demux to STFT and then frequency-domain sink
       connect(self(), 0, d_demux_freq_raw, 0); // 0: values port
       connect(self(), 1, d_demux_freq_raw, 1); // 1: errors
-      stft_algorithms::sptr stft_raw_triggered = stft_algorithms::make(samp_rate, 0.001, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST/2);
+      stft_algorithms::sptr stft_raw_triggered = stft_algorithms::make(samp_rate, 0.001, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST);
+      stft_raw_triggered->set_block_alias("stft_raw_triggered<"+signal_name+">");
       connect(d_demux_freq_raw, 0, stft_raw_triggered, 0);
       // connect(d_demux_freq_raw, 1, stft_raw_triggered, 1); // 'err' input does not exist yet
       connect(stft_raw_triggered, 0, d_freq_snk_triggered, 0); // amplitude input
@@ -278,7 +279,8 @@ namespace gr {
       // connect 10 kHz freq demux to STFT and then frequency-domain sink
       connect(d_agg10000, 0, d_demux_freq_10k, 0);
       connect(d_agg10000, 1, d_demux_freq_10k, 1);
-      stft_algorithms::sptr stft_10k_triggered = stft_algorithms::make(10000.0f,  0.001, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      stft_algorithms::sptr stft_10k_triggered = stft_algorithms::make(10000.0f,  0.001, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW);
+      stft_10k_triggered->set_block_alias("stft_10k_triggered<"+signal_name+">");
       connect(d_demux_freq_10k, 0, stft_10k_triggered, 0);
       // connect(d_demux_freq_10k, 1, stft_10k_triggered, 1); // 'err' input does not exist yet
       connect(stft_10k_triggered, 0, d_freq_snk10k_triggered, 0); // amplitude input
@@ -290,21 +292,24 @@ namespace gr {
       // N.B. sampling frequency is always 10 kHz, but the window function is updated at a reduced rate
 
       // Short-Term Fourier Transform with fs=10 kHz und 1 kHz update rate
-      stft_algorithms::sptr stft_1k = stft_algorithms::make(10000.0f,  0.001, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      stft_algorithms::sptr stft_1k = stft_algorithms::make(10000.0f,  0.001, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW);
+      stft_1k->set_block_alias("stft_1k<"+signal_name+">");
       connect(d_agg10000, 0, stft_1k, 0);
       connect(stft_1k, 0, d_freq_snk1000, 0); // amplitude input
       connect(stft_1k, 1, d_freq_snk1000, 1); // phase input
       connect(stft_1k, 2, d_freq_snk1000, 2); // frequency inputs
 
       // Short-Term Fourier Transform with fs=10 kHz und 25 Hz update rate
-      stft_algorithms::sptr stft_25 = stft_algorithms::make(10000.0f,  0.04, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      stft_algorithms::sptr stft_25 = stft_algorithms::make(10000.0f,  0.04, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW);
+      stft_25->set_block_alias("stft_25<"+signal_name+">");
       connect(d_agg10000, 0, stft_25, 0);
       connect(stft_25, 0, d_freq_snk25, 0); // amplitude input
       connect(stft_25, 1, d_freq_snk25, 1); // phase input
       connect(stft_25, 2, d_freq_snk25, 2); // frequency inputs
 
       // Short-Term Fourier Transform with fs=10 kHz und 10 Hz update rate
-      stft_algorithms::sptr stft_10 = stft_algorithms::make(10000.0f,  0.1, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      stft_algorithms::sptr stft_10 = stft_algorithms::make(10000.0f,  0.1, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW);
+      stft_10->set_block_alias("stft_10<"+signal_name+">");
       connect(d_agg10000, 0, stft_10, 0);
       connect(stft_10, 0, d_freq_snk10, 0); // amplitude input
       connect(stft_10, 1, d_freq_snk10, 1); // phase input
@@ -330,7 +335,7 @@ namespace gr {
     std::vector<freq_sink_f::sptr>
     cascade_sink_impl::get_frequency_domain_sinks()
     {
-      return {d_freq_snk1000, d_freq_snk25, d_freq_snk10, d_freq_snk_triggered, d_freq_snk_triggered, d_freq_snk10k_triggered};
+      return {d_freq_snk1000, d_freq_snk25, d_freq_snk10, d_freq_snk_triggered, d_freq_snk10k_triggered};
     }
 
     std::vector<function_ff::sptr>
