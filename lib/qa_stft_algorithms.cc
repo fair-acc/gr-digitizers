@@ -26,7 +26,7 @@ namespace gr {
     auto src = blocks::vector_source_f::make(data);
     auto snk0 = blocks::vector_sink_f::make(8);
     auto snk1 = blocks::vector_sink_f::make(8);
-    auto fft = stft_algorithms::make(1000, 0.01, 8, 0, 0, 0, 500, 16);
+    auto fft = stft_algorithms::make(1000, 0.01, 8, 0, FFT, 0, 500, 16);
 
     top->connect(src, 0, fft, 0);
     top->connect(fft, 0, snk0, 0);

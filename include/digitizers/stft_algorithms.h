@@ -16,6 +16,17 @@
 namespace gr {
   namespace digitizers {
 
+      /*!
+       * \brief STFT mode
+       * \ingroup digitizers
+       */
+      enum DIGITIZERS_API stft_algorithm_id_t
+      {
+        FFT          = 0,
+        GOERTZEL     = 1,
+		DFT          = 2
+      };
+
     /*!
      * \brief Calculate the stft of the signal. This is a hier block
      * wired as it was described in the proposed wiring diagram.
@@ -39,7 +50,7 @@ namespace gr {
        * \param fq_hi upper frequency for the goertzel based f-response
        * \param nbins number of bins for the goertzel basded f-response
        */
-      static sptr make(double samp_rate, double delta_t, int window_size, int wintype, int alg_id, double fq_low, double fq_hi, int nbins);
+      static sptr make(double samp_rate, double delta_t, int window_size, int wintype, stft_algorithm_id_t alg_id, double fq_low, double fq_hi, int nbins);
 
       /**
        * \brief Set a new sample rate.

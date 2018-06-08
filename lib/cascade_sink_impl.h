@@ -14,6 +14,16 @@
 #include <digitizers/freq_sink_f.h>
 #include <digitizers/function_ff.h>
 #include <digitizers/interlock_generation_ff.h>
+#include <digitizers/demux_ff.h>
+#include <digitizers/stft_algorithms.h>
+
+#define N_BUFFERS 10
+#define MIN_HISTORY 0.01 // [ms] minimum history to ensure that WR triggers are found within
+
+#define TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST 32768
+#define TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW 8192
+#define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST 1000000
+#define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW 10000
 
 namespace gr {
   namespace digitizers {
@@ -34,6 +44,23 @@ namespace gr {
       time_domain_sink::sptr d_snk25;
       time_domain_sink::sptr d_snk10;
       time_domain_sink::sptr d_snk1;
+
+      // demux blocks
+      demux_ff::sptr		 d_demux_raw;
+      demux_ff::sptr		 d_demux_10000;
+      demux_ff::sptr		 d_demux_freq_raw;
+      demux_ff::sptr		 d_demux_freq_10k;
+
+      time_domain_sink::sptr d_snk_raw_triggered;
+      time_domain_sink::sptr d_snk10000_triggered;
+
+      freq_sink_f::sptr      d_freq_snk_triggered;
+      freq_sink_f::sptr      d_freq_snk10k_triggered;
+
+
+      freq_sink_f::sptr      d_freq_snk1000;
+      freq_sink_f::sptr      d_freq_snk25;
+      freq_sink_f::sptr      d_freq_snk10;
 
       post_mortem_sink::sptr d_pm_raw;
       post_mortem_sink::sptr d_pm_1000;

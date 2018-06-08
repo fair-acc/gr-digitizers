@@ -16,18 +16,18 @@ namespace gr {
   namespace digitizers {
 
     stft_algorithms::sptr
-    stft_algorithms::make(double samp_rate, double delta_t, int window_size, int wintype, int alg_id, double fq_low, double fq_hi, int nbins)
+    stft_algorithms::make(double samp_rate, double delta_t, int window_size, int wintype, stft_algorithm_id_t alg_id, double fq_low, double fq_hi, int nbins)
     {
       switch(alg_id) {
-      case 0:
+      case FFT:
         return gnuradio::get_initial_sptr
             (new fft_impl(samp_rate, delta_t, window_size, static_cast<filter::firdes::win_type>(wintype),fq_low, fq_hi, nbins));
         break;
-      case 1:
+      case GOERTZEL:
         return gnuradio::get_initial_sptr
             (new goertzel_impl(samp_rate, delta_t, window_size, fq_low, fq_hi, nbins, false));
         break;
-      case 2:
+      case DFT:
         return gnuradio::get_initial_sptr
             (new goertzel_impl(samp_rate, delta_t, window_size, 0, samp_rate/2, window_size, true));
         break;

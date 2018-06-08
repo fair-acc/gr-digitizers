@@ -107,12 +107,23 @@ namespace gr {
       d_agg1     = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10);
 
       // FESA will see updates @10Hz at most.
-      d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0, 1000, 10, TIME_SINK_MODE_STREAMING);
-      d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,   100, 10, TIME_SINK_MODE_STREAMING);
-      d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,     10, 10, TIME_SINK_MODE_STREAMING);
-      d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,       1, 10, TIME_SINK_MODE_STREAMING);
-      d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,       1, 10, TIME_SINK_MODE_STREAMING);
-      d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,          1,  2, TIME_SINK_MODE_STREAMING);
+      d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0, 1000, N_BUFFERS, TIME_SINK_MODE_STREAMING);
+      d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,   100, N_BUFFERS, TIME_SINK_MODE_STREAMING);
+      d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,     10, N_BUFFERS, TIME_SINK_MODE_STREAMING);
+      d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,       1, N_BUFFERS, TIME_SINK_MODE_STREAMING);
+      d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,       1, N_BUFFERS, TIME_SINK_MODE_STREAMING);
+      d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,          1, N_BUFFERS, TIME_SINK_MODE_STREAMING);
+
+      // triggered time-domain && frequency domain sinks
+      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":RawSampling",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_snk10000_triggered = time_domain_sink::make(signal_name+":RawSampling",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_freq_snk_triggered      = freq_sink_f::make(signal_name+":Spectrum",       samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+      d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":Spectrum10kHz",  samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+
+      // streaming frequency domain sinks
+      d_freq_snk1000 = freq_sink_f::make(signal_name+":Spectrum@1kHz", 1000.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 10, FREQ_SINK_MODE_STREAMING);
+      d_freq_snk25   = freq_sink_f::make(signal_name+":Spectrum@25Hz",   25.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_STREAMING);
+      d_freq_snk10   = freq_sink_f::make(signal_name+":Spectrum@10Hz",   10.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_STREAMING);
 
       // To prevent tag explosion we limit the output buffer size. For each output item the aggregation
       // block will generate only one acq_info tag. Therefore number 1024 seems to be reasonable... Note
@@ -124,6 +135,14 @@ namespace gr {
       d_agg10->set_max_output_buffer(1024);
       d_agg1->set_max_output_buffer(1024);
 
+      // setup demux blocks - default 10% for pre- and 90% of samples for post-trigger samples
+      d_demux_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
+	  d_demux_10000 = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
+
+	  d_demux_freq_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, 0);
+	  d_demux_freq_10k = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, 0);
+
+	  // setup post-mortem data sinks
       d_pm_raw = post_mortem_sink::make(signal_name+":PM@RAW", unit_name, samp_rate, pm_buffer * samp_rate);
       d_pm_1000 = post_mortem_sink::make(signal_name+":PM@10kHz", unit_name, 1000.0f, pm_buffer * 1000.0f);
 
@@ -182,6 +201,27 @@ namespace gr {
       connect(d_agg1000, 0, d_pm_1000, 0);
       connect(d_agg1000, 1, d_pm_1000, 1);
 
+      // triggered demux blocks (triggered acquisition)
+
+      // input to first raw-data-rate demux
+      connect(self(), 0, d_demux_raw, 0); // 0: values port
+      connect(self(), 1, d_demux_raw, 1); // 1: errors
+
+      // connect raw-data-rate demux to triggered time-domain sink
+      connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
+      connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
+
+
+
+
+      // first 10 kHz block to 10 kHz demux
+      connect(d_agg10000, 0, d_demux_10000, 0);
+      connect(d_agg10000, 1, d_demux_10000, 1);
+
+      // connect 10 kHz demux to triggered time-domain sink
+      connect(d_demux_10000, 0, d_snk10000_triggered, 0); // 0: values port
+      connect(d_demux_10000, 1, d_snk10000_triggered, 1); // 1: errors
+
       // output
       connect(d_agg1000, 0, self(), 0);
       connect(d_agg1000, 1, self(), 1);
@@ -219,11 +259,56 @@ namespace gr {
       connect(d_interlock_reference_function, 2, d_interlock, 2);
 
 
-      // TODO: add block definition for frequency-domain sinks
-      // N.B. three sinks:
-      // spectra sampled sampled at input rate and notified on triggered acquisition
-      // spectra sampled sampled at 10 kS/s with update rates at 1 kHz, 25 Hz, and 10 Hz
+      // block definition for frequency-domain sinks
+      // setup ST-Fourier Trafo blocks
+      int wintype = filter::firdes::win_type::WIN_BLACKMAN;
 
+      // Triggered case:
+      // connect raw-ata-rate demux to STFT and then frequency-domain sink
+      connect(self(), 0, d_demux_freq_raw, 0); // 0: values port
+      connect(self(), 1, d_demux_freq_raw, 1); // 1: errors
+      stft_algorithms::sptr stft_raw_triggered = stft_algorithms::make(samp_rate, 0.001, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST/2);
+      connect(d_demux_freq_raw, 0, stft_raw_triggered, 0);
+      // connect(d_demux_freq_raw, 1, stft_raw_triggered, 1); // 'err' input does not exist yet
+      connect(stft_raw_triggered, 0, d_freq_snk_triggered, 0); // amplitude input
+      connect(stft_raw_triggered, 1, d_freq_snk_triggered, 1); // phase input
+      connect(stft_raw_triggered, 2, d_freq_snk_triggered, 2); // frequency inputs
+
+
+      // connect 10 kHz freq demux to STFT and then frequency-domain sink
+      connect(d_agg10000, 0, d_demux_freq_10k, 0);
+      connect(d_agg10000, 1, d_demux_freq_10k, 1);
+      stft_algorithms::sptr stft_10k_triggered = stft_algorithms::make(10000.0f,  0.001, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      connect(d_demux_freq_10k, 0, stft_10k_triggered, 0);
+      // connect(d_demux_freq_10k, 1, stft_10k_triggered, 1); // 'err' input does not exist yet
+      connect(stft_10k_triggered, 0, d_freq_snk10k_triggered, 0); // amplitude input
+      connect(stft_10k_triggered, 1, d_freq_snk10k_triggered, 1); // phase input
+      connect(stft_10k_triggered, 2, d_freq_snk10k_triggered, 2); // frequency inputs
+
+
+      // connect streaming aggregated data to stft block and subsequently to frequency sink
+      // N.B. sampling frequency is always 10 kHz, but the window function is updated at a reduced rate
+
+      // Short-Term Fourier Transform with fs=10 kHz und 1 kHz update rate
+      stft_algorithms::sptr stft_1k = stft_algorithms::make(10000.0f,  0.001, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      connect(d_agg10000, 0, stft_1k, 0);
+      connect(stft_1k, 0, d_freq_snk1000, 0); // amplitude input
+      connect(stft_1k, 1, d_freq_snk1000, 1); // phase input
+      connect(stft_1k, 2, d_freq_snk1000, 2); // frequency inputs
+
+      // Short-Term Fourier Transform with fs=10 kHz und 25 Hz update rate
+      stft_algorithms::sptr stft_25 = stft_algorithms::make(10000.0f,  0.04, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      connect(d_agg10000, 0, stft_25, 0);
+      connect(stft_25, 0, d_freq_snk25, 0); // amplitude input
+      connect(stft_25, 1, d_freq_snk25, 1); // phase input
+      connect(stft_25, 2, d_freq_snk25, 2); // frequency inputs
+
+      // Short-Term Fourier Transform with fs=10 kHz und 10 Hz update rate
+      stft_algorithms::sptr stft_10 = stft_algorithms::make(10000.0f,  0.1, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW/2);
+      connect(d_agg10000, 0, stft_10, 0);
+      connect(stft_10, 0, d_freq_snk10, 0); // amplitude input
+      connect(stft_10, 1, d_freq_snk10, 1); // phase input
+      connect(stft_10, 2, d_freq_snk10, 2); // frequency inputs
     }
 
     cascade_sink_impl::~cascade_sink_impl()
@@ -233,7 +318,7 @@ namespace gr {
     std::vector<time_domain_sink::sptr>
     cascade_sink_impl::get_time_domain_sinks()
     {
-      return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000};
+      return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
     }
 
     std::vector<post_mortem_sink::sptr>
@@ -245,7 +330,7 @@ namespace gr {
     std::vector<freq_sink_f::sptr>
     cascade_sink_impl::get_frequency_domain_sinks()
     {
-      return {};
+      return {d_freq_snk1000, d_freq_snk25, d_freq_snk10, d_freq_snk_triggered, d_freq_snk_triggered, d_freq_snk10k_triggered};
     }
 
     std::vector<function_ff::sptr>
