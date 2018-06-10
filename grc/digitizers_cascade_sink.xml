@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <block>
-  <name>Cascade Time Sink</name>
+  <name>Cascade Sink</name>
   <key>digitizers_cascade_sink</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
@@ -53,7 +53,7 @@
   <param>
     <name>FIR Taps User</name>
     <key>fir_taps</key>
-    <value>firdes.low_pass(1, samp_rate, freq_max, freq_transition, firdes.WIN_HAMMING, 6.76)</value>
+    <value></value>
     <type>real_vector</type>
     <hide>#if $alg_id() == 2 or $alg_id() == 3  then 'None' else 'all'#</hide>
   </param>
@@ -82,14 +82,14 @@
   <param>
     <name>IIR Feedback Taps User</name>
     <key>fb_user_taps</key>
-    <value>firdes.low_pass(1, samp_rate, freq_max, freq_transition, firdes.WIN_HAMMING, 6.76)</value>
+    <value></value>
     <type>real_vector</type>
     <hide>#if $alg_id() == 6 then 'None' else 'all'#</hide>
   </param>
   <param>
     <name>IIR Forward Taps User</name>
     <key>fw_user_taps</key>
-    <value>firdes.low_pass(1, samp_rate, freq_max, freq_transition, firdes.WIN_HAMMING, 6.76)</value>
+    <value></value>
     <type>real_vector</type>
     <hide>#if $alg_id() == 6 then 'None' else 'all'#</hide>
   </param>
@@ -122,16 +122,19 @@
     <type>float</type>
   </sink>
   <sink>
-    <name>sigma in</name>
+    <name>err</name>
     <type>float</type>
+    <optional>1</optional>
   </sink>
 
   <source>
     <name>out1kHz</name>
     <type>float</type>
+    <optional>1</optional>
   </source>
   <source>
-    <name>sigma1kHz</name>
+    <name>err1kHz</name>
     <type>float</type>
+    <optional>1</optional> 
   </source>
 </block>

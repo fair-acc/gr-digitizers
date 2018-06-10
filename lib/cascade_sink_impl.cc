@@ -68,45 +68,7 @@ namespace gr {
         GR_LOG_ALERT(logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
       }
 
-      //create blocks
-      double lf = low_freq; // lower frequency cut-off - decreases by a factor 10 per stage
-      double uf = up_freq;  // upper frequency cut-off - decreases by a factor 10 per stage
-      double tr = tr_width; // transition width (ie. bandwidth between 3dB and 20 dB point
-      // (should not be excessively small <-> relates to the FIR filter length)
-      // N.B. original design of hard-coding names... TODO: clean-up and replace by loops for better readability
-
-      // first stage n-MS/S to 10 kS/s
-      d_agg10000 = block_aggregation::make(alg_id, samp_rate_to_ten_kilo, delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, samp_rate);
-
-      // second stage 10 kS/s to 1 kS/s
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg1000  = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10000);
-
-      // third stage 1 kS/s -> 100 S/s
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg100   = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 1000);
-
-      // fourth stage 100 S/s -> 25 S/s -> N.B. alternate continuous update rate @ 25 Hz
-      d_agg25    = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf/4, uf/4, tr/4, fb_user_taps, fw_user_taps, 25);
-
-      // fourth stage 100 S/s -> 10 S/s
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg10    = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 100);
-
-
-      // fifth stage 10 S/s -> 1 S/s (N.B. this slow speed is primarily relevant for super-slow storage rings (e.g. HESR)
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg1     = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10);
-
-      // FESA will see updates @10Hz at most.
+      // create sinks -- FESA will see updates @10Hz at most.
       d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0, 1000, N_BUFFERS, TIME_SINK_MODE_STREAMING);
       d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,   100, N_BUFFERS, TIME_SINK_MODE_STREAMING);
       d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,     10, N_BUFFERS, TIME_SINK_MODE_STREAMING);
@@ -114,120 +76,138 @@ namespace gr {
       d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,       1, N_BUFFERS, TIME_SINK_MODE_STREAMING);
       d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,          1, N_BUFFERS, TIME_SINK_MODE_STREAMING);
 
-      // triggered time-domain && frequency domain sinks
-      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":RawSampling",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
-      d_snk10000_triggered = time_domain_sink::make(signal_name+":RawSampling",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
-      d_freq_snk_triggered    = freq_sink_f::make(signal_name+":Spectrum",    samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
-      d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":Spectrum10kHz", samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+      //create aggregation blocks
+      double lf = low_freq; // lower frequency cut-off - decreases by a factor 10 per stage
+      double uf = up_freq;  // upper frequency cut-off - decreases by a factor 10 per stage
+      double tr = tr_width; // transition width (ie. bandwidth between 3dB and 20 dB point
+      // (should not be excessively small <-> relates to the FIR filter length)
+      // N.B. original design of hard-coding names... TODO: clean-up and replace by loops for better readability
 
-      // streaming frequency domain sinks
-      d_freq_snk1000 = freq_sink_f::make(signal_name+":Spectrum@1kHz", 1000.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 10, FREQ_SINK_MODE_STREAMING);
-      d_freq_snk25   = freq_sink_f::make(signal_name+":Spectrum@25Hz",   25.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_STREAMING);
-      d_freq_snk10   = freq_sink_f::make(signal_name+":Spectrum@10Hz",   10.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_STREAMING);
+      //static block_aggregation::sptr make(int alg_id, int decim, int delay, const std::vector<float> &fir_taps, double low_freq, double up_freq, double tr_width,
+      //         const std::vector<double> &fb_user_taps, const std::vector<double> &fw_user_taps, double samp_rate);
+
+      // first stage n-MS/S to 10 kS/s
+      d_agg10000 = block_aggregation::make(alg_id, samp_rate_to_ten_kilo, delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, samp_rate);
+      // input to first 10 kHz block
+      connect(self(), 0, d_agg10000, 0); // 0: values port
+      connect(self(), 1, d_agg10000, 1); // 1: errors
+      // connect raw->10kHz aggregation to corresponding FESA time-domain sink
+      connect(d_agg10000, 0, d_snk10000, 0); // 0: values port
+      connect(d_agg10000, 1, d_snk10000, 1); // 1: errors
+
+      // second stage 10 kS/s to 1 kS/s
+      lf /= 10;
+      uf /= 10;
+      tr /= 10;
+      d_agg1000  = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10000);
+      // first 10 kHz block to 1 kHz Block
+      connect(d_agg10000, 0, d_agg1000, 0);
+      connect(d_agg10000, 1, d_agg1000, 1);
+      // connect 1kHz stream to output
+      connect(d_agg1000, 0, self(), 0);
+      connect(d_agg1000, 1, self(), 1);
+      // connect 1kHz aggregation to corresponding FESA time-domain sink
+      connect(d_agg1000, 0, d_snk1000, 0);
+      connect(d_agg1000, 1, d_snk1000, 1);
+
+      // third stage 1 kS/s -> 100 S/s
+      lf /= 10;
+      uf /= 10;
+      tr /= 10;
+      d_agg100   = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 1000);
+      // 1 kHz block to 100 Hz Block
+      connect(d_agg1000, 0, d_agg100, 0);
+      connect(d_agg1000, 1, d_agg100, 1);
+      // connect 100 Hz aggregation to corresponding FESA time-domain sink
+      connect(d_agg100, 0, d_snk100, 0);
+      connect(d_agg100, 1, d_snk100, 1);
+
+      // fourth stage 100 S/s -> 25 S/s -> N.B. alternate continuous update rate @ 25 Hz
+      d_agg25    = block_aggregation::make(alg_id,  4,                   delay, fir_taps, lf/4, uf/4, tr/4, fb_user_taps, fw_user_taps, 100);
+      // 100 Hz block to 25 Hz Block
+      connect(d_agg100, 0, d_agg25, 0);
+      connect(d_agg100, 1, d_agg25, 1);
+      // connect 25 Hz aggregation to corresponding FESA time-domain sink
+      connect(d_agg25, 0, d_snk25, 0);
+      connect(d_agg25, 1, d_snk25, 1);
+
+      // fourth stage 100 S/s -> 10 S/s
+      lf /= 10;
+      uf /= 10;
+      tr /= 10;
+      d_agg10    = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 100);
+      // 100 Hz block to 10 Hz Block
+      connect(d_agg100, 0, d_agg10, 0);
+      connect(d_agg100, 1, d_agg10, 1);
+      // connect 10 Hz aggregation to corresponding FESA time-domain sink
+      connect(d_agg10, 0, d_snk10, 0);
+      connect(d_agg10, 1, d_snk10, 1);
+
+
+      // fifth stage 10 S/s -> 1 S/s (N.B. this slow speed is primarily relevant for super-slow storage rings (e.g. HESR)
+      lf /= 10;
+      uf /= 10;
+      tr /= 10;
+      d_agg1     = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10);
+      // 10 Hz block to 1 Hz Block
+      connect(d_agg10, 0, d_agg1, 0);
+      connect(d_agg10, 1, d_agg1, 1);
+      // connect 1 Hz aggregation to corresponding FESA time-domain sink
+      connect(d_agg1, 0, d_snk1, 0);
+      connect(d_agg1, 1, d_snk1, 1);
+
 
       // To prevent tag explosion we limit the output buffer size. For each output item the aggregation
       // block will generate only one acq_info tag. Therefore number 1024 seems to be reasonable... Note
       // GR works only with output buffers of one page....
-      d_agg10000->set_max_output_buffer(1024);
+      //d_agg10000->set_max_output_buffer(1024);
       d_agg1000->set_max_output_buffer(1024);
       d_agg100->set_max_output_buffer(1024);
       d_agg25->set_max_output_buffer(1024);
       d_agg10->set_max_output_buffer(1024);
       d_agg1->set_max_output_buffer(1024);
 
-      // setup demux blocks - default 10% for pre- and 90% of samples for post-trigger samples
-      d_demux_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
-	  d_demux_10000 = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
 
-	  d_demux_freq_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, 0);
-	  d_demux_freq_10k = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, 0);
+      // **
+      // post-mortem sinks
+      // **
 
 	  // setup post-mortem data sinks
       d_pm_raw = post_mortem_sink::make(signal_name+":PM@RAW", unit_name, samp_rate, pm_buffer * samp_rate);
       d_pm_1000 = post_mortem_sink::make(signal_name+":PM@10kHz", unit_name, 1000.0f, pm_buffer * 1000.0f);
 
-      // ***
-      // connect block cascade
-      // ***
-      // input to first 10 kHz block
-      connect(self(), 0, d_agg10000, 0); // 0: values port
-      connect(self(), 1, d_agg10000, 1); // 1: errors
-
-      // first 10 kHz block to 1 kHz Block
-      connect(d_agg10000, 0, d_agg1000, 0);
-      connect(d_agg10000, 1, d_agg1000, 1);
-
-      // 1 kHz block to 100 Hz Block
-      connect(d_agg1000, 0, d_agg100, 0);
-      connect(d_agg1000, 1, d_agg100, 1);
-
-      // 100 Hz block to 10 Hz Block
-      connect(d_agg100, 0, d_agg10, 0);
-      connect(d_agg100, 1, d_agg10, 1);
-
-      // 100 Hz block to 25 Hz Block
-      connect(d_agg100, 0, d_agg25, 0);
-      connect(d_agg100, 1, d_agg25, 1);
-
-      // 10 Hz block to 1 Hz Block
-      connect(d_agg10, 0, d_agg1, 0);
-      connect(d_agg10, 1, d_agg1, 1);
-
-      // ***
-      // connect blocks to corresponding FESA sink interfaces
-      // ***
-      connect(d_agg10000, 0, d_snk10000, 0);
-      connect(d_agg10000, 1, d_snk10000, 1);
-
-      connect(d_agg1000, 0, d_snk1000, 0);
-      connect(d_agg1000, 1, d_snk1000, 1);
-
-      connect(d_agg100, 0, d_snk100, 0);
-      connect(d_agg100, 1, d_snk100, 1);
-
-      connect(d_agg25, 0, d_snk25, 0);
-      connect(d_agg25, 1, d_snk25, 1);
-
-      connect(d_agg10, 0, d_snk10, 0);
-      connect(d_agg10, 1, d_snk10, 1);
-
-      connect(d_agg1, 0, d_snk1, 0);
-      connect(d_agg1, 1, d_snk1, 1);
-
-      // post-mortem sinks
+      // connect raw-rate PM data sinks
       connect(self(), 0, d_pm_raw, 0);
       connect(self(), 1, d_pm_raw, 1);
-
+      // connect 10 kHz PM data sinks
       connect(d_agg1000, 0, d_pm_1000, 0);
       connect(d_agg1000, 1, d_pm_1000, 1);
 
-      // triggered demux blocks (triggered acquisition)
 
+      // triggered demux blocks (triggered time-domain acquisition)
+      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":RawSampling",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_demux_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
       // input to first raw-data-rate demux
       connect(self(), 0, d_demux_raw, 0); // 0: values port
       connect(self(), 1, d_demux_raw, 1); // 1: errors
-
       // connect raw-data-rate demux to triggered time-domain sink
       connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
       connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
-
-
-
+      d_snk10000_triggered = time_domain_sink::make(signal_name+":RawSampling",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_demux_10000 = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
       // first 10 kHz block to 10 kHz demux
       connect(d_agg10000, 0, d_demux_10000, 0);
       connect(d_agg10000, 1, d_demux_10000, 1);
-
       // connect 10 kHz demux to triggered time-domain sink
       connect(d_demux_10000, 0, d_snk10000_triggered, 0); // 0: values port
       connect(d_demux_10000, 1, d_snk10000_triggered, 1); // 1: errors
 
-      // output
-      connect(d_agg1000, 0, self(), 0);
-      connect(d_agg1000, 1, self(), 1);
 
 
+      // **
       // interlock and interlock reference function definition (ref, min, max)
+      // **
 
       // function definition
       d_interlock_reference_function =  function_ff::make(1);
@@ -262,9 +242,17 @@ namespace gr {
       // block definition for frequency-domain sinks
       // setup ST-Fourier Trafo blocks
       int wintype = filter::firdes::win_type::WIN_BLACKMAN;
+      // setup demux blocks - default 10% for pre- and 90% of samples for post-trigger samples
 
-      // Triggered case:
-      // connect raw-ata-rate demux to STFT and then frequency-domain sink
+
+      // **
+      // frequency-domain -type acquisition
+      // **
+
+      // triggered frequency domain sinks
+      d_freq_snk_triggered    = freq_sink_f::make(signal_name+":Spectrum",    samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+      d_demux_freq_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, 0);
+      // connect raw-data-rate demux to STFT and then frequency-domain sink
       connect(self(), 0, d_demux_freq_raw, 0); // 0: values port
       connect(self(), 1, d_demux_freq_raw, 1); // 1: errors
       stft_algorithms::sptr stft_raw_triggered = stft_algorithms::make(samp_rate, 0.001, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST);
@@ -275,7 +263,8 @@ namespace gr {
       connect(stft_raw_triggered, 1, d_freq_snk_triggered, 1); // phase input
       connect(stft_raw_triggered, 2, d_freq_snk_triggered, 2); // frequency inputs
 
-
+      d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":Spectrum10kHz", samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+	  d_demux_freq_10k = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, 0);
       // connect 10 kHz freq demux to STFT and then frequency-domain sink
       connect(d_agg10000, 0, d_demux_freq_10k, 0);
       connect(d_agg10000, 1, d_demux_freq_10k, 1);
@@ -287,9 +276,12 @@ namespace gr {
       connect(stft_10k_triggered, 1, d_freq_snk10k_triggered, 1); // phase input
       connect(stft_10k_triggered, 2, d_freq_snk10k_triggered, 2); // frequency inputs
 
-
       // connect streaming aggregated data to stft block and subsequently to frequency sink
       // N.B. sampling frequency is always 10 kHz, but the window function is updated at a reduced rate
+      // streaming-mode frequency domain sinks
+      d_freq_snk1000 = freq_sink_f::make(signal_name+":Spectrum@1kHz", 1000.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 10, FREQ_SINK_MODE_STREAMING);
+      d_freq_snk25   = freq_sink_f::make(signal_name+":Spectrum@25Hz",   25.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_STREAMING);
+      d_freq_snk10   = freq_sink_f::make(signal_name+":Spectrum@10Hz",   10.0, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_STREAMING);
 
       // Short-Term Fourier Transform with fs=10 kHz und 1 kHz update rate
       stft_algorithms::sptr stft_1k = stft_algorithms::make(10000.0f,  0.001, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, wintype, FFT, 0, samp_rate/2, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW);

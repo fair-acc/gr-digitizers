@@ -1039,7 +1039,7 @@ namespace gr {
              port_buffers, channel_status, local_timstamp);
 
      if (lost_count) {
-       GR_LOG_WARN(d_logger, std::to_string(lost_count) + " data buffers lost");
+       GR_LOG_WARN(d_logger, std::to_string(lost_count) + " digitizer data buffers lost");
      }
 
      // Compile acquisition info tag
