@@ -261,7 +261,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(307, 144)</value>
+      <value>(307, 451)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -269,54 +269,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_block_scaling_offset_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>offset</key>
-      <value>0.0</value>
-    </param>
-    <param>
-      <key>scale</key>
-      <value>1.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_block_scaling_offset</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(307, 220)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_block_scaling_offset_0_0</value>
+      <value>digitizers_block_scaling_offset_channel_DELTA_I</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -363,7 +316,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_block_scaling_offset_0_0_0</value>
+      <value>digitizers_block_scaling_offset_channel_I</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -402,7 +355,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(307, 374)</value>
+      <value>(307, 144)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -410,101 +363,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_block_scaling_offset_0_0_0_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>offset</key>
-      <value>0.0</value>
-    </param>
-    <param>
-      <key>scale</key>
-      <value>1.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_block_scaling_offset</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(307, 451)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_block_scaling_offset_0_0_0_0_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>offset</key>
-      <value>0.0</value>
-    </param>
-    <param>
-      <key>scale</key>
-      <value>1.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_block_scaling_offset</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(307, 528)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_block_scaling_offset_0_0_0_0_0_0</value>
+      <value>digitizers_block_scaling_offset_channel_I_SET</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -551,7 +410,148 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_block_scaling_offset_0_0_0_0_0_0_0</value>
+      <value>digitizers_block_scaling_offset_channel_SPARE</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>offset</key>
+      <value>0.0</value>
+    </param>
+    <param>
+      <key>scale</key>
+      <value>1.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_block_scaling_offset</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(307, 374)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_block_scaling_offset_channel_U</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>offset</key>
+      <value>0.0</value>
+    </param>
+    <param>
+      <key>scale</key>
+      <value>1.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_block_scaling_offset</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(307, 220)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_block_scaling_offset_channel_U_SET</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>offset</key>
+      <value>0.0</value>
+    </param>
+    <param>
+      <key>scale</key>
+      <value>1.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_block_scaling_offset</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(307, 528)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_block_scaling_offset_channel_U_TST</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -602,7 +602,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1161, 115)</value>
+      <value>(1161, 422)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -610,7 +610,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_cascade_sink_0</value>
+      <value>digitizers_cascade_sink__channel_DELTA_I</value>
     </param>
     <param>
       <key>fb_user_taps</key>
@@ -642,98 +642,11 @@
     </param>
     <param>
       <key>signal_name</key>
-      <value>:I_SET</value>
+      <value>:DELTA_I</value>
     </param>
     <param>
       <key>signal_unit</key>
       <value>A</value>
-    </param>
-    <param>
-      <key>tr_width</key>
-      <value>1000</value>
-    </param>
-    <param>
-      <key>up_freq</key>
-      <value>5000</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_cascade_sink</key>
-    <param>
-      <key>alg_id</key>
-      <value>4</value>
-    </param>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>delay</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>fir_taps</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(941, 192)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_cascade_sink_0_0</value>
-    </param>
-    <param>
-      <key>fb_user_taps</key>
-      <value></value>
-    </param>
-    <param>
-      <key>fw_user_taps</key>
-      <value></value>
-    </param>
-    <param>
-      <key>low_freq</key>
-      <value>1000</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>pm_buffer</key>
-      <value>2.0</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>signal_name</key>
-      <value>:U_SET</value>
-    </param>
-    <param>
-      <key>signal_unit</key>
-      <value>V</value>
     </param>
     <param>
       <key>tr_width</key>
@@ -784,7 +697,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_cascade_sink_0_0_0</value>
+      <value>digitizers_cascade_sink__channel_I</value>
     </param>
     <param>
       <key>fb_user_taps</key>
@@ -871,7 +784,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_cascade_sink_0_0_0_0</value>
+      <value>digitizers_cascade_sink__channel_U</value>
     </param>
     <param>
       <key>fb_user_taps</key>
@@ -950,7 +863,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(1161, 422)</value>
+      <value>(941, 192)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -958,7 +871,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_cascade_sink_0_0_0_0_0</value>
+      <value>digitizers_cascade_sink__channel_U_SET</value>
     </param>
     <param>
       <key>fb_user_taps</key>
@@ -990,94 +903,7 @@
     </param>
     <param>
       <key>signal_name</key>
-      <value>:DELTA_I</value>
-    </param>
-    <param>
-      <key>signal_unit</key>
-      <value>A</value>
-    </param>
-    <param>
-      <key>tr_width</key>
-      <value>1000</value>
-    </param>
-    <param>
-      <key>up_freq</key>
-      <value>10000</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_cascade_sink</key>
-    <param>
-      <key>alg_id</key>
-      <value>4</value>
-    </param>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>delay</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>fir_taps</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(941, 499)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_cascade_sink_0_0_0_0_0_0</value>
-    </param>
-    <param>
-      <key>fb_user_taps</key>
-      <value></value>
-    </param>
-    <param>
-      <key>fw_user_taps</key>
-      <value></value>
-    </param>
-    <param>
-      <key>low_freq</key>
-      <value>1000</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>pm_buffer</key>
-      <value>2.0</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>signal_name</key>
-      <value>:U_TST</value>
+      <value>:U_SET</value>
     </param>
     <param>
       <key>signal_unit</key>
@@ -1124,6 +950,93 @@
     </param>
     <param>
       <key>_coordinate</key>
+      <value>(1161, 115)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_cascade_sink_channel_I_SET</value>
+    </param>
+    <param>
+      <key>fb_user_taps</key>
+      <value></value>
+    </param>
+    <param>
+      <key>fw_user_taps</key>
+      <value></value>
+    </param>
+    <param>
+      <key>low_freq</key>
+      <value>1000</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>pm_buffer</key>
+      <value>2.0</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>signal_name</key>
+      <value>:I_SET</value>
+    </param>
+    <param>
+      <key>signal_unit</key>
+      <value>A</value>
+    </param>
+    <param>
+      <key>tr_width</key>
+      <value>1000</value>
+    </param>
+    <param>
+      <key>up_freq</key>
+      <value>5000</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_cascade_sink</key>
+    <param>
+      <key>alg_id</key>
+      <value>4</value>
+    </param>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>delay</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>fir_taps</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_coordinate</key>
       <value>(1161, 576)</value>
     </param>
     <param>
@@ -1132,7 +1045,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_cascade_sink_0_0_0_0_0_0_0</value>
+      <value>digitizers_cascade_sink_channel_SPARE</value>
     </param>
     <param>
       <key>fb_user_taps</key>
@@ -1219,7 +1132,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_cascade_sink_0_0_0_0_0_0_0_0</value>
+      <value>digitizers_cascade_sink_channel_TIMING</value>
     </param>
     <param>
       <key>fb_user_taps</key>
@@ -1252,6 +1165,93 @@
     <param>
       <key>signal_name</key>
       <value>:TIMING</value>
+    </param>
+    <param>
+      <key>signal_unit</key>
+      <value>V</value>
+    </param>
+    <param>
+      <key>tr_width</key>
+      <value>1000</value>
+    </param>
+    <param>
+      <key>up_freq</key>
+      <value>10000</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_cascade_sink</key>
+    <param>
+      <key>alg_id</key>
+      <value>4</value>
+    </param>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>delay</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>fir_taps</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(941, 499)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_cascade_sink_channel_U_TST</value>
+    </param>
+    <param>
+      <key>fb_user_taps</key>
+      <value></value>
+    </param>
+    <param>
+      <key>fw_user_taps</key>
+      <value></value>
+    </param>
+    <param>
+      <key>low_freq</key>
+      <value>1000</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>pm_buffer</key>
+      <value>2.0</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>signal_name</key>
+      <value>:U_TST</value>
     </param>
     <param>
       <key>signal_unit</key>
@@ -1517,210 +1517,6 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(518, 144)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>share_tags</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_time_realignment_ff_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>user_delay</key>
-      <value>0.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_time_realignment_ff</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(518, 220)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>share_tags</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_time_realignment_ff_0_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>user_delay</key>
-      <value>0.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_time_realignment_ff</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(518, 297)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>share_tags</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_time_realignment_ff_0_0_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>user_delay</key>
-      <value>0.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_time_realignment_ff</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(518, 374)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>share_tags</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_time_realignment_ff_0_0_0_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>user_delay</key>
-      <value>0.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_time_realignment_ff</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
       <value>(518, 451)</value>
     </param>
     <param>
@@ -1733,58 +1529,7 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_time_realignment_ff_0_0_0_0_0</value>
-    </param>
-    <param>
-      <key>maxoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>minoutbuf</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>samp_rate</key>
-      <value>samp_rate</value>
-    </param>
-    <param>
-      <key>user_delay</key>
-      <value>0.0</value>
-    </param>
-  </block>
-  <block>
-    <key>digitizers_time_realignment_ff</key>
-    <param>
-      <key>alias</key>
-      <value></value>
-    </param>
-    <param>
-      <key>comment</key>
-      <value></value>
-    </param>
-    <param>
-      <key>affinity</key>
-      <value></value>
-    </param>
-    <param>
-      <key>_enabled</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>_coordinate</key>
-      <value>(518, 528)</value>
-    </param>
-    <param>
-      <key>_rotation</key>
-      <value>0</value>
-    </param>
-    <param>
-      <key>share_tags</key>
-      <value>True</value>
-    </param>
-    <param>
-      <key>id</key>
-      <value>digitizers_time_realignment_ff_0_0_0_0_0_0</value>
+      <value>digitizers_time_realignment_ff__channel_DELTA_I</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -1835,7 +1580,262 @@
     </param>
     <param>
       <key>id</key>
-      <value>digitizers_time_realignment_ff_0_0_0_0_0_0_0</value>
+      <value>digitizers_time_realignment_ff__channel_SPARE</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>user_delay</key>
+      <value>0.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_time_realignment_ff</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(518, 374)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>share_tags</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_time_realignment_ff__channel_U</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>user_delay</key>
+      <value>0.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_time_realignment_ff</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(518, 528)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>share_tags</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_time_realignment_ff__channel_U_TST</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>user_delay</key>
+      <value>0.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_time_realignment_ff</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(518, 297)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>share_tags</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_time_realignment_ff_channel_I</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>user_delay</key>
+      <value>0.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_time_realignment_ff</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(518, 144)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>share_tags</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_time_realignment_ff_channel_I_SET</value>
+    </param>
+    <param>
+      <key>maxoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>minoutbuf</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>samp_rate</key>
+      <value>samp_rate</value>
+    </param>
+    <param>
+      <key>user_delay</key>
+      <value>0.0</value>
+    </param>
+  </block>
+  <block>
+    <key>digitizers_time_realignment_ff</key>
+    <param>
+      <key>alias</key>
+      <value></value>
+    </param>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>affinity</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(518, 220)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>share_tags</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>digitizers_time_realignment_ff_channel_U_SET</value>
     </param>
     <param>
       <key>maxoutbuf</key>
@@ -2924,152 +2924,152 @@
     <sink_key>4</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_DELTA_I</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_DELTA_I</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_DELTA_I</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_DELTA_I</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_I</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff_channel_I</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_I</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff_channel_I</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_I_SET</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff_channel_I_SET</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_I_SET</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff_channel_I_SET</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_SPARE</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_SPARE</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_SPARE</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_SPARE</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_U</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_U</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_U</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_U</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_U_SET</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff_channel_U_SET</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_U_SET</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff_channel_U_SET</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_U_TST</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_U_TST</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0_0</sink_block_id>
+    <source_block_id>digitizers_block_scaling_offset_channel_U_TST</source_block_id>
+    <sink_block_id>digitizers_time_realignment_ff__channel_U_TST</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_cascade_sink_0</source_block_id>
-    <sink_block_id>block_error_band_0</sink_block_id>
-    <source_key>1</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_cascade_sink_0</source_block_id>
-    <sink_block_id>block_error_band_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_cascade_sink_0_0</source_block_id>
+    <source_block_id>digitizers_cascade_sink__channel_U_SET</source_block_id>
     <sink_block_id>block_error_band_0_0</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_cascade_sink_0_0</source_block_id>
+    <source_block_id>digitizers_cascade_sink__channel_U_SET</source_block_id>
     <sink_block_id>block_error_band_0_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0</sink_block_id>
+    <source_block_id>digitizers_cascade_sink_channel_I_SET</source_block_id>
+    <sink_block_id>block_error_band_0</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>1</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_cascade_sink_channel_I_SET</source_block_id>
+    <sink_block_id>block_error_band_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_I_SET</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_U_SET</sink_block_id>
     <source_key>2</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_I</sink_block_id>
     <source_key>4</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_U</sink_block_id>
     <source_key>6</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_DELTA_I</sink_block_id>
     <source_key>8</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_U_TST</sink_block_id>
     <source_key>10</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_SPARE</sink_block_id>
     <source_key>12</source_key>
     <sink_key>0</sink_key>
   </connection>
@@ -3081,49 +3081,49 @@
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_TIMING</sink_block_id>
     <source_key>14</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_I_SET</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_U_SET</sink_block_id>
     <source_key>3</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_I</sink_block_id>
     <source_key>5</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_U</sink_block_id>
     <source_key>7</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_DELTA_I</sink_block_id>
     <source_key>9</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_U_TST</sink_block_id>
     <source_key>11</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_block_scaling_offset_0_0_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_block_scaling_offset_channel_SPARE</sink_block_id>
     <source_key>13</source_key>
     <sink_key>1</sink_key>
   </connection>
@@ -3135,116 +3135,116 @@
   </connection>
   <connection>
     <source_block_id>digitizers_picoscope_4000a_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0_0_0_0</sink_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_TIMING</sink_block_id>
     <source_key>15</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0</sink_block_id>
+    <source_block_id>digitizers_time_realignment_ff__channel_DELTA_I</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_DELTA_I</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0</sink_block_id>
+    <source_block_id>digitizers_time_realignment_ff__channel_DELTA_I</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_DELTA_I</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0</source_block_id>
+    <source_block_id>digitizers_time_realignment_ff__channel_SPARE</source_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_SPARE</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>1</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff__channel_SPARE</source_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_SPARE</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff__channel_U</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_U</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>1</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff__channel_U</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_U</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff__channel_U_TST</source_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_U_TST</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>1</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff__channel_U_TST</source_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_U_TST</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff_channel_I</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_I</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>1</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff_channel_I</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_I</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff_channel_I_SET</source_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_I_SET</sink_block_id>
+    <source_key>1</source_key>
+    <sink_key>1</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff_channel_I_SET</source_block_id>
+    <sink_block_id>digitizers_cascade_sink_channel_I_SET</sink_block_id>
+    <source_key>0</source_key>
+    <sink_key>0</sink_key>
+  </connection>
+  <connection>
+    <source_block_id>digitizers_time_realignment_ff_channel_I_SET</source_block_id>
     <sink_block_id>qtgui_freq_sink_x_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0</source_block_id>
+    <source_block_id>digitizers_time_realignment_ff_channel_I_SET</source_block_id>
     <sink_block_id>qtgui_time_sink_x_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0</sink_block_id>
+    <source_block_id>digitizers_time_realignment_ff_channel_U_SET</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_U_SET</sink_block_id>
     <source_key>1</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0</sink_block_id>
+    <source_block_id>digitizers_time_realignment_ff_channel_U_SET</source_block_id>
+    <sink_block_id>digitizers_cascade_sink__channel_U_SET</sink_block_id>
     <source_key>0</source_key>
     <sink_key>0</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0</source_block_id>
+    <source_block_id>digitizers_time_realignment_ff_channel_U_SET</source_block_id>
     <sink_block_id>qtgui_freq_sink_x_0</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
   </connection>
   <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0</source_block_id>
+    <source_block_id>digitizers_time_realignment_ff_channel_U_SET</source_block_id>
     <sink_block_id>qtgui_time_sink_x_1</sink_block_id>
     <source_key>0</source_key>
     <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0</sink_block_id>
-    <source_key>1</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0</sink_block_id>
-    <source_key>1</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0</sink_block_id>
-    <source_key>1</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0_0</sink_block_id>
-    <source_key>1</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0_0_0</sink_block_id>
-    <source_key>1</source_key>
-    <sink_key>1</sink_key>
-  </connection>
-  <connection>
-    <source_block_id>digitizers_time_realignment_ff_0_0_0_0_0_0_0</source_block_id>
-    <sink_block_id>digitizers_cascade_sink_0_0_0_0_0_0_0</sink_block_id>
-    <source_key>0</source_key>
-    <sink_key>0</sink_key>
   </connection>
 </flow_graph>
