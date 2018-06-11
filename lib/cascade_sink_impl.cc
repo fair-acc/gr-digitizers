@@ -185,7 +185,7 @@ namespace gr {
 
 
       // triggered demux blocks (triggered time-domain acquisition)
-      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":RawSampling",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
       d_demux_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
       // input to first raw-data-rate demux
       connect(self(), 0, d_demux_raw, 0); // 0: values port
@@ -194,7 +194,7 @@ namespace gr {
       connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
       connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
-      d_snk10000_triggered = time_domain_sink::make(signal_name+":RawSampling",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
       d_demux_10000 = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
       // first 10 kHz block to 10 kHz demux
       connect(d_agg10000, 0, d_demux_10000, 0);
@@ -250,7 +250,7 @@ namespace gr {
       // **
 
       // triggered frequency domain sinks
-      d_freq_snk_triggered    = freq_sink_f::make(signal_name+":Spectrum",    samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+      d_freq_snk_triggered    = freq_sink_f::make(signal_name+":TriggeredSpectrum@Raw",    samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
       d_demux_freq_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST, 0);
       // connect raw-data-rate demux to STFT and then frequency-domain sink
       connect(self(), 0, d_demux_freq_raw, 0); // 0: values port
@@ -263,7 +263,7 @@ namespace gr {
       connect(stft_raw_triggered, 1, d_freq_snk_triggered, 1); // phase input
       connect(stft_raw_triggered, 2, d_freq_snk_triggered, 2); // frequency inputs
 
-      d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":Spectrum10kHz", samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
+      d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":TriggeredSpectrum@10kHz", samp_rate, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
 	  d_demux_freq_10k = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW, 0);
       // connect 10 kHz freq demux to STFT and then frequency-domain sink
       connect(d_agg10000, 0, d_demux_freq_10k, 0);
