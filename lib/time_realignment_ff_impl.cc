@@ -178,7 +178,8 @@ namespace gr {
       if (d_last_wr_event.timestamp > -1) {
         auto delta_samples = offset - d_last_wr_event.offset;
         auto delta_ns = (static_cast<float>(delta_samples) / d_samp_rate) * 1000000000.0;
-        timestamp = d_last_wr_event.timestamp + static_cast<int64_t>(delta_ns);
+        //timestamp = d_last_wr_event.timestamp + static_cast<int64_t>(delta_ns);
+        timestamp = d_last_wr_event.timestamp;
       }
 
       // Add user delay
