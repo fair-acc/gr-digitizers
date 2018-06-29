@@ -98,6 +98,9 @@ namespace gr {
         else if (tag.key == pmt::string_to_symbol(acq_info_tag_name)) {
           auto acq_info = decode_acq_info_tag(tag);
 
+          // Keep original stamp for later context tracking in FESA
+          acq_info.trigger_timestamp = acq_info.timestamp;
+
           // correct timestamp (note user delay is accounted for in calc timestamp method)
           acq_info.timestamp = calculate_timestamp(acq_info.offset, acq_info.timestamp);
           acq_info.last_beam_in_timestamp = d_last_wr_event.last_beam_in_timestamp;
@@ -178,8 +181,7 @@ namespace gr {
       if (d_last_wr_event.timestamp > -1) {
         auto delta_samples = offset - d_last_wr_event.offset;
         auto delta_ns = (static_cast<float>(delta_samples) / d_samp_rate) * 1000000000.0;
-        //timestamp = d_last_wr_event.timestamp + static_cast<int64_t>(delta_ns);
-        timestamp = d_last_wr_event.timestamp;
+        timestamp = d_last_wr_event.timestamp + static_cast<int64_t>(delta_ns);
       }
 
       // Add user delay

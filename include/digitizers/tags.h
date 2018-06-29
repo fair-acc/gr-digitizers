@@ -67,7 +67,7 @@ namespace gr {
 
       // triggered data specifics
       uint32_t pre_samples;
-      int64_t trigger_timestamp; // timestamp of the trigger (UTC nanoseconds) without realignment applied
+      int64_t trigger_timestamp; // timestamp of the trigger (UTC nanoseconds) without realignment applied (Either WR Stamp or Trigger from scope )
       int64_t last_beam_in_timestamp; // last actual beam-in timestamp (UTC nanoseconds)
       bool triggered_data;       // Reads true if trigger related fields are relevant
     };
