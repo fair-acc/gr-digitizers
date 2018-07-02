@@ -99,7 +99,7 @@ namespace gr {
           auto acq_info = decode_acq_info_tag(tag);
 
           // Keep original stamp for later context tracking in FESA
-          acq_info.trigger_timestamp = acq_info.timestamp;
+          acq_info.trigger_timestamp = d_last_wr_event.timestamp;
 
           // correct timestamp (note user delay is accounted for in calc timestamp method)
           acq_info.timestamp = calculate_timestamp(acq_info.offset, acq_info.timestamp);
