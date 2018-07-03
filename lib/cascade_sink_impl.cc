@@ -173,6 +173,7 @@ namespace gr {
       // post-mortem sinks
       // **
 
+      /*
 	  // setup post-mortem data sinks
       d_pm_raw = post_mortem_sink::make(signal_name+":PM@RAW", unit_name, samp_rate, pm_buffer * samp_rate);
       d_pm_1000 = post_mortem_sink::make(signal_name+":PM@10kHz", unit_name, 1000.0f, pm_buffer * 1000.0f);
@@ -183,7 +184,7 @@ namespace gr {
       // connect 10 kHz PM data sinks
       connect(d_agg1000, 0, d_pm_1000, 0);
       connect(d_agg1000, 1, d_pm_1000, 1);
-
+       */
 
       // triggered demux blocks (triggered time-domain acquisition)
       d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
@@ -206,6 +207,7 @@ namespace gr {
 
 
 
+      /*
       // **
       // interlock and interlock reference function definition (ref, min, max)
       // **
@@ -244,7 +246,7 @@ namespace gr {
       // setup ST-Fourier Trafo blocks
       int wintype = filter::firdes::win_type::WIN_BLACKMAN;
       // setup demux blocks - default 10% for pre- and 90% of samples for post-trigger samples
-
+       */
 
       // **
       // frequency-domain -type acquisition
@@ -324,7 +326,8 @@ namespace gr {
     std::vector<post_mortem_sink::sptr>
     cascade_sink_impl::get_post_mortem_sinks()
     {
-      return {d_pm_raw, d_pm_1000};
+      return {};
+      //return {d_pm_raw, d_pm_1000};
     }
 
     std::vector<freq_sink_f::sptr>
@@ -337,7 +340,8 @@ namespace gr {
     std::vector<function_ff::sptr>
     cascade_sink_impl::get_reference_function_blocks()
     {
-      return {d_interlock_reference_function};
+      return {};
+      //return {d_interlock_reference_function};
     }
 
   } /* namespace digitizers */
