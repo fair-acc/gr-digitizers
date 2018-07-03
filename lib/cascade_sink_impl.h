@@ -20,10 +20,13 @@
 #define N_BUFFERS 10
 #define MIN_HISTORY 0.01 // [ms] minimum history to ensure that WR triggers are found within
 
-#define TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_FAST 32768
-#define TRIGGER_BUFFER_SIZE_FREQ_DOMAIN_SLOW 8192
 #define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST 100000
 #define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW 10000
+
+#define WINDOW_SIZE_FREQ_DOMAIN_FAST 1024
+#define WINDOW_SIZE_FREQ_DOMAIN_SLOW 1024
+
+#define SAMPLE_RATE_TRIGGERED_FREQ_SINK 25
 
 namespace gr {
   namespace digitizers {
