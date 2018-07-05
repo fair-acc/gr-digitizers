@@ -173,7 +173,7 @@ namespace gr {
       // post-mortem sinks
       // **
 
-      /*
+      /* FIXME: Post-Mortem Sinks are about 400MB per Cascade in FESA .. too much for something we dont even use yet
 	  // setup post-mortem data sinks
       d_pm_raw = post_mortem_sink::make(signal_name+":PM@RAW", unit_name, samp_rate, pm_buffer * samp_rate);
       d_pm_1000 = post_mortem_sink::make(signal_name+":PM@10kHz", unit_name, 1000.0f, pm_buffer * 1000.0f);
@@ -206,8 +206,6 @@ namespace gr {
       connect(d_demux_10000, 1, d_snk10000_triggered, 1); // 1: errors
 
 
-
-      /*
       // **
       // interlock and interlock reference function definition (ref, min, max)
       // **
@@ -241,18 +239,16 @@ namespace gr {
       // connect interlock reference function max to interlock port 2 ('max')
       connect(d_interlock_reference_function, 2, d_interlock, 2);
 
-
       // block definition for frequency-domain sinks
       // setup ST-Fourier Trafo blocks
       int wintype = filter::firdes::win_type::WIN_BLACKMAN;
       // setup demux blocks - default 10% for pre- and 90% of samples for post-trigger samples
-       */
 
       // **
       // frequency-domain -type acquisition
       // **
 
-      /*
+      /* FIXME: Cascase Triggered Freq.Sinks dont need much extra memory, however they simply are not visible/usable in FESA currently .. to be investigated why
       // triggered frequency domain sinks
       d_freq_snk_triggered    = freq_sink_f::make(signal_name+":TriggeredSpectrum@Raw",    SAMPLE_RATE_TRIGGERED_FREQ_SINK, WINDOW_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
       d_demux_freq_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, WINDOW_SIZE_FREQ_DOMAIN_FAST, 0);
@@ -279,7 +275,10 @@ namespace gr {
       connect(stft_10k_triggered, 0, d_freq_snk10k_triggered, 0); // amplitude input
       connect(stft_10k_triggered, 1, d_freq_snk10k_triggered, 1); // phase input
       connect(stft_10k_triggered, 2, d_freq_snk10k_triggered, 2); // frequency inputs
+      */
 
+
+      /* FIXME: 2200MB per Cascade in FESA .. disabled for now. To be checked if caused by misconfiguration
       // connect streaming aggregated data to stft block and subsequently to frequency sink
       // N.B. sampling frequency is always 10 kHz, but the window function is updated at a reduced rate
       // streaming-mode frequency domain sinks
@@ -311,6 +310,7 @@ namespace gr {
       connect(stft_10, 1, d_freq_snk10, 1); // phase input
       connect(stft_10, 2, d_freq_snk10, 2); // frequency inputs
       */
+
     }
 
     cascade_sink_impl::~cascade_sink_impl()
@@ -333,8 +333,10 @@ namespace gr {
     std::vector<freq_sink_f::sptr>
     cascade_sink_impl::get_frequency_domain_sinks()
     {
-      return {};
-      //return {d_freq_snk1000, d_freq_snk25, d_freq_snk10, d_freq_snk_triggered, d_freq_snk10k_triggered};
+     // return {d_freq_snk1000, d_freq_snk25, d_freq_snk10, d_freq_snk_triggered, d_freq_snk10k_triggered};
+     // return {d_freq_snk1000, d_freq_snk25, d_freq_snk10};
+     // return {d_freq_snk_triggered, d_freq_snk10k_triggered};
+        return {};
     }
 
     std::vector<function_ff::sptr>
