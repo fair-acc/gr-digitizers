@@ -5,6 +5,7 @@ INSTALL_DIR_LIB=${FOLDER_TO_TAR}/lib
 INSTALL_DIR_LIB64=${FOLDER_TO_TAR}/lib64
 INSTALL_DIR_ETC=${FOLDER_TO_TAR}/etc
 INSTALL_DIR_INCLUDE=${FOLDER_TO_TAR}/include
+INSTALL_DIR_BIN=${FOLDER_TO_TAR}/bin
 SYSTEM_LIB_DIR=/usr/lib64
 PICOSCOPE_LIB_DIR=/opt/picoscope/lib
 ROOT_INCLUDE_DIR=/opt/cern/root/include
@@ -100,6 +101,10 @@ cp ${ROOT_LIB_DIR}/libPostscript_rdict.pcm ${INSTALL_DIR_LIB}
 cp ${ROOT_ETC_DIR}/allDict.cxx.pch ${INSTALL_DIR_ETC}
 cp -r ${ROOT_ETC_DIR}/cling ${INSTALL_DIR_ETC}
 cp -r ${ROOT_INCLUDE_DIR}/* ${INSTALL_DIR_INCLUDE}
+
+# Volk and FFTW vector optimization tools
+cp /usr/bin/volk_profile ${INSTALL_DIR_BIN}
+cp /usr/bin/fftw-wisdom ${INSTALL_DIR_BIN}
 
 tar cfv ${TARBALL_NAME} ${FOLDER_TO_TAR}
 rm -rf ${FOLDER_TO_TAR}
