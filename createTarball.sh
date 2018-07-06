@@ -12,7 +12,7 @@ TARBALL_NAME=Digitizer.tar
 mkdir -p ${INSTALL_DIR_LIB}
 mkdir -p ${INSTALL_DIR_BIN}
 
-cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-1.0.0git.so.0.0.0 ${INSTALL_DIR_LIB}
+cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-*.so.0.0.0 ${INSTALL_DIR_LIB}
 
 cp ${SCRIPTPATH}/build/lib/test-digitizers ${INSTALL_DIR_BIN}
 cp ${SCRIPTPATH}/build/lib/test_digitizers_test.sh ${INSTALL_DIR_BIN}
