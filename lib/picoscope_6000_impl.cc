@@ -43,6 +43,11 @@ std::error_code make_pico_6000_error_code(PICO_STATUS e)
   return {static_cast<int>(e), thePsErrCategory};
 }
 
+namespace
+{
+    boost::mutex g_init_mutex;
+}
+
 namespace gr {
   namespace digitizers {
 
@@ -397,6 +402,9 @@ namespace gr {
     picoscope_6000_impl::driver_initialize()
     {
       PICO_STATUS status;
+
+      // Required to force sequence execution of open unit calls...
+      boost::mutex::scoped_lock init_guard(g_init_mutex);
 
       // take any if serial number is not provided (useful for testing purposes)
       if (d_serial_number.empty()) {
