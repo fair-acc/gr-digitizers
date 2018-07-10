@@ -136,9 +136,11 @@ namespace gr {
     void
     time_realignment_ff_impl::push_and_update_last(const wr_event_t &event)
     {
+        if (d_pending_events.size() > 10) {
+          GR_LOG_WARN(d_logger, "10 pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
+        }
       if (d_pending_events.size() > 1024) {
-        GR_LOG_WARN(d_logger, "Large number of pending WR events detected... Make sure to configure"
-                "flowgraph such that the same number of triggers & WR events is generated");
+        GR_LOG_ERROR(d_logger, "Large number of pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         d_pending_events.clear();
         d_pending_triggers.clear();
       }
@@ -150,9 +152,11 @@ namespace gr {
     void
     time_realignment_ff_impl::push_and_update_last(uint64_t trigger)
     {
+        if (d_pending_triggers.size() > 10) {
+          GR_LOG_WARN(d_logger, " 10 pending trigger events detected... Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
+        }
       if (d_pending_triggers.size() > 1024) {
-        GR_LOG_WARN(d_logger, "Large number of pending trigger events detected... Make sure to configure"
-                "flowgraph such that the same number of triggers & WR events is generated");
+          GR_LOG_ERROR(d_logger, "Large number of pending trigger events detected... Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         d_pending_events.clear();
         d_pending_triggers.clear();
       }
