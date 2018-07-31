@@ -186,7 +186,9 @@ namespace gr {
       {
         if (d_data_rdy_errc || d_data_chunks.empty()) {
           // by the contract the work method must wait data being ready before calling this method
-          throw std::runtime_error("use wait_data_ready!!!");
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ":  Use wait_data_ready!!!";
+          throw std::runtime_error(message.str());
         }
 
         // get the oldest data chunk

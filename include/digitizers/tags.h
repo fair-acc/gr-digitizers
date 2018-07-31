@@ -127,8 +127,11 @@ namespace gr {
     {
       assert(pmt::symbol_to_string(tag.key) == acq_info_tag_name);
 
-      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 10) {
-        throw std::runtime_error("invalid acq_info tag format");
+      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 10)
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid acq_info tag format";
+          throw std::runtime_error(message.str());
       }
 
       acq_info_t acq_info;
@@ -249,8 +252,11 @@ namespace gr {
     {
       assert(pmt::symbol_to_string(tag.key) == wr_event_tag_name);
 
-      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 5) {
-        throw std::runtime_error("invalid wr_event tag format");
+      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 5)
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid wr_event tag format";
+          throw std::runtime_error(message.str());
       }
 
       wr_event_t event;

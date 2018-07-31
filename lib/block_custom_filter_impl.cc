@@ -64,7 +64,9 @@ namespace gr {
              tr_width, fb_user_taps, fw_user_taps, samp_rate));
         break;
       default:
-        throw std::runtime_error("No algorithm with specified ID!");
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": No algorithm with specified ID: " << alg_id;
+        throw std::runtime_error(message.str());
         break;
       }
       return return_ptr;

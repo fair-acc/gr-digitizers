@@ -152,9 +152,9 @@ namespace gr {
           float time_interval_ns;
           status = ps6000GetTimebase2(d_handle, timebase_estimate, 1024, &time_interval_ns, 0, &dummy, 0);
           if(status != PICO_OK) {
-            throw std::runtime_error("ps6000GetTimebase2 (timebase "
-                   + std::to_string(timebase_estimate) + "): "
-                   + ps6000_get_error_message(status));
+              std::ostringstream message;
+              message << "Exception in " << __FILE__ << ":" << __LINE__ << ": local time " << timebase_estimate << " Error: " << ps6000_get_error_message(status);
+              throw std::runtime_error(message.str());
           }
 
           actual_freq = 1000000000.0 / time_interval_ns;
@@ -262,8 +262,9 @@ namespace gr {
       case trigger_direction_t::TRIGGER_DIRECTION_HIGH:
         return PS6000_ABOVE;
       default:
-        throw std::runtime_error("unsupported trigger direction: "
-              + std::to_string((int)direction));
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": unsupported trigger direction:" << direction;
+        throw std::runtime_error(message.str());
       }
     };
 
@@ -272,8 +273,11 @@ namespace gr {
     {
       double max_logical_voltage = 5.0;
 
-      if (value > max_logical_voltage) {
-        throw std::invalid_argument("max logical level is: " + std::to_string(max_logical_voltage));
+      if (value > max_logical_voltage)
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": max logical level is: " << max_logical_voltage;
+          throw std::invalid_argument(message.str());
       }
 
       return (int16_t) ((value / max_logical_voltage) * (double)PS6000_MAX_VALUE);

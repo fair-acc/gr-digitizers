@@ -140,8 +140,11 @@ namespace gr {
     {
       assert(pmt::symbol_to_string(tag.key) == edge_detect_tag_name);
 
-      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 5) {
-        throw std::runtime_error("invalid edge detect tag format");
+      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 5)
+      {
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ":  invalid edge detect tag format";
+        throw std::runtime_error(message.str());
       }
 
       edge_detect_t edge;
