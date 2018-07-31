@@ -644,8 +644,6 @@ namespace gr {
        }
      } catch (const std::exception& ex) {
        d_configure_exception_message = ex.what();
-       std::cout << "digitizer_block_impl::start(): " << ex.what() << std::endl;
-       std::cout << "digitizer_block_impl::start(): " << d_configure_exception_message << std::endl;
        return false;
      } catch (...) {
        d_configure_exception_message = "Unknown Exception received in digitizer_block_impl::start";
