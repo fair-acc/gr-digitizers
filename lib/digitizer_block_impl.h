@@ -328,6 +328,8 @@ namespace gr {
       // Where all the action really happens
       int work(int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items) override;
 
+      std::string getConfigureExceptionMessage() override;
+
      /**********************************************************************
       * Structors
       **********************************************************************/
@@ -551,6 +553,8 @@ namespace gr {
       poller_state_t d_poller_state;
       boost::mutex d_poller_mutex;
       boost::condition_variable d_poller_cv;
+
+      std::string d_configure_exception_message;
     };
 
   } // namespace digitizers

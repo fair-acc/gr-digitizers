@@ -617,6 +617,12 @@ namespace gr {
      return d_errors.get();
    }
 
+   std::string
+   digitizer_block_impl::getConfigureExceptionMessage()
+   {
+       return d_configure_exception_message;
+   }
+
    bool
    digitizer_block_impl::start()
    {
@@ -629,8 +635,6 @@ namespace gr {
        d_data_rdy_errc = std::error_code {};
        d_data_rdy = false;
 
-
-
        if (d_acquisition_mode == acquisition_mode_t::STREAMING) {
          start_poll_thread();
        }
@@ -638,11 +642,17 @@ namespace gr {
        if(d_auto_arm && d_acquisition_mode == acquisition_mode_t::STREAMING) {
          arm();
        }
+     } catch (const std::exception& ex) {
+       d_configure_exception_message = ex.what();
+       std::cout << "digitizer_block_impl::start(): " << ex.what() << std::endl;
+       std::cout << "digitizer_block_impl::start(): " << d_configure_exception_message << std::endl;
+       return false;
      } catch (...) {
+       d_configure_exception_message = "Unknown Exception received in digitizer_block_impl::start";
        return false;
      }
 
-     return true;
+       return true;
    }
 
    bool
@@ -664,6 +674,8 @@ namespace gr {
      if(d_acquisition_mode == acquisition_mode_t::STREAMING) {
        stop_poll_thread();
      }
+
+     d_configure_exception_message = "";
 
      return true;
    }
