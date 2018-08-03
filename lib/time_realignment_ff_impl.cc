@@ -161,6 +161,7 @@ namespace gr {
         d_pending_triggers.clear();
       }
 
+      GR_LOG_WARN(d_logger, "Trigger recieved !");
       d_pending_triggers.push_back(trigger);
       update_last_if_needed();
     }
