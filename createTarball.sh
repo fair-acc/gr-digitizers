@@ -21,4 +21,4 @@ tar cfv ${TARBALL_NAME} ${FOLDER_TO_TAR}
 rm -rf ${FOLDER_TO_TAR}
 gzip ${TARBALL_NAME}
 
-cp ${TARBALL_NAME}.gz asl744:/common/export/fesa/arch/x86_64
+cp ${TARBALL_NAME}.gz /common/export/fesa/arch/x86_64
