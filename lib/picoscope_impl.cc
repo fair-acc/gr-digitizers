@@ -195,7 +195,7 @@ namespace gr {
             continue;
           }
 
-          uint8_t *port_values = first_port_sample + port_buffer_size * tmp_port_idx;
+          uint8_t *port_values = first_port_sample + port_buffer_size * tmp_port_idx + d_tmp_buffer_size;
           const int16_t *driver_buffer = &d_port_buffers[port_idx][start_index];
 
           for (uint32_t i = 0; i < samples_to_convert; i++) {
