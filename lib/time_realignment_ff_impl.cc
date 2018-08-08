@@ -12,6 +12,10 @@
 #include <digitizers/tags.h>
 #include "time_realignment_ff_impl.h"
 
+#define NUMBER_OF_PENDING_TRIGGERS_WARNING 10
+#define NUMBER_OF_PENDING_TRIGGERS_ERROR 1000
+
+
 namespace gr {
   namespace digitizers {
 
@@ -88,10 +92,12 @@ namespace gr {
       for (auto tag: tags) {
 
         if (tag.key == pmt::string_to_symbol(trigger_tag_name)) {
+           // std::cout << "trigger tag" << std::endl;
           push_and_update_last(tag.offset);
           add_item_tag(0, tag); // forward trigger tags
         }
         else if (tag.key == pmt::string_to_symbol(wr_event_tag_name)) {
+           // std::cout << "wr tag" << std::endl;
           push_and_update_last(decode_wr_event_tag(tag));
           add_item_tag(0, tag); // forward WR tags
         }
@@ -136,10 +142,10 @@ namespace gr {
     void
     time_realignment_ff_impl::push_and_update_last(const wr_event_t &event)
     {
-        if (d_pending_events.size() > 10) {
-          GR_LOG_WARN(d_logger, "10 pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
+        if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING) {
+          GR_LOG_WARN(d_logger, d_name + ": " + std::to_string(d_pending_events.size()) + " pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         }
-      if (d_pending_events.size() > 1024) {
+      if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_ERROR) {
         GR_LOG_ERROR(d_logger, "Large number of pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         d_pending_events.clear();
         d_pending_triggers.clear();
@@ -152,11 +158,11 @@ namespace gr {
     void
     time_realignment_ff_impl::push_and_update_last(uint64_t trigger)
     {
-        if (d_pending_triggers.size() > 10) {
-          GR_LOG_WARN(d_logger, " 10 pending trigger events detected... Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
+        if (d_pending_triggers.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING) {
+          GR_LOG_WARN(d_logger,  d_name + ": " + std::to_string(d_pending_triggers.size()) + " pending trigger events detected. (Possibly share-input not connected?)) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         }
-      if (d_pending_triggers.size() > 1024) {
-          GR_LOG_ERROR(d_logger, "Large number of pending trigger events detected... Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
+      if (d_pending_triggers.size() > NUMBER_OF_PENDING_TRIGGERS_ERROR) {
+          GR_LOG_ERROR(d_logger, "Large number of pending trigger events detected. (Possibly share-input not connected?)) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         d_pending_events.clear();
         d_pending_triggers.clear();
       }
