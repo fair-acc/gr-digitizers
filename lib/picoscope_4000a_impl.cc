@@ -341,7 +341,7 @@ namespace gr {
     picoscope_4000a_impl::picoscope_4000a_impl(std::string serial_number,bool auto_arm)
       : gr::sync_block("picoscope_4000a",
               gr::io_signature::make(0, 0, 0),
-              gr::io_signature::make(1, 16, sizeof(float))),
+              gr::io_signature::make(16, 16, sizeof(float))),
           picoscope_impl(serial_number, PS4000A_MAX_CHANNELS, 0, auto_arm, 255, 0.01),
           d_handle(-1),
           d_overflow(0)

@@ -352,7 +352,7 @@ namespace gr {
     picoscope_3000a_impl::picoscope_3000a_impl(std::string serial_number, std::vector<int> out_signature, bool auto_arm)
       : gr::sync_block("picoscope_3000a",
               gr::io_signature::make(0, 0, 0),
-              gr::io_signature::makev(1, 10, out_signature)),
+              gr::io_signature::makev(10, 10, out_signature)),
         picoscope_impl(serial_number,
               PS3000A_MAX_CHANNELS,
               2,     // it seems no 3000 series device supports 4 ports
