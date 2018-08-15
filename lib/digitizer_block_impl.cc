@@ -270,12 +270,18 @@ namespace gr {
    void
    digitizer_block_impl::set_samples(int samples, int pre_samples)
    {
-     if (samples < 1) {
-       throw std::invalid_argument("post-trigger samples can't be less than one");
+     if (samples < 1)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": post-trigger samples can't be less than one";
+       throw std::invalid_argument(message.str());
      }
 
-     if (pre_samples < 0) {
-       throw std::invalid_argument("pre-trigger samples can't be less than zero");
+     if (pre_samples < 0)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": pre-trigger samples can't be less than zero";
+       throw std::invalid_argument(message.str());
      }
 
      d_samples = static_cast<uint32_t>(samples);
@@ -286,8 +292,11 @@ namespace gr {
    void
    digitizer_block_impl::set_samp_rate(double rate)
    {
-     if (rate <= 0.0) {
-       throw std::invalid_argument("sample rate should be greater than zero");
+     if (rate <= 0.0)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": sample rate has to be greater than zero";
+       throw std::invalid_argument(message.str());
      }
      d_samp_rate = rate;
      d_actual_samp_rate = rate;
@@ -302,8 +311,11 @@ namespace gr {
    void
    digitizer_block_impl::set_buffer_size(int buffer_size)
    {
-     if (buffer_size < 0) {
-       throw std::invalid_argument("buffer size can't be negative");
+     if (buffer_size < 0)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": buffer size can't be negative:" << buffer_size;
+       throw std::invalid_argument(message.str());
      }
 
      d_buffer_size = static_cast<uint32_t>(buffer_size);
@@ -314,8 +326,11 @@ namespace gr {
    void
    digitizer_block_impl::set_nr_buffers(int nr_buffers)
    {
-     if (nr_buffers < 1) {
-       throw std::invalid_argument("number of buffers can't be a negative number");
+     if (nr_buffers < 1)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": number of buffers can't be a negative number:" << nr_buffers;
+       throw std::invalid_argument(message.str());
      }
 
      d_nr_buffers = static_cast<uint32_t>(nr_buffers);
@@ -324,8 +339,11 @@ namespace gr {
    void
    digitizer_block_impl::set_driver_buffer_size(int driver_buffer_size)
    {
-     if (driver_buffer_size < 1) {
-       throw std::invalid_argument("driver buffer size can't be a negative number");
+     if (driver_buffer_size < 1)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": driver buffer size can't be a negative number:" << driver_buffer_size;
+       throw std::invalid_argument(message.str());
      }
 
      d_driver_buffer_size = static_cast<uint32_t>(driver_buffer_size);
@@ -347,8 +365,11 @@ namespace gr {
    void
    digitizer_block_impl::set_streaming(double poll_rate)
    {
-     if (poll_rate < 0.0) {
-       throw std::invalid_argument("poll rate can't be negative");
+     if (poll_rate < 0.0)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": poll rate can't be negative:" << poll_rate;
+       throw std::invalid_argument(message.str());
      }
 
      d_acquisition_mode = acquisition_mode_t::STREAMING;
@@ -361,8 +382,11 @@ namespace gr {
    void
    digitizer_block_impl::set_rapid_block(int nr_captures)
    {
-     if (nr_captures < 1) {
-       throw std::invalid_argument("nr waveforms should be at least one");
+     if (nr_captures < 1)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": nr waveforms should be at least one" << nr_captures;
+       throw std::invalid_argument(message.str());
      }
 
      d_acquisition_mode = acquisition_mode_t::RAPID_BLOCK;
@@ -375,8 +399,11 @@ namespace gr {
      if (mode == downsampling_mode_t::DOWNSAMPLING_MODE_NONE) {
          downsample_factor = 1;
      }
-     else if (downsample_factor < 2) {
-       throw std::invalid_argument("downsampling factor should be at least 2");
+     else if (downsample_factor < 2)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": downsampling factor should be at least 2: " << downsample_factor;
+       throw std::invalid_argument(message.str());
      }
 
      d_downsampling_mode = mode;
@@ -386,13 +413,19 @@ namespace gr {
    int
    digitizer_block_impl::convert_to_aichan_idx(const std::string &id) const
    {
-     if (id.length() != 1) {
-       throw std::invalid_argument("aichan id should be a single character: " + id);
+     if (id.length() != 1)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": aichan id should be a single character: " << id;
+       throw std::invalid_argument(message.str());
      }
 
      int idx = std::toupper(id[0]) - 'A';
-     if (idx < 0 || idx > MAX_SUPPORTED_AI_CHANNELS) {
-       throw std::invalid_argument("invalid aichan id: " + id);
+     if (idx < 0 || idx > MAX_SUPPORTED_AI_CHANNELS)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid aichan id: " << id;
+       throw std::invalid_argument(message.str());
      }
 
      return idx;
@@ -440,13 +473,19 @@ namespace gr {
    int
    digitizer_block_impl::convert_to_port_idx(const std::string &id) const
    {
-     if (id.length() != 5) {
-       throw std::invalid_argument("invalid port id: " + id + ", should be of the following format 'port<d>'");
+     if (id.length() != 5)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid port id: " << id << ", should be of the following format 'port<d>'";
+       throw std::invalid_argument(message.str());
      }
 
      int idx = boost::lexical_cast<int>(id[4]);
-     if (idx < 0 || idx > MAX_SUPPORTED_PORTS) {
-       throw std::invalid_argument("invalid port number: " + id);
+     if (idx < 0 || idx > MAX_SUPPORTED_PORTS)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid port number: " << id;
+       throw std::invalid_argument(message.str());
      }
 
      return idx;
@@ -496,7 +535,9 @@ namespace gr {
      auto ec = driver_initialize();
      if (ec) {
        add_error_code(ec);
-       throw std::runtime_error("initialize failed: " + to_string(ec));
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": initialize failed. ErrorCode: " << ec;
+       throw std::runtime_error(message.str());
      }
 
      d_initialized = true;
@@ -505,18 +546,26 @@ namespace gr {
    void
    digitizer_block_impl::configure()
    {
-     if (!d_initialized) {
-       throw std::runtime_error("initialize first");;
+     if (!d_initialized)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": initialize first!";
+       throw std::runtime_error(message.str());
      }
 
-     if (d_armed) {
-       throw std::runtime_error("disarm first");
+     if (d_armed)
+     {
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": disarm first!";
+       throw std::runtime_error(message.str());
      }
 
      auto ec = driver_configure();
      if (ec) {
        add_error_code(ec);
-       throw std::runtime_error("configure failed: " + to_string(ec));
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": configure failed. ErrorCode: " << ec;
+       throw std::runtime_error(message.str());
      }
      // initialize application buffer
      d_app_buffer.initialize(get_enabled_aichan_count(),
@@ -540,7 +589,9 @@ namespace gr {
      auto ec = driver_arm();
      if (ec) {
        add_error_code(ec);
-       throw std::runtime_error("arm failed: " + to_string(ec));
+       std::ostringstream message;
+       message << "Exception in " << __FILE__ << ":" << __LINE__ << ": arm failed. ErrorCode: " << ec;
+       throw std::runtime_error(message.str());
      }
 
      d_armed = true;
@@ -617,6 +668,12 @@ namespace gr {
      return d_errors.get();
    }
 
+   std::string
+   digitizer_block_impl::getConfigureExceptionMessage()
+   {
+       return d_configure_exception_message;
+   }
+
    bool
    digitizer_block_impl::start()
    {
@@ -629,8 +686,6 @@ namespace gr {
        d_data_rdy_errc = std::error_code {};
        d_data_rdy = false;
 
-
-
        if (d_acquisition_mode == acquisition_mode_t::STREAMING) {
          start_poll_thread();
        }
@@ -638,11 +693,15 @@ namespace gr {
        if(d_auto_arm && d_acquisition_mode == acquisition_mode_t::STREAMING) {
          arm();
        }
+     } catch (const std::exception& ex) {
+       d_configure_exception_message = ex.what();
+       return false;
      } catch (...) {
+       d_configure_exception_message = "Unknown Exception received in digitizer_block_impl::start";
        return false;
      }
 
-     return true;
+       return true;
    }
 
    bool
@@ -664,6 +723,8 @@ namespace gr {
      if(d_acquisition_mode == acquisition_mode_t::STREAMING) {
        stop_poll_thread();
      }
+
+     d_configure_exception_message = "";
 
      return true;
    }

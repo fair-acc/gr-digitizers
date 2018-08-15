@@ -51,13 +51,18 @@ namespace gr {
     simulation_source_impl::set_data(const std::vector<float> &ch_a_vec, const std::vector<float> &ch_b_vec,
             const std::vector<uint8_t> &port_vec)
     {
-      if (d_buffer_size != (uint32_t)ch_a_vec.size()) {
-        throw std::runtime_error("invalid data size provided: "
-                  +  std::to_string(ch_a_vec.size()) + ", expected: " +  std::to_string(d_buffer_size));
+      if (d_buffer_size != (uint32_t)ch_a_vec.size())
+      {
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid data size provided:" << ch_a_vec.size() << ", expected: " <<  d_buffer_size;
+        throw std::runtime_error(message.str());
       }
 
-      if(ch_a_vec.size() != ch_b_vec.size() || ch_a_vec.size() != port_vec.size()) {
-          throw std::runtime_error("all vectors should be of the same size");
+      if(ch_a_vec.size() != ch_b_vec.size() || ch_a_vec.size() != port_vec.size())
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": all vectors should be of the same size";
+          throw std::runtime_error(message.str());
       }
 
       d_ch_a_data = ch_a_vec;
@@ -137,12 +142,18 @@ namespace gr {
     simulation_source_impl::driver_get_rapid_block_data(size_t offset, size_t length, size_t waveform,
                   gr_vector_void_star &arrays, std::vector<uint32_t> &status)
     {
-      if (offset + length > d_ch_a_data.size()) {
-        throw std::runtime_error("cannot fetch rapid block data, out of bounds");
+      if (offset + length > d_ch_a_data.size())
+      {
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": cannot fetch rapid block data, out of bounds";
+        throw std::runtime_error(message.str());
       }
 
-      if (arrays.size() != 5) {
-        throw std::runtime_error("all channels should be passed in");
+      if (arrays.size() != 5)
+      {
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": all channels should be passed in";
+        throw std::runtime_error(message.str());
       }
 
       // Update status first

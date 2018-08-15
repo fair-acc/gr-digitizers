@@ -43,6 +43,11 @@ std::error_code make_pico_6000_error_code(PICO_STATUS e)
   return {static_cast<int>(e), thePsErrCategory};
 }
 
+namespace
+{
+    boost::mutex g_init_mutex;
+}
+
 namespace gr {
   namespace digitizers {
 
@@ -147,9 +152,9 @@ namespace gr {
           float time_interval_ns;
           status = ps6000GetTimebase2(d_handle, timebase_estimate, 1024, &time_interval_ns, 0, &dummy, 0);
           if(status != PICO_OK) {
-            throw std::runtime_error("ps6000GetTimebase2 (timebase "
-                   + std::to_string(timebase_estimate) + "): "
-                   + ps6000_get_error_message(status));
+              std::ostringstream message;
+              message << "Exception in " << __FILE__ << ":" << __LINE__ << ": local time " << timebase_estimate << " Error: " << ps6000_get_error_message(status);
+              throw std::runtime_error(message.str());
           }
 
           actual_freq = 1000000000.0 / time_interval_ns;
@@ -257,8 +262,9 @@ namespace gr {
       case trigger_direction_t::TRIGGER_DIRECTION_HIGH:
         return PS6000_ABOVE;
       default:
-        throw std::runtime_error("unsupported trigger direction: "
-              + std::to_string((int)direction));
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": unsupported trigger direction:" << direction;
+        throw std::runtime_error(message.str());
       }
     };
 
@@ -267,8 +273,11 @@ namespace gr {
     {
       double max_logical_voltage = 5.0;
 
-      if (value > max_logical_voltage) {
-        throw std::invalid_argument("max logical level is: " + std::to_string(max_logical_voltage));
+      if (value > max_logical_voltage)
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": max logical level is: " << max_logical_voltage;
+          throw std::invalid_argument(message.str());
       }
 
       return (int16_t) ((value / max_logical_voltage) * (double)PS6000_MAX_VALUE);
@@ -322,7 +331,7 @@ namespace gr {
     picoscope_6000_impl::picoscope_6000_impl(std::string serial_number, bool auto_arm)
       : gr::sync_block("picoscope_6000",
               gr::io_signature::make(0, 0, 0),
-              gr::io_signature::make(1, 8, sizeof(float))),
+              gr::io_signature::make(8, 8, sizeof(float))),
         picoscope_impl(serial_number,
               PS6000_MAX_CHANNELS,
               2,     // it seems no 3000 series device supports 4 ports
@@ -397,6 +406,9 @@ namespace gr {
     picoscope_6000_impl::driver_initialize()
     {
       PICO_STATUS status;
+
+      // Required to force sequence execution of open unit calls...
+      boost::mutex::scoped_lock init_guard(g_init_mutex);
 
       // take any if serial number is not provided (useful for testing purposes)
       if (d_serial_number.empty()) {

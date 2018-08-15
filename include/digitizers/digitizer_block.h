@@ -301,6 +301,13 @@ namespace gr {
        * have occurred organized by time, with their corresponding timestamp.
        */
       virtual std::vector<error_info_t> get_errors() = 0;
+
+      /*!
+       * \brief Returns exception message of exception which occured during start/configure, if any
+       */
+      virtual std::string getConfigureExceptionMessage() = 0;
+
+
     };
 
   } // namespace digitizers

@@ -43,6 +43,11 @@ std::error_code make_pico_4000a_error_code(PICO_STATUS e)
   return {static_cast<int>(e), thePsErrCategory};
 }
 
+namespace
+{
+    boost::mutex g_init_mutex;
+}
+
 namespace gr {
   namespace digitizers {
 
@@ -154,9 +159,9 @@ namespace gr {
           float time_interval_ns;
           status = ps4000aGetTimebase2(d_handle, timebase_estimate, 1024, &time_interval_ns, &dummy, 0);
           if(status != PICO_OK) {
-            throw std::runtime_error("ps3000aGetTimebase2 (timebase "
-                   + std::to_string(timebase_estimate) + "): "
-                   + ps4000a_get_error_message(status));
+            std::ostringstream message;
+            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": local time " << timebase_estimate << " Error: " << ps4000a_get_error_message(status);
+            throw std::runtime_error(message.str());
           }
 
           actual_freq = 1000000000.0 / time_interval_ns;
@@ -264,8 +269,9 @@ namespace gr {
       case trigger_direction_t::TRIGGER_DIRECTION_HIGH:
         return PS4000A_ABOVE;
       default:
-        throw std::runtime_error("unsupported trigger direction: "
-              + std::to_string((int)direction));
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": unsupported trigger direction:" << direction;
+          throw std::runtime_error(message.str());
       }
     };
 
@@ -274,8 +280,11 @@ namespace gr {
     {
       double max_logical_voltage = 5.0;
 
-      if (value > max_logical_voltage) {
-        throw std::invalid_argument("max logical level is: " + std::to_string(max_logical_voltage));
+      if (value > max_logical_voltage)
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": max logical level is: " << max_logical_voltage;
+          throw std::invalid_argument(message.str());
       }
       // Note max channel value not provided with PicoScope API, we use ext max value
       return (int16_t) ((value / max_logical_voltage) * (double)PS4000A_EXT_MAX_VALUE);
@@ -332,7 +341,7 @@ namespace gr {
     picoscope_4000a_impl::picoscope_4000a_impl(std::string serial_number,bool auto_arm)
       : gr::sync_block("picoscope_4000a",
               gr::io_signature::make(0, 0, 0),
-              gr::io_signature::make(1, 16, sizeof(float))),
+              gr::io_signature::make(16, 16, sizeof(float))),
           picoscope_impl(serial_number, PS4000A_MAX_CHANNELS, 0, auto_arm, 255, 0.01),
           d_handle(-1),
           d_overflow(0)
@@ -404,6 +413,9 @@ namespace gr {
     picoscope_4000a_impl::driver_initialize()
     {
       PICO_STATUS status;
+
+      // Required to force sequence execution of open unit calls...
+      boost::mutex::scoped_lock init_guard(g_init_mutex);
 
       // take any if serial number is not provided (usefull for testing purposes)
       if (d_serial_number.empty()) {

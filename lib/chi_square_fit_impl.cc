@@ -50,9 +50,11 @@ namespace gr {
     {
       std::vector<std::string> names = parse_names(par_name);
 
-      if(names.size() != static_cast<size_t>(n_params)) {
-        throw std::invalid_argument("Parameter names do not match! must be of "
-                "type:\"pName0\", \"pName1\", ..., \"pName[n_params]\"");
+      if(names.size() != static_cast<size_t>(n_params))
+      {
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Parameter names do not match! must be of type:\"pName0\", \"pName1\", ..., \"pName[n_params]\"";
+        throw std::invalid_argument(message.str());
       }
 
       return gnuradio::get_initial_sptr
@@ -96,8 +98,11 @@ namespace gr {
     {
       d_xvals.reserve(d_vec_len);
 
-      if ((int)d_par_names.size() < d_n_params) {
-          throw std::invalid_argument("invalid parameter configuration");
+      if ((int)d_par_names.size() < d_n_params)
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid parameter configuration";
+          throw std::invalid_argument(message.str());
       }
 
       update_design(formula, lim_up, lim_dn, par_init, par_err,
@@ -131,7 +136,9 @@ namespace gr {
       if (std::min({par_init.size(), par_err.size(), par_fit.size(), par_lim_up.size(), par_lim_dn.size()})
           != static_cast<size_t>(d_n_params))
       {
-        throw std::invalid_argument("invalid parameter configuration supplied");
+        std::ostringstream message;
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid parameter configuration supplied";
+        throw std::invalid_argument(message.str());
       }
 
       boost::mutex::scoped_lock lg(d_mutex);

@@ -36,12 +36,17 @@ namespace digitizers{
 
       range_t(double start, double stop, double step = default_step)
           : d_start(start), d_stop(stop), d_step(step) {
-        if (stop < start) {
-        	throw std::invalid_argument("stop should be larger or equal to start, start: "
-        		+ std::to_string(start)+ ", stop: "  + std::to_string(stop));
+        if (stop < start)
+        {
+            std::ostringstream message;
+            message << "Exception in " << __FILE__ << ":" << __LINE__ << ":  stop should be larger or equal to start, start: " << start << ", stop: " << stop;
+            throw std::invalid_argument(message.str());
         }
-        if (step <= 0.0) {
-        	throw std::invalid_argument("invalid step: " + std::to_string(step));
+        if (step <= 0.0)
+        {
+            std::ostringstream message;
+            message << "Exception in " << __FILE__ << ":" << __LINE__ << ":  invalid step: " << step;
+            throw std::invalid_argument(message.str());
         }
       }
      
@@ -101,8 +106,11 @@ namespace digitizers{
         });
 
         // this should not happen.... ever.
-        if (it == end()) {
-          throw std::runtime_error("failed to find appropriate range for the value " + std::to_string(value));
+        if (it == end())
+        {
+            std::ostringstream message;
+            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": failed to find appropriate range for the value: " << value;
+            throw std::runtime_error(message.str());
         }
            
         // lest find setting
@@ -123,12 +131,19 @@ namespace digitizers{
 
       void check_meta_range_monotonic() const
       {
-        if (empty()) {
-            throw std::runtime_error("meta-range cannot be empty");
+        if (empty())
+        {
+            std::ostringstream message;
+            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": meta-range cannot be empty";
+            throw std::runtime_error(message.str());
         }
-        for (size_type i = 1; i < size(); i++) {
-          if (at(i).start() < at(i-1).stop()) {
-            throw std::runtime_error("meta-range is not monotonic");
+        for (size_type i = 1; i < size(); i++)
+        {
+          if (at(i).start() < at(i-1).stop())
+          {
+              std::ostringstream message;
+              message << "Exception in " << __FILE__ << ":" << __LINE__ << ": meta-range is not monotonic";
+              throw std::runtime_error(message.str());
           }
         }
       }
