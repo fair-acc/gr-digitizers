@@ -89,6 +89,10 @@ namespace gr {
       auto iterations = ninput_items / d_buffer_size;
       for (size_t iteration = 0; iteration < iterations; iteration++)
       {
+          /* ###################################### */
+
+          d_callback()
+          /* ###################################### */
         auto measurement = d_measurement_buffer.get_free_buffer();
         if (!measurement) {
           d_lost_count++;

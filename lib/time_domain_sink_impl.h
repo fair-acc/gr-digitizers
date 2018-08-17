@@ -16,6 +16,8 @@ namespace gr {
 
     class time_domain_sink_impl : public time_domain_sink
     {
+      typedef void (*cb_get_buffers_t)(float **values,float **errors, measurement_info_t **metadata);
+
      private:
       float d_samp_rate;
       time_sink_mode_t d_sink_mode;
@@ -23,20 +25,10 @@ namespace gr {
       std::size_t d_buffer_size;
 
       // callback and user-provided ptr
-      data_available_cb_t d_callback;
+      cb_get_buffers_t d_callback;
       void *d_user_data;
 
-      // Simple helper structure holding measurement data & metadata
-      struct time_domain_measurement_t
-      {
-        measurement_info_t mdata;
-        std::vector<float> values;
-        std::vector<float> errors;
-      };
-
-      measurement_buffer_t<time_domain_measurement_t> d_measurement_buffer;
       boost::circular_buffer<acq_info_t> d_acq_info_tags;
-      unsigned d_lost_count;
 
      public:
       
@@ -48,11 +40,7 @@ namespace gr {
       int work(int noutput_items, gr_vector_const_void_star &input_items,
               gr_vector_void_star &output_items) override;
 
-      signal_metadata_t get_metadata() override;
-
-      size_t get_items(size_t nr_items_to_read, float *values, float *errors, measurement_info_t *info) override;
-
-      void set_callback(data_available_cb_t callback, void *ptr) override;
+      void set_callback(cb_get_buffers_t cb);
 
       size_t get_buffer_size() override;
 
