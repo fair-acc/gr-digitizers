@@ -12,7 +12,7 @@
 #include <digitizers/tags.h>
 #include "time_realignment_ff_impl.h"
 
-#define NUMBER_OF_PENDING_TRIGGERS_WARNING 10
+#define NUMBER_OF_PENDING_TRIGGERS_WARNING 100
 #define NUMBER_OF_PENDING_TRIGGERS_ERROR 1000
 
 
@@ -142,7 +142,7 @@ namespace gr {
     void
     time_realignment_ff_impl::push_and_update_last(const wr_event_t &event)
     {
-        if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING) {
+        if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING && d_pending_events.size() % NUMBER_OF_PENDING_TRIGGERS_WARNING == 0) {
           GR_LOG_WARN(d_logger, d_name + ": " + std::to_string(d_pending_events.size()) + " pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         }
       if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_ERROR) {
@@ -158,7 +158,7 @@ namespace gr {
     void
     time_realignment_ff_impl::push_and_update_last(uint64_t trigger)
     {
-        if (d_pending_triggers.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING) {
+        if (d_pending_triggers.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING && d_pending_triggers.size() % NUMBER_OF_PENDING_TRIGGERS_WARNING == 0) {
           GR_LOG_WARN(d_logger,  d_name + ": " + std::to_string(d_pending_triggers.size()) + " pending trigger events detected. (Possibly share-input not connected?)) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         }
       if (d_pending_triggers.size() > NUMBER_OF_PENDING_TRIGGERS_ERROR) {
