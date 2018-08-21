@@ -38,17 +38,11 @@
     <type>string</type>
   </param>
   <param>
-    <name>Buffer size</name>
-    <key>buffer_size</key>
+    <name>Output Package Size</name>
+    <key>output_package_size</key>
     <value>1024</value>
     <type>int</type>
   </param>  
-  <param>
-    <name>Nr Buffers</name>
-    <key>nr_buffers</key>
-    <value>16</value>
-    <type>int</type>
-  </param> 
   <sink>
     <name>values</name>
     <type>float</type>

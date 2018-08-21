@@ -81,21 +81,6 @@ namespace gr {
       virtual signal_metadata_t get_metadata() = 0;
 
       /*!
-       * \brief Read time domain data.
-       *
-       * User is required to read out all the available samples at once, else the data
-       * is lost. Essentially this means that the value and error buffers should be large enough
-       * to hold a complete buffer.
-       *
-       * \param nr_items_to_read number of items to read
-       * \param values values
-       * \param errors error estimates
-       * \param info meassurement timestamp and status
-       * \returns number of actual items read
-       */
-      virtual size_t get_items(size_t nr_items_to_read, float *values, float *errors, measurement_info_t *info) = 0;
-
-      /*!
        * \brief Register a callable, called whenever a predefined number of samples is available.
        *
        * Note, only one callable can be registered for a given sink.
@@ -106,10 +91,10 @@ namespace gr {
       virtual void set_callback(data_available_cb_t callback, void *ptr) = 0;
 
       /*!
-       * \brief Gets buffer size.
-       * \returns buffer size in samples
+       * \brief Gets output package size
+       * \returns output package size in samples
        */
-      virtual size_t get_buffer_size() = 0;
+      virtual size_t get_output_package_size() = 0;
 
       /*!
        * \brief Returns expected sample rate in Hz.

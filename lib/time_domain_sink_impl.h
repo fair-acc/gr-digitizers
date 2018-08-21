@@ -16,33 +16,31 @@ namespace gr {
 
     class time_domain_sink_impl : public time_domain_sink
     {
-      typedef void (*cb_get_buffers_t)(float **values,float **errors, measurement_info_t **metadata);
+      typedef void (*cb_get_package_buffers_t)(float **values,float **errors, measurement_info_t **metadata);
+      typedef void (*cb_copy_package_finished_t)();
 
      private:
       float d_samp_rate;
       time_sink_mode_t d_sink_mode;
       signal_metadata_t d_metadata;
-      std::size_t d_buffer_size;
+      std::size_t d_output_package_size;
 
-      // callback and user-provided ptr
-      cb_get_buffers_t d_callback;
-      void *d_user_data;
+      cb_get_package_buffers_t d_cb_get_package_buffers;
+      cb_copy_package_finished_t d_cb_copy_package__finished;
 
       boost::circular_buffer<acq_info_t> d_acq_info_tags;
 
      public:
       
-      time_domain_sink_impl(std::string name, std::string unit, float samp_rate,
-              size_t buffer_size, size_t nr_buffers, time_sink_mode_t mode);
+      time_domain_sink_impl(std::string name, std::string unit, float samp_rate, size_t output_package_size, time_sink_mode_t mode);
 
       ~time_domain_sink_impl();
 
-      int work(int noutput_items, gr_vector_const_void_star &input_items,
-              gr_vector_void_star &output_items) override;
+      int work(int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items) override;
 
-      void set_callback(cb_get_buffers_t cb);
+      void set_callbacks(cb_get_package_buffers_t cb cb_get_package_buffers, cb_copy_package_finished_t cb_copy_package_finished);
 
-      size_t get_buffer_size() override;
+      size_t get_output_package_size() override;
 
       float get_sample_rate() override;
 
