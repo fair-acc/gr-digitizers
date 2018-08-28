@@ -9,6 +9,7 @@
 #define INCLUDED_DIGITIZERS_SINK_COMMON_H
 
 #include <digitizers/api.h>
+#include <gnuradio/tags.h>
 #include <cstdint>
 #include <string>
 
@@ -73,6 +74,12 @@ namespace digitizers {
      * \brief Callback deceleration
      */
     typedef void (*data_available_cb_t)(const data_available_event_t *evt, void *userdata);
+    typedef void (*cb_copy_data_t)(const float            *values,
+                                   std::size_t             values_size,
+                                   const float            *errors,
+                                   std::size_t             errors_size,
+                                   std::vector<gr::tag_t>& tags,
+                                   void                   *userdata);
 
   }
 } // namespace gr

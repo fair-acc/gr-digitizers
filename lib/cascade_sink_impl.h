@@ -17,7 +17,6 @@
 #include <digitizers/demux_ff.h>
 #include <digitizers/stft_algorithms.h>
 
-#define N_BUFFERS 10
 #define MIN_HISTORY 0.01 // [ms] minimum history to ensure that WR triggers are found within
 
 #define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST 100000

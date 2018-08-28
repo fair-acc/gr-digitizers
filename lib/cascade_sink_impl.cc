@@ -69,13 +69,13 @@ namespace gr {
       }
 
       // create sinks -- FESA will see updates @10Hz at most.
-      //                                  signal-name,           unit name, sample rate, buffer size, # of buffers, sink mode
-      d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     1000,        N_BUFFERS,    TIME_SINK_MODE_STREAMING);
-      d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,       100,        N_BUFFERS,    TIME_SINK_MODE_STREAMING);
-      d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,         10,        N_BUFFERS,    TIME_SINK_MODE_STREAMING);
-      d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,           1,        N_BUFFERS,    TIME_SINK_MODE_STREAMING);
-      d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,           1,        N_BUFFERS,    TIME_SINK_MODE_STREAMING);
-      d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,              1,        N_BUFFERS,    TIME_SINK_MODE_STREAMING);
+      //                                  signal-name,           unit name, sample rate, dataPackageSize, sink mode
+      d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     1000,            TIME_SINK_MODE_STREAMING);
+      d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,       100,            TIME_SINK_MODE_STREAMING);
+      d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,         10,            TIME_SINK_MODE_STREAMING);
+      d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,           1,            TIME_SINK_MODE_STREAMING);
+      d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,           1,            TIME_SINK_MODE_STREAMING);
+      d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,              1,            TIME_SINK_MODE_STREAMING);
 
       //create aggregation blocks
       double lf = low_freq; // lower frequency cut-off - decreases by a factor 10 per stage
@@ -187,7 +187,7 @@ namespace gr {
        */
 
       // triggered demux blocks (triggered time-domain acquisition)
-      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, TIME_SINK_MODE_TRIGGERED);
       d_demux_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
       // input to first raw-data-rate demux
       connect(self(), 0, d_demux_raw, 0); // 0: values port
@@ -196,7 +196,7 @@ namespace gr {
       connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
       connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
-      d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, N_BUFFERS, TIME_SINK_MODE_TRIGGERED);
+      d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, TIME_SINK_MODE_TRIGGERED);
       d_demux_10000 = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
       // first 10 kHz block to 10 kHz demux
       connect(d_agg10000, 0, d_demux_10000, 0);
@@ -215,19 +215,19 @@ namespace gr {
       // make 1 kHz connection to interlock reference function module (needed to receive timing tags, nothing else)
       connect(d_agg1000, 0, d_interlock_reference_function, 0);
 
-      d_snk_interlock_ref = time_domain_sink::make(signal_name+":InterlockRef@1kHz", unit_name, 1000.0,   100, 10, TIME_SINK_MODE_STREAMING);
+      d_snk_interlock_ref = time_domain_sink::make(signal_name+":InterlockRef@1kHz", unit_name, 1000.0,   100, TIME_SINK_MODE_STREAMING);
       connect(d_interlock_reference_function, 0, d_snk_interlock_ref, 0);
 
-      d_snk_interlock_min = time_domain_sink::make(signal_name+":InterlockLimitMin@1kHz", unit_name, 1000.0,   100, 10, TIME_SINK_MODE_STREAMING);
+      d_snk_interlock_min = time_domain_sink::make(signal_name+":InterlockLimitMin@1kHz", unit_name, 1000.0,   100, TIME_SINK_MODE_STREAMING);
       connect(d_interlock_reference_function, 1, d_snk_interlock_min, 0);
 
-      d_snk_interlock_max = time_domain_sink::make(signal_name+":InterlockLimitMax@1kHz", unit_name, 1000.0,   100, 10, TIME_SINK_MODE_STREAMING);
+      d_snk_interlock_max = time_domain_sink::make(signal_name+":InterlockLimitMax@1kHz", unit_name, 1000.0,   100, TIME_SINK_MODE_STREAMING);
       connect(d_interlock_reference_function, 2, d_snk_interlock_max, 0);
 
 
       // arbitrary initial interlock limits since they are anyway overwritten by the reference function
       d_interlock =  interlock_generation_ff::make(-10000.0, +10000.0);
-      d_snk_interlock = time_domain_sink::make(signal_name+":InterlockState@1kHz", unit_name, 1000.0,   100, 10, TIME_SINK_MODE_STREAMING);
+      d_snk_interlock = time_domain_sink::make(signal_name+":InterlockState@1kHz", unit_name, 1000.0,   100, TIME_SINK_MODE_STREAMING);
       connect(d_interlock, 0, d_snk_interlock, 0);
 
       // connect 10 kHz block to interlock port 0 ('sig')

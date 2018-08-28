@@ -4,7 +4,7 @@
   <key>digitizers_time_domain_sink</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.time_domain_sink($signal_name, $signal_unit, $samp_rate, $buffer_size, $nr_buffers, $acquisition_type)</make>
+  <make>digitizers.time_domain_sink($signal_name, $signal_unit, $samp_rate, $output_package_size, $acquisition_type)</make>
   
   <param>
     <name>Sample Rate (Hz)</name>

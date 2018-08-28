@@ -16,8 +16,6 @@ namespace gr {
 
     class time_domain_sink_impl : public time_domain_sink
     {
-      typedef void (*cb_get_package_buffers_t)(float **values,float **errors, measurement_info_t **metadata);
-      typedef void (*cb_copy_package_finished_t)();
 
      private:
       float d_samp_rate;
@@ -25,10 +23,8 @@ namespace gr {
       signal_metadata_t d_metadata;
       std::size_t d_output_package_size;
 
-      cb_get_package_buffers_t d_cb_get_package_buffers;
-      cb_copy_package_finished_t d_cb_copy_package__finished;
-
-      boost::circular_buffer<acq_info_t> d_acq_info_tags;
+      cb_copy_data_t d_cb_copy_data;
+      void* d_userdata;
 
      public:
       
@@ -38,13 +34,15 @@ namespace gr {
 
       int work(int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items) override;
 
-      void set_callbacks(cb_get_package_buffers_t cb cb_get_package_buffers, cb_copy_package_finished_t cb_copy_package_finished);
+      void set_callback(cb_copy_data_t cb_copy_data, void* userdata) override;
 
       size_t get_output_package_size() override;
 
       float get_sample_rate() override;
 
       time_sink_mode_t get_sink_mode() override;
+
+      signal_metadata_t get_metadata() override;
 
     };
 

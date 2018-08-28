@@ -9,7 +9,6 @@
 #include <cppunit/TestAssert.h>
 #include <digitizers/time_domain_sink.h>
 #include <digitizers/status.h>
-#include <digitizers/tags.h>
 #include <gnuradio/top_block.h>
 #include <gnuradio/blocks/vector_source_f.h>
 #include <gnuradio/blocks/tag_debug.h>
@@ -25,18 +24,6 @@
 namespace gr {
   namespace digitizers {
 
-    void
-    qa_time_domain_sink::stream_basics()
-    {
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, 2048, 2, TIME_SINK_MODE_STREAMING);
-        CPPUNIT_ASSERT_EQUAL(size_t{2048}, sink->get_buffer_size());
-        CPPUNIT_ASSERT_EQUAL(1000.0f, sink->get_sample_rate());
-
-        auto metadata = sink->get_metadata();
-        CPPUNIT_ASSERT_EQUAL(std::string("test"), metadata.name);
-        CPPUNIT_ASSERT_EQUAL(std::string("unit"), metadata.unit);
-    }
-
     static std::vector<float>
     get_test_data(size_t size, float gain=1)
     {
@@ -47,18 +34,99 @@ namespace gr {
         return data;
     }
 
-    void
-    check_data_zero(float *returned, size_t size)
+    void copy_data_callback(const float           *values,
+                 std::size_t             values_size,
+                 const float            *errors,
+                 std::size_t             errors_size,
+                 std::vector<gr::tag_t>& tags,
+                 void* userdata)
     {
-        for (size_t i=0; i<size; i++) {
-            CPPUNIT_ASSERT_EQUAL(float{0.0}, returned[i]);
+        qa_time_domain_sink::Test *object = static_cast<qa_time_domain_sink::Test *>(userdata);
+        object->callback(values, values_size, errors, errors_size, tags);
+    }
+
+    qa_time_domain_sink::Test::Test(std::size_t size)
+    {
+        values_ = new float[size];
+        errors_ = new float[size];
+        p_values_ = values_;
+        p_errors_ = errors_;
+        callback_calls_ = 0;
+        values_size_ = 0;
+        errors_size_ = 0;
+        size_max_ = size;
+    }
+
+    qa_time_domain_sink::Test::~Test()
+    {
+        delete[] values_;
+        delete[] errors_;
+    }
+
+    void
+    qa_time_domain_sink::Test::check_errors_zero()
+    {
+        for (size_t i=0; i<values_size_; i++) {
+            CPPUNIT_ASSERT_EQUAL(float{0.0}, errors_[i]);
         }
     }
 
+    void
+    qa_time_domain_sink::Test::check_values_equal(std::vector<float>& values)
+    {
+        for (size_t i=0; i<values_size_; i++) {
+            CPPUNIT_ASSERT_EQUAL(values[i], values_[i]);
+        }
+    }
+
+    void
+    qa_time_domain_sink::Test::check_errors_equal(std::vector<float>& errors)
+    {
+        for (size_t i=0; i<errors_size_; i++) {
+            CPPUNIT_ASSERT_EQUAL(errors[i], errors_[i]);
+        }
+    }
+
+    void qa_time_domain_sink::Test::callback(const float           *values,
+                 std::size_t             values_size,
+                 const float            *errors,
+                 std::size_t             errors_size,
+                 std::vector<gr::tag_t>& tags)
+    {
+        CPPUNIT_ASSERT( values_size + values_size_ <= size_max_ );
+        CPPUNIT_ASSERT( errors_size + errors_size_ <= size_max_ );
+
+        callback_calls_++;
+        memcpy(p_values_, values, values_size * sizeof(float));
+        if (errors_size > 0)
+          memcpy(p_errors_, errors, errors_size * sizeof(float));
+
+        values_size_ += values_size;
+        errors_size_ += errors_size;
+
+        p_values_ += values_size;
+        p_errors_ += errors_size;
+
+        std::vector<acq_info_t> acq_info_tags;
+        for (auto tag : tags)
+        {
+            acq_info_tags.push_back(decode_acq_info_tag(tag));
+        }
+        tags_per_call_.push_back(acq_info_tags);
+    }
+
+    /// ######################## Testcases start here ############################################
+
+    void
+    qa_time_domain_sink::stream_basics()
+    {
+        auto sink = time_domain_sink::make("test", "unit", 1000.0, 2048, TIME_SINK_MODE_STREAMING);
+        CPPUNIT_ASSERT_EQUAL(size_t{2048}, sink->get_output_package_size());
+        CPPUNIT_ASSERT_EQUAL(1000.0f, sink->get_sample_rate());
+    }
+
     /*
-     * Test what happens when no tags are passed to the sink. It is
-     * expected the timestamp to be invalid (-1) and that the status
-     * reads 0.
+     * Test what happens when no tags are passed to the sink.
      */
     void
     qa_time_domain_sink::stream_values_no_tags()
@@ -68,25 +136,20 @@ namespace gr {
         // test data
         size_t chunk_size = 124;
         auto data = get_test_data(chunk_size);
+        Test test(chunk_size);
 
         auto source = gr::blocks::vector_source_f::make(data);
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, chunk_size, 2, TIME_SINK_MODE_STREAMING);
+        auto sink = time_domain_sink::make("test", "unit", 1000.0, chunk_size, TIME_SINK_MODE_STREAMING);
 
         // connect and run
         top->connect(source, 0, sink, 0);
+        sink->set_callback(copy_data_callback, &test);
         top->run();
 
-        float values[chunk_size * 2];
-        float errors[chunk_size * 2];
-        measurement_info_t info;
-
-        auto retval = sink->get_items(chunk_size, values, errors, &info);
-
-        CPPUNIT_ASSERT_EQUAL(chunk_size, retval);
-        ASSERT_VECTOR_EQUAL(data.begin(), data.end(), values);
-        check_data_zero(errors, chunk_size);
-        CPPUNIT_ASSERT_EQUAL(int64_t{-1}, info.timestamp);
-        CPPUNIT_ASSERT_EQUAL(uint32_t{0}, info.status);
+        CPPUNIT_ASSERT_EQUAL(chunk_size, test.values_size_);
+        test.check_values_equal(data);
+        CPPUNIT_ASSERT(test.tags_per_call_[0].empty());
+        CPPUNIT_ASSERT_EQUAL(test.errors_size_, size_t(0));
     }
 
     /*
@@ -99,99 +162,33 @@ namespace gr {
 
         // test data
         size_t chunk_size = 124;
-
+        Test test(chunk_size);
         auto data = get_test_data(chunk_size);
         auto source = gr::blocks::vector_source_f::make(data);
 
         auto data_errs = get_test_data(chunk_size, 0.01);
         auto source_errs = gr::blocks::vector_source_f::make(data_errs);
 
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, chunk_size, 2, TIME_SINK_MODE_STREAMING);
+        auto sink = time_domain_sink::make("test", "unit", 1000.0, chunk_size, TIME_SINK_MODE_STREAMING);
 
         // connect and run
         top->connect(source, 0, sink, 0);
         top->connect(source_errs, 0, sink, 1);
+        sink->set_callback(copy_data_callback, &test);
         top->run();
 
-        float values[chunk_size * 2];
-        float errors[chunk_size * 2];
-        measurement_info_t info;
-
-        auto retval = sink->get_items(chunk_size, values, errors, &info);
-
-        CPPUNIT_ASSERT_EQUAL(chunk_size, retval);
-        ASSERT_VECTOR_EQUAL(data.begin(), data.end(), values);
-        ASSERT_VECTOR_EQUAL(data_errs.begin(), data_errs.end(), errors);
-        CPPUNIT_ASSERT_EQUAL(int64_t{-1}, info.timestamp);
-        CPPUNIT_ASSERT_EQUAL(uint32_t{0}, info.status);
-    }
-
-    /*!
-     * \brief Sleep is used in order to relax the CPU allowing the GR machinery
-     * to do its job.
-     *
-     * \returns true in case of timeout, else false
-     */
-    template<typename predicate_type>
-    bool relaxed_wait_for(predicate_type pred, double timeout /*in seconds*/)
-    {
-      auto loop_count = static_cast<long>(timeout * 1000.0);
-      for (auto i = loop_count; i > 0; --i) {
-        if (pred()) {
-          return false;
-        }
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(1));;
-      }
-      return true;
+        CPPUNIT_ASSERT_EQUAL(chunk_size, test.values_size_);
+        CPPUNIT_ASSERT_EQUAL(chunk_size, test.errors_size_);
+        test.check_values_equal(data);
+        test.check_errors_equal(data_errs);
+        CPPUNIT_ASSERT(test.tags_per_call_[0].empty());
     }
 
     /*
-     * This test checks if samples are lost.
+     * Should still run, even if no callback is available
      */
     void
-    qa_time_domain_sink::stream_overflow()
-    {
-        auto top = gr::make_top_block("test");
-
-        size_t chunk_size = 124;
-
-        auto data = get_test_data(chunk_size);
-        auto source = gr::blocks::vector_source_f::make(data);
-
-        auto data_errs = get_test_data(chunk_size, 0.01);
-        auto source_errs = gr::blocks::vector_source_f::make(data_errs);
-
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, chunk_size/2, 1, TIME_SINK_MODE_STREAMING);
-
-        // connect and run
-        top->connect(source, 0, sink, 0);
-        top->connect(source_errs, 0, sink, 1);
-
-        top->run();
-
-        float values[chunk_size];
-        float errors[chunk_size];
-        measurement_info_t info;
-
-        auto retval = sink->get_items(chunk_size, values, errors, &info);
-        CPPUNIT_ASSERT_EQUAL(chunk_size/2, retval);
-
-        ASSERT_VECTOR_EQUAL(&data[0], &data[chunk_size/2], &values[0]);
-        ASSERT_VECTOR_EQUAL(&data_errs[0], &data_errs[chunk_size/2], &errors[0]);
-        //number of samples lost is not yet known, because the block needs to
-        //receive the next block  before the next get_items call, to see that
-        //there was data loss.
-    }
-
-    static void invoke_function(const data_available_event_t *event, void *ptr) {
-        (*static_cast<std::function<void(const data_available_event_t *)>*>(ptr))(event);
-    }
-
-    /*
-     * Note, callback is called only once the buffer is full.
-     */
-    void
-    qa_time_domain_sink::stream_callback()
+    qa_time_domain_sink::stream_no_callback()
     {
         auto top = gr::make_top_block("test");
 
@@ -200,31 +197,17 @@ namespace gr {
         auto data = get_test_data(data_size);
         auto source = gr::blocks::vector_source_f::make(data);
 
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, data_size, 2, TIME_SINK_MODE_STREAMING);
-
-        data_available_event_t local_event;
-        auto callback = new std::function<void(const data_available_event_t *)>(
-        [&local_event] (const data_available_event_t *event)
-        {
-            local_event = *event;
-        });
-
-        sink->set_callback(&invoke_function, static_cast<void *>(callback));
+        auto sink = time_domain_sink::make("no_callback_test", "unit", 1000.0, data_size, TIME_SINK_MODE_STREAMING);
 
         // connect and run
         top->connect(source, 0, sink, 0);
         top->run();
 
-        // be nice and clean up
-        delete callback;
-
-        CPPUNIT_ASSERT_EQUAL(std::string("test"), local_event.signal_name);
-        CPPUNIT_ASSERT_EQUAL(int64_t{-1}, local_event.trigger_timestamp);
+        // Just run it without failure
     }
 
     static gr::tag_t
-    make_test_acq_info_tag(int64_t timestamp, double timebase,
-            double user_delay, uint32_t samples, uint32_t status, uint64_t offset)
+    make_test_acq_info_tag(int64_t timestamp, double timebase, double user_delay, uint32_t samples, uint32_t status, uint64_t offset)
     {
         acq_info_t info{};
         info.timestamp = timestamp;
@@ -237,80 +220,46 @@ namespace gr {
 
         return make_acq_info_tag(info);
     };
-
+    
     /*
-     * Status tags are simply merged.
+     * tags are forwarded, split across multiple the packages
      */
     void
     qa_time_domain_sink::stream_acq_info_tag()
     {
         auto top = gr::make_top_block("test acq_info");
 
-        size_t data_size = 200;
+        size_t data_size = 300;
+        int number_of_chunks = 3;
         std::vector<float> data = get_test_data(data_size);
+
+        Test test(data_size);
 
         // Monotone clock is assumed...
         double timebase = 0.00015;
         int64_t timebase_ns = static_cast<int64_t>(timebase * 1000000000.0);
         std::vector<gr::tag_t> tags = {
-                make_test_acq_info_tag(51  * timebase_ns, timebase, 0.1, 0, 1<<1, 50),
-                make_test_acq_info_tag(101  * timebase_ns, timebase, 0.1, 0, 1<<2, 100),
-                make_test_acq_info_tag(151  * timebase_ns, timebase, 0.1, 0, 1<<3, 150)
+                make_test_acq_info_tag(50  * timebase_ns, timebase, 0.1, 0, 1<<1, 50),
+                make_test_acq_info_tag(150  * timebase_ns, timebase, 0.1, 0, 1<<2, 150),
+                make_test_acq_info_tag(250  * timebase_ns, timebase, 0.1, 0, 1<<3, 250)
         };
 
         auto source = gr::blocks::vector_source_f::make(data, false, 1, tags);
-        auto sink = gr::digitizers::time_domain_sink::make("test", "unit", 1.0f/timebase, data_size, 10, TIME_SINK_MODE_STREAMING);
-        auto sink_debug = gr::blocks::tag_debug::make(sizeof(float), "test", acq_info_tag_name);
-        sink_debug->set_display(false);
+        auto sink = gr::digitizers::time_domain_sink::make("test", "unit", 1.0f/timebase, data_size/number_of_chunks, TIME_SINK_MODE_STREAMING);
 
-        // connect and run
-        top->connect(source, 0, sink, 0);
-        top->connect(source, 0, sink_debug, 0);
-        top->run();
-
-        CPPUNIT_ASSERT_EQUAL(3, sink_debug->num_tags());
-
-        float values[data_size * 2];
-        float errors[data_size * 2];
-        measurement_info_t info;
-
-        auto retval = sink->get_items(data_size, values, errors, &info);
-        CPPUNIT_ASSERT_EQUAL(size_t{data_size}, retval);
-        CPPUNIT_ASSERT_EQUAL(int64_t{timebase_ns}, info.timestamp);
-        CPPUNIT_ASSERT_EQUAL(uint32_t{0xE}, info.status);
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(timebase, info.timebase, 1E-5);
-    }
-
-    void
-    qa_time_domain_sink::stream_partial_readout()
-    {
-        auto top = gr::make_top_block("test");
-
-        size_t data_size = 124;
-
-        auto data = get_test_data(data_size);
-        auto source = gr::blocks::vector_source_f::make(data);
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, data_size, 2, TIME_SINK_MODE_STREAMING);
+        sink->set_callback(copy_data_callback, &test);
 
         // connect and run
         top->connect(source, 0, sink, 0);
         top->run();
 
-        float values[data_size * 2];
-        float errors[data_size * 2];
-        measurement_info_t info;
+        CPPUNIT_ASSERT_EQUAL(test.callback_calls_, number_of_chunks);
+        test.check_values_equal(data);
 
-        auto retval = sink->get_items(data_size/2, values, errors, &info);
-        CPPUNIT_ASSERT_EQUAL(data_size/2, retval);
-
-        // Do that again in order to get all the data, ups we've lost the data :)
-        // meaning the user is responsible to read-out all the data else everything
-        // is lost.
-        retval = sink->get_items(data_size, values, errors, &info);
-        CPPUNIT_ASSERT_EQUAL(size_t{0}, retval);
-
-        top->stop();
-        top->wait();
+        for ( auto tags_on_call : test.tags_per_call_ )
+        {
+            CPPUNIT_ASSERT_EQUAL(size_t(1),tags_on_call.size()); // one tag per chunk is expected
+        }
     }
 
   } /* namespace digitizers */
