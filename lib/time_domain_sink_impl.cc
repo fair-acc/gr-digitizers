@@ -33,7 +33,8 @@ namespace gr {
         d_samp_rate(samp_rate),
         d_sink_mode(mode),
         d_output_package_size(output_package_size),
-        d_cb_copy_data(nullptr)
+        d_cb_copy_data(nullptr),
+        d_userdata(nullptr)
     {
       d_metadata.name = name;
       d_metadata.unit = unit;

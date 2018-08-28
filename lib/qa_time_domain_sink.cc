@@ -41,6 +41,7 @@ namespace gr {
                  std::vector<gr::tag_t>& tags,
                  void* userdata)
     {
+        CPPUNIT_ASSERT( userdata != nullptr );
         qa_time_domain_sink::Test *object = static_cast<qa_time_domain_sink::Test *>(userdata);
         object->callback(values, values_size, errors, errors_size, tags);
     }
