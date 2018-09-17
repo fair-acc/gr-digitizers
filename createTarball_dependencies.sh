@@ -11,10 +11,10 @@ PICOSCOPE_LIB_DIR=/opt/picoscope/lib
 ROOT_INCLUDE_DIR=/opt/cern/root/include
 ROOT_LIB_DIR=/opt/cern/root/lib
 ROOT_ETC_DIR=/opt/cern/root/etc
-GNURADIO_VERSION=3.7.10.1
+GNURADIO_VERSION=3.7.12.0
 BOOST_VERSION=1.53.0
 
-TARBALL_NAME=DigitizerDependencies.tar
+TARBALL_NAME=DigitizerDependencies-master.tar
 
 mkdir -p ${INSTALL_DIR_LIB64}
 mkdir -p ${INSTALL_DIR_LIB}
@@ -58,7 +58,7 @@ cp ${SYSTEM_LIB_DIR}/libdw.so.1 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libattr.so.1 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libelf.so.1 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libbz2.so.1 ${INSTALL_DIR_LIB64}
-cp ${SYSTEM_LIB_DIR}/libvolk.so.1.3 ${INSTALL_DIR_LIB64}
+cp ${SYSTEM_LIB_DIR}/libvolk.so.1.4 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libfftw3f.so.3 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libfftw3f_threads.so.3 ${INSTALL_DIR_LIB64}
 
