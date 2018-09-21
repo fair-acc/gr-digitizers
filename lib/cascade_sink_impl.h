@@ -17,6 +17,7 @@
 #include <digitizers/demux_ff.h>
 #include <digitizers/stft_algorithms.h>
 
+
 #define MIN_HISTORY 0.01 // [ms] minimum history to ensure that WR triggers are found within
 
 #define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST 100000
@@ -33,6 +34,9 @@ namespace gr {
     class cascade_sink_impl : public cascade_sink
     {
      private:
+
+      gr::basic_block_sptr d_null_sink;
+
       block_aggregation::sptr d_agg10000;
       block_aggregation::sptr d_agg1000;
       block_aggregation::sptr d_agg100;

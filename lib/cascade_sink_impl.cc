@@ -9,6 +9,7 @@
 #endif
 
 #include <gnuradio/io_signature.h>
+#include <gnuradio/blocks/null_sink.h>
 #include "cascade_sink_impl.h"
 
 namespace gr {
@@ -63,6 +64,12 @@ namespace gr {
               gr::io_signature::make(2,2 , sizeof(float)))
     {
 
+      d_null_sink = gr::blocks::null_sink::make(2 * sizeof(float));
+
+      //to make gnuradio happy
+      connect(d_null_sink, 0, self(), 0);
+      connect(d_null_sink, 1, self(), 1);
+
       int samp_rate_to_ten_kilo = static_cast<int>(samp_rate / 10000.0);
       if(samp_rate != (samp_rate_to_ten_kilo * 10000.0)) {
         GR_LOG_ALERT(logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
@@ -104,9 +111,7 @@ namespace gr {
       // first 10 kHz block to 1 kHz Block
       connect(d_agg10000, 0, d_agg1000, 0);
       connect(d_agg10000, 1, d_agg1000, 1);
-      // connect 1kHz stream to output
-      connect(d_agg1000, 0, self(), 0);
-      connect(d_agg1000, 1, self(), 1);
+
       // connect 1kHz aggregation to corresponding FESA time-domain sink
       connect(d_agg1000, 0, d_snk1000, 0);
       connect(d_agg1000, 1, d_snk1000, 1);
