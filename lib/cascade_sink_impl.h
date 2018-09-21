@@ -34,9 +34,6 @@ namespace gr {
     class cascade_sink_impl : public cascade_sink
     {
      private:
-
-      gr::basic_block_sptr d_null_sink;
-
       block_aggregation::sptr d_agg10000;
       block_aggregation::sptr d_agg1000;
       block_aggregation::sptr d_agg100;
