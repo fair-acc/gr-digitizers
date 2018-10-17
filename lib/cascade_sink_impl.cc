@@ -71,21 +71,18 @@ namespace gr {
       // create sinks -- FESA will see updates @10Hz at most.
       //                                  signal-name,           unit name, sample rate, dataPackageSize, sink mode
       d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     1000,            TIME_SINK_MODE_STREAMING);
-     // d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,       100,            TIME_SINK_MODE_STREAMING);
-     // d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,         10,            TIME_SINK_MODE_STREAMING);
-     // d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,           1,            TIME_SINK_MODE_STREAMING);
-     // d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,           1,            TIME_SINK_MODE_STREAMING);
-     // d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,              1,            TIME_SINK_MODE_STREAMING);
-
+/*      d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,       100,            TIME_SINK_MODE_STREAMING);
+      d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,         10,            TIME_SINK_MODE_STREAMING);
+      d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,           1,            TIME_SINK_MODE_STREAMING);
+      d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,           1,            TIME_SINK_MODE_STREAMING);
+      d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,              1,            TIME_SINK_MODE_STREAMING);
+*/
       //create aggregation blocks
       double lf = low_freq; // lower frequency cut-off - decreases by a factor 10 per stage
       double uf = up_freq;  // upper frequency cut-off - decreases by a factor 10 per stage
       double tr = tr_width; // transition width (ie. bandwidth between 3dB and 20 dB point
       // (should not be excessively small <-> relates to the FIR filter length)
       // N.B. original design of hard-coding names... TODO: clean-up and replace by loops for better readability
-
-      //static block_aggregation::sptr make(int alg_id, int decim, int delay, const std::vector<float> &fir_taps, double low_freq, double up_freq, double tr_width,
-      //         const std::vector<double> &fb_user_taps, const std::vector<double> &fw_user_taps, double samp_rate);
 
       // first stage n-MS/S to 10 kS/s
       d_agg10000 = block_aggregation::make(alg_id, samp_rate_to_ten_kilo, delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, samp_rate);
@@ -96,7 +93,8 @@ namespace gr {
       // connect raw->10kHz aggregation to corresponding FESA time-domain sink
       connect(d_agg10000, 0, d_snk10000, 0); // 0: values port
       connect(d_agg10000, 1, d_snk10000, 1); // 1: errors
-/*
+
+      /*
       // second stage 10 kS/s to 1 kS/s
       lf /= 10;
       uf /= 10;
@@ -106,8 +104,8 @@ namespace gr {
       connect(d_agg10000, 0, d_agg1000, 0);
       connect(d_agg10000, 1, d_agg1000, 1);
       // connect 1kHz stream to output
-      connect(d_agg1000, 0, self(), 0);
-      connect(d_agg1000, 1, self(), 1);
+      //connect(d_agg1000, 0, self(), 0);
+      //connect(d_agg1000, 1, self(), 1);
       // connect 1kHz aggregation to corresponding FESA time-domain sink
       connect(d_agg1000, 0, d_snk1000, 0);
       connect(d_agg1000, 1, d_snk1000, 1);
@@ -157,8 +155,8 @@ namespace gr {
       // connect 1 Hz aggregation to corresponding FESA time-domain sink
       connect(d_agg1, 0, d_snk1, 0);
       connect(d_agg1, 1, d_snk1, 1);
-
 */
+
       // To prevent tag explosion we limit the output buffer size. For each output item the aggregation
       // block will generate only one acq_info tag. Therefore number 1024 seems to be reasonable... Note
       // GR works only with output buffers of one page....
@@ -322,7 +320,7 @@ namespace gr {
     cascade_sink_impl::get_time_domain_sinks()
     {
       //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
-        //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000};
+       // return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000};
         return {d_snk10000};
     }
 
