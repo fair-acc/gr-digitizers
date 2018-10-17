@@ -118,7 +118,7 @@ namespace digitizers{
            return it->start();
         }
         else if (it->step() != 0.0) {
-          return boost::math::round((value - it->start()) / it->step()) * it->step() + it->start();
+          return round((value - it->start()) / it->step()) * it->step() + it->start();
         }
         else {
           // lower-bound check done as part of find_if
