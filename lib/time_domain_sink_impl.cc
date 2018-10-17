@@ -59,8 +59,8 @@ namespace gr {
       assert(ninput_items % d_output_package_size == 0);
 
       if(d_cb_copy_data == nullptr )
-      {
-          GR_LOG_WARN(d_logger, "Callback for sink '" + d_metadata.name + "' is not initialized");
+      {   // FIXME: uncomment when all sink types are supported by FESA
+          //GR_LOG_WARN(d_logger, "Callback for sink '" + d_metadata.name + "' is not initialized");
           return ninput_items;
       }
 
@@ -76,7 +76,7 @@ namespace gr {
       std::vector<gr::tag_t> tags;
 
       // consume package by package
-      for (size_t i = 0; i < ninput_items; i+= d_output_package_size)
+      for (int i = 0; i < ninput_items; i+= d_output_package_size)
       {
         /* get tags for this package */
         get_tags_in_range(tags, 0, tag_index, tag_index + d_output_package_size - 1, pmt::string_to_symbol(acq_info_tag_name));
