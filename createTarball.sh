@@ -34,3 +34,4 @@ rm -rf ${FOLDER_TO_TAR}
 gzip ${TARBALL_NAME}
 
 cp ${TARBALL_NAME}.gz /common/export/fesa/arch/x86_64
+echo "${TARBALL_NAME}.gz copied to /common/export/fesa/arch/x86_64"
