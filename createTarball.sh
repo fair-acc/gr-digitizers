@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 if [ $# -eq 0 ]
   then
@@ -24,7 +25,7 @@ TARBALL_NAME=Digitizer-${VERSION}.tar
 mkdir -p ${INSTALL_DIR_LIB}
 mkdir -p ${INSTALL_DIR_BIN}
 
-cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-${VERSION}.so.0.0.0 ${INSTALL_DIR_LIB}
+cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-${VERSION}.master.so.0.0.0 ${INSTALL_DIR_LIB}
 
 cp ${SCRIPTPATH}/build/lib/test-digitizers ${INSTALL_DIR_BIN}
 cp ${SCRIPTPATH}/build/lib/test_digitizers_test.sh ${INSTALL_DIR_BIN}

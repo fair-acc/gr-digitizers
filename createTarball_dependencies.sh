@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 FOLDER_TO_TAR=usr
 INSTALL_DIR_LIB=${FOLDER_TO_TAR}/lib
