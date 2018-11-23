@@ -208,18 +208,16 @@ namespace gr {
     }
 
     static gr::tag_t
-    make_test_acq_info_tag(int64_t timestamp, double timebase, double user_delay, uint32_t samples, uint32_t status, uint64_t offset)
+    make_test_acq_info_tag(int64_t timestamp, double timebase, double user_delay, uint32_t status, uint64_t offset)
     {
         acq_info_t info{};
         info.timestamp = timestamp;
         info.timebase = timebase;
         info.user_delay = user_delay;
         info.actual_delay = user_delay;
-        info.samples = samples;
         info.status = status;
-        info.offset = offset;
 
-        return make_acq_info_tag(info);
+        return make_acq_info_tag(info, offset);
     };
     
     /*
@@ -240,9 +238,9 @@ namespace gr {
         double timebase = 0.00015;
         int64_t timebase_ns = static_cast<int64_t>(timebase * 1000000000.0);
         std::vector<gr::tag_t> tags = {
-                make_test_acq_info_tag(50  * timebase_ns, timebase, 0.1, 0, 1<<1, 50),
-                make_test_acq_info_tag(150  * timebase_ns, timebase, 0.1, 0, 1<<2, 150),
-                make_test_acq_info_tag(250  * timebase_ns, timebase, 0.1, 0, 1<<3, 250)
+                make_test_acq_info_tag(50  * timebase_ns, timebase, 0.1, 1<<1, 50),
+                make_test_acq_info_tag(150  * timebase_ns, timebase, 0.1, 1<<2, 150),
+                make_test_acq_info_tag(250  * timebase_ns, timebase, 0.1, 1<<3, 250)
         };
 
         auto source = gr::blocks::vector_source_f::make(data, false, 1, tags);

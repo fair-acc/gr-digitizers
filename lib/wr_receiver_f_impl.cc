@@ -61,9 +61,9 @@ namespace gr {
 
       // Attach event tags
       wr_event_t event;
-      while (d_event_queue.pop(event)) {
-        event.offset = nitems_written(0);
-        auto tag = make_wr_event_tag(event);
+      while (d_event_queue.pop(event))
+      {
+        auto tag = make_wr_event_tag(event, nitems_written(0));
         add_item_tag(0, tag);
       }
 
@@ -78,20 +78,12 @@ namespace gr {
     }
 
     void
-    wr_receiver_f_impl::add_timing_event(const std::string &event_id, int64_t event_timestamp,
-            int64_t beam_in_timestamp, bool time_sync_only, bool realignment_required)
+    wr_receiver_f_impl::add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc)
     {
       wr_event_t event;
-
       event.event_id = event_id;
-      event.timestamp = event_timestamp;
-      event.last_beam_in_timestamp = beam_in_timestamp;
-
-      event.offset = 0;
-
-      event.time_sync_only = time_sync_only;
-      event.realignment_required = realignment_required;
-
+      event.wr_trigger_stamp = wr_trigger_stamp;
+      event.wr_trigger_stamp_utc = wr_trigger_stamp_utc;
       d_event_queue.push(event);
     }
 

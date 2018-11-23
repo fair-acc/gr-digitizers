@@ -290,10 +290,10 @@ namespace gr {
         auto key = pmt::symbol_to_string(tag.key);
         CPPUNIT_ASSERT(key == acq_info_tag_name || key == timebase_info_tag_name  || key == trigger_tag_name);
 
-        if (key == acq_info_tag_name) {
-            auto triggered_data = decode_acq_info_tag(tag);
-            CPPUNIT_ASSERT_EQUAL(200, (int)triggered_data.pre_samples);
-            CPPUNIT_ASSERT_EQUAL(1000, (int)triggered_data.samples);
+        if (key == trigger_tag_name) {
+            auto triggered_data = decode_trigger_tag(tag);
+            CPPUNIT_ASSERT_EQUAL(200, (int)triggered_data.pre_trigger_samples);
+            CPPUNIT_ASSERT_EQUAL(1000, (int)triggered_data.post_trigger_samples);
             CPPUNIT_ASSERT_EQUAL(uint32_t{0}, triggered_data.status);
         }
         else if (key == timebase_info_tag_name) {

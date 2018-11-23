@@ -99,11 +99,11 @@ namespace gr {
     void
     edge_trigger_ff_impl::send_edge_detect_info(uint64_t trigger, uint64_t detected_edge, const wr_event_t &wr_event, bool make_tags)
     {
-      int64_t trigger_event_time_stamp = wr_event.timestamp;
+      int64_t trigger_event_time_stamp = wr_event.wr_trigger_stamp;
       uint64_t trigger_delay = static_cast<uint64_t>(
                 ((detected_edge - trigger) / (double)d_sampling_rate * 1e9) + d_acq_info.user_delay * 1e9);
-      int64_t retrigger_event_time_stamp = wr_event.timestamp < 0 ? -1
-                : wr_event.timestamp + trigger_delay;
+      int64_t retrigger_event_time_stamp = wr_event.wr_trigger_stamp < 0 ? -1
+                : wr_event.wr_trigger_stamp + trigger_delay;
 
       // prepare UDP packet
       edge_detect_t ed;
@@ -230,36 +230,36 @@ namespace gr {
         const auto &wr_event = d_wr_events.front();
 
         // Edge detection is done only for events that require realignment
-        if (!wr_event.realignment_required) {
+     //   if (!wr_event.realignment_required) {
           d_wr_events.pop_front();
           triggers_consumed++;
-        }
-        else {
-          // find first relevant detected edge
-          bool detected = false;
-          uint64_t detected_edge = 0;
+     //   }
+//        else {
+//          // find first relevant detected edge
+//          bool detected = false;
+//          uint64_t detected_edge = 0;
+//
+//          while (!d_detected_edges.empty()) {
+//            detected_edge = d_detected_edges.front();
+//            d_detected_edges.pop_front();
+//
+//            if (detected_edge >= trigger) {
+//              detected = true;
+//              break;
+//            }
+//          }
 
-          while (!d_detected_edges.empty()) {
-            detected_edge = d_detected_edges.front();
-            d_detected_edges.pop_front();
-
-            if (detected_edge >= trigger) {
-              detected = true;
-              break;
-            }
-          }
-
-          if (detected) {
-            send_edge_detect_info(trigger, detected_edge, wr_event, !output_items.empty());
-            d_wr_events.pop_front();
-            triggers_consumed++;
-          }
-          else if (samples_since_trigger > d_timeout_samples) {
-            GR_LOG_ERROR(d_logger, "Timeout detecting edge for trigger at offset: "
-                    + std::to_string(trigger));
-            triggers_consumed++;
-          }
-        }
+//          if (detected) {
+//            send_edge_detect_info(trigger, detected_edge, wr_event, !output_items.empty());
+//            d_wr_events.pop_front();
+//            triggers_consumed++;
+//          }
+//          else if (samples_since_trigger > d_timeout_samples) {
+//            GR_LOG_ERROR(d_logger, "Timeout detecting edge for trigger at offset: "
+//                    + std::to_string(trigger));
+//            triggers_consumed++;
+//          }
+//        }
       }
 
       for (size_t i = 0; i < triggers_consumed; i++) {

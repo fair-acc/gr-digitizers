@@ -114,7 +114,7 @@ namespace gr {
 
           measurement->metadata[i].timebase = 1.0f / d_samp_rate;
           measurement->metadata[i].timestamp = acq_info.timestamp;
-          measurement->metadata[i].trigger_timestamp = acq_info.trigger_timestamp;
+          measurement->metadata[i].trigger_timestamp = 0;
           measurement->metadata[i].status = acq_info.status;
           measurement->metadata[i].number_of_bins = d_nbins;
 
@@ -214,25 +214,23 @@ namespace gr {
     {
       acq_info_t result {};
       result.timestamp = -1;
-      result.last_beam_in_timestamp = -1;
-      result.trigger_timestamp = -1;
 
-      for (const auto & info : d_acq_info_tags) {
-        if (info.offset <= offset) {
-          result = info;  // keep replacing until the first in the range is found
-        }
-      }
+//      for (const auto & info : d_acq_info_tags) {
+//        if (info.offset <= offset) {
+//          result = info;  // keep replacing until the first in the range is found
+//        }
+//      }
 
-      // update timestamp
-      if (result.timestamp != -1) {
-        auto delta_samples = offset >= result.offset
-                ? static_cast<float>(offset - result.offset)
-                : -static_cast<float>(result.offset - offset);
-        auto delta_ns = static_cast<int64_t>((delta_samples / d_samp_rate) * 1000000000.0f);
-        result.timestamp += delta_ns;
-      }
-
-      result.timebase = 1.0f / d_samp_rate;
+//      // update timestamp
+//      if (result.timestamp != -1) {
+//        auto delta_samples = offset >= result.offset
+//                ? static_cast<float>(offset - result.offset)
+//                : -static_cast<float>(result.offset - offset);
+//        auto delta_ns = static_cast<int64_t>((delta_samples / d_samp_rate) * 1000000000.0f);
+//        result.timestamp += delta_ns;
+//      }
+//
+//      result.timebase = 1.0f / d_samp_rate;
 
       return result;
     }

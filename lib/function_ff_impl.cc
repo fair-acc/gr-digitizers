@@ -43,10 +43,7 @@ namespace gr {
     function_ff_impl::start()
     {
       // reset state
-      d_acq_info.last_beam_in_timestamp = -1;
       d_acq_info.timestamp = -1;
-      d_acq_info.offset = 0;
-      d_acq_info.trigger_timestamp = -1;
 
       return true;
     }
@@ -124,23 +121,28 @@ namespace gr {
           }
 
           // no timing
-          if (acq_info.last_beam_in_timestamp == -1 || acq_info.timestamp == -1) {
+          if (acq_info.timestamp == -1)
+          {
             out_ref[i] = d_ref[0];
             out_min[i] = d_min[0];
             out_max[i] = d_max[0];
           }
-          else {
+          else
+          {
+            GR_LOG_ERROR(d_logger, "function_ff_impl needs to be re-implemented, there is no 'last_beam_in_timestamp' any more in acq_info");
 
+            /*
             // timestamp of the first sample in working range
-            auto timestamp = acq_info.timestamp + static_cast<int64_t>(
-                    ((samp0_count + input_idx) - acq_info.offset) * acq_info.timebase * 1000000000.0);
+            auto timestamp = acq_info.timestamp + static_cast<int64_t>(((samp0_count + input_idx) - tags.at(0).offset) * acq_info.timebase * 1000000000.0);
 
-            if (timestamp < acq_info.last_beam_in_timestamp) {
+            if (timestamp < acq_info.last_beam_in_timestamp)
+            {
               out_ref[i] = d_ref[0];
               out_min[i] = d_min[0];
               out_max[i] = d_max[0];
             }
-            else {
+            else
+            {
               auto distance_from_beam_in = timestamp - acq_info.last_beam_in_timestamp;
 
               // find left and right index
@@ -173,7 +175,7 @@ namespace gr {
                 out_min[i] = d_min[idx_l] + (d_min[idx_r] - d_min[idx_l]) * k;
                 out_max[i] = d_max[idx_l] + (d_max[idx_r] - d_max[idx_l]) * k;
               }
-            }
+            }*/
           }
         }
       }

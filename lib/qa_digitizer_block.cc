@@ -131,18 +131,25 @@ namespace gr {
                 || key == timebase_info_tag_name
                 || key == trigger_tag_name);
 
-        if (key == acq_info_tag_name) {
-          auto triggered_data = decode_acq_info_tag(tag);
-          CPPUNIT_ASSERT_EQUAL(presamples, (int)triggered_data.pre_samples);
-          CPPUNIT_ASSERT_EQUAL(samples, (int)triggered_data.samples);
+        if (key == trigger_tag_name)
+        {
+          auto triggered_data = decode_trigger_tag(tag);
+          CPPUNIT_ASSERT_EQUAL(presamples, (int)triggered_data.pre_trigger_samples);
+          CPPUNIT_ASSERT_EQUAL(samples, (int)triggered_data.post_trigger_samples);
           CPPUNIT_ASSERT_EQUAL(uint32_t{0}, triggered_data.status);
         }
-        else if (key == timebase_info_tag_name) {
+        else if (key == timebase_info_tag_name)
+        {
           auto timebase = decode_timebase_info_tag(tag);
           CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0/10000.0, timebase, 0.0000001);
         }
-        else {
+        else if (key == acq_info_tag_name)
+        {
           CPPUNIT_ASSERT_EQUAL(static_cast<uint64_t>(presamples), tag.offset);
+        }
+        else
+        {
+            CPPUNIT_FAIL("unknown tag. key: " + key );
         }
       }
     }
@@ -214,8 +221,7 @@ namespace gr {
         CPPUNIT_ASSERT(key == timebase_info_tag_name || key == acq_info_tag_name);
 
         if (key == acq_info_tag_name) {
-          auto acq_info = decode_acq_info_tag(tag);
-          CPPUNIT_ASSERT_EQUAL(0, static_cast<int>(acq_info.offset) % buffer_size);
+          CPPUNIT_ASSERT_EQUAL(0, static_cast<int>(tag.offset) % buffer_size);
         }
         else {
           double timebase = decode_timebase_info_tag(tag);

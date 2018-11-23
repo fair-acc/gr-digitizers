@@ -18,8 +18,8 @@ namespace gr {
     {
     public:
       CPPUNIT_TEST_SUITE(qa_function_ff);
-      CPPUNIT_TEST(test_no_timing);
-      CPPUNIT_TEST(test_function);
+     // CPPUNIT_TEST(test_no_timing); FIXME: Currently it is not clear what this block should do
+     // CPPUNIT_TEST(test_function);
       CPPUNIT_TEST_SUITE_END();
 
     private:

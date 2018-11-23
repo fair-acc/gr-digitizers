@@ -38,17 +38,12 @@ namespace gr {
       set_tag_propagation_policy(TPP_DONT);
 
       d_acq_info.timestamp = -1;
-      d_acq_info.trigger_timestamp = -1;
-      d_acq_info.last_beam_in_timestamp = -1;
     }
 
     bool
     stream_to_vector_overlay_ff_impl::start()
     {
       d_acq_info.timestamp = -1;
-      d_acq_info.trigger_timestamp = -1;
-      d_acq_info.last_beam_in_timestamp = -1;
-
       return true;
     }
 
@@ -83,8 +78,7 @@ namespace gr {
       if (d_acq_info.timestamp != -1) {
         d_acq_info.timestamp += ((nitems_read(0) - d_tag_offset) * d_samp_rate);
       }
-      tag_t tag = make_acq_info_tag(d_acq_info);
-      tag.offset = nitems_written(0);
+      tag_t tag = make_acq_info_tag(d_acq_info, nitems_written(0));
       add_item_tag(0, tag);
     }
 

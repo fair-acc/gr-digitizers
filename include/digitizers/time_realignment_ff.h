@@ -14,31 +14,11 @@
 namespace gr {
   namespace digitizers {
 
-    /*!
-     * \brief Synchronizes samples to the timing and appends user defined delay.
-     *
-     * Time synchronization is achieved by updating the following two fields of the acq_info tag:
-     * a) timestamp (abs timestamp of the first sample in the collection), and
-     * b) last beam in timestamp
-     *
-     * The time realignment block expects to receives a precise timestamp (i.e. from WR Receiver block)
-     * whenever a trigger tag is detected (trigger tag). It should be noted that the time realignment
-     * block does not wait to receive WR event tag but it simply passes all the data trough. This means
-     * that the very first acq_info tag is not updated with the precise timestamp, but all others are.
-     *
-     * When calculating the timestamp of the very first sample in the collection, user suppled delay
-     * is also accounted for according to the following formula:
-     * <p>
-     * timestamp = timestamp_of_the_first_sample] + user_delay
-     * <p>
-     *
-     * Note this block only modifies the two timestamps of the acq_info tag. No additional tags are
-     * generated. This block passes trough all the tags with 1:1 like policy (port 0 only).
-     *
-     * User delay is added to the acq_info tag like this:
-     *
-     * actual_delay += user_delay
-     * user_delay += user_delay
+    /*! \brief Write precise WR-Timestamp into trigger tag
+     * This block assumes that the WR-Tag always is received before the related WR-Tag
+     * Incoming Trigger-Tag will get wr-stamp of oldest incoming wr-event
+     * If there is no WR-Event to process, an error will be flagged in the status of the Trigger-Tag
+     * If the time difference between trigger and WR-event is to big, an error will be flagged in the status of the Trigger-Tag
      *
      * \ingroup digitizers
      */
@@ -50,10 +30,9 @@ namespace gr {
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::time_realignment_ff.
        *
-       * \param samp_rate sample rate in Hz
        * \param user_delay user defined delay in seconds
        */
-      static sptr make(float samp_rate, float user_delay=0.0);
+      static sptr make(float user_delay=0.0f, float triggerstamp_matching_tolerance=0.03f);
 
       /*!
        * \brief Sets user delay.
@@ -69,6 +48,13 @@ namespace gr {
        * \brief Gets user delay.
        */
       virtual float get_user_delay() = 0;
+
+      /*!
+       * \brief Sets maximum triggerstamp_matching_tolerance between WR-Tag(converted to UTC) and incoming Trigger Stamp at the scope (UTC)
+       */
+      virtual void set_triggerstamp_matching_tolerance(float triggerstamp_matching_tolerance) = 0;
+
+      virtual float get_triggerstamp_matching_tolerance() = 0;
     };
 
   } // namespace digitizers

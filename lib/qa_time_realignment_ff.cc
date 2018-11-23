@@ -10,6 +10,7 @@
 #include "qa_common.h"
 #include "qa_time_realignment_ff.h"
 #include <digitizers/time_realignment_ff.h>
+#include <digitizers/status.h>
 #include "utils.h"
 #include <digitizers/tags.h>
 #include <gnuradio/blocks/vector_source_f.h>
@@ -31,8 +32,7 @@ namespace gr {
       std::vector<float> values;
       std::vector<float> errors;
 
-      realignment_test_flowgraph_t (float samp_rate, float user_delay,
-              const std::vector<tag_t> &tags, size_t data_size=33333)
+      realignment_test_flowgraph_t (float user_delay, float triggerstamp_matching_tolerance, const std::vector<tag_t> &tags, size_t data_size=33333)
       {
         values = make_test_data(data_size);
         errors = make_test_data(data_size, 0.2);
@@ -40,7 +40,7 @@ namespace gr {
         top = gr::make_top_block("test");
         value_src = gr::blocks::vector_source_f::make(values, false, 1, tags);
         error_src = gr::blocks::vector_source_f::make(errors);
-        realign = gr::digitizers::time_realignment_ff::make(samp_rate, user_delay);
+        realign = gr::digitizers::time_realignment_ff::make(user_delay, triggerstamp_matching_tolerance);
         value_sink = gr::blocks::vector_sink_f::make();
         error_sink = gr::blocks::vector_sink_f::make();
 
@@ -82,7 +82,58 @@ namespace gr {
     compare_static_fields(const acq_info_t &l, const acq_info_t &r)
     {
         CPPUNIT_ASSERT_EQUAL(l.status, r.status);
-        CPPUNIT_ASSERT_EQUAL(l.offset, r.offset);
+    }
+
+    void
+    qa_time_realignment_ff::default_case()
+    {
+      float user_delay = .1234;
+      float timeout = 0.01;
+
+      trigger_t tag1;
+      tag1.timestamp = 69;
+      tag1.status = 0x00;
+
+      trigger_t tag2;
+      tag2.timestamp = 171;
+      tag2.status = 0x00;
+
+      wr_event_t wr_event1;
+      wr_event1.event_id = "first";
+      wr_event1.wr_trigger_stamp = 100;
+      wr_event1.wr_trigger_stamp_utc = 70;
+
+      wr_event_t wr_event2;
+      wr_event2.event_id = "second";
+      wr_event2.wr_trigger_stamp = 200;
+      wr_event2.wr_trigger_stamp_utc = 170;
+
+      std::vector<gr::tag_t> tags = {
+        make_trigger_tag(tag1,6000),
+        make_trigger_tag(tag2,8000),
+        make_wr_event_tag(wr_event1, 600),
+        make_wr_event_tag(wr_event2, 800)
+      };
+
+      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags);
+
+      flowgraph.run();
+      flowgraph.verify_values();
+
+      auto out_tags = flowgraph.tags();
+      CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size()); // wr-tags are not forwarded
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+      CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(trigger_tag_name));
+
+      trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
+      trigger_t trigger_tag_data2 = decode_trigger_tag(out_tags.at(1));
+
+      CPPUNIT_ASSERT_EQUAL(wr_event1.wr_trigger_stamp, trigger_tag_data1.timestamp);
+      CPPUNIT_ASSERT_EQUAL(wr_event2.wr_trigger_stamp, trigger_tag_data2.timestamp);
+
+      CPPUNIT_ASSERT_EQUAL(trigger_tag_data1.status, tag1.status);
+      CPPUNIT_ASSERT_EQUAL(trigger_tag_data2.status, tag2.status);
     }
 
     // There should be no side effect if timing is not provided
@@ -90,20 +141,19 @@ namespace gr {
     qa_time_realignment_ff::no_timing()
     {
       float user_delay = .1234;
+      float timeout = 0.01;
 
       acq_info_t tag;
       tag.timestamp = 654321;
       tag.actual_delay = 0.223;
       tag.user_delay = -0.2;
       tag.status = 0x123;
-      tag.offset = 100;
-      tag.last_beam_in_timestamp = -1;
 
       std::vector<gr::tag_t> tags = {
-        make_acq_info_tag(tag)
+        make_acq_info_tag(tag,100)
       };
 
-      realignment_test_flowgraph_t flowgraph(10000/*samp_rate*/, user_delay, tags);
+      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags);
       flowgraph.run();
       flowgraph.verify_values();
 
@@ -113,68 +163,104 @@ namespace gr {
       auto acq_info = decode_acq_info_tag(out_tags.at(0));
       compare_static_fields(tag, acq_info);
 
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(user_delay + tag.user_delay, acq_info.user_delay, 1E-9);
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(user_delay + tag.actual_delay, acq_info.actual_delay, 1E-9);
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(
-              (double)tag.timestamp + (user_delay * 1000000000.0),
-              (double)acq_info.timestamp, 1.0);
+      // FIXME: Not clear yet what should be the purpose of user_delay
+      //CPPUNIT_ASSERT_DOUBLES_EQUAL(user_delay + tag.user_delay, acq_info.user_delay, 1E-9);
+      //CPPUNIT_ASSERT_DOUBLES_EQUAL(user_delay + tag.actual_delay, acq_info.actual_delay, 1E-9);
+      //CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)tag.timestamp + (user_delay * 1000000000.0), double)acq_info.timestamp, 1.0);
     }
 
     void
-    qa_time_realignment_ff::synchronization()
+    qa_time_realignment_ff::no_wr_events()
     {
-      float user_delay = .1234;
-      float samp_rate = 20000000.0;
-      int acq_info_offset = 6000;
+        float user_delay = .1234;
+        float timeout = 0.01;
 
-      acq_info_t tag;
-      tag.timestamp = 654321;
-      tag.actual_delay = 0.223;
-      tag.user_delay = -0.2;
-      tag.status = 0x123;
-      tag.offset = acq_info_offset;
-      tag.last_beam_in_timestamp = -1;
+        trigger_t tag1;
+        tag1.timestamp = 100;
+        tag1.status = 0x00;
 
-      wr_event_t event;
-      event.event_id = "made_up";
-      event.timestamp = 987654321;
-      event.last_beam_in_timestamp = 123456789;
-      event.offset = 0;
-      event.time_sync_only = true;
-      event.realignment_required = false;
+        std::vector<gr::tag_t> tags = {
+          make_trigger_tag(tag1,10000)
+        };
 
-      std::vector<gr::tag_t> tags = {
-        make_trigger_tag(0),
-        make_wr_event_tag(event),
-        make_acq_info_tag(tag)
-      };
+        realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags);
 
-      realignment_test_flowgraph_t flowgraph(samp_rate, user_delay, tags);
+        flowgraph.run();
+        flowgraph.verify_values();
 
-      flowgraph.run();
-      flowgraph.verify_values();
-
-      auto out_tags = flowgraph.tags();
-      CPPUNIT_ASSERT_EQUAL(3, (int)out_tags.size());
-
-      auto received_event = decode_wr_event_tag(out_tags.at(1));
-      CPPUNIT_ASSERT_EQUAL(event.event_id, received_event.event_id);
-      CPPUNIT_ASSERT_EQUAL(event.timestamp, received_event.timestamp);
-      CPPUNIT_ASSERT_EQUAL(event.last_beam_in_timestamp, received_event.last_beam_in_timestamp);
-      CPPUNIT_ASSERT_EQUAL(event.offset, received_event.offset);
-      CPPUNIT_ASSERT_EQUAL(event.time_sync_only, received_event.time_sync_only);
-      CPPUNIT_ASSERT_EQUAL(event.realignment_required, received_event.realignment_required);
-
-      auto acq_info = decode_acq_info_tag(out_tags.at(2));
-      compare_static_fields(tag, acq_info);
-
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(user_delay + tag.user_delay, acq_info.user_delay, 1E-9);
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(user_delay + tag.actual_delay, acq_info.actual_delay, 1E-9);
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(
-              987654321.0 + (user_delay * 1000000000.0) + ((acq_info_offset / samp_rate) * 1000000000.0),
-              (double)acq_info.timestamp, 1.0);
-      CPPUNIT_ASSERT_EQUAL((int64_t)123456789, acq_info.last_beam_in_timestamp);
+        auto out_tags = flowgraph.tags();
+        CPPUNIT_ASSERT_EQUAL(1, (int)out_tags.size());
+        CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+        trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
+        CPPUNIT_ASSERT_EQUAL(trigger_tag_data1.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
     }
+
+    void
+    qa_time_realignment_ff::out_of_tolerance_1()
+    {
+        float user_delay = .1234;
+        float triggerstamp_matching_tolerance = 1. / 100000000; //10ns
+
+        trigger_t tag1;
+        tag1.timestamp = 90;
+        tag1.status = 0x00;
+
+        wr_event_t wr_event1;
+        wr_event1.event_id = "first";
+        wr_event1.wr_trigger_stamp = 100;
+        wr_event1.wr_trigger_stamp_utc = 70; // off by -20ns
+
+        std::vector<gr::tag_t> tags = {
+          make_trigger_tag(tag1,10000),
+          make_wr_event_tag(wr_event1, 0),
+          make_wr_event_tag(wr_event1, 1)
+        };
+
+        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags);
+
+        flowgraph.run();
+        flowgraph.verify_values();
+
+        auto out_tags = flowgraph.tags();
+        CPPUNIT_ASSERT_EQUAL(1, (int)out_tags.size());
+        CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+        trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
+        CPPUNIT_ASSERT_EQUAL(trigger_tag_data1.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
+    }
+
+    void
+    qa_time_realignment_ff::out_of_tolerance_2()
+    {
+        float user_delay = .1234;
+        float triggerstamp_matching_tolerance = 1. / 100000000; //10ns
+
+        trigger_t tag1;
+        tag1.timestamp = 90;
+        tag1.status = 0x00;
+
+        wr_event_t wr_event1;
+        wr_event1.event_id = "first";
+        wr_event1.wr_trigger_stamp = 100;
+        wr_event1.wr_trigger_stamp_utc = 130; // off by +20ns
+
+        std::vector<gr::tag_t> tags = {
+          make_trigger_tag(tag1,10000),
+          make_wr_event_tag(wr_event1, 0),
+          make_wr_event_tag(wr_event1, 1)
+        };
+
+        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags);
+
+        flowgraph.run();
+        flowgraph.verify_values();
+
+        auto out_tags = flowgraph.tags();
+        CPPUNIT_ASSERT_EQUAL(1, (int)out_tags.size());
+        CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+        trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
+        CPPUNIT_ASSERT_EQUAL(trigger_tag_data1.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
+    }
+
   } /* namespace digitizers */
 } /* namespace gr */
 

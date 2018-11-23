@@ -408,7 +408,7 @@ namespace gr {
    * Find acq_info tags belonging to a given range and merge them together. The only thing
    * that needs to be merged is in fact status bitfield.
    */
-  template <typename AcqInfoContainer>
+  /*template <typename AcqInfoContainer>
   inline acq_info_t
   calculate_acq_info_for_range(uint64_t start, uint64_t end, const AcqInfoContainer & container, float samp_rate)
   {
@@ -420,16 +420,21 @@ namespace gr {
     bool taken = false;
 
     // keep replacing until the first in the range is found
-    for (const auto & info : container) {
-      if (info.offset <= start) {
+    for (const auto & info : container)
+    {
+      if (info.offset <= start)
+      {
         result = info;
         taken = true;
       }
-      else if (info.offset > start && info.offset < end) {
-        if (taken) {
+      else if (info.offset > start && info.offset < end)
+      {
+        if (taken)
+        {
           result.status |= info.status;  // merge status
         }
-        else {
+        else
+        {
           result = info;
           taken = true;
         }
@@ -449,7 +454,7 @@ namespace gr {
     result.timebase = 1.0f / samp_rate;
 
     return result;
-  }
+  }*/
 
   }
 }

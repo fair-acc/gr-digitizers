@@ -4,22 +4,23 @@
   <key>digitizers_time_realignment_ff</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.time_realignment_ff($samp_rate, $user_delay)</make>
+  <make>digitizers.time_realignment_ff($user_delay, $triggerstamp_matching_tolerance)</make>
   
   <callback>set_user_delay($user_delay)</callback>
-
-  <param>
-    <name>Sample Rate (Hz)</name>
-    <key>samp_rate</key>
-    <value>samp_rate</value>
-    <type>float</type>    
-  </param>
+  <callback>set_timeout($triggerstamp_matching_tolerance)</callback>
   
   <param>
     <name>User Delay (s)</name>
     <key>user_delay</key>
     <value>0.0</value>
     <type>float</type>    
+  </param>
+  
+  <param>
+    <name>Matching Tolerance (s)</name>
+    <key>triggerstamp_matching_tolerance</key>
+    <value>0.01</value>
+    <type>float</type>
   </param>
   
   <param>

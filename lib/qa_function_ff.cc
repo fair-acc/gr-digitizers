@@ -117,7 +117,7 @@ namespace gr {
       acq_info_t info {};
       info.timebase = 1.0 / nsamples;
 
-      function_test_flowgraph_t fg(nsamples, func, std::vector<gr::tag_t> { make_acq_info_tag(info) });
+      function_test_flowgraph_t fg(nsamples, func, std::vector<gr::tag_t> { make_acq_info_tag(info,0) });
       fg.run();
 
       auto dref = fg.ref_sink->data();

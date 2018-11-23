@@ -41,13 +41,10 @@ namespace gr {
        * \brief Add information about the timing event.
        *
        * \param event_id An arbitrary event descriptor
-       * \param event_timestamp event timestamp, UTC ns
-       * \param last_beam_in_timestamp timestamp of the last actual beam-in event, -1 if unknown
-       * \param time_sync_only indicates weather a event should be used for time synchronization only
-       * \param realignment_required should wait for realignment event
+       * \param wr_trigger_stamp event timestamp, TAI ns
+       * \param wr_trigger_stamp_utc event timestamp UTC
        */
-      virtual void add_timing_event(const std::string &event_id, int64_t event_timestamp, int64_t last_beam_in_timestamp,
-              bool time_sync_only=true, bool realignment_required=false) = 0;
+      virtual void add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) = 0;
     };
 
   } // namespace digitizers

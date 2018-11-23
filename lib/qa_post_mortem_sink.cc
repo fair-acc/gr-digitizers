@@ -201,10 +201,9 @@ namespace gr {
         info.timebase = timebase;
         info.timestamp = 321;
         info.status = 1<<1;
-        info.samples = 50;
 
         std::vector<gr::tag_t> tags = {
-              make_acq_info_tag(info)
+              make_acq_info_tag(info, 0)
         };
 
         auto top = gr::make_top_block("test");
@@ -232,7 +231,6 @@ namespace gr {
 
         auto retval = pm->get_items(data_size, values, errors, &minfo);
         CPPUNIT_ASSERT_EQUAL(data_size, retval);
-        CPPUNIT_ASSERT_EQUAL(321, (int)minfo.timestamp);
         CPPUNIT_ASSERT_EQUAL(uint32_t{1<<1}, minfo.status);
         CPPUNIT_ASSERT_EQUAL(timebase, minfo.timebase);
     }

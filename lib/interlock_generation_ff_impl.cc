@@ -93,11 +93,13 @@ namespace gr {
           // calculate timestamp
           int64_t timestamp = -1;
 
-          if (d_acq_info.timestamp != -1) {
-            timestamp = d_acq_info.timestamp + static_cast<int64_t>(
-                 ((samp0_count + static_cast<uint64_t>(i)) - d_acq_info.offset) * d_acq_info.timebase * 1000000000.0
-            );
-          }
+//          if (d_acq_info.timestamp != -1)
+//          {
+//            timestamp = d_acq_info.timestamp + static_cast<int64_t>
+//            (
+//                 ((samp0_count + static_cast<uint64_t>(i)) - d_acq_info.offset) * d_acq_info.timebase * 1000000000.0
+//            );
+//          }
 
           if (d_callback) {
             d_callback(timestamp, d_user_data);

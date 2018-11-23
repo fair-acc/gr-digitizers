@@ -24,23 +24,21 @@ namespace gr {
       float d_samp_rate;
       float d_user_delay;
 
-      // Absolute sample count where the last timing event appeared
-      uint64_t d_last_trigger_offset;
-      wr_event_t d_last_wr_event;
+      // stored in ns to allow fast comparioson
+      int64_t d_triggerstamp_matching_tolerance_ns;
 
-      // Incoming triggers & events. Queues are used because ordering of triggers and events is not
-      // guaranteed, meaning a tag representing White Rabbit event might come down the stream before
-      // the trigger tag.
-      std::deque<uint64_t> d_pending_triggers;
-      std::deque<wr_event_t> d_pending_events;
+      // 'received' timestamp and related WR-Event
+
+      std::vector< wr_event_t > d_pending_events;
 
      public:
-      time_realignment_ff_impl(float samp_rate, float user_delay);
+      time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance);
       ~time_realignment_ff_impl();
 
       void set_user_delay(float user_delay) override;
       float get_user_delay() override;
-
+      void set_triggerstamp_matching_tolerance(float triggerstamp_matching_tolerance);
+      float get_triggerstamp_matching_tolerance();
       // Where all the action really happens
       int work(int noutput_items,
          gr_vector_const_void_star &input_items,
@@ -49,15 +47,12 @@ namespace gr {
       bool start() override;
 
      private:
-      void push_and_update_last(const wr_event_t &event);
 
-      void push_and_update_last(uint64_t trigger);
+      int64_t get_timestamp_utc_ns();
 
-      inline void update_last_if_needed();
+      void push_wr_tag(const wr_event_t &event);
 
-      // Calculates timestamp of a given sample. If timing is not available, that is
-      // d_last_wr_event.timestamp == -1, a fallback timestamp is returned
-      int64_t calculate_timestamp(uint64_t offset, int64_t fallback_timestamp) const;
+      void fill_wr_stamp(trigger_t &trigger_tag_data);
 
       int64_t get_user_delay_ns() const;
     };

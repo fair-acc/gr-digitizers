@@ -66,6 +66,7 @@ namespace gr {
    digitizer_block_impl::digitizer_block_impl(int ai_channels, int di_ports, bool auto_arm) :
        d_samp_rate(10000),
        d_actual_samp_rate(d_samp_rate),
+       d_time_per_sample_ns(1000000000. / d_samp_rate),
        d_samples(10000),
        d_pre_samples(1000),
        d_nr_captures(1),
@@ -300,6 +301,7 @@ namespace gr {
      }
      d_samp_rate = rate;
      d_actual_samp_rate = rate;
+     d_time_per_sample_ns = 1000000000. / d_actual_samp_rate;
    }
 
    double
@@ -831,6 +833,9 @@ namespace gr {
        // and adjust the waveform index.
        d_bstate.set_waveform_params(0, downsampled_samples);
 
+       timespec start_time;
+       clock_gettime(CLOCK_REALTIME, &start_time);
+       uint64_t timestamp_now_ns_utc = (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
        // We are good to read first batch of samples
        noutput_items = std::min(noutput_items, d_bstate.samples_left);
 
@@ -842,45 +847,44 @@ namespace gr {
        }
 
        // Attach trigger info to value outputs and to all ports
-
-       auto ttag = make_trigger_tag();
-       ttag.offset = nitems_written(0) + get_pre_trigger_samples_with_downsampling();
-
        auto vec_idx = 0;
-       for (auto i = 0; i < d_ai_channels
-             && vec_idx < (int)output_items.size(); i++, vec_idx+=2) {
-         if (!d_channel_settings[i].enabled) {
+       uint32_t pre_trigger_samples_with_downsampling = get_pre_trigger_samples_with_downsampling();
+       uint32_t post_trigger_samples_with_downsampling = get_post_trigger_samples_with_downsampling();
+       
+       for (auto i = 0; i < d_ai_channels && vec_idx < (int)output_items.size(); i++, vec_idx+=2)
+       {
+         if (!d_channel_settings[i].enabled)
+         {
            continue;
          }
 
          auto trigger_tag = make_trigger_tag(
-                 get_pre_trigger_samples_with_downsampling(),
-                 get_post_trigger_samples_with_downsampling(),
-                 d_status[i],
-                 get_timebase_with_downsampling(),
-                 get_timestamp_utc_ns());
-         trigger_tag.offset = nitems_written(0);
+                 pre_trigger_samples_with_downsampling,
+                 post_trigger_samples_with_downsampling,
+                 d_downsampling_factor,
+                 timestamp_now_ns_utc - (post_trigger_samples_with_downsampling * d_time_per_sample_ns),
+                 nitems_written(0) + pre_trigger_samples_with_downsampling,
+                 d_status[i]);
 
          add_item_tag(vec_idx, trigger_tag);
-         add_item_tag(vec_idx, ttag);
        }
 
        auto trigger_tag = make_trigger_tag(
-             get_pre_trigger_samples_with_downsampling(),
-             get_post_trigger_samples_with_downsampling(),
-             0,
-             get_timebase_with_downsampling(),
-             get_timestamp_utc_ns());
-       trigger_tag.offset = nitems_written(0);
+             pre_trigger_samples_with_downsampling,
+             post_trigger_samples_with_downsampling,
+             d_downsampling_factor,
+             timestamp_now_ns_utc - (post_trigger_samples_with_downsampling * d_time_per_sample_ns),
+             nitems_written(0) + pre_trigger_samples_with_downsampling,
+             0 ); //status
 
        for (auto i = 0; i < d_ports
-             && vec_idx < (int)output_items.size(); i++, vec_idx++) {
-         if (!d_port_settings[i].enabled) {
+             && vec_idx < (int)output_items.size(); i++, vec_idx++)
+       {
+         if (!d_port_settings[i].enabled)
+         {
            continue;
          }
-
          add_item_tag(vec_idx, trigger_tag);
-         add_item_tag(vec_idx, ttag);
        }
 
        // update state
@@ -1095,10 +1099,13 @@ namespace gr {
 
      // This will write samples directly into GR output buffers
      std::vector<uint32_t> channel_status;
+     timespec start_time;
+     clock_gettime(CLOCK_REALTIME, &start_time);
+     uint64_t timestamp_now_ns_utc = (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
      int64_t local_timstamp;
-     auto lost_count = d_app_buffer.get_data_chunk(ai_buffers, ai_error_buffers,
-             port_buffers, channel_status, local_timstamp);
-
+     auto lost_count = d_app_buffer.get_data_chunk(ai_buffers, ai_error_buffers, port_buffers, channel_status, local_timstamp);
+     //std::cout << "timestamp_now_ns_utc: " << int64_t(timestamp_now_ns_utc) << std::endl;
+     //std::cout << "local_timstamp      : " << local_timstamp << std::endl;
      if (lost_count) {
        GR_LOG_WARN(d_logger, std::to_string(lost_count) + " digitizer data buffers lost");
      }
@@ -1110,20 +1117,17 @@ namespace gr {
      tag_info.timebase = get_timebase_with_downsampling();
      tag_info.user_delay = 0.0;
      tag_info.actual_delay = 0.0;
-     tag_info.samples = d_buffer_size;
-     tag_info.offset = nitems_written(0);
-     tag_info.triggered_data = false;
-     tag_info.trigger_timestamp = -1;
 
      // Attach tags to the channel values...
      int output_idx = 0;
 
-     for (auto i = 0; i < d_ai_channels; i++) {
+     for (auto i = 0; i < d_ai_channels; i++)
+     {
        if (d_channel_settings[i].enabled) {
          // add channel specific status
          tag_info.status = channel_status.at(i);
 
-         auto tag = make_acq_info_tag(tag_info);
+         auto tag = make_acq_info_tag(tag_info, nitems_written(0));
          add_item_tag(output_idx, tag);
 
          output_idx += 2;
@@ -1132,9 +1136,10 @@ namespace gr {
 
      // ...and to all digital ports
      tag_info.status = 0;
-     auto tag = make_acq_info_tag(tag_info);
+     auto tag = make_acq_info_tag(tag_info, nitems_written(0));
 
-     for (auto i = 0; i < d_ports; i++) {
+     for (auto i = 0; i < d_ports; i++)
+     {
        if (d_port_settings[i].enabled) {
            add_item_tag(output_idx, tag);
            output_idx ++;
@@ -1169,10 +1174,23 @@ namespace gr {
      }
 
      // Attach trigger tags
-     for (auto trigger_offset : trigger_offsets) {
+     for (auto trigger_offset : trigger_offsets)
+     {
+//       std::cout << "trigger_offset       : " << trigger_offset<<std::endl;
+//       std::cout << "noutput_items        : " << noutput_items <<std::endl;
+//       std::cout << "d_time_per_sample_ns : " << d_time_per_sample_ns<<std::endl;
+//       std::cout << "timestamp_now_ns_utc : " << timestamp_now_ns_utc<<std::endl;
+//       std::cout << "diff[ns]             : " << uint64_t((noutput_items - trigger_offset ) * d_time_per_sample_ns )<<std::endl;
+//       std::cout << "result               : " << uint64_t(timestamp_now_ns_utc - (( noutput_items - trigger_offset ) * d_time_per_sample_ns )) <<std::endl;
+//       std::cout << "tag offset: " << nitems_written(0) + trigger_offset <<std::endl;
+       auto trigger_tag = make_trigger_tag(
+             0,
+             0,
+             d_downsampling_factor,
+             timestamp_now_ns_utc - uint64_t(( noutput_items - trigger_offset ) * d_time_per_sample_ns ),
+             nitems_written(0) + trigger_offset,
+             0 ); //status
 
-       auto trigger_tag = make_trigger_tag();
-       trigger_tag.offset = nitems_written(0) + trigger_offset;
        int output_idx = 0;
 
        for (auto i = 0; i < d_ai_channels; i++) {

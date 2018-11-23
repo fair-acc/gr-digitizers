@@ -32,7 +32,8 @@ namespace gr {
               gr::io_signature::make(1, 1, sizeof(float)), decimation),
         d_delay(delay)
     {
-      set_tag_propagation_policy(TPP_DONT);
+      set_relative_rate(1./decimation);
+      set_tag_propagation_policy(TPP_ONE_TO_ONE);
     }
 
     /*
@@ -53,58 +54,11 @@ namespace gr {
       float *out = (float *) output_items[0];
       const float *in = (const float *) input_items[0];
 
-      for(int i = 0; i < noutput_items; i++) {
+      for(int i = 0; i < noutput_items; i++)
+      {
         // Keep one in N functionality
         out[i] = in[decim - 1];
         in += decim;
-
-        // Tag correction/propagation part
-        std::vector<gr::tag_t> tags;
-        auto local_count0 = count0 + static_cast<uint64_t>(i * decim);
-        get_tags_in_range(tags, 0, local_count0, local_count0 + decim);
-
-        // Merge acq info tags if more than one falls into the same bucket
-        boost::optional<acq_info_t> merged_acq_info_tag = boost::none;
-
-        for(auto tag : tags) {
-          tag.offset *= (1.0 / decim);
-
-          auto tag_key = pmt::symbol_to_string(tag.key);
-
-          if(tag_key == timebase_info_tag_name) {
-            auto timebase = decode_timebase_info_tag(tag);
-
-            // Fix timebase
-            auto tmp =  make_timebase_info_tag(timebase * static_cast<double>(decim));
-            tmp.offset = tag.offset;
-            add_item_tag(0, tmp);
-          }
-          else if (tag_key == acq_info_tag_name) {
-            auto acq_info = decode_acq_info_tag(tag);
-
-            if (merged_acq_info_tag) {
-              merged_acq_info_tag->status |= acq_info.status;
-            }
-            else {
-              acq_info.pre_samples /= decim;
-              acq_info.samples /= decim;
-              acq_info.timebase *= static_cast<double>(decim);
-              acq_info.user_delay += d_delay;
-              acq_info.actual_delay += d_delay;
-
-              merged_acq_info_tag = acq_info;
-            }
-          }
-          else {
-            add_item_tag(0, tag);
-          }
-        }
-
-        if (merged_acq_info_tag) {
-          auto tag = make_acq_info_tag(*merged_acq_info_tag);
-          add_item_tag(0, tag);
-        }
-
       }
 
       return noutput_items;

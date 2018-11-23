@@ -179,27 +179,25 @@ namespace gr {
       info->timebase = d_acq_info.timebase;
       info->user_delay = d_acq_info.user_delay;
       info->actual_delay = d_acq_info.actual_delay;
-      info->trigger_timestamp = d_acq_info.trigger_timestamp;
       info->status = d_acq_info.status;
-      info->pre_trigger_samples = 0;
-      info->post_trigger_samples = nr_items_to_read;
 
       // Calculate timestamp
       if (d_acq_info.timestamp < 0) {
         info->timestamp = -1; // timestamp is invalid
       }
-      else {
+      else
+      {
         auto offset_first_sample = nitems_read(0) - nr_items_to_read;
-        if (offset_first_sample >= d_acq_info.offset) {
-          auto delta = d_acq_info.timebase
-                  * (offset_first_sample - d_acq_info.offset) * 1000000000.0;
-          info->timestamp = d_acq_info.timestamp + static_cast<uint64_t>(delta);
-        }
-        else {
-          auto delta = d_acq_info.timebase
-                  * (d_acq_info.offset - offset_first_sample) * 1000000000.0;
-          info->timestamp = d_acq_info.timestamp - static_cast<uint64_t>(delta);
-        }
+//        if (offset_first_sample >= d_acq_info.offset)
+//        {
+//          auto delta = d_acq_info.timebase * (offset_first_sample - d_acq_info.offset) * 1000000000.0;
+//          info->timestamp = d_acq_info.timestamp + static_cast<uint64_t>(delta);
+//        }
+//        else
+//        {
+//          auto delta = d_acq_info.timebase * (d_acq_info.offset - offset_first_sample) * 1000000000.0;
+//          info->timestamp = d_acq_info.timestamp - static_cast<uint64_t>(delta);
+//        }
       }
 
       d_frozen = false;

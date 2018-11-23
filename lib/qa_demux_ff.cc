@@ -121,16 +121,12 @@ namespace gr {
       auto trigger_offset = 1000;
 
       wr_event_t wr_event;
-      wr_event.offset = trigger_offset + 100;
-      wr_event.timestamp = 87654321;
-      wr_event.realignment_required = false;
-      wr_event.time_sync_only = false;
+      wr_event.wr_trigger_stamp = 87654321;
 
       std::vector<gr::tag_t> tags = {
-        make_trigger_tag(),
-        make_wr_event_tag(wr_event)
+        make_trigger_tag(trigger_offset),
+        make_wr_event_tag(wr_event,trigger_offset + 100)
       };
-      tags[0].offset = trigger_offset;
 
       auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples,
               post_trigger_samples, samp_rate, 10000 /*history*/, tags);
@@ -153,18 +149,15 @@ namespace gr {
 
       auto out_tags = flowgraph.tags();
       CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
+      CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+      auto trigger_tag = decode_trigger_tag(out_tags[0]);
 
-      auto acq_info = decode_acq_info_tag(out_tags[0]);
-
-      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, acq_info.offset);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
       // no realignment & no user delay in this case
-      int64_t expected_timestamp = wr_event.timestamp - (pre_trigger_samples / samp_rate * 1000000000.0);
-      CPPUNIT_ASSERT_EQUAL(expected_timestamp, acq_info.timestamp);
-      CPPUNIT_ASSERT_EQUAL(wr_event.timestamp, acq_info.trigger_timestamp);
-      CPPUNIT_ASSERT_EQUAL(uint32_t {0}, acq_info.status);
-      CPPUNIT_ASSERT_EQUAL(true, acq_info.triggered_data);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, acq_info.samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, acq_info.pre_samples);
+      int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
+      CPPUNIT_ASSERT_EQUAL(wr_event.wr_trigger_stamp, trigger_tag.timestamp);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
     }
 
     void
@@ -183,16 +176,12 @@ namespace gr {
       auto trigger_offset = 1000;
 
       wr_event_t wr_event;
-      wr_event.offset = trigger_offset + 100;
-      wr_event.timestamp = 654321;
-      wr_event.realignment_required = true;
-      wr_event.time_sync_only = false;
+      wr_event.wr_trigger_stamp = 654321;
 
       std::vector<gr::tag_t> tags = {
-        make_trigger_tag(),
-        make_wr_event_tag(wr_event)
+        make_trigger_tag(trigger_offset),
+        make_wr_event_tag(wr_event,trigger_offset + 100)
       };
-      tags[0].offset = trigger_offset;
 
       auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples,
               post_trigger_samples, samp_rate, 10000 /*history*/, tags);
@@ -215,18 +204,16 @@ namespace gr {
 
       auto out_tags = flowgraph.tags();
       CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
+      CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+      auto trigger_tag = decode_trigger_tag(out_tags[0]);
 
-      auto acq_info = decode_acq_info_tag(out_tags[0]);
-
-      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, acq_info.offset);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
       // no realignment & no user delay in this case
-      int64_t expected_timestamp = wr_event.timestamp - (pre_trigger_samples / samp_rate * 1000000000.0);
-      CPPUNIT_ASSERT_EQUAL(expected_timestamp, acq_info.timestamp);
-      CPPUNIT_ASSERT_EQUAL(wr_event.timestamp, acq_info.trigger_timestamp);
-      CPPUNIT_ASSERT_EQUAL(uint32_t {channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT}, acq_info.status);
-      CPPUNIT_ASSERT_EQUAL(true, acq_info.triggered_data);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, acq_info.samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, acq_info.pre_samples);
+      int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
+      CPPUNIT_ASSERT_EQUAL(wr_event.wr_trigger_stamp, trigger_tag.timestamp);
+      CPPUNIT_ASSERT_EQUAL(uint32_t {channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT}, trigger_tag.status);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
     }
 
     void
@@ -246,27 +233,22 @@ namespace gr {
 
       acq_info_t acq_tag;
       acq_tag.status = 0x3;
-      acq_tag.offset = 0;
       acq_tag.user_delay = 0.0007;
       acq_tag.actual_delay = 0.0007;
 
       wr_event_t wr_event;
-      wr_event.offset = trigger_offset + 100;
-      wr_event.timestamp = 87654321;
-      wr_event.realignment_required = true;
-      wr_event.time_sync_only = false;
+      wr_event.wr_trigger_stamp = 87654321;
 
       edge_detect_t edge;
-      edge.retrigger_event_timestamp = wr_event.timestamp + 333;
+      edge.retrigger_event_timestamp = wr_event.wr_trigger_stamp + 333;
       edge.offset = trigger_offset + 99;
 
       std::vector<gr::tag_t> tags = {
-        make_acq_info_tag(acq_tag),
-        make_trigger_tag(),
+        make_acq_info_tag(acq_tag,0),
+        make_trigger_tag(trigger_offset),
         make_edge_detect_tag(edge),
-        make_wr_event_tag(wr_event)
+        make_wr_event_tag(wr_event,trigger_offset + 100)
       };
-      tags[1].offset = trigger_offset;
 
       auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples,
               post_trigger_samples, samp_rate, 10000 /*history*/, tags);
@@ -293,21 +275,20 @@ namespace gr {
       auto out_tags = flowgraph.tags();
       CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
 
-      auto acq_info = decode_acq_info_tag(out_tags[0]);
+      CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+      auto trigger_tag = decode_trigger_tag(out_tags[0]);
 
-      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, acq_info.offset);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
       // no realignment & no user delay in this case
-      int64_t expected_timestamp = wr_event.timestamp
+      int64_t expected_timestamp = wr_event.wr_trigger_stamp
               - ((pre_trigger_samples / samp_rate) * 1000000000.0);
 
       // Note in this case timestamp is not adjusted because a different part of the signal is taken
       // thereby user delay and realignment compensation is achieved
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(expected_timestamp, acq_info.timestamp, 1);
-      CPPUNIT_ASSERT_EQUAL(wr_event.timestamp, acq_info.trigger_timestamp);
-      CPPUNIT_ASSERT_EQUAL(acq_tag.status, acq_info.status);
-      CPPUNIT_ASSERT_EQUAL(true, acq_info.triggered_data);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, acq_info.samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, acq_info.pre_samples);
+      CPPUNIT_ASSERT_DOUBLES_EQUAL(expected_timestamp, trigger_tag.timestamp, 1);
+      CPPUNIT_ASSERT_EQUAL(acq_tag.status, trigger_tag.status);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
     }
   } /* namespace digitizers */
 } /* namespace gr */

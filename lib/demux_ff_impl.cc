@@ -131,21 +131,21 @@ namespace gr {
           d_last_wr_event = d_wr_events.front();
           d_wr_events.pop_front();
 
-          GR_LOG_DEBUG(d_logger, "demux will use WR event from offset: " + std::to_string(d_last_wr_event->offset)
-                  + ", realignment: " + std::to_string(d_last_wr_event->realignment_required)
-                  + ", time sync: " + std::to_string(d_last_wr_event->time_sync_only));
+//          GR_LOG_DEBUG(d_logger, "demux will use WR event from offset: " + std::to_string(d_last_wr_event->offset)
+//                  + ", realignment: " + std::to_string(d_last_wr_event->realignment_required)
+//                  + ", time sync: " + std::to_string(d_last_wr_event->time_sync_only));
 
-          if (d_last_wr_event->time_sync_only) {
-            GR_LOG_DEBUG(d_logger, "demux: time sync only from offset: "
-                    + std::to_string(d_last_wr_event->offset));
-            d_state = extractor_state::WaitTrigger; // Don't output anything
-          }
-          else if (d_last_wr_event->realignment_required) {
-            d_state = extractor_state::WaitRealignmentTag;
-          }
-          else {
-            d_state =  extractor_state::CalcOutputRange;
-          }
+//          if (d_last_wr_event->time_sync_only) {
+//            GR_LOG_DEBUG(d_logger, "demux: time sync only from offset: "
+//                    + std::to_string(d_last_wr_event->offset));
+//            d_state = extractor_state::WaitTrigger; // Don't output anything
+//          }
+//          else if (d_last_wr_event->realignment_required) {
+//            d_state = extractor_state::WaitRealignmentTag;
+//          }
+//          else {
+//            d_state =  extractor_state::CalcOutputRange;
+//          }
         }
       }
 
@@ -195,13 +195,13 @@ namespace gr {
 
         // Calculate realignment delay only if both edge & WR event tags are available and if
         // realignment is required at all
-        if (d_last_wr_event && d_last_wr_event->realignment_required && d_last_edge) {
-          if(d_last_edge->retrigger_event_timestamp < d_last_wr_event->timestamp) {
-            GR_LOG_WARN(d_logger, "Negative realignment delay detected, continue!");
-          }
-          auto realignment_delay_ns = d_last_edge->retrigger_event_timestamp - d_last_wr_event->timestamp;
-          realignment_delay_samples = realignment_delay_ns / 1000000000.0 * d_samp_rate;
-        }
+//        if (d_last_wr_event && d_last_wr_event->realignment_required && d_last_edge) {
+//          if(d_last_edge->retrigger_event_timestamp < d_last_wr_event->timestamp) {
+//            GR_LOG_WARN(d_logger, "Negative realignment delay detected, continue!");
+//          }
+//          auto realignment_delay_ns = d_last_edge->retrigger_event_timestamp - d_last_wr_event->timestamp;
+//          realignment_delay_samples = realignment_delay_ns / 1000000000.0 * d_samp_rate;
+//        }
 
         int user_delay_samples = get_user_delay() * d_samp_rate;
 
@@ -257,43 +257,43 @@ namespace gr {
 
         retval = samples_2_copy;
 
-        auto trigger_tag = make_trigger_tag();
-        trigger_tag.offset = nitems_written(0) + d_pre_trigger_window;
+        auto trigger_tag = make_trigger_tag(nitems_written(0) + d_pre_trigger_window);
         add_item_tag(0, trigger_tag);
 
-        auto acq_info = calculate_acq_info_for_range(d_trigger_start_range,
-                d_trigger_end_range, d_acq_info, d_samp_rate);
-        acq_info.triggered_data = true;
-        acq_info.offset = nitems_written(0);
-        acq_info.pre_samples = d_pre_trigger_window;
-        acq_info.samples = d_post_trigger_window;
+//        auto acq_info = calculate_acq_info_for_range(d_trigger_start_range,   d_trigger_end_range, d_acq_info, d_samp_rate);
+//        acq_info.triggered_data = true;
+//        acq_info.offset = nitems_written(0);
+//        acq_info.pre_samples = d_pre_trigger_window;
+//        acq_info.samples = d_post_trigger_window;
 
         // trigger_timestamp is the timestamp of the original event, without realignment
         if (d_last_wr_event) {
-          acq_info.trigger_timestamp = d_last_wr_event->timestamp;
-          acq_info.last_beam_in_timestamp = d_last_wr_event->last_beam_in_timestamp;
+//          acq_info.trigger_timestamp = d_last_wr_event->timestamp;
+//          acq_info.last_beam_in_timestamp = d_last_wr_event->last_beam_in_timestamp;
+//
+//          // WR event timestamp is a timestamp without any user delay applied
+//          acq_info.timestamp = d_last_wr_event->timestamp
+//                  - (d_pre_trigger_window / d_samp_rate * 1000000000.0);
 
-          // WR event timestamp is a timestamp without any user delay applied
-          acq_info.timestamp = d_last_wr_event->timestamp
-                  - (d_pre_trigger_window / d_samp_rate * 1000000000.0);
-
-          if (d_last_wr_event->realignment_required && d_last_edge) {
-            auto realignment_delay_ns = (d_last_edge->retrigger_event_timestamp - d_last_wr_event->timestamp);
-            acq_info.actual_delay += realignment_delay_ns / 1000000000.0;
-          }
-          else if (d_last_wr_event->realignment_required && !d_last_edge) {
-            acq_info.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
-          }
+ //         if (d_last_wr_event->realignment_required && d_last_edge)
+ //         {
+          //  auto realignment_delay_ns = (d_last_edge->retrigger_event_timestamp - d_last_wr_event->wr_trigger_stamp);
+//            acq_info.actual_delay += realignment_delay_ns / 1000000000.0;
+//          }
+//          else if (d_last_wr_event->realignment_required && !d_last_edge)
+//          {
+//            acq_info.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
+//          }
         }
         else {
-          acq_info.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
+//          acq_info.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
           // In this case we simply keep the timestamp provided with the last acq_info tag. Trigger
           // timestamp is forced to -1 in order to indicate a realignment error.
-          acq_info.trigger_timestamp = -1;
+//          acq_info.trigger_timestamp = -1;
         }
 
-        auto acq_info_tag = make_acq_info_tag(acq_info);
-        add_item_tag(0, acq_info_tag);
+//        auto acq_info_tag = make_acq_info_tag(acq_info);
+//        add_item_tag(0, acq_info_tag);
 
         d_state = extractor_state::WaitTrigger;
       }

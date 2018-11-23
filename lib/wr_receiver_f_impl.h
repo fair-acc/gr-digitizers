@@ -44,8 +44,7 @@ namespace gr {
 
       bool start() override;
 
-      void add_timing_event(const std::string &event_id, int64_t event_timestamp,
-              int64_t beam_in_timestamp, bool time_sync_only, bool realignment_required) override;
+      void add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) override;
     };
 
   } // namespace digitizers
