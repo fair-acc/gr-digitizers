@@ -3,12 +3,12 @@ set -e
 
 if [ $# -eq 0 ]
   then
-    echo "Error: No arguments supplied. First and only argument has to be Version. TODO: Automatically get version"
+    echo "Error: No arguments supplied. First and only argument has to be Version (or "master")"
     exit 1
 fi
 if [ $# -ne 1 ]
   then
-    echo "Error: Wrong number arguments supplied. First and only argument has to be Version TODO: Automatically get version"
+    echo "Error: Wrong number arguments supplied. First and only argument has to be Version (or "master")"
     exit 1
 fi
 
@@ -25,7 +25,13 @@ TARBALL_NAME=Digitizer-${VERSION}.tar
 mkdir -p ${INSTALL_DIR_LIB}
 mkdir -p ${INSTALL_DIR_BIN}
 
-cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-${VERSION}.master.so.0.0.0 ${INSTALL_DIR_LIB}
+if [ $VERSION = "master" ]
+    then
+        cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-*.master.so.0.0.0 ${INSTALL_DIR_LIB}
+
+    else
+        cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-${VERSION}.master.so.0.0.0 ${INSTALL_DIR_LIB}
+fi
 
 cp ${SCRIPTPATH}/build/lib/test-digitizers ${INSTALL_DIR_BIN}
 cp ${SCRIPTPATH}/build/lib/test_digitizers_test.sh ${INSTALL_DIR_BIN}
