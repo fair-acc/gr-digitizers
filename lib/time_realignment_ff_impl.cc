@@ -18,6 +18,21 @@
 #define NUMBER_OF_PENDING_TRIGGERS_WARNING 100
 #define NUMBER_OF_PENDING_TRIGGERS_ERROR 1000
 
+namespace {
+uint64_t get_timestamp_nano_utc()
+{
+    timespec start_time;
+    clock_gettime(CLOCK_REALTIME, &start_time);
+    return (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
+}
+
+uint64_t get_timestamp_milli_utc()
+{
+    return uint64_t( get_timestamp_nano_utc() / 1000000 );
+}
+
+}
+
 namespace gr {
   namespace digitizers {
 
@@ -38,6 +53,9 @@ namespace gr {
        d_user_delay(user_delay),
        d_pending_events()
     {
+
+      d_new_events_add_pointer = &d_new_events_buff1;
+      d_new_events_consume_pointer = &d_new_events_buff2;
       set_triggerstamp_matching_tolerance(triggerstamp_matching_tolerance);
       set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
     }
@@ -89,22 +107,6 @@ namespace gr {
 
       const uint64_t samp0_count = nitems_read(0);
 
-      // Dedicated input for sharing tags...
-      if (input_items.size() == 3)
-      {
-        std::vector<gr::tag_t> share_tags;
-        get_tags_in_range(share_tags, 2, samp0_count, samp0_count + noutput_items);
-        for (auto tag: share_tags)
-        {
-            if (tag.key == pmt::string_to_symbol(wr_event_tag_name))
-            {
-              //std::cout << "wr tag incoming" << std::endl;
-              push_wr_tag(decode_wr_event_tag(tag));
-              // wr-tags are not forwarded !
-            }
-        }
-      }
-
       // Get all the tags, for performance reason a member variable is used
       std::vector<gr::tag_t> tags;
       get_tags_in_range(tags, 0, samp0_count, samp0_count + noutput_items);
@@ -113,16 +115,13 @@ namespace gr {
         if (tag.key == pmt::string_to_symbol(trigger_tag_name))
         {
           //std::cout << "trigger tag incoming. Offset: " << tag.offset << std::endl;
+          //std::cout << "Trigger Tag incoming : " << get_timestamp_milli_utc() << std::endl;
           trigger_t trigger_tag_data = decode_trigger_tag(tag);
-
+          //std::cout << "Trigger Stamp        : " << trigger_tag_data.timestamp / 1000000 <<  " ms" << std::endl;
+          update_pending_events();
+          check_pending_event_size();
           fill_wr_stamp(trigger_tag_data);
           add_item_tag(0, make_trigger_tag(trigger_tag_data,tag.offset)); // add tag to port 0
-        }
-        else if (tag.key == pmt::string_to_symbol(wr_event_tag_name))
-        {
-          //std::cout << "wr tag incoming" << std::endl;
-          push_wr_tag(decode_wr_event_tag(tag));
-          // wr-tags are not forwarded !
         }
         else
         {
@@ -148,7 +147,9 @@ namespace gr {
         //std::cout << "start search" << std::endl;
         for (auto pending_event = d_pending_events.begin(); pending_event!= d_pending_events.end();++pending_event)
         {
-            int64_t delta_t = abs( trigger_tag_data.timestamp - pending_event->wr_trigger_stamp_utc );
+            int64_t delta_t = trigger_tag_data.timestamp - pending_event->wr_trigger_stamp_utc ;
+            if( delta_t < 0)
+                continue;
             if(  delta_t < d_triggerstamp_matching_tolerance_ns )
             {
                 //std::cout << "found !!! " << std::endl;
@@ -176,7 +177,7 @@ namespace gr {
     }
 
     void
-    time_realignment_ff_impl::push_wr_tag(const wr_event_t &event)
+    time_realignment_ff_impl::check_pending_event_size()
     {
         if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING && d_pending_events.size() % NUMBER_OF_PENDING_TRIGGERS_WARNING == 0) {
           GR_LOG_WARN(d_logger, d_name + ": " + std::to_string(d_pending_events.size()) + " pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
@@ -185,14 +186,53 @@ namespace gr {
         GR_LOG_ERROR(d_logger, "Large number of pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
         d_pending_events.clear();
       }
-      //std::cout << "Pushed WR Tag: " << std::endl;
-      d_pending_events.push_back(event);
     }
 
     int64_t
     time_realignment_ff_impl::get_user_delay_ns() const
     {
       return static_cast<int64_t>(d_user_delay * 1000000000.0);
+    }
+
+    void
+    time_realignment_ff_impl::add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc)
+    {
+      wr_event_t event;
+      event.event_id = event_id;
+      event.wr_trigger_stamp = wr_trigger_stamp;
+      event.wr_trigger_stamp_utc = wr_trigger_stamp_utc;
+      {
+          std::lock_guard<std::mutex> lock(d_buffer_swap_mutex); // TODO: How about a lock-free solution ?
+          d_new_events_add_pointer->push_back(event);
+          d_new_events_available = true;
+      }
+      //std::cout << "WR-Event Processing 5: " << get_timestamp_milli_utc() << std::endl;
+    }
+
+    void
+    time_realignment_ff_impl::update_pending_events()
+    {
+        //std::cout << "WR-Event Processing 6: " << get_timestamp_milli_utc() << std::endl;
+        d_new_events_consume_pointer->clear();
+        {
+            std::lock_guard<std::mutex> lock(d_buffer_swap_mutex); // TODO: How about a lock-free solution ?
+            if( !d_new_events_available )
+                return; // no need to swap
+
+            //std::cout << "WR-Event Processing 7: " << get_timestamp_milli_utc() << std::endl;
+            auto temp = d_new_events_add_pointer;
+            d_new_events_add_pointer = d_new_events_consume_pointer;
+            d_new_events_consume_pointer = temp;
+            d_new_events_available = false;
+        }
+
+        d_pending_events.insert( d_pending_events.end(), d_new_events_consume_pointer->begin(), d_new_events_consume_pointer->end() );
+
+//        std::cout << "WR-Event Processing 8: " << get_timestamp_milli_utc() << std::endl;
+//        std::cout << "d_pending_events.size()             : " << d_pending_events.size() << std::endl;
+//        std::cout << "d_new_events_consume_pointer.size() : " << d_new_events_consume_pointer->size() << std::endl;
+//        if(!d_new_events_consume_pointer->empty())
+//            std::cout << "d_new_events_consume_pointer.timestamp_utc : " << d_new_events_consume_pointer->begin()->wr_trigger_stamp_utc / 1000000 <<  " ms" << std::endl;
     }
 
   } /* namespace digitizers */

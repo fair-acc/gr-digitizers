@@ -55,6 +55,15 @@ namespace gr {
       virtual void set_triggerstamp_matching_tolerance(float triggerstamp_matching_tolerance) = 0;
 
       virtual float get_triggerstamp_matching_tolerance() = 0;
+
+      /*!
+       * \brief Add information about the timing event.
+       *
+       * \param event_id An arbitrary event descriptor
+       * \param wr_trigger_stamp event timestamp, TAI ns
+       * \param wr_trigger_stamp_utc event timestamp UTC
+       */
+      virtual void add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) = 0;
     };
 
   } // namespace digitizers

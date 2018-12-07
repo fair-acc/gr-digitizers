@@ -10,7 +10,7 @@
 #include <digitizers/time_realignment_ff.h>
 #include <digitizers/tags.h>
 
-#include <deque>
+#include <mutex>
 
 #include "utils.h"
 
@@ -31,6 +31,14 @@ namespace gr {
 
       std::vector< wr_event_t > d_pending_events;
 
+      // Double buffer for new events
+      std::vector< wr_event_t >  d_new_events_buff1;
+      std::vector< wr_event_t >  d_new_events_buff2;
+      std::vector< wr_event_t >* d_new_events_add_pointer;
+      std::vector< wr_event_t >* d_new_events_consume_pointer;
+      bool                       d_new_events_available;
+      std::mutex                 d_buffer_swap_mutex;
+
      public:
       time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance);
       ~time_realignment_ff_impl();
@@ -46,11 +54,15 @@ namespace gr {
 
       bool start() override;
 
+      void add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) override;
+
      private:
 
       int64_t get_timestamp_utc_ns();
 
-      void push_wr_tag(const wr_event_t &event);
+      void check_pending_event_size();
+
+      void update_pending_events();
 
       void fill_wr_stamp(trigger_t &trigger_tag_data);
 
