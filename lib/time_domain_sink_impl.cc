@@ -79,7 +79,7 @@ namespace gr {
       for (int i = 0; i < ninput_items; i+= d_output_package_size)
       {
         /* get tags for this package */
-        get_tags_in_range(tags, 0, tag_index, tag_index + d_output_package_size - 1);
+        get_tags_in_range(tags, 0, tag_index, tag_index + d_output_package_size);
         tag_index += d_output_package_size;
 
         /* trigger callback of host application to copy the data*/
