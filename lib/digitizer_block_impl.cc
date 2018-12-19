@@ -923,7 +923,7 @@ namespace gr {
      //relax cpu with less lock calls.
      unsigned int check_every_n_times = 10;
      unsigned int poller_state_check_counter = check_every_n_times;
-     poller_state_t state;
+     poller_state_t state = poller_state_t::IDLE;
 
      while (true) {
 

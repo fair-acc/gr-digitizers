@@ -227,7 +227,7 @@ namespace gr {
           break; // wait another work iteration to receive WR event
         }
 
-        const auto &wr_event = d_wr_events.front();
+       // const auto &wr_event = d_wr_events.front();
 
         // Edge detection is done only for events that require realignment
      //   if (!wr_event.realignment_required) {

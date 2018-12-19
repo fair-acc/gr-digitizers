@@ -260,8 +260,8 @@ namespace gr {
       // Nothing to declare in this block.
       boost::shared_ptr<gr::filter::iir_filter_ffd> d_iir_filter;
       boost::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
-      double d_samp_rate;
       double d_low_freq;
+      double d_samp_rate;
 
       double calc_alphaHP(double sample_rate, double freq_min);
      public:
@@ -308,8 +308,8 @@ namespace gr {
       // Nothing to declare in this block.
     boost::shared_ptr<gr::filter::iir_filter_ffd> d_iir_filter;
     boost::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
-    double d_samp_rate;
     double d_low_freq;
+    double d_samp_rate;
      public:
       block_custom_filter_iir_custom(int decimation,
           const std::vector<float> &fir_taps,

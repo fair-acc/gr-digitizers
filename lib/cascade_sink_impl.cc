@@ -240,7 +240,7 @@ namespace gr {
 
       // block definition for frequency-domain sinks
       // setup ST-Fourier Trafo blocks
-      int wintype = filter::firdes::win_type::WIN_BLACKMAN;
+      //int wintype = filter::firdes::win_type::WIN_BLACKMAN;
       // setup demux blocks - default 10% for pre- and 90% of samples for post-trigger samples
 
       // **

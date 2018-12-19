@@ -34,6 +34,7 @@ namespace gr {
         d_buffer_size(buffer_size),
         d_write_index(0),
         d_acq_info(),
+        d_acq_info_offset(0),
         d_metadata(),
         d_frozen(false)
     {
@@ -110,6 +111,7 @@ namespace gr {
 
       if(tags.size()) {
         d_acq_info = decode_acq_info_tag(tags.at(tags.size() - 1));
+        d_acq_info_offset = tags.at(tags.size() - 1).offset;
       }
     }
 
@@ -188,16 +190,16 @@ namespace gr {
       else
       {
         auto offset_first_sample = nitems_read(0) - nr_items_to_read;
-//        if (offset_first_sample >= d_acq_info.offset)
-//        {
-//          auto delta = d_acq_info.timebase * (offset_first_sample - d_acq_info.offset) * 1000000000.0;
-//          info->timestamp = d_acq_info.timestamp + static_cast<uint64_t>(delta);
-//        }
-//        else
-//        {
-//          auto delta = d_acq_info.timebase * (d_acq_info.offset - offset_first_sample) * 1000000000.0;
-//          info->timestamp = d_acq_info.timestamp - static_cast<uint64_t>(delta);
-//        }
+        if (offset_first_sample >= d_acq_info_offset)
+        {
+          auto delta = d_acq_info.timebase * (offset_first_sample - d_acq_info_offset) * 1000000000.0;
+          info->timestamp = d_acq_info.timestamp + static_cast<uint64_t>(delta);
+        }
+        else
+        {
+          auto delta = d_acq_info.timebase * (d_acq_info_offset - offset_first_sample) * 1000000000.0;
+          info->timestamp = d_acq_info.timestamp - static_cast<uint64_t>(delta);
+        }
       }
 
       d_frozen = false;

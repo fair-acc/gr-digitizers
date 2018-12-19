@@ -46,7 +46,7 @@ namespace gr {
       for(int port = 0; port < d_num_ports; port++)
       {
 
-        auto count0 = nitems_read(port);
+//        auto count0 = nitems_read(port);
 
         //average signal
         float *out = (float *) output_items[port];

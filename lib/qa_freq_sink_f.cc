@@ -164,12 +164,12 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL((uint32_t)nbins, first.number_of_bins);
 
       // For other measurements no timestamp should be available
-      auto ns_per_sample = (int64_t)(1.0f / SAMP_RATE_1KHZ * 1000000000.0f);
+      //auto ns_per_sample = (int64_t)(1.0f / SAMP_RATE_1KHZ * 1000000000.0f);
 
       for (auto i = 1; i < nmeasurements; i++) {
         auto m = minfo.at(i);
         CPPUNIT_ASSERT_EQUAL((uint32_t)nbins, m.number_of_bins);
-        int64_t expected_timestamp = info.timestamp + ((int64_t)i * ns_per_sample);
+     //   int64_t expected_timestamp = info.timestamp + ((int64_t)i * ns_per_sample);
      //   CPPUNIT_ASSERT_DOUBLES_EQUAL((double)expected_timestamp, (double)m.timestamp, 10.0);  FIXME: Test Fails since tag restructurization
      //   CPPUNIT_ASSERT_EQUAL(info.status, m.status);
       }

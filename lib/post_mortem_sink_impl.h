@@ -29,6 +29,7 @@ namespace gr {
 
       // last acquisition info tag
       acq_info_t d_acq_info;
+      uint64_t   d_acq_info_offset;
 
       // metadata
       signal_metadata_t d_metadata;

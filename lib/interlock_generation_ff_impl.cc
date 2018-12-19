@@ -58,17 +58,11 @@ namespace gr {
 
       float *out = (float *) output_items[0];
 
-      auto samp0_count = nitems_read(0);
-
       for (auto i = 0; i < noutput_items; i++) {
 
         // Get acq_info tags in range
         std::vector<gr::tag_t> tags;
         get_tags_in_window(tags, 0, i, i + 1, pmt::string_to_symbol(acq_info_tag_name));
-
-        if (!tags.empty()) {
-          d_acq_info = decode_acq_info_tag(tags.back());
-        }
 
         bool interlock = false;
 
@@ -93,13 +87,14 @@ namespace gr {
           // calculate timestamp
           int64_t timestamp = -1;
 
-//          if (d_acq_info.timestamp != -1)
-//          {
-//            timestamp = d_acq_info.timestamp + static_cast<int64_t>
-//            (
-//                 ((samp0_count + static_cast<uint64_t>(i)) - d_acq_info.offset) * d_acq_info.timebase * 1000000000.0
-//            );
-//          }
+          if (!tags.empty())
+          {
+            d_acq_info = decode_acq_info_tag(tags.back());
+            if (d_acq_info.timestamp != -1)
+            {
+              timestamp = d_acq_info.timestamp + static_cast<int64_t> (((nitems_read(0) + static_cast<uint64_t>(i)) - tags.back().offset) * d_acq_info.timebase * 1000000000.0 );
+            }
+          }
 
           if (d_callback) {
             d_callback(timestamp, d_user_data);

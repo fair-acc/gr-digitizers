@@ -49,7 +49,6 @@ namespace gr {
         gr_vector_void_star &output_items)
     {
       const auto decim = decimation();
-      const auto count0 = nitems_read(0);
 
       float *out = (float *) output_items[0];
       const float *in = (const float *) input_items[0];

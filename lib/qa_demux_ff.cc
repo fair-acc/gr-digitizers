@@ -154,7 +154,7 @@ namespace gr {
 
       CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
       // no realignment & no user delay in this case
-      int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
+     // int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
       CPPUNIT_ASSERT_EQUAL(wr_event.wr_trigger_stamp, trigger_tag.timestamp);
       CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
       CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
@@ -209,7 +209,7 @@ namespace gr {
 
       CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
       // no realignment & no user delay in this case
-      int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
+      //int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
       CPPUNIT_ASSERT_EQUAL(wr_event.wr_trigger_stamp, trigger_tag.timestamp);
       CPPUNIT_ASSERT_EQUAL(uint32_t {channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT}, trigger_tag.status);
       CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
