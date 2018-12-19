@@ -148,7 +148,7 @@ namespace gr {
         for (auto pending_event = d_pending_events.begin(); pending_event!= d_pending_events.end();++pending_event)
         {
             int64_t delta_t = trigger_tag_data.timestamp - pending_event->wr_trigger_stamp_utc ;
-            if( delta_t < 0)
+            if( delta_t < 0) // some zombie pending_event which e.g. arrived after the corresponding trigger .. ignore it. FIXME: Should we show a warning and delete the zombie instead ?
                 continue;
             if(  delta_t < d_triggerstamp_matching_tolerance_ns )
             {

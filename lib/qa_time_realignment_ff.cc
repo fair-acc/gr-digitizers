@@ -21,6 +21,12 @@
 namespace gr {
   namespace digitizers {
 
+    struct sim_wr_event_t
+    {
+        std::string event_id;
+        int64_t wr_trigger_stamp;
+        int64_t wr_trigger_stamp_utc;
+    };
     struct realignment_test_flowgraph_t
     {
       gr::top_block_sptr top;
@@ -32,7 +38,7 @@ namespace gr {
       std::vector<float> values;
       std::vector<float> errors;
 
-      realignment_test_flowgraph_t (float user_delay, float triggerstamp_matching_tolerance, const std::vector<tag_t> &tags, size_t data_size=33333)
+      realignment_test_flowgraph_t (float user_delay, float triggerstamp_matching_tolerance, const std::vector<tag_t> &tags, const std::vector<sim_wr_event_t> &wr_events, size_t data_size=33333)
       {
         values = make_test_data(data_size);
         errors = make_test_data(data_size, 0.2);
@@ -41,6 +47,9 @@ namespace gr {
         value_src = gr::blocks::vector_source_f::make(values, false, 1, tags);
         error_src = gr::blocks::vector_source_f::make(errors);
         realign = gr::digitizers::time_realignment_ff::make(user_delay, triggerstamp_matching_tolerance);
+        for(auto event : wr_events)
+            realign->add_timing_event(event.event_id, event.wr_trigger_stamp, event.wr_trigger_stamp_utc);
+
         value_sink = gr::blocks::vector_sink_f::make();
         error_sink = gr::blocks::vector_sink_f::make();
 
@@ -91,31 +100,32 @@ namespace gr {
       float timeout = 0.01;
 
       trigger_t tag1;
-      tag1.timestamp = 69;
+      tag1.timestamp = 70;
       tag1.status = 0x00;
 
       trigger_t tag2;
-      tag2.timestamp = 171;
+      tag2.timestamp = 175;
       tag2.status = 0x00;
 
-      wr_event_t wr_event1;
+      std::vector<sim_wr_event_t> wr_events;
+      sim_wr_event_t wr_event1;
       wr_event1.event_id = "first";
       wr_event1.wr_trigger_stamp = 100;
-      wr_event1.wr_trigger_stamp_utc = 70;
+      wr_event1.wr_trigger_stamp_utc = 65;
+      wr_events.push_back(wr_event1);
 
-      wr_event_t wr_event2;
+      sim_wr_event_t wr_event2;
       wr_event2.event_id = "second";
       wr_event2.wr_trigger_stamp = 200;
       wr_event2.wr_trigger_stamp_utc = 170;
+      wr_events.push_back(wr_event2);
 
       std::vector<gr::tag_t> tags = {
         make_trigger_tag(tag1,6000),
         make_trigger_tag(tag2,8000),
-        make_wr_event_tag(wr_event1, 600),
-        make_wr_event_tag(wr_event2, 800)
       };
 
-      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags);
+      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags, wr_events );
 
       flowgraph.run();
       flowgraph.verify_values();
@@ -149,11 +159,13 @@ namespace gr {
       tag.user_delay = -0.2;
       tag.status = 0x123;
 
+      std::vector<sim_wr_event_t> wr_events;
+
       std::vector<gr::tag_t> tags = {
         make_acq_info_tag(tag,100)
       };
 
-      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags);
+      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags, wr_events);
       flowgraph.run();
       flowgraph.verify_values();
 
@@ -179,11 +191,13 @@ namespace gr {
         tag1.timestamp = 100;
         tag1.status = 0x00;
 
+        std::vector<sim_wr_event_t> wr_events;
+
         std::vector<gr::tag_t> tags = {
           make_trigger_tag(tag1,10000)
         };
 
-        realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags);
+        realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags, wr_events);
 
         flowgraph.run();
         flowgraph.verify_values();
@@ -205,18 +219,18 @@ namespace gr {
         tag1.timestamp = 90;
         tag1.status = 0x00;
 
-        wr_event_t wr_event1;
+        std::vector<sim_wr_event_t> wr_events;
+        sim_wr_event_t wr_event1;
         wr_event1.event_id = "first";
         wr_event1.wr_trigger_stamp = 100;
         wr_event1.wr_trigger_stamp_utc = 70; // off by -20ns
+        wr_events.push_back(wr_event1);
 
         std::vector<gr::tag_t> tags = {
           make_trigger_tag(tag1,10000),
-          make_wr_event_tag(wr_event1, 0),
-          make_wr_event_tag(wr_event1, 1)
         };
 
-        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags);
+        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags, wr_events);
 
         flowgraph.run();
         flowgraph.verify_values();
@@ -238,18 +252,18 @@ namespace gr {
         tag1.timestamp = 90;
         tag1.status = 0x00;
 
-        wr_event_t wr_event1;
+        std::vector<sim_wr_event_t> wr_events;
+        sim_wr_event_t wr_event1;
         wr_event1.event_id = "first";
         wr_event1.wr_trigger_stamp = 100;
         wr_event1.wr_trigger_stamp_utc = 130; // off by +20ns
+        wr_events.push_back(wr_event1);
 
         std::vector<gr::tag_t> tags = {
           make_trigger_tag(tag1,10000),
-          make_wr_event_tag(wr_event1, 0),
-          make_wr_event_tag(wr_event1, 1)
         };
 
-        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags);
+        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags,wr_events);
 
         flowgraph.run();
         flowgraph.verify_values();
