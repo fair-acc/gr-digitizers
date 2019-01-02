@@ -18,44 +18,18 @@
 namespace gr {
   namespace digitizers {
 
-    enum class extractor_state
-    {
-      WaitTrigger        = 1,
-      WaitEvent          = 2,
-      WaitRealignmentTag = 3,
-      CalcOutputRange    = 4,
-      WaitAllData        = 5,
-      OutputData         = 6
-    };
-
     class demux_ff_impl : public demux_ff
     {
      private:
-      float d_samp_rate;
-      unsigned d_my_history;
-      unsigned d_pre_trigger_window;
-      unsigned d_post_trigger_window;
-
-      extractor_state d_state;
-
-      // absolute sample count where the last timing event appeared
-      uint64_t d_last_trigger_offset;
-      boost::optional<wr_event_t> d_last_wr_event;
-      boost::optional<edge_detect_t> d_last_edge;
-
-      uint64_t d_trigger_start_range;
-      uint64_t d_trigger_end_range;
-
-      boost::circular_buffer<wr_event_t> d_wr_events;
-      boost::circular_buffer<edge_detect_t> d_realignment_events;
-
-      boost::circular_buffer<acq_info_t> d_acq_info;
+      unsigned d_window_size;
+      unsigned d_history_size; //actually d_history_size = d_window_size ... as separate variable to increase code readability
+      unsigned d_pre_trigger_window_size;
+      unsigned d_post_trigger_window_size;
+      uint64_t d_sample_to_start_processing;
 
      public:
-      demux_ff_impl(float samp_rate, unsigned history, unsigned post_trigger_window, unsigned pre_trigger_window);
+      demux_ff_impl(unsigned post_trigger_window, unsigned pre_trigger_window);
       ~demux_ff_impl();
-
-      bool start() override;
 
       void forecast(int noutput_items, gr_vector_int &ninput_items_required) override;
 
@@ -64,8 +38,6 @@ namespace gr {
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items) override;
 
-     private:
-      double get_user_delay() const;
     };
 
   } // namespace digitizers

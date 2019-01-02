@@ -18,17 +18,17 @@ namespace gr {
     {
     public:
       CPPUNIT_TEST_SUITE(qa_demux_ff);
-      //CPPUNIT_TEST(test_no_trigger);  FIXME: Need to fix this block before usage
-      //CPPUNIT_TEST(test_single_trigger);
-      //CPPUNIT_TEST(test_timeout);
-      //CPPUNIT_TEST(test_user_delay);
+      CPPUNIT_TEST(test_no_trigger);
+      CPPUNIT_TEST(test_single_trigger);
+      CPPUNIT_TEST(test_multi_trigger);
+      CPPUNIT_TEST(test_to_few_post_trigger_samples);
       CPPUNIT_TEST_SUITE_END();
 
     private:
       void test_no_trigger();
       void test_single_trigger();
-      void test_timeout();
-      void test_user_delay();
+      void test_multi_trigger();
+      void test_to_few_post_trigger_samples();
     };
 
   } /* namespace digitizers */

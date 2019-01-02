@@ -17,28 +17,11 @@ namespace gr {
    /*!
     * \brief Extracts a subset of triggered data.
     *
-    * This block uses the following tags in order to extract triggered data:
-    *  - trigger tag: This tag indicates the exact location of the trigger (e.g. attached based on D0)
-    *  - wr_event tag: Timing information (typically received some time later)
-    *  - edge_detect tag: This one is is needed only if realignment is required
-    *  - acq_info tag: Status information, constant user delays (optional, default user delay is 0s)
+    * This block uses trigger tags in order to cut out data windows around them and forwards the cutted windows to the output
+    *  [ pre-trigger window |  post-trigger window ]
     *
-    * Based on pre-trigger and post-trigger window configuration parameters and user delays provided
-    * with the acq_info tag a subset of samples is extracted as shown below:
-    *
-    *   [ all pre-trigger samples       |   all post-trigger samples                ]
-    * step a)
-    *   .          [ pre-trigger window |  post-trigger window           ]          .
-    * step b)
-    *                                   ----> actual delay
-    *   .          .    [                   |                                ]      .
-    *
-    * In step a) a desired pre-trigger and post-trigger window is determined and in step b) a complete
-    * window is shifted by actual_delay including: user defined delay and realignment delay.
-    *
-    * The following tags are generated:
-    *  - acq_info
-    *  - trigger
+    * Trigger and AcqInfo tags in each window are as well forwarded to the outputs.
+    * Tags are re-created in order to reset the offset. (Just passing them to the output would result in wrong offset values)
     *
     * \ingroup digitizers
     */
@@ -55,7 +38,7 @@ namespace gr {
        * class. digitizers::demux_ff::make is the public interface for
        * creating new instances.
        */
-      static sptr make(float samp_rate, unsigned history, unsigned post_trigger_window, unsigned pre_trigger_window=0);
+      static sptr make(unsigned post_trigger_window, unsigned pre_trigger_window=0);
     };
 
   } // namespace digitizers

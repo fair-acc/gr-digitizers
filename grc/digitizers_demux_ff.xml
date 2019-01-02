@@ -4,20 +4,7 @@
   <key>digitizers_demux_ff</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.demux_ff($samp_rate, $history, $post_trigger_window, $pre_trigger_window)</make>
-
-  <param>
-    <name>Sample Rate (Hz)</name>
-    <key>samp_rate</key>
-    <value>samp_rate</value>
-    <type>float</type>    
-  </param>
-  <param>
-    <name>History</name>
-    <key>history</key>
-    <value>100000</value>
-    <type>int</type>    
-  </param>
+  <make>digitizers.demux_ff($post_trigger_window, $pre_trigger_window)</make>
   <param>
     <name>Pre-Trigger Samples</name>
     <key>pre_trigger_window</key>

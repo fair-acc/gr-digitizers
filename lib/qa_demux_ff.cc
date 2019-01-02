@@ -62,8 +62,6 @@ namespace gr {
             const std::vector<float> &errors,
             unsigned pre_trigger_window,
             unsigned post_trigger_window,
-            float samp_rate=100000,
-            unsigned history=10000,
             const std::vector<gr::tag_t> &tags=std::vector<gr::tag_t>{})
     {
       extractor_test_flowgraph_t flowgraph;
@@ -71,7 +69,7 @@ namespace gr {
       flowgraph.top = gr::make_top_block("test");
       flowgraph.value_src = gr::blocks::vector_source_f::make(values, false, 1, tags);
       flowgraph.error_src = gr::blocks::vector_source_f::make(errors);
-      flowgraph.extractor = gr::digitizers::demux_ff::make(samp_rate, history, post_trigger_window, pre_trigger_window);
+      flowgraph.extractor = gr::digitizers::demux_ff::make(post_trigger_window, pre_trigger_window);
       flowgraph.value_sink = gr::blocks::vector_sink_f::make();
       flowgraph.error_sink = gr::blocks::vector_sink_f::make();
       flowgraph.tag_debug = gr::blocks::tag_debug::make(sizeof(float), "neki");
@@ -108,28 +106,24 @@ namespace gr {
     void
     qa_demux_ff::test_single_trigger()
     {
-      float samp_rate = 200000.0;
+      unsigned pre_trigger_samples = 5;
+      unsigned post_trigger_samples = 20;
 
-      unsigned pre_trigger_samples = 500;
-      unsigned post_trigger_samples = 2000;
-
-      size_t data_size = (pre_trigger_samples + post_trigger_samples) * 10;
+      size_t data_size = 125;
 
       auto values = make_test_data(data_size);
       auto errors = make_test_data(data_size, 0.1);
 
-      auto trigger_offset = 1000;
+      auto trigger_offset = 10;
 
-      wr_event_t wr_event;
-      wr_event.wr_trigger_stamp = 87654321;
+      acq_info_t acq_info;
 
       std::vector<gr::tag_t> tags = {
         make_trigger_tag(trigger_offset),
-        make_wr_event_tag(wr_event,trigger_offset + 100)
+        make_acq_info_tag(acq_info,trigger_offset + 2)
       };
 
-      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples,
-              post_trigger_samples, samp_rate, 10000 /*history*/, tags);
+      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
 
       flowgraph.run();
 
@@ -140,156 +134,164 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_values.size());
       CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_errors.size());
 
+//      int sample_of_interest = trigger_offset - pre_trigger_samples;
+//      for (uint i= 0; i< collected_samples; i++)
+//      {
+//          std::cout << "values expected - actual : " << values[sample_of_interest] << " - " << actual_values[i] << std::endl;
+//          sample_of_interest ++;
+//      }
+
       ASSERT_VECTOR_EQUAL(values.begin() + trigger_offset - pre_trigger_samples,
-                          values.begin() + trigger_offset - pre_trigger_samples + collected_samples,
+                          values.begin() + trigger_offset + post_trigger_samples - 1,
                           actual_values.begin());
       ASSERT_VECTOR_EQUAL(errors.begin() + trigger_offset - pre_trigger_samples,
-                          errors.begin() + trigger_offset - pre_trigger_samples + collected_samples,
+                          errors.begin() + trigger_offset + post_trigger_samples - 1,
                           actual_errors.begin());
 
       auto out_tags = flowgraph.tags();
       CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
+
       CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
       auto trigger_tag = decode_trigger_tag(out_tags[0]);
-
-      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
-      // no realignment & no user delay in this case
-     // int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
-      CPPUNIT_ASSERT_EQUAL(wr_event.wr_trigger_stamp, trigger_tag.timestamp);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples}, out_tags[0].offset);
       CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
       CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(acq_info_tag_name));
+      CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples + 2}, out_tags[1].offset);
     }
 
     void
-    qa_demux_ff::test_timeout()
+    qa_demux_ff::test_multi_trigger()
     {
-      float samp_rate = 200000.0;
+      unsigned pre_trigger_samples = 50;
+      unsigned post_trigger_samples = 200;
+      unsigned trigger_samples = pre_trigger_samples + post_trigger_samples;
 
-      unsigned pre_trigger_samples = 500;
-      unsigned post_trigger_samples = 2000;
-
-      size_t data_size = (pre_trigger_samples + post_trigger_samples) * 10;
+      size_t data_size = 2000;
 
       auto values = make_test_data(data_size);
       auto errors = make_test_data(data_size, 0.1);
 
-      auto trigger_offset = 1000;
-
-      wr_event_t wr_event;
-      wr_event.wr_trigger_stamp = 654321;
+      auto trigger1_offset =  500;
+      auto trigger2_offset = 1000;
+      auto trigger3_offset = 1500;
+      acq_info_t acq_info;
 
       std::vector<gr::tag_t> tags = {
-        make_trigger_tag(trigger_offset),
-        make_wr_event_tag(wr_event,trigger_offset + 100)
+        make_trigger_tag(trigger1_offset),
+        make_trigger_tag(trigger2_offset),
+        make_trigger_tag(trigger3_offset),
+        make_acq_info_tag(acq_info,trigger1_offset + 10),
+        make_acq_info_tag(acq_info,trigger2_offset - 50),
+        make_acq_info_tag(acq_info,trigger3_offset + 199), // the trigger sample itself is the first sample
+        make_acq_info_tag(acq_info,trigger2_offset - 51), // out of scope
+        make_acq_info_tag(acq_info,trigger2_offset + 200) // out of scope
       };
 
-      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples,
-              post_trigger_samples, samp_rate, 10000 /*history*/, tags);
+      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
 
       flowgraph.run();
 
       auto actual_values = flowgraph.actual_values();
       auto actual_errors = flowgraph.actual_errors();
 
-      auto collected_samples = pre_trigger_samples + post_trigger_samples;
+      auto collected_samples = trigger_samples * 3;
       CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_values.size());
       CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_errors.size());
 
-      ASSERT_VECTOR_EQUAL(values.begin() + trigger_offset - pre_trigger_samples,
-                          values.begin() + trigger_offset - pre_trigger_samples + collected_samples,
+//      int sample_of_interest = trigger1_offset - pre_trigger_samples;
+//      for (uint i= 0; i< pre_trigger_samples + post_trigger_samples; i++)
+//      {
+//          std::cout << "errors expected - actual : " << errors[sample_of_interest] << " - " << actual_errors[i] << std::endl;
+//          sample_of_interest ++;
+//      }
+      ASSERT_VECTOR_EQUAL(values.begin() + trigger1_offset - pre_trigger_samples,
+                          values.begin() + trigger1_offset + post_trigger_samples - 1,
                           actual_values.begin());
-      ASSERT_VECTOR_EQUAL(errors.begin() + trigger_offset - pre_trigger_samples,
-                          errors.begin() + trigger_offset - pre_trigger_samples + collected_samples,
+      ASSERT_VECTOR_EQUAL(errors.begin() + trigger1_offset - pre_trigger_samples,
+                          errors.begin() + trigger1_offset + post_trigger_samples - 1,
                           actual_errors.begin());
+      ASSERT_VECTOR_EQUAL(values.begin() + trigger2_offset - pre_trigger_samples,
+                          values.begin() + trigger2_offset + post_trigger_samples - 1,
+                          actual_values.begin() + trigger_samples );
+      ASSERT_VECTOR_EQUAL(errors.begin() + trigger2_offset - pre_trigger_samples,
+                          errors.begin() + trigger2_offset + post_trigger_samples - 1,
+                          actual_errors.begin() + trigger_samples);
+      ASSERT_VECTOR_EQUAL(values.begin() + trigger3_offset - pre_trigger_samples,
+                          values.begin() + trigger3_offset + post_trigger_samples - 1,
+                          actual_values.begin() + 2 * trigger_samples);
+      ASSERT_VECTOR_EQUAL(errors.begin() + trigger3_offset - pre_trigger_samples,
+                          errors.begin() + trigger3_offset + post_trigger_samples - 1,
+                          actual_errors.begin() + 2 * trigger_samples);
 
       auto out_tags = flowgraph.tags();
-      CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
+      CPPUNIT_ASSERT_EQUAL(6, (int)out_tags.size());
       CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
-      auto trigger_tag = decode_trigger_tag(out_tags[0]);
 
-      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
-      // no realignment & no user delay in this case
-      //int64_t expected_timestamp = wr_event.wr_trigger_stamp - (pre_trigger_samples / samp_rate * 1000000000.0);
-      CPPUNIT_ASSERT_EQUAL(wr_event.wr_trigger_stamp, trigger_tag.timestamp);
-      CPPUNIT_ASSERT_EQUAL(uint32_t {channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT}, trigger_tag.status);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
+      auto trigger_tag1 = decode_trigger_tag(out_tags[0]);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples}, out_tags[0].offset);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag1.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag1.pre_trigger_samples);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(acq_info_tag_name));
+      CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples + 10}, out_tags[1].offset);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[2].key, pmt::string_to_symbol(acq_info_tag_name));
+      CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples + pre_trigger_samples - 50}, out_tags[2].offset);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[3].key, pmt::string_to_symbol(trigger_tag_name));
+      auto trigger_tag2 = decode_trigger_tag(out_tags[3]);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples + pre_trigger_samples}, out_tags[3].offset);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag2.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag2.pre_trigger_samples);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[4].key, pmt::string_to_symbol(trigger_tag_name));
+      auto trigger_tag3 = decode_trigger_tag(out_tags[4]);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples * 2 + pre_trigger_samples}, out_tags[4].offset);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag3.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag3.pre_trigger_samples);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[5].key, pmt::string_to_symbol(acq_info_tag_name));
+      CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples * 2 + pre_trigger_samples + 199}, out_tags[5].offset);
+
+
     }
 
     void
-    qa_demux_ff::test_user_delay()
+    qa_demux_ff::test_to_few_post_trigger_samples()
     {
-      float samp_rate = 200000.0;
+        unsigned pre_trigger_samples = 5;
+        unsigned post_trigger_samples = 20;
 
-      unsigned pre_trigger_samples = 500;
-      unsigned post_trigger_samples = 2000;
+        size_t data_size = 200;
 
-      size_t data_size = (pre_trigger_samples + post_trigger_samples) * 10;
+        auto values = make_test_data(data_size);
+        auto errors = make_test_data(data_size, 0.1);
 
-      auto values = make_test_data(data_size);
-      auto errors = make_test_data(data_size, 0.1);
+        auto trigger_offset = 181;
 
-      auto trigger_offset = 1000;
+        acq_info_t acq_info;
 
-      acq_info_t acq_tag;
-      acq_tag.status = 0x3;
-      acq_tag.user_delay = 0.0007;
-      acq_tag.actual_delay = 0.0007;
+        std::vector<gr::tag_t> tags = {
+          make_trigger_tag(trigger_offset),
+          make_acq_info_tag(acq_info,trigger_offset + 2)
+        };
 
-      wr_event_t wr_event;
-      wr_event.wr_trigger_stamp = 87654321;
+        auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
 
-      edge_detect_t edge;
-      edge.retrigger_event_timestamp = wr_event.wr_trigger_stamp + 333;
-      edge.offset = trigger_offset + 99;
+        flowgraph.run();
 
-      std::vector<gr::tag_t> tags = {
-        make_acq_info_tag(acq_tag,0),
-        make_trigger_tag(trigger_offset),
-        make_edge_detect_tag(edge),
-        make_wr_event_tag(wr_event,trigger_offset + 100)
-      };
+        auto actual_values = flowgraph.actual_values();
+        auto actual_errors = flowgraph.actual_errors();
 
-      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples,
-              post_trigger_samples, samp_rate, 10000 /*history*/, tags);
+        CPPUNIT_ASSERT_EQUAL((uint32_t)0, (uint32_t)actual_values.size());
+        CPPUNIT_ASSERT_EQUAL((uint32_t)0, (uint32_t)actual_errors.size());
 
-      flowgraph.run();
-
-      auto actual_values = flowgraph.actual_values();
-      auto actual_errors = flowgraph.actual_errors();
-
-      auto collected_samples = pre_trigger_samples + post_trigger_samples;
-      CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_values.size());
-      CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_errors.size());
-
-      auto delay_samples =  (acq_tag.user_delay * samp_rate)
-              + 333 / 1000000000.0 * samp_rate;
-
-      ASSERT_VECTOR_EQUAL(values.begin() + trigger_offset - pre_trigger_samples + delay_samples,
-                          values.begin() + trigger_offset - pre_trigger_samples + delay_samples + collected_samples,
-                          actual_values.begin());
-      ASSERT_VECTOR_EQUAL(errors.begin() + trigger_offset - pre_trigger_samples + delay_samples,
-                          errors.begin() + trigger_offset - pre_trigger_samples + delay_samples + collected_samples,
-                          actual_errors.begin());
-
-      auto out_tags = flowgraph.tags();
-      CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
-
-      CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
-      auto trigger_tag = decode_trigger_tag(out_tags[0]);
-
-      CPPUNIT_ASSERT_EQUAL(uint64_t {0}, out_tags[0].offset);
-      // no realignment & no user delay in this case
-      int64_t expected_timestamp = wr_event.wr_trigger_stamp
-              - ((pre_trigger_samples / samp_rate) * 1000000000.0);
-
-      // Note in this case timestamp is not adjusted because a different part of the signal is taken
-      // thereby user delay and realignment compensation is achieved
-      CPPUNIT_ASSERT_DOUBLES_EQUAL(expected_timestamp, trigger_tag.timestamp, 1);
-      CPPUNIT_ASSERT_EQUAL(acq_tag.status, trigger_tag.status);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
+        auto out_tags = flowgraph.tags();
+        CPPUNIT_ASSERT_EQUAL(0, (int)out_tags.size());
     }
+
   } /* namespace digitizers */
 } /* namespace gr */
 
