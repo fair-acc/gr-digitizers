@@ -81,9 +81,9 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(nsamples, dmin.size());
       CPPUNIT_ASSERT_EQUAL(nsamples, dmax.size());
 
-      ASSERT_VECTOR_EQUAL(0.0, dref.begin(), dref.end());
-      ASSERT_VECTOR_EQUAL(0.0, dmin.begin(), dmin.end());
-      ASSERT_VECTOR_EQUAL(0.0, dmax.begin(), dmax.end());
+      ASSERT_VECTOR_OF(dref, 0.0f);
+      ASSERT_VECTOR_OF(dmin, 0.0f);
+      ASSERT_VECTOR_OF(dmax, 0.0f);
 
       func->set_function(time, ref, min, max);
       fg.reset();
@@ -97,9 +97,9 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(nsamples, dmin.size());
       CPPUNIT_ASSERT_EQUAL(nsamples, dmax.size());
 
-      ASSERT_VECTOR_EQUAL(ref[0], dref.begin(), dref.end());
-      ASSERT_VECTOR_EQUAL(min[0], dmin.begin(), dmin.end());
-      ASSERT_VECTOR_EQUAL(max[0], dmax.begin(), dmax.end());
+      ASSERT_VECTOR_EQUAL(ref.begin(), dref.begin(), dref.end());
+      ASSERT_VECTOR_EQUAL(min.begin(), dmin.begin(), dmin.end());
+      ASSERT_VECTOR_EQUAL(max.begin(), dmax.begin(), dmax.end());
     }
 
     void
