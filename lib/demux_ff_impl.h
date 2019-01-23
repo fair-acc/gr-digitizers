@@ -25,7 +25,6 @@ namespace gr {
       unsigned d_history_size; //actually d_history_size = d_window_size ... as separate variable to increase code readability
       unsigned d_pre_trigger_window_size;
       unsigned d_post_trigger_window_size;
-      uint64_t d_sample_to_start_processing;
 
      public:
       demux_ff_impl(unsigned post_trigger_window, unsigned pre_trigger_window);

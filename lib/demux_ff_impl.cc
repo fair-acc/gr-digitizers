@@ -32,8 +32,7 @@ namespace gr {
       d_window_size(pre_trigger_window + post_trigger_window),
       d_history_size(d_window_size),
       d_pre_trigger_window_size(pre_trigger_window),
-      d_post_trigger_window_size(post_trigger_window),
-      d_sample_to_start_processing(pre_trigger_window)
+      d_post_trigger_window_size(post_trigger_window)
     {
       // gnuradio is a bit strange here .. to get N history items, one needs to set the history to N+1
       set_history(d_history_size + 1);
@@ -73,12 +72,12 @@ namespace gr {
       // We stop scanning at sample_to_stop_processing. Everything afterward will be processed in the next iteration (via history)
       // If a trigger would fall into the first or the last samples, in the current iteration we anyhow dont have enough samples build a full sample package (pre+post samples)
       const uint64_t new_items = ninput_items[0] - d_history_size;
+      const uint64_t sample_to_start_processing = nitems_read(0) + d_pre_trigger_window_size;
       const uint64_t sample_to_stop_processing = nitems_read(0) + new_items - d_post_trigger_window_size;
-      const uint64_t number_samples_to_process = sample_to_stop_processing - d_sample_to_start_processing;
 
 //      std::cout << "ninput_items[0]: " << ninput_items[0] << std::endl;
 //      std::cout << "new_items: " << new_items << std::endl;
-//      std::cout << "d_sample_to_start_processing: " << d_sample_to_start_processing << std::endl;
+//      std::cout << "sample_to_start_processing: " << sample_to_start_processing << std::endl;
 //      std::cout << "sample_to_stop_processing: " << sample_to_stop_processing << std::endl;
       const float *input_values = static_cast<const float *>(input_items[0]);
       const float *input_errors = static_cast<const float *>(input_items[1]);
@@ -96,7 +95,7 @@ namespace gr {
 
       std::vector<gr::tag_t> tags;
       std::vector<gr::tag_t> tags_in_window;
-      get_tags_in_range(tags, 0, d_sample_to_start_processing, sample_to_stop_processing);
+      get_tags_in_range(tags, 0, sample_to_start_processing, sample_to_stop_processing);
       for (const auto &tag : tags)
       {
         if(tag.key == pmt::string_to_symbol(trigger_tag_name))
@@ -144,7 +143,6 @@ namespace gr {
             nitems_produced += d_window_size;
         }
       }
-      d_sample_to_start_processing += number_samples_to_process;
 
       unsigned int items_consumed = ninput_items[0] - d_history_size;
       consume(0, items_consumed);
