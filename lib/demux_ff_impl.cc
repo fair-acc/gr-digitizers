@@ -72,10 +72,14 @@ namespace gr {
       // We start scanning at d_sample_to_start_processing. Everything before was either processed already in the last iteration.
       // We stop scanning at sample_to_stop_processing. Everything afterward will be processed in the next iteration (via history)
       // If a trigger would fall into the first or the last samples, in the current iteration we anyhow dont have enough samples build a full sample package (pre+post samples)
-      const uint64_t new_items = noutput_items - d_history_size;
+      const uint64_t new_items = ninput_items[0] - d_history_size;
       const uint64_t sample_to_stop_processing = nitems_read(0) + new_items - d_post_trigger_window_size;
       const uint64_t number_samples_to_process = sample_to_stop_processing - d_sample_to_start_processing;
 
+//      std::cout << "ninput_items[0]: " << ninput_items[0] << std::endl;
+//      std::cout << "new_items: " << new_items << std::endl;
+//      std::cout << "d_sample_to_start_processing: " << d_sample_to_start_processing << std::endl;
+//      std::cout << "sample_to_stop_processing: " << sample_to_stop_processing << std::endl;
       const float *input_values = static_cast<const float *>(input_items[0]);
       const float *input_errors = static_cast<const float *>(input_items[1]);
 
@@ -93,7 +97,6 @@ namespace gr {
       std::vector<gr::tag_t> tags;
       std::vector<gr::tag_t> tags_in_window;
       get_tags_in_range(tags, 0, d_sample_to_start_processing, sample_to_stop_processing);
-
       for (const auto &tag : tags)
       {
         if(tag.key == pmt::string_to_symbol(trigger_tag_name))
@@ -102,8 +105,15 @@ namespace gr {
             uint64_t window_start_abs = tag.offset - d_pre_trigger_window_size;
             uint64_t window_start_rel = window_start_abs - nitems_read(0) + d_history_size;
 
-            assert(window_start_rel >= nitems_read(0));
-            assert(window_start_rel + d_window_size <=  nitems_read(0) + noutput_items);
+//            std::cout << "window_start_abs: " << window_start_abs << std::endl;
+//            std::cout << "window_start_rel: " << window_start_rel << std::endl;
+//            std::cout << "tag.offset: " << tag.offset << std::endl;
+//            std::cout << "d_pre_trigger_window_size: " << d_pre_trigger_window_size << std::endl;
+//            std::cout << "nitems_read(0): " << nitems_read(0) << std::endl;
+//            std::cout << "d_history_size: " << d_history_size << std::endl;
+
+            assert(window_start_abs >= nitems_read(0));
+            assert(window_start_rel + d_window_size <=  uint64_t(ninput_items[0]));
 
             //copy values
             memcpy(&output_values[nitems_produced], &input_values[window_start_rel], d_window_size * sizeof(float));
@@ -136,13 +146,7 @@ namespace gr {
       }
       d_sample_to_start_processing += number_samples_to_process;
 
-      unsigned int items_consumed = 0;
-
-      if( noutput_items == int(d_history_size) ) // FIXME: only relevant for unit tests .. otherwise gnuradio will loop endlessly on this block
-          items_consumed = noutput_items;
-      else
-          items_consumed = noutput_items - d_history_size;
-
+      unsigned int items_consumed = ninput_items[0] - d_history_size;
       consume(0, items_consumed);
       // consume errors, if connected
       if (input_items.size() > 1 && output_items.size() > 1)

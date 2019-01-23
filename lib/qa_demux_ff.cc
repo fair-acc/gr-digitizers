@@ -106,21 +106,21 @@ namespace gr {
     void
     qa_demux_ff::test_single_trigger()
     {
-      unsigned pre_trigger_samples = 5;
-      unsigned post_trigger_samples = 20;
+      unsigned pre_trigger_samples = 5000;
+      unsigned post_trigger_samples = 20000;
 
-      size_t data_size = 125;
+      size_t data_size = 125000;
 
       auto values = make_test_data(data_size);
       auto errors = make_test_data(data_size, 0.1);
 
-      auto trigger_offset = 10;
+      auto trigger_offset = 10000;
 
       acq_info_t acq_info;
 
       std::vector<gr::tag_t> tags = {
         make_trigger_tag(trigger_offset),
-        make_acq_info_tag(acq_info,trigger_offset + 2)
+        make_acq_info_tag(acq_info,trigger_offset + 2000)
       };
 
       auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
@@ -158,7 +158,7 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(acq_info_tag_name));
-      CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples + 2}, out_tags[1].offset);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples + 2000}, out_tags[1].offset);
     }
 
     void
@@ -254,8 +254,6 @@ namespace gr {
 
       CPPUNIT_ASSERT_EQUAL(out_tags[5].key, pmt::string_to_symbol(acq_info_tag_name));
       CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples * 2 + pre_trigger_samples + 199}, out_tags[5].offset);
-
-
     }
 
     void
