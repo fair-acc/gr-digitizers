@@ -10,6 +10,7 @@
 
 #include <gnuradio/io_signature.h>
 #include <digitizers/status.h>
+#include <algorithm>    // std::max
 #include "demux_ff_impl.h"
 
 namespace gr {
@@ -53,11 +54,12 @@ namespace gr {
     void
     demux_ff_impl::forecast(int noutput_items, gr_vector_int &ninput_items_required)
     {
-        ninput_items_required[0] = d_history_size + noutput_items ;
-//      for (auto & required : ninput_items_required)
-//      {
-//        required = d_history_size + noutput_items;
-//      }
+        //ninput_items_required[0] = d_history_size + noutput_items ;
+        //ninput_items_required[1] = d_history_size + noutput_items ;
+      for (auto & required : ninput_items_required)
+      {
+        required = d_history_size + noutput_items;
+      }
     }
 
     int
@@ -71,85 +73,131 @@ namespace gr {
       // We start scanning at d_sample_to_start_processing. Everything before was either processed already in the last iteration.
       // We stop scanning at sample_to_stop_processing. Everything afterward will be processed in the next iteration (via history)
       // If a trigger would fall into the first or the last samples, in the current iteration we anyhow dont have enough samples build a full sample package (pre+post samples)
-      const uint64_t new_items = ninput_items[0] - d_history_size;
-      const uint64_t sample_to_start_processing = nitems_read(0) + d_pre_trigger_window_size;
-      const uint64_t sample_to_stop_processing = nitems_read(0) + new_items - d_post_trigger_window_size;
+      uint64_t ninput_items_min;
+      uint64_t nitems_read_min;
 
-//      std::cout << "ninput_items[0]: " << ninput_items[0] << std::endl;
+      if (input_items.size() > 1 && output_items.size() > 1)
+      {
+          ninput_items_min = std::min( ninput_items[0], ninput_items[1]);
+          nitems_read_min = std::min( nitems_read(0), nitems_read(1));
+      }
+      else
+      {
+          ninput_items_min = ninput_items[0];
+          nitems_read_min = nitems_read(0);
+      }
+
+      const uint64_t new_items = ninput_items_min - d_history_size;
+      const uint64_t sample_to_start_processing = nitems_read_min + d_pre_trigger_window_size;
+      const uint64_t sample_to_stop_processing = nitems_read_min + new_items - d_post_trigger_window_size;
+
+//      std::cout << "ninput_items_min: " << ninput_items_min << std::endl;
 //      std::cout << "new_items: " << new_items << std::endl;
 //      std::cout << "sample_to_start_processing: " << sample_to_start_processing << std::endl;
 //      std::cout << "sample_to_stop_processing: " << sample_to_stop_processing << std::endl;
-      const float *input_values = static_cast<const float *>(input_items[0]);
-      const float *input_errors = static_cast<const float *>(input_items[1]);
-
-      float *output_values = static_cast<float *>(output_items[0]);
-      float *output_errors = static_cast<float *>(output_items[1]);
+      const float *input_values = reinterpret_cast<const float *>(input_items[0]);
+      const float *input_errors = reinterpret_cast<const float *>(input_items[1]);
+      float *output_values = reinterpret_cast<float *>(output_items[0]);
+      float *output_errors = reinterpret_cast<float *>(output_items[1]);
 
 //      for(unsigned int i=0;i< noutput_items; i++)
 //      {
-//          int index_total = nitems_read(0) + i - d_history_size;
+//          int index_total = nitems_read_min + i - d_history_size;
 //          if(index_total < 0)
 //              index_total = -1;
 //          std::cout << "input_value["<< i << "]("<<  index_total << "): " << input_values[i] << std::endl;
 //      }
 
+      std::size_t numberTags = 0;
       std::vector<gr::tag_t> tags;
-      std::vector<gr::tag_t> tags_in_window;
+
       get_tags_in_range(tags, 0, sample_to_start_processing, sample_to_stop_processing);
+      //std::cout << "tags.size(): " << tags.size() << std::endl;
       for (const auto &tag : tags)
       {
-        if(tag.key == pmt::string_to_symbol(trigger_tag_name))
+        if(tag.key != pmt::string_to_symbol(trigger_tag_name))
+            continue;
+
+        // window_start is relative to the current input_items
+        uint64_t window_start_abs = tag.offset - d_pre_trigger_window_size;
+        uint64_t window_start_rel = window_start_abs - nitems_read_min + d_history_size;
+
+        // We cannot process this tag in this iteration
+        if( int(nitems_produced + d_window_size) > noutput_items )
         {
-            // window_start is relative to the current input_items
-            uint64_t window_start_abs = tag.offset - d_pre_trigger_window_size;
-            uint64_t window_start_rel = window_start_abs - nitems_read(0) + d_history_size;
+            // cosume all samples which occured before this tag, than leave this work iteration
+            unsigned nitems_consumed = tag.offset - sample_to_start_processing;
+            consume(0, nitems_consumed);
+            // consume errors, if connected
+            if (input_items.size() > 1 && output_items.size() > 1)
+                    consume(1, nitems_consumed);
+            //std::cout << "exit 1 nitems_consumed: " << nitems_consumed << std::endl;
+            return nitems_produced;
+        }
 
 //            std::cout << "window_start_abs: " << window_start_abs << std::endl;
 //            std::cout << "window_start_rel: " << window_start_rel << std::endl;
+//            std::cout << "d_window_size: " << d_window_size << std::endl;
+//            std::cout << "ninput_items[0]: " << ninput_items[0] << std::endl;
+//            std::cout << "ninput_items[1]: " << ninput_items[1] << std::endl;
+//            std::cout << "noutput_items: " << noutput_items << std::endl;
+
 //            std::cout << "tag.offset: " << tag.offset << std::endl;
 //            std::cout << "d_pre_trigger_window_size: " << d_pre_trigger_window_size << std::endl;
-//            std::cout << "nitems_read(0): " << nitems_read(0) << std::endl;
+//            std::cout << "nitems_read_min: " << nitems_read_min << std::endl;
 //            std::cout << "d_history_size: " << d_history_size << std::endl;
 
-            assert(window_start_abs >= nitems_read(0));
-            assert(window_start_rel + d_window_size <=  uint64_t(ninput_items[0]));
+        assert(window_start_abs >= nitems_read_min);
+        assert(window_start_rel + d_window_size <=  uint64_t(ninput_items_min));
 
-            //copy values
-            memcpy(&output_values[nitems_produced], &input_values[window_start_rel], d_window_size * sizeof(float));
-            // copy errors, if connected
-            if (input_items.size() > 1 && output_items.size() > 1)
-              memcpy(&output_errors[nitems_produced], &input_errors[window_start_rel], d_window_size * sizeof(float));
+        //copy values
+        memcpy(&output_values[nitems_produced], &input_values[window_start_rel], d_window_size * sizeof(float));
+        // copy errors, if connected
+        if (input_items.size() > 1 && output_items.size() > 1)
+          memcpy(&output_errors[nitems_produced], &input_errors[window_start_rel], d_window_size * sizeof(float));
 
-            //copy all tags in the window
-            get_tags_in_range(tags_in_window, 0, window_start_abs, window_start_abs + d_window_size);
-            for (auto &tag_in_window : tags_in_window)
+        //copy all tags of interest in the window
+        std::vector<gr::tag_t> tags_in_window;
+        get_tags_in_range(tags_in_window, 0, window_start_abs, window_start_abs + d_window_size);
+        for (auto &tag_in_window : tags_in_window)
+        {
+            // re-adjust offset, according to produced items
+            uint64_t tag_offset_relative_to_window = tag_in_window.offset - window_start_abs;
+            uint64_t new_offset = nitems_written(0) + nitems_produced + tag_offset_relative_to_window;
+            // copy our trigger tag
+            if(tag_in_window == tag)
             {
-                // re-adjust offset, according to produced items
-                uint64_t tag_offset_relative_to_window = tag_in_window.offset - window_start_abs;
-                tag_in_window.offset = nitems_written(0) + nitems_produced + tag_offset_relative_to_window;
-
-                if(tag_in_window.key == pmt::string_to_symbol(trigger_tag_name))
-                {
-                    trigger_t trigger_tag_data = decode_trigger_tag(tag_in_window);
-                    trigger_tag_data.pre_trigger_samples = d_pre_trigger_window_size;
-                    trigger_tag_data.post_trigger_samples = d_post_trigger_window_size;
-                    add_item_tag(0, make_trigger_tag(trigger_tag_data, tag_in_window.offset ));
-                }
-                else
-                {
-                    add_item_tag(0, tag_in_window);
-                }
+//                std::cout << "window_start_abs: " << window_start_abs << std::endl;
+//                std::cout << "tag_in_window.offset: " << tag_in_window.offset << std::endl;
+//                std::cout << "tag_offset_relative_to_window: " << tag_offset_relative_to_window << std::endl;
+//                std::cout << "added tag old offset: " << tag_in_window.offset << std::endl;
+//                std::cout << "added tag new offset: " << new_offset << std::endl;
+                trigger_t trigger_tag_data = decode_trigger_tag(tag_in_window);
+                trigger_tag_data.pre_trigger_samples = d_pre_trigger_window_size;
+                trigger_tag_data.post_trigger_samples = d_post_trigger_window_size;
+                add_item_tag(0, make_trigger_tag(trigger_tag_data, new_offset ));
+                numberTags++;
             }
-            nitems_produced += d_window_size;
-        }
-      }
 
-      unsigned int items_consumed = ninput_items[0] - d_history_size;
-      consume(0, items_consumed);
+            // copy all other non-trigger tags
+            if(tag_in_window.key != pmt::string_to_symbol(trigger_tag_name))
+            {
+                tag_in_window.offset = new_offset;
+                add_item_tag(0, tag_in_window);
+            }
+        }
+
+        nitems_produced += d_window_size;
+      } // for all trigger tags
+
+      // We suceeded processing all tags. Consume the full buffer
+      unsigned nitems_consumed = ninput_items_min - d_history_size;
+      consume(0, nitems_consumed);
       // consume errors, if connected
       if (input_items.size() > 1 && output_items.size() > 1)
-              consume(1, items_consumed);
+              consume(1, nitems_consumed);
 
+      //std::cout << "exit 2 nitems_consumed: " << nitems_consumed << std::endl;
       return nitems_produced;
     } /* general_work */
   } /* namespace digitizers */

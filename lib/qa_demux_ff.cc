@@ -72,10 +72,10 @@ namespace gr {
       flowgraph.extractor = gr::digitizers::demux_ff::make(post_trigger_window, pre_trigger_window);
       flowgraph.value_sink = gr::blocks::vector_sink_f::make();
       flowgraph.error_sink = gr::blocks::vector_sink_f::make();
-      flowgraph.tag_debug = gr::blocks::tag_debug::make(sizeof(float), "neki");
-      flowgraph.tag_debug->set_display(false);
+      //flowgraph.tag_debug = gr::blocks::tag_debug::make(sizeof(float), "neki");
+      //flowgraph.tag_debug->set_display(false);
 
-      flowgraph.top->connect(flowgraph.value_src, 0, flowgraph.tag_debug, 0);
+      //flowgraph.top->connect(flowgraph.value_src, 0, flowgraph.tag_debug, 0);
       flowgraph.top->connect(flowgraph.value_src, 0, flowgraph.extractor, 0);
       flowgraph.top->connect(flowgraph.error_src, 0, flowgraph.extractor, 1);
 
@@ -290,6 +290,131 @@ namespace gr {
         CPPUNIT_ASSERT_EQUAL(0, (int)out_tags.size());
     }
 
+    void
+    qa_demux_ff::test_window_overlap()
+    {
+      unsigned pre_trigger_samples = 150;
+      unsigned post_trigger_samples = 200;
+      unsigned trigger_samples = pre_trigger_samples + post_trigger_samples;
+
+      size_t data_size = 2000;
+
+      auto values = make_test_data(data_size);
+      auto errors = make_test_data(data_size, 0.1);
+
+      auto trigger1_offset =  900;
+      auto trigger2_offset = 1000;
+      auto trigger3_offset = 1100;
+
+      std::vector<gr::tag_t> tags = {
+        make_trigger_tag(trigger1_offset),
+        make_trigger_tag(trigger2_offset),
+        make_trigger_tag(trigger3_offset),
+      };
+
+      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
+
+      flowgraph.run();
+
+      auto actual_values = flowgraph.actual_values();
+      auto actual_errors = flowgraph.actual_errors();
+
+      auto collected_samples = trigger_samples * 3;
+      CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_values.size());
+      CPPUNIT_ASSERT_EQUAL(collected_samples, (uint32_t)actual_errors.size());
+
+//      int sample_of_interest = trigger1_offset - pre_trigger_samples;
+//      for (uint i= 0; i< pre_trigger_samples + post_trigger_samples; i++)
+//      {
+//          std::cout << "errors expected - actual : " << errors[sample_of_interest] << " - " << actual_errors[i] << std::endl;
+//          sample_of_interest ++;
+//      }
+      ASSERT_VECTOR_EQUAL(values.begin() + trigger1_offset - pre_trigger_samples,
+                          values.begin() + trigger1_offset + post_trigger_samples - 1,
+                          actual_values.begin());
+      ASSERT_VECTOR_EQUAL(errors.begin() + trigger1_offset - pre_trigger_samples,
+                          errors.begin() + trigger1_offset + post_trigger_samples - 1,
+                          actual_errors.begin());
+      ASSERT_VECTOR_EQUAL(values.begin() + trigger2_offset - pre_trigger_samples,
+                          values.begin() + trigger2_offset + post_trigger_samples - 1,
+                          actual_values.begin() + trigger_samples );
+      ASSERT_VECTOR_EQUAL(errors.begin() + trigger2_offset - pre_trigger_samples,
+                          errors.begin() + trigger2_offset + post_trigger_samples - 1,
+                          actual_errors.begin() + trigger_samples);
+      ASSERT_VECTOR_EQUAL(values.begin() + trigger3_offset - pre_trigger_samples,
+                          values.begin() + trigger3_offset + post_trigger_samples - 1,
+                          actual_values.begin() + 2 * trigger_samples);
+      ASSERT_VECTOR_EQUAL(errors.begin() + trigger3_offset - pre_trigger_samples,
+                          errors.begin() + trigger3_offset + post_trigger_samples - 1,
+                          actual_errors.begin() + 2 * trigger_samples);
+
+      auto out_tags = flowgraph.tags();
+      CPPUNIT_ASSERT_EQUAL(3, (int)out_tags.size());
+      CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
+
+      auto trigger_tag1 = decode_trigger_tag(out_tags[0]);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples}, out_tags[0].offset);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag1.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag1.pre_trigger_samples);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(trigger_tag_name));
+      auto trigger_tag2 = decode_trigger_tag(out_tags[1]);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples + pre_trigger_samples}, out_tags[1].offset);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag2.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag2.pre_trigger_samples);
+
+      CPPUNIT_ASSERT_EQUAL(out_tags[2].key, pmt::string_to_symbol(trigger_tag_name));
+      auto trigger_tag3 = decode_trigger_tag(out_tags[2]);
+      CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples * 2 + pre_trigger_samples}, out_tags[2].offset);
+      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag3.post_trigger_samples);
+      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag3.pre_trigger_samples);
+    }
+
+    void
+    qa_demux_ff::test_triggers_lost1()
+    {
+      unsigned pre_trigger_samples = 100;
+      unsigned post_trigger_samples = 100;
+
+      // Such a big number causes gnuradio to put a different number of items on ninput_items[0] and ninput_items[1] !!
+      // Usually gnuradio blocks are called with up to 20.000 samples. Not sure if we should write unittests for 1M samples at all
+      size_t data_size = 1000000;
+      auto values = make_test_data(data_size);
+      auto errors = make_test_data(data_size, 0.1);
+
+      std::vector<gr::tag_t> tags;
+      for ( size_t offset = pre_trigger_samples; offset < data_size - post_trigger_samples ; offset+=10000 )
+          tags.push_back(make_trigger_tag(offset));
+
+      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
+
+      flowgraph.run();
+
+      auto out_tags = flowgraph.tags();
+      CPPUNIT_ASSERT_EQUAL(tags.size(), out_tags.size());
+    }
+
+    void
+    qa_demux_ff::test_triggers_lost2()
+    {
+      unsigned pre_trigger_samples = 1;
+      unsigned post_trigger_samples = 2;
+
+      size_t data_size = 100;
+      auto values = make_test_data(data_size);
+      auto errors = make_test_data(data_size, 0.1);
+
+      std::vector<gr::tag_t> tags;
+      for ( size_t offset = pre_trigger_samples; offset < data_size - post_trigger_samples ; offset+=1 )
+          tags.push_back(make_trigger_tag(offset));
+
+      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
+
+      flowgraph.run();
+
+      auto out_tags = flowgraph.tags();
+      CPPUNIT_ASSERT_EQUAL(tags.size(), out_tags.size());
+    }
   } /* namespace digitizers */
 } /* namespace gr */
 

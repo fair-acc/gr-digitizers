@@ -22,6 +22,9 @@ namespace gr {
       CPPUNIT_TEST(test_single_trigger);
       CPPUNIT_TEST(test_multi_trigger);
       CPPUNIT_TEST(test_to_few_post_trigger_samples);
+      CPPUNIT_TEST(test_window_overlap);
+     // CPPUNIT_TEST(test_triggers_lost1); // TODO: Check why this test fails (3 tags missing https://gitlab.com/al.schwinn/gr-digitizers/issues/23 )
+      CPPUNIT_TEST(test_triggers_lost2);
       CPPUNIT_TEST_SUITE_END();
 
     private:
@@ -29,6 +32,9 @@ namespace gr {
       void test_single_trigger();
       void test_multi_trigger();
       void test_to_few_post_trigger_samples();
+      void test_window_overlap();
+      void test_triggers_lost1();
+      void test_triggers_lost2();
     };
 
   } /* namespace digitizers */
