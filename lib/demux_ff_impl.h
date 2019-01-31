@@ -22,7 +22,6 @@ namespace gr {
     {
      private:
       unsigned d_window_size;
-      unsigned d_history_size; //actually d_history_size = d_window_size ... as separate variable to increase code readability
       unsigned d_pre_trigger_window_size;
       unsigned d_post_trigger_window_size;
 

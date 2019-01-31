@@ -389,9 +389,12 @@ namespace gr {
       auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
 
       flowgraph.run();
-
-      auto out_tags = flowgraph.tags();
-      CPPUNIT_ASSERT_EQUAL(tags.size(), out_tags.size());
+//      std::cout << "flowgraph.tags().size(): " << flowgraph.tags().size() << std::endl;
+//      for (auto tag : flowgraph.tags())
+//      {
+//          std::cout << "tag.offset: " << tag.offset << std::endl;
+//      }
+      CPPUNIT_ASSERT_EQUAL(tags.size(), flowgraph.tags().size());
     }
 
     void

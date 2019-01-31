@@ -23,7 +23,7 @@ namespace gr {
       CPPUNIT_TEST(test_multi_trigger);
       CPPUNIT_TEST(test_to_few_post_trigger_samples);
       CPPUNIT_TEST(test_window_overlap);
-     // CPPUNIT_TEST(test_triggers_lost1); // TODO: Check why this test fails (3 tags missing https://gitlab.com/al.schwinn/gr-digitizers/issues/23 )
+      CPPUNIT_TEST(test_triggers_lost1);
       CPPUNIT_TEST(test_triggers_lost2);
       CPPUNIT_TEST_SUITE_END();
 
