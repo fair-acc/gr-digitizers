@@ -40,9 +40,6 @@ namespace gr {
       set_tag_propagation_policy(TPP_DONT);
     }
 
-    /*
-     * Our virtual destructor.
-     */
     demux_ff_impl::~demux_ff_impl()
     {
     }
@@ -67,8 +64,9 @@ namespace gr {
       unsigned nitems_produced = 0;
       uint64_t ninput_items_min;
       uint64_t sample_to_start_processing_abs;
+      bool errors_connected = input_items.size() > 1 && output_items.size() > 1;
 
-      if (input_items.size() > 1 && output_items.size() > 1)
+      if (errors_connected)
       {
           ninput_items_min = std::min( ninput_items[0], ninput_items[1]);
           sample_to_start_processing_abs = std::min( nitems_read(0), nitems_read(1));
@@ -90,9 +88,7 @@ namespace gr {
       float *output_values = reinterpret_cast<float *>(output_items[0]);
       float *output_errors = reinterpret_cast<float *>(output_items[1]);
 
-      std::size_t numberTags = 0;
       std::vector<gr::tag_t> tags;
-
       get_tags_in_range(tags, 0, sample_to_start_processing_abs, sample_to_stop_processing_abs);
       //std::cout << "tags.size(): " << tags.size() << std::endl;
       for (const auto &tag : tags)
@@ -112,8 +108,8 @@ namespace gr {
             // cosume all samples which occured before this tag-window, than leave the work function
             unsigned nitems_consumed = window_start_abs - sample_to_start_processing_abs;
             consume(0, nitems_consumed);
-            if (input_items.size() > 1 && output_items.size() > 1)
-                    consume(1, nitems_consumed);
+            if (errors_connected)
+                consume(1, nitems_consumed);
             //std::cout << "exit 2 nitems_consumed: " << nitems_consumed << std::endl;
             return nitems_produced;
         }
@@ -130,11 +126,7 @@ namespace gr {
         assert(int(nitems_produced + d_window_size) <= noutput_items);
         assert(window_start_rel + d_window_size <=  uint64_t(ninput_items_min));
         
-        memcpy(&output_values[nitems_produced], &input_values[window_start_rel], d_window_size * sizeof(float));
-        if (input_items.size() > 1 && output_items.size() > 1)
-          memcpy(&output_errors[nitems_produced], &input_errors[window_start_rel], d_window_size * sizeof(float));
-
-        //copy all tags of interest in the window
+        // copy all tags of interest in the window
         std::vector<gr::tag_t> tags_in_window;
         get_tags_in_range(tags_in_window, 0, window_start_abs, window_start_abs + d_window_size);
         for (auto &tag_in_window : tags_in_window)
@@ -155,7 +147,6 @@ namespace gr {
                 trigger_tag_data.pre_trigger_samples = d_pre_trigger_window_size;
                 trigger_tag_data.post_trigger_samples = d_post_trigger_window_size;
                 add_item_tag(0, make_trigger_tag(trigger_tag_data, new_offset ));
-                numberTags++;
             }
 
             // copy all other non-trigger tags
@@ -166,16 +157,19 @@ namespace gr {
             }
         }
 
+        memcpy(&output_values[nitems_produced], &input_values[window_start_rel], d_window_size * sizeof(float));
+        if (errors_connected)
+          memcpy(&output_errors[nitems_produced], &input_errors[window_start_rel], d_window_size * sizeof(float));
         nitems_produced += d_window_size;
       } // for all trigger tags
 
       if( ninput_items_min > d_pre_trigger_window_size)
       {
-          unsigned nitems_consumed = ninput_items_min - d_pre_trigger_window_size;
           // consume all samples of this iteration (leave some samples on the input .. possibly needed for trigger tag on next iteration)
+          unsigned nitems_consumed = ninput_items_min - d_pre_trigger_window_size;
           consume(0, nitems_consumed);
-          if (input_items.size() > 1 && output_items.size() > 1)
-                  consume(1, nitems_consumed);
+          if (errors_connected)
+              consume(1, nitems_consumed);
           //std::cout << "exit 2 nitems_consumed: " << nitems_consumed << std::endl;
       }
       return nitems_produced;

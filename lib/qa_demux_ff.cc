@@ -375,6 +375,7 @@ namespace gr {
     {
       unsigned pre_trigger_samples = 100;
       unsigned post_trigger_samples = 100;
+      unsigned trigger_samples = pre_trigger_samples + post_trigger_samples;
 
       // Such a big number causes gnuradio to put a different number of items on ninput_items[0] and ninput_items[1] !!
       // Usually gnuradio blocks are called with up to 20.000 samples. Not sure if we should write unittests for 1M samples at all
@@ -394,6 +395,10 @@ namespace gr {
 //      {
 //          std::cout << "tag.offset: " << tag.offset << std::endl;
 //      }
+
+      CPPUNIT_ASSERT_EQUAL((uint32_t)tags.size() * trigger_samples, (uint32_t)flowgraph.actual_values().size());
+      CPPUNIT_ASSERT_EQUAL((uint32_t)tags.size() * trigger_samples, (uint32_t)flowgraph.actual_errors().size());
+
       CPPUNIT_ASSERT_EQUAL(tags.size(), flowgraph.tags().size());
     }
 
@@ -402,6 +407,7 @@ namespace gr {
     {
       unsigned pre_trigger_samples = 1;
       unsigned post_trigger_samples = 2;
+      unsigned trigger_samples = pre_trigger_samples + post_trigger_samples;
 
       size_t data_size = 100;
       auto values = make_test_data(data_size);
@@ -415,8 +421,12 @@ namespace gr {
 
       flowgraph.run();
 
+      CPPUNIT_ASSERT_EQUAL((uint32_t)tags.size() * trigger_samples, (uint32_t)flowgraph.actual_values().size());
+      CPPUNIT_ASSERT_EQUAL((uint32_t)tags.size() * trigger_samples, (uint32_t)flowgraph.actual_errors().size());
+
       auto out_tags = flowgraph.tags();
       CPPUNIT_ASSERT_EQUAL(tags.size(), out_tags.size());
+
     }
   } /* namespace digitizers */
 } /* namespace gr */
