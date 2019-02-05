@@ -38,7 +38,7 @@ namespace gr {
       std::vector<float> values;
       std::vector<float> errors;
 
-      realignment_test_flowgraph_t (float user_delay, float triggerstamp_matching_tolerance, const std::vector<tag_t> &tags, const std::vector<sim_wr_event_t> &wr_events, size_t data_size=33333)
+      realignment_test_flowgraph_t (float user_delay, float triggerstamp_matching_tolerance, float buffer_time, const std::vector<tag_t> &tags, const std::vector<sim_wr_event_t> &wr_events, size_t data_size=33333)
       {
         values = make_test_data(data_size);
         errors = make_test_data(data_size, 0.2);
@@ -46,7 +46,7 @@ namespace gr {
         top = gr::make_top_block("test");
         value_src = gr::blocks::vector_source_f::make(values, false, 1, tags);
         error_src = gr::blocks::vector_source_f::make(errors);
-        realign = gr::digitizers::time_realignment_ff::make(user_delay, triggerstamp_matching_tolerance);
+        realign = gr::digitizers::time_realignment_ff::make(user_delay, triggerstamp_matching_tolerance, buffer_time);
         for(auto event : wr_events)
             realign->add_timing_event(event.event_id, event.wr_trigger_stamp, event.wr_trigger_stamp_utc);
 
@@ -97,7 +97,8 @@ namespace gr {
     qa_time_realignment_ff::default_case()
     {
       float user_delay = .1234;
-      float timeout = 0.01;
+      float triggerstamp_matching_tolerance = 0.01;
+      float buffer_time = 0.1;
 
       trigger_t tag1;
       tag1.timestamp = 70;
@@ -125,7 +126,7 @@ namespace gr {
         make_trigger_tag(tag2,8000),
       };
 
-      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags, wr_events );
+      realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, buffer_time, tags, wr_events );
 
       flowgraph.run();
       flowgraph.verify_values();
@@ -151,7 +152,8 @@ namespace gr {
     qa_time_realignment_ff::no_timing()
     {
       float user_delay = .1234;
-      float timeout = 0.01;
+      float triggerstamp_matching_tolerance = 0.01;
+      float buffer_time = 0.1;
 
       acq_info_t tag;
       tag.timestamp = 654321;
@@ -165,7 +167,7 @@ namespace gr {
         make_acq_info_tag(tag,100)
       };
 
-      realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags, wr_events);
+      realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, buffer_time, tags, wr_events);
       flowgraph.run();
       flowgraph.verify_values();
 
@@ -181,31 +183,41 @@ namespace gr {
       //CPPUNIT_ASSERT_DOUBLES_EQUAL( (double)tag.timestamp + (user_delay * 1000000000.0), double)acq_info.timestamp, 1.0);
     }
 
+    // This should lead to use of the input buffer, and marking the events with "timeout" flag
     void
     qa_time_realignment_ff::no_wr_events()
     {
         float user_delay = .1234;
-        float timeout = 0.01;
+        float triggerstamp_matching_tolerance = 0.01;
+        float buffer_time = 0.1;
 
         trigger_t tag1;
         tag1.timestamp = 100;
         tag1.status = 0x00;
 
+        trigger_t tag2;
+        tag2.timestamp = 200;
+        tag2.status = 0x00;
+
         std::vector<sim_wr_event_t> wr_events;
 
         std::vector<gr::tag_t> tags = {
-          make_trigger_tag(tag1,10000)
+          make_trigger_tag(tag1,10000),
+          make_trigger_tag(tag2,20000)
         };
 
-        realignment_test_flowgraph_t flowgraph(user_delay, timeout, tags, wr_events);
+        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, buffer_time, tags, wr_events);
 
         flowgraph.run();
         flowgraph.verify_values();
 
         auto out_tags = flowgraph.tags();
-        CPPUNIT_ASSERT_EQUAL(1, (int)out_tags.size());
+        CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
         CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
-        trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
+        trigger_t trigger_tag_data0 = decode_trigger_tag(out_tags.at(0));
+        CPPUNIT_ASSERT_EQUAL(trigger_tag_data0.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
+        CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(trigger_tag_name));
+        trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(1));
         CPPUNIT_ASSERT_EQUAL(trigger_tag_data1.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
     }
 
@@ -214,6 +226,7 @@ namespace gr {
     {
         float user_delay = .1234;
         float triggerstamp_matching_tolerance = 1. / 100000000; //10ns
+        float buffer_time = 1. / 1000000; //1µs
 
         trigger_t tag1;
         tag1.timestamp = 90;
@@ -230,7 +243,7 @@ namespace gr {
           make_trigger_tag(tag1,10000),
         };
 
-        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags, wr_events);
+        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, buffer_time, tags, wr_events);
 
         flowgraph.run();
         flowgraph.verify_values();
@@ -247,31 +260,46 @@ namespace gr {
     {
         float user_delay = .1234;
         float triggerstamp_matching_tolerance = 1. / 100000000; //10ns
-
+        float buffer_time = 1. / 1000000; //1µs
         trigger_t tag1;
-        tag1.timestamp = 90;
+        tag1.timestamp = 100;
         tag1.status = 0x00;
+
+        trigger_t tag2;
+        tag2.timestamp = 200;
+        tag2.status = 0x00;
 
         std::vector<sim_wr_event_t> wr_events;
         sim_wr_event_t wr_event1;
         wr_event1.event_id = "first";
         wr_event1.wr_trigger_stamp = 100;
-        wr_event1.wr_trigger_stamp_utc = 130; // off by +20ns
+        wr_event1.wr_trigger_stamp_utc = 130; // off by toleranze +20ns
         wr_events.push_back(wr_event1);
+
+        sim_wr_event_t wr_event2;
+        wr_event2.event_id = "second";
+        wr_event2.wr_trigger_stamp = 200;
+        wr_event2.wr_trigger_stamp_utc = 170; // off by toleranze -20ns
+        wr_events.push_back(wr_event2);
 
         std::vector<gr::tag_t> tags = {
           make_trigger_tag(tag1,10000),
+          make_trigger_tag(tag2,20000)
         };
 
-        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, tags,wr_events);
+        realignment_test_flowgraph_t flowgraph(user_delay, triggerstamp_matching_tolerance, buffer_time, tags,wr_events);
 
         flowgraph.run();
         flowgraph.verify_values();
 
         auto out_tags = flowgraph.tags();
-        CPPUNIT_ASSERT_EQUAL(1, (int)out_tags.size());
+        CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
         CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
-        trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
+        trigger_t trigger_tag_data0 = decode_trigger_tag(out_tags.at(0));
+        CPPUNIT_ASSERT_EQUAL(trigger_tag_data0.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
+
+        CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(trigger_tag_name));
+        trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(1));
         CPPUNIT_ASSERT_EQUAL(trigger_tag_data1.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
     }
 

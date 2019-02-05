@@ -4,10 +4,11 @@
   <key>digitizers_time_realignment_ff</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.time_realignment_ff($user_delay, $triggerstamp_matching_tolerance)</make>
-  
+  <make>digitizers.time_realignment_ff($user_delay, $triggerstamp_matching_tolerance, $max_buffer_time)</make>
+
   <callback>set_user_delay($user_delay)</callback>
-  <callback>set_timeout($triggerstamp_matching_tolerance)</callback>
+  <callback>set_triggerstamp_matching_tolerance($triggerstamp_matching_tolerance)</callback>
+  <callback>set_max_buffer_time($max_buffer_time)</callback>
   
   <param>
     <name>User Delay (s)</name>
@@ -20,6 +21,13 @@
     <name>Matching Tolerance (s)</name>
     <key>triggerstamp_matching_tolerance</key>
     <value>0.01</value>
+    <type>float</type>
+  </param>
+  
+  <param>
+    <name>Max buffer time (s)</name>
+    <key>max_buffer_time</key>
+    <value>0.1</value>
     <type>float</type>
   </param>
   

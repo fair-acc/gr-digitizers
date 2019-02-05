@@ -21,11 +21,15 @@ namespace gr {
     class time_realignment_ff_impl : public time_realignment_ff
     {
      private:
-      float d_samp_rate;
       float d_user_delay;
 
       // stored in ns to allow fast comparioson
       int64_t d_triggerstamp_matching_tolerance_ns;
+
+      // maximum time incoming triggers and samples will be buffered before forwarding them without realligment of the trigger tags
+      int64_t d_max_buffer_time_ns;
+
+      int64_t d_not_found_stamp_utc;
 
       // 'received' timestamp and related WR-Event
 
@@ -40,17 +44,23 @@ namespace gr {
       std::mutex                 d_buffer_swap_mutex;
 
      public:
-      time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance);
+      time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time);
       ~time_realignment_ff_impl();
 
       void set_user_delay(float user_delay) override;
       float get_user_delay() override;
       void set_triggerstamp_matching_tolerance(float triggerstamp_matching_tolerance);
       float get_triggerstamp_matching_tolerance();
-      // Where all the action really happens
-      int work(int noutput_items,
-         gr_vector_const_void_star &input_items,
-         gr_vector_void_star &output_items) override;
+
+      void set_max_buffer_time(float max_buffer_time);
+      float get_max_buffer_time();
+
+      //void forecast(int noutput_items, gr_vector_int &ninput_items_required) override;
+
+      int general_work(int noutput_items,
+           gr_vector_int &ninput_items,
+           gr_vector_const_void_star &input_items,
+           gr_vector_void_star &output_items) override;
 
       bool start() override;
 
@@ -64,7 +74,7 @@ namespace gr {
 
       void update_pending_events();
 
-      void fill_wr_stamp(trigger_t &trigger_tag_data);
+      bool fill_wr_stamp(trigger_t &trigger_tag_data);
 
       int64_t get_user_delay_ns() const;
     };

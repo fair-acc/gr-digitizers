@@ -22,7 +22,7 @@ namespace gr {
      *
      * \ingroup digitizers
      */
-    class DIGITIZERS_API time_realignment_ff : virtual public gr::sync_block
+    class DIGITIZERS_API time_realignment_ff : virtual public gr::block
     {
      public:
       typedef boost::shared_ptr<time_realignment_ff> sptr;
@@ -32,7 +32,7 @@ namespace gr {
        *
        * \param user_delay user defined delay in seconds
        */
-      static sptr make(float user_delay=0.0f, float triggerstamp_matching_tolerance=0.03f);
+      static sptr make(float user_delay=0.0f, float triggerstamp_matching_tolerance=0.03f, float max_buffer_time=0.3f);
 
       /*!
        * \brief Sets user delay.
@@ -55,6 +55,13 @@ namespace gr {
       virtual void set_triggerstamp_matching_tolerance(float triggerstamp_matching_tolerance) = 0;
 
       virtual float get_triggerstamp_matching_tolerance() = 0;
+
+      /*!
+       * \brief Sets maximum time incoming triggers and samples will be buffered before forwarding them without realligment of the trigger tags
+       */
+      virtual void set_max_buffer_time(float max_buffer_time) = 0;
+
+      virtual float get_max_buffer_time() = 0;
 
       /*!
        * \brief Add information about the timing event.

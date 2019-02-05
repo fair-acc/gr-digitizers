@@ -37,26 +37,27 @@ namespace gr {
   namespace digitizers {
 
     time_realignment_ff::sptr
-    time_realignment_ff::make(float user_delay, float timeout)
+    time_realignment_ff::make(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time)
     {
       return gnuradio::get_initial_sptr
-        (new time_realignment_ff_impl(user_delay, timeout));
+        (new time_realignment_ff_impl(user_delay, triggerstamp_matching_tolerance, max_buffer_time));
     }
 
     /*
      * The private constructor
      */
-    time_realignment_ff_impl::time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance)
-      : gr::sync_block("time_realignment_ff",
+    time_realignment_ff_impl::time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time)
+      : gr::block("time_realignment_ff",
               gr::io_signature::make(1, 3, sizeof(float)),
               gr::io_signature::make(1, 2, sizeof(float))),
        d_user_delay(user_delay),
        d_pending_events()
     {
-
       d_new_events_add_pointer = &d_new_events_buff1;
       d_new_events_consume_pointer = &d_new_events_buff2;
+      d_not_found_stamp_utc = 0;
       set_triggerstamp_matching_tolerance(triggerstamp_matching_tolerance);
+      set_max_buffer_time(max_buffer_time);
       set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
     }
 
@@ -88,28 +89,43 @@ namespace gr {
 
     float time_realignment_ff_impl::get_triggerstamp_matching_tolerance()
     {
-        return float(d_triggerstamp_matching_tolerance_ns / 1000000000);
+        return float(d_triggerstamp_matching_tolerance_ns / 1000000000.);
     }
 
-    int
-    time_realignment_ff_impl::work(int noutput_items,
-        gr_vector_const_void_star &input_items,
-        gr_vector_void_star &output_items)
+    void time_realignment_ff_impl::set_max_buffer_time(float max_buffer_time)
     {
-      assert(input_items.size() >= 1);
-      assert(input_items.size() >= output_items.size());
+        d_max_buffer_time_ns = int64_t(max_buffer_time * 1000000000 );
+    }
 
-      // Just copy over all the data
-      memcpy(output_items.at(0), input_items.at(0), noutput_items * sizeof(float));
-      if (input_items.size() > 1 && output_items.size() > 1) {
-        memcpy(output_items.at(1), input_items.at(1), noutput_items * sizeof(float));
+    float time_realignment_ff_impl::get_max_buffer_time()
+    {
+        return float(d_max_buffer_time_ns / 1000000000.);
+    }
+
+    int time_realignment_ff_impl::general_work(int noutput_items,
+         gr_vector_int &ninput_items,
+         gr_vector_const_void_star &input_items,
+         gr_vector_void_star &output_items)
+    {
+      uint64_t ninput_items_min;
+      uint64_t sample_to_start_processing_abs;
+      bool errors_connected = input_items.size() > 1 && output_items.size() > 1;
+      if (errors_connected)
+      {
+          ninput_items_min = std::min( ninput_items[0], ninput_items[1]);
+          sample_to_start_processing_abs = std::min( nitems_read(0), nitems_read(1));
       }
-
-      const uint64_t samp0_count = nitems_read(0);
+      else
+      {
+          ninput_items_min = ninput_items[0];
+          sample_to_start_processing_abs = nitems_read(0);
+      }
+      uint64_t copy_data_len = std::min( int(noutput_items), int(ninput_items_min));
+      uint64_t max_sample_to_end_processing_abs = sample_to_start_processing_abs + copy_data_len;
 
       // Get all the tags, for performance reason a member variable is used
       std::vector<gr::tag_t> tags;
-      get_tags_in_range(tags, 0, samp0_count, samp0_count + noutput_items);
+      get_tags_in_range(tags, 0, sample_to_start_processing_abs, max_sample_to_end_processing_abs);
       for (auto tag: tags)
       {
         if (tag.key == pmt::string_to_symbol(trigger_tag_name))
@@ -120,8 +136,19 @@ namespace gr {
           //std::cout << "Trigger Stamp        : " << trigger_tag_data.timestamp / 1000000 <<  " ms" << std::endl;
           update_pending_events();
           check_pending_event_size();
-          fill_wr_stamp(trigger_tag_data);
-          add_item_tag(0, make_trigger_tag(trigger_tag_data,tag.offset)); // add tag to port 0
+          if(fill_wr_stamp(trigger_tag_data))
+          {
+              add_item_tag(0, make_trigger_tag(trigger_tag_data,tag.offset)); // add tag to port 0
+          }
+          else
+          {
+              // No WR-Stamp availabe yet. Keep data on the input queue and leave. Better luck on next iteration
+              copy_data_len = tag.offset - sample_to_start_processing_abs - 1; // only copy all data before the tag
+
+              //std::cout << "tag.offset: " << tag.offset << std::endl;
+              //std::cout << "sample_to_start_processing_abs: " << sample_to_start_processing_abs << std::endl;
+              break;
+          }
         }
         else
         {
@@ -130,8 +157,18 @@ namespace gr {
         }
       }
 
+      //std::cout << "memcpy: copy_data_len: " << copy_data_len << std::endl;
+
+      //copy data
+      memcpy(output_items.at(0), input_items.at(0), copy_data_len * sizeof(float));
+      if (errors_connected)
+        memcpy(output_items.at(1), input_items.at(1), copy_data_len * sizeof(float));
+      //empty input queues
+      consume(0, copy_data_len);
+      if (errors_connected)
+          consume(1, copy_data_len);
       // Tell runtime system how many output items we produced.
-      return noutput_items;
+      return copy_data_len;
     }
 
     bool
@@ -141,22 +178,21 @@ namespace gr {
       return true;
     }
 
-    void
+    bool
     time_realignment_ff_impl::fill_wr_stamp(trigger_t &trigger_tag_data)
     {
         //std::cout << "start search" << std::endl;
         for (auto pending_event = d_pending_events.begin(); pending_event!= d_pending_events.end();++pending_event)
         {
-            int64_t delta_t = trigger_tag_data.timestamp - pending_event->wr_trigger_stamp_utc ;
-            if( delta_t < 0) // some zombie pending_event which e.g. arrived after the corresponding trigger .. ignore it. FIXME: Should we show a warning and delete the zombie instead ?
-                continue;
+            int64_t delta_t = abs ( trigger_tag_data.timestamp - pending_event->wr_trigger_stamp_utc );
             if(  delta_t < d_triggerstamp_matching_tolerance_ns )
             {
+                d_not_found_stamp_utc = 0; // reset stamp
                 //std::cout << "found !!! " << std::endl;
                 //std::cout << "delta_t [sec]                      : " << delta_t/1000000000.f << std::endl;
                 trigger_tag_data.timestamp = pending_event->wr_trigger_stamp;
                 d_pending_events.erase(pending_event);
-                return;
+                return true;
             }
             else
             {
@@ -166,14 +202,37 @@ namespace gr {
 //                std::cout << "timeout[s]                         : " << d_triggerstamp_matching_tolerance_ns/1000000000.f << std::endl;
 //                GR_LOG_WARN(d_logger, "Time Realigment: Matching tolerance for trigger tag matching exceeded by '" + std::to_string(delta_t) + "' ns.");
             }
+
+            //
+            if( d_not_found_stamp_utc != 0 && abs( d_not_found_stamp_utc - pending_event->wr_trigger_stamp_utc) > d_max_buffer_time_ns * 10 )
+            {
+                // TODO remove this very old unmatched pending event from our queue
+            }
         }
 
-        GR_LOG_WARN(d_logger, "No WR-Tag found for trigger tag. This should not happen.");
-        // all events (if any) were to old ... seems like something went wrong
-        trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
+        // not found
+
+//        std::cout << "d_max_buffer_time_ns: " << d_max_buffer_time_ns << std::endl;
+//        std::cout << "d_not_found_stamp_utc: " << d_not_found_stamp_utc << std::endl;
+
+        // is out of buffer_time ?
+        if( d_not_found_stamp_utc != 0 && abs( d_not_found_stamp_utc -  get_timestamp_nano_utc()) > d_max_buffer_time_ns )
+        {
+            d_not_found_stamp_utc = 0; //reset stamp
+            GR_LOG_INFO(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
+            trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
+            return true;
+        }
+
+        // keeps stamp, in order to check how long the trigger was on the buffer
+        // only reset stamp when a trigger got processed
+        if( d_not_found_stamp_utc == 0)
+            d_not_found_stamp_utc = get_timestamp_nano_utc();
 
         //std::cout << "queuesize: " << d_pending_events.size() << std::endl;
         //std::cout << "end search" << std::endl;
+
+        return false; // all trigger and samples before this trigger will be kept on input, better luck on the next work call
     }
 
     void
