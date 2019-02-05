@@ -20,14 +20,14 @@
   <param>
     <name>Matching Tolerance (s)</name>
     <key>triggerstamp_matching_tolerance</key>
-    <value>0.01</value>
+    <value>0.04</value>
     <type>float</type>
   </param>
   
   <param>
     <name>Max buffer time (s)</name>
     <key>max_buffer_time</key>
-    <value>0.1</value>
+    <value>0.4</value>
     <type>float</type>
   </param>
   
