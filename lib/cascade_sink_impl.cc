@@ -63,6 +63,9 @@ namespace gr {
               gr::io_signature::make(0,0 , sizeof(float)))
     {
 
+      //std::vector<int> allowed_cores = { 2,3,4 };
+      //set_processor_affinity(allowed_cores);
+
       int samp_rate_to_ten_kilo = static_cast<int>(samp_rate / 10000.0);
       if(samp_rate != (samp_rate_to_ten_kilo * 10000.0)) {
         GR_LOG_ALERT(logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
@@ -185,15 +188,15 @@ namespace gr {
       connect(d_agg1000, 1, d_pm_1000, 1);
        */
 
-      // triggered demux blocks (triggered time-domain acquisition)
-      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, TIME_SINK_MODE_TRIGGERED);
-      d_demux_raw  = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
-      // input to first raw-data-rate demux
-      connect(self(), 0, d_demux_raw, 0); // 0: values port
-      connect(self(), 1, d_demux_raw, 1); // 1: errors
-      // connect raw-data-rate demux to triggered time-domain sink
-      connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
-      connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
+//      // triggered demux blocks (triggered time-domain acquisition)
+//      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, TIME_SINK_MODE_TRIGGERED);
+//      d_demux_raw  = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
+//      // input to first raw-data-rate demux
+//      connect(self(), 0, d_demux_raw, 0); // 0: values port
+//      connect(self(), 1, d_demux_raw, 1); // 1: errors
+//      // connect raw-data-rate demux to triggered time-domain sink
+//      connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
+//      connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
       d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, TIME_SINK_MODE_TRIGGERED);
       d_demux_10000 = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW);
@@ -203,7 +206,6 @@ namespace gr {
       // connect 10 kHz demux to triggered time-domain sink
       connect(d_demux_10000, 0, d_snk10000_triggered, 0); // 0: values port
       connect(d_demux_10000, 1, d_snk10000_triggered, 1); // 1: errors
-
 
       // **
       // interlock and interlock reference function definition (ref, min, max)
@@ -319,7 +321,8 @@ namespace gr {
     std::vector<time_domain_sink::sptr>
     cascade_sink_impl::get_time_domain_sinks()
     {
-      return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
+      return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk10000_triggered};
+      //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
       //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000};
       //return {d_snk1000, d_snk10000};
       //return {d_snk1, d_snk10, d_snk25};

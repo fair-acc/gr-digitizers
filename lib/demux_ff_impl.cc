@@ -51,7 +51,8 @@ namespace gr {
         //ninput_items_required[1] = noutput_items ;
       for (auto & required : ninput_items_required)
       {
-        required = noutput_items;
+        // factor of 2 makes block to run more smoooth (less CPU load peaks & lost samples on picoscope)
+        required = noutput_items * 2;
       }
     }
 
