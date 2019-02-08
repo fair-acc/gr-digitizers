@@ -120,7 +120,7 @@ namespace gr {
           ninput_items_min = ninput_items[0];
           sample_to_start_processing_abs = nitems_read(0);
       }
-      uint64_t copy_data_len = std::min( int(noutput_items), int(ninput_items_min));
+      int64_t copy_data_len = std::min( int(noutput_items), int(ninput_items_min));
       uint64_t max_sample_to_end_processing_abs = sample_to_start_processing_abs + copy_data_len;
 
       // Get all the tags, for performance reason a member variable is used
@@ -142,9 +142,18 @@ namespace gr {
           }
           else
           {
+              //std::cout << "tag.offset: " << tag.offset << std::endl;
+              //std::cout << "sample_to_start_processing_abs: " << sample_to_start_processing_abs << std::endl;
+
               // No WR-Stamp availabe yet. Keep data on the input queue and leave. Better luck on next iteration
               copy_data_len = tag.offset - sample_to_start_processing_abs - 1; // only copy all data before the tag
-
+              if(copy_data_len <= 0) // nothing more to do
+              {
+                  consume(0, 0);
+                  if (errors_connected)
+                      consume(1, 0);
+                  return 0;
+              }
               //std::cout << "tag.offset: " << tag.offset << std::endl;
               //std::cout << "sample_to_start_processing_abs: " << sample_to_start_processing_abs << std::endl;
               break;
@@ -163,6 +172,7 @@ namespace gr {
       memcpy(output_items.at(0), input_items.at(0), copy_data_len * sizeof(float));
       if (errors_connected)
         memcpy(output_items.at(1), input_items.at(1), copy_data_len * sizeof(float));
+
       //empty input queues
       consume(0, copy_data_len);
       if (errors_connected)
@@ -219,7 +229,8 @@ namespace gr {
         if( d_not_found_stamp_utc != 0 && abs( d_not_found_stamp_utc -  get_timestamp_nano_utc()) > d_max_buffer_time_ns )
         {
             d_not_found_stamp_utc = 0; //reset stamp
-            GR_LOG_INFO(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
+            // Dont spam logging
+            //GR_LOG_INFO(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
             trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
             return true;
         }
