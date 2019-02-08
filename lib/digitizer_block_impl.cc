@@ -61,6 +61,22 @@ namespace gr {
     * Structors
     *********************************************************************/
 
+   uint64_t get_timestamp_nano_utc()
+   {
+       timespec start_time;
+       clock_gettime(CLOCK_REALTIME, &start_time);
+       return (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
+   }
+
+   uint64_t get_timestamp_milli_utc()
+   {
+       return uint64_t( get_timestamp_nano_utc() / 1000000 );
+   }
+
+   // Relevant for debugging. If gnuradio calls this block not often enough, we will get "WARN: XX digitizer data buffers lost"
+   // The rate in which this block is called is given by the number of free slots on its output buffer. So we choose a big value via set_min_output_buffer
+   uint64_t last_call_utc = 0;
+
    static const int AVERAGE_HISTORY_LENGTH = 100000;
 
    digitizer_block_impl::digitizer_block_impl(int ai_channels, int di_ports, bool auto_arm) :
@@ -111,6 +127,16 @@ namespace gr {
 
      assert(d_ai_channels < MAX_SUPPORTED_AI_CHANNELS);
      assert(d_ports < MAX_SUPPORTED_PORTS);
+
+     // The rate in which this block is called is given by the number of free slots on its output buffer.
+     // TODO: Either calculate a meaningfull value, or make it variable / controllable in the flowgraph.  It should depend on the sample_rate
+     // Buffering of 0.5s seems to be sufficient to get this block called often enough
+     // TODO: Find another way to guarantee that we dont loose samples
+
+     // TODO:
+     // The required set_min_output_buffer strongly depends e.g. on the max_buffer_time of the time_realligment block
+     // So possibly a good idea to provide "max buffer time" as well on this block
+     set_min_output_buffer(1000000);
    }
 
    digitizer_block_impl::~digitizer_block_impl()
@@ -1043,6 +1069,12 @@ namespace gr {
    int
    digitizer_block_impl::work_stream(int noutput_items, gr_vector_void_star &output_items)
    {
+// used for debugging in order to see how often gr calls this block
+//     uint64_t now = get_timestamp_milli_utc();
+//     if( now - last_call_utc > 20)
+//       std::cout << "now - last_call_utc: " << now - last_call_utc << std::endl;
+//     last_call_utc = get_timestamp_milli_utc();
+
      assert(noutput_items >= static_cast<int>(d_buffer_size));
 
      // process only one buffer per iteration
