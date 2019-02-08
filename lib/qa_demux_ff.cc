@@ -414,7 +414,8 @@ namespace gr {
       auto errors = make_test_data(data_size, 0.1);
 
       std::vector<gr::tag_t> tags;
-      for ( size_t offset = pre_trigger_samples; offset < data_size - post_trigger_samples ; offset+=1 )
+      // Keep a factor 2 gap at the ends because the forecast demands such as minimum required input items
+      for ( size_t offset = 2 * pre_trigger_samples; offset < data_size - 2 * post_trigger_samples ; offset+=1 )
           tags.push_back(make_trigger_tag(offset));
 
       auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
