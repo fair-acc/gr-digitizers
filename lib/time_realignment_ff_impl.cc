@@ -226,11 +226,10 @@ namespace gr {
 //        std::cout << "d_not_found_stamp_utc: " << d_not_found_stamp_utc << std::endl;
 
         // is out of buffer_time ?
-        if( d_not_found_stamp_utc != 0 && abs( d_not_found_stamp_utc -  get_timestamp_nano_utc()) > d_max_buffer_time_ns )
+        if( d_not_found_stamp_utc != 0 && abs( get_timestamp_nano_utc() - d_not_found_stamp_utc ) > d_max_buffer_time_ns )
         {
             d_not_found_stamp_utc = 0; //reset stamp
-            // Dont spam logging
-            //GR_LOG_INFO(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
+            GR_LOG_INFO(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
             trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
             return true;
         }
