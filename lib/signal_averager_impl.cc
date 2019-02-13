@@ -30,11 +30,7 @@ namespace gr {
               window_size),
         d_num_ports(num_inputs)
     {
-
-      // The gr scheduler uses the block's gr::block::relative_rate concept to perform the update on the tag's offset value
-      // The relative rate of a block determines the relationship between the input rate and output rate.
-      // Decimators that decimate by a factor of D have a relative rate of 1/D.
-      set_tag_propagation_policy(tag_propagation_policy_t::TPP_ONE_TO_ONE ); //
+      set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
     }
 
     signal_averager_impl::~signal_averager_impl()
@@ -59,6 +55,25 @@ namespace gr {
 
           out[i] = sum / static_cast<float>(decim);
           in += decim;
+        }
+        std::vector<gr::tag_t> tags;
+        get_tags_in_range(tags, port, nitems_read(port), nitems_read(port) + noutput_items * decim );
+        for(auto tag : tags)
+        {
+            //std::cout << "tag found: " << tag.key << std::endl;
+        	if(tag.key == pmt::string_to_symbol(trigger_tag_name))
+        	{
+        		trigger_t trigger_tag_data = decode_trigger_tag(tag);
+        		trigger_tag_data.pre_trigger_samples /= decim;
+        		trigger_tag_data.post_trigger_samples /= decim;
+        		add_item_tag(port, make_trigger_tag(trigger_tag_data,tag.offset * (1.0 / decim)));
+        		//std::cout << "trigger tag added" << std::endl;
+        	}
+        	else
+        	{
+        	    tag.offset *= (1.0 / decim);
+        		add_item_tag(port, tag);
+        	}
         }
       }
       return noutput_items;
