@@ -41,9 +41,17 @@ namespace gr {
     tag2.pre_trigger_samples = 500;
     tag2.post_trigger_samples = 1000;
 
+    acq_info_t acq_info_tag1;
+    acq_info_tag1.status = 2;
+    acq_info_t acq_info_tag2;
+    acq_info_tag2.status = 1;
+
+
     std::vector<gr::tag_t> tags = {
       make_trigger_tag(tag1,40),
       make_trigger_tag(tag2,73),
+      make_acq_info_tag(acq_info_tag1, 74),
+      make_acq_info_tag(acq_info_tag2, 75)
     };
 
     auto src = blocks::vector_source_f::make(vec, false, 1, tags);
@@ -57,17 +65,20 @@ namespace gr {
     auto data = snk->data();
     auto tags_out = snk->tags();
     CPPUNIT_ASSERT_EQUAL(data.size(),num_of_repeats);
-    CPPUNIT_ASSERT_EQUAL(size_t(2), tags_out.size());
+    CPPUNIT_ASSERT_EQUAL(size_t(3), tags_out.size());
     CPPUNIT_ASSERT_EQUAL(uint64_t(4), tags_out[0].offset);
     CPPUNIT_ASSERT_EQUAL(uint64_t(7), tags_out[1].offset); // round down
+    CPPUNIT_ASSERT_EQUAL(uint64_t(7), tags_out[2].offset); // round down
 
     trigger_t trigger_tag_data0 = decode_trigger_tag(tags_out.at(0));
     trigger_t trigger_tag_data1 = decode_trigger_tag(tags_out.at(1));
+    acq_info_t acq_info_tag = decode_acq_info_tag(tags_out.at(2));
 
-    CPPUNIT_ASSERT(trigger_tag_data0.pre_trigger_samples == 5);
-    CPPUNIT_ASSERT(trigger_tag_data1.pre_trigger_samples == 50);
-    CPPUNIT_ASSERT(trigger_tag_data0.post_trigger_samples == 10);
-    CPPUNIT_ASSERT(trigger_tag_data1.post_trigger_samples == 100);
+    CPPUNIT_ASSERT_EQUAL(uint32_t(5),trigger_tag_data0.pre_trigger_samples);
+    CPPUNIT_ASSERT_EQUAL(uint32_t(50), trigger_tag_data1.pre_trigger_samples);
+    CPPUNIT_ASSERT_EQUAL(uint32_t(10), trigger_tag_data0.post_trigger_samples);
+    CPPUNIT_ASSERT_EQUAL(uint32_t(100), trigger_tag_data1.post_trigger_samples);
+    CPPUNIT_ASSERT_EQUAL(uint32_t(3), acq_info_tag.status); // logical OR of all stati
 
     float desired_avg = data.at(0);
     for(auto it = data.begin(); it != data.end(); ++it) {

@@ -30,7 +30,7 @@ namespace gr {
               window_size),
         d_num_ports(num_inputs)
     {
-      set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+      set_tag_propagation_policy(tag_propagation_policy_t::TPP_CUSTOM);
     }
 
     signal_averager_impl::~signal_averager_impl()
@@ -47,33 +47,49 @@ namespace gr {
       {
         float *out = (float *) output_items[port];
         const float *in = (const float *) input_items[port];
-        for(int i = 0; i < noutput_items; i++)
+        int i_in = 0, i_out = 0;
+        for(i_out = 0; i_out < noutput_items; i_out++)
         {
           float sum = 0.0f;
-          for(unsigned j = 0; j < decim; j++)
-            sum += in[j];
+          for(unsigned temp = 0; temp < decim; temp++)
+            sum += in[i_in + temp];
 
-          out[i] = sum / static_cast<float>(decim);
-          in += decim;
-        }
-        std::vector<gr::tag_t> tags;
-        get_tags_in_range(tags, port, nitems_read(port), nitems_read(port) + noutput_items * decim );
-        for(auto tag : tags)
-        {
-            //std::cout << "tag found: " << tag.key << std::endl;
-        	if(tag.key == pmt::string_to_symbol(trigger_tag_name))
-        	{
-        		trigger_t trigger_tag_data = decode_trigger_tag(tag);
-        		trigger_tag_data.pre_trigger_samples /= decim;
-        		trigger_tag_data.post_trigger_samples /= decim;
-        		add_item_tag(port, make_trigger_tag(trigger_tag_data,tag.offset * (1.0 / decim)));
-        		//std::cout << "trigger tag added" << std::endl;
-        	}
-        	else
-        	{
-        	    tag.offset *= (1.0 / decim);
-        		add_item_tag(port, tag);
-        	}
+          out[i_out] = sum / static_cast<float>(decim);
+
+          std::vector<gr::tag_t> tags;
+          get_tags_in_range(tags, port, nitems_read(port) + i_in, nitems_read(port) + i_in + decim );
+          // required to merge acq_infotags due to this bug: https://github.com/gnuradio/gnuradio/issues/2364
+          // otherwise we will eat to much memory
+          // TODO: Fix bug in gnuradio and use TPP_ONE_TO_ONE (https://gitlab.com/al.schwinn/gr-digitizers/issues/33)
+          acq_info_t merged_acq_info;
+          merged_acq_info.status = 0;
+          bool found_acq_info = false;
+          for(auto tag : tags)
+          {
+              //std::cout << "tag found: " << tag.key << std::endl;
+              if(tag.key == pmt::string_to_symbol(trigger_tag_name))
+              {
+                  trigger_t trigger_tag_data = decode_trigger_tag(tag);
+                  trigger_tag_data.pre_trigger_samples /= decim;
+                  trigger_tag_data.post_trigger_samples /= decim;
+                  add_item_tag(port, make_trigger_tag(trigger_tag_data, nitems_written(port) + i_out));
+                  //std::cout << "trigger tag added" << std::endl;
+              }
+              else if(tag.key == pmt::string_to_symbol(acq_info_tag_name))
+              {
+                  found_acq_info = true;
+                  merged_acq_info.status |= decode_acq_info_tag(tag).status;
+              }
+              else
+              {
+                  tag.offset = nitems_written(port) + i_out;
+                  add_item_tag(port, tag);
+              }
+          }
+          if(found_acq_info)
+              add_item_tag(port, make_acq_info_tag(merged_acq_info, nitems_written(port) + i_out));
+
+          i_in += decim;
         }
       }
       return noutput_items;
