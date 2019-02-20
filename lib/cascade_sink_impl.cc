@@ -26,7 +26,9 @@ namespace gr {
         double samp_rate,
         float pm_buffer,
         std::string signal_name,
-        std::string unit_name)
+        std::string unit_name,
+        unsigned pre_trigger_window_raw,
+        unsigned post_trigger_window_raw)
     {
       return gnuradio::get_initial_sptr
         (new cascade_sink_impl(alg_id,
@@ -40,7 +42,9 @@ namespace gr {
             samp_rate,
             pm_buffer,
             signal_name,
-            unit_name));
+            unit_name,
+            pre_trigger_window_raw,
+            post_trigger_window_raw));
     }
 
     /*
@@ -57,10 +61,13 @@ namespace gr {
         double samp_rate,
         float pm_buffer,
         std::string signal_name,
-        std::string unit_name)
+        std::string unit_name,
+        unsigned pre_trigger_window_raw,
+        unsigned post_trigger_window_raw)
       : gr::hier_block2("cascade_sink",
               gr::io_signature::make(2,2, sizeof(float)),
               gr::io_signature::make(0,0 , sizeof(float)))
+
     {
 
       //std::vector<int> allowed_cores = { 2,3,4 };
@@ -198,8 +205,11 @@ namespace gr {
 //      connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
 //      connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
-      d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, TIME_SINK_MODE_TRIGGERED);
-      d_demux_10000 = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW);
+      unsigned pre_trigger_window_10000 = pre_trigger_window_raw / samp_rate_to_ten_kilo;
+      unsigned post_trigger_window_10000 = post_trigger_window_raw / samp_rate_to_ten_kilo;
+
+      d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   pre_trigger_window_10000 + post_trigger_window_10000, TIME_SINK_MODE_TRIGGERED);
+      d_demux_10000 = demux_ff::make(post_trigger_window_10000, pre_trigger_window_10000);
       // first 10 kHz block to 10 kHz demux
       connect(d_agg10000, 0, d_demux_10000, 0);
       connect(d_agg10000, 1, d_demux_10000, 1);

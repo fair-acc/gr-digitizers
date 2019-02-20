@@ -68,7 +68,9 @@ namespace gr {
           double samp_rate,
           float pm_buffer,
           std::string signal_name,
-          std::string unit_name);
+          std::string unit_name,
+          unsigned pre_trigger_window_raw,
+          unsigned post_trigger_window_raw);
 
       /*!
        * \brief Returns all time-domain sinks contained within this module.

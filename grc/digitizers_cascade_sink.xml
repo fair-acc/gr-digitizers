@@ -4,7 +4,7 @@
   <key>digitizers_cascade_sink</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.cascade_sink($alg_id, $delay, $fir_taps, $low_freq, $up_freq, $tr_width, $fb_user_taps, $fw_user_taps, $samp_rate, $pm_buffer, $signal_name, $signal_unit)</make>
+  <make>digitizers.cascade_sink($alg_id, $delay, $fir_taps, $low_freq, $up_freq, $tr_width, $fb_user_taps, $fw_user_taps, $samp_rate, $pm_buffer, $signal_name, $signal_unit, $pre_trigger_window_raw, $post_trigger_window_raw)</make>
   <param>
     <name>Algorithm ID</name>
     <key>alg_id</key>
@@ -115,6 +115,18 @@
     <key>signal_unit</key>
     <value></value>
     <type>string</type>
+  </param>
+  <param>
+    <name>Pre Trigger Samples</name>
+    <key>pre_trigger_window_raw</key>
+    <value></value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Post Trigger Samples</name>
+    <key>post_trigger_window_raw</key>
+    <value></value>
+    <type>int</type>
   </param>
 
   <sink>

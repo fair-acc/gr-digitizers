@@ -20,9 +20,6 @@
 
 #define MIN_HISTORY 0.01 // [ms] minimum history to ensure that WR triggers are found within
 
-#define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST 10000
-#define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW 1000
-
 #define WINDOW_SIZE_FREQ_DOMAIN_FAST 1024
 #define WINDOW_SIZE_FREQ_DOMAIN_SLOW 1024
 
@@ -88,7 +85,11 @@ namespace gr {
           double samp_rate,
           float pm_buffer,
           std::string signal_name,
-          std::string unit_name);
+          std::string unit_name,
+          unsigned pre_trigger_window_raw,
+          unsigned post_trigger_window_raw);
+
+
 
       ~cascade_sink_impl();
 
