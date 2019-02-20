@@ -103,7 +103,7 @@ namespace gr {
        * \param samples the number of samples to acquire before the trigger event
        * \param pre_samples the number of samples to acquire
        */
-      virtual void set_samples(int samples, int pre_samples = 0) = 0;
+      virtual void set_samples(int pre_samples, int post_samples) = 0;
 
       /*!
        * \brief Sets maximum buffer size in samples per channel.

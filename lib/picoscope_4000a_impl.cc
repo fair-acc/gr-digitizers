@@ -542,7 +542,7 @@ namespace gr {
 
           auto status = ps4000aRunBlock(d_handle,
                   d_pre_samples,   // pre-triggersamples
-                  d_samples,       // post-trigger samples
+                  d_post_samples,  // post-trigger samples
                   timebase,        // timebase
                   NULL,            // time indispossed
                   0,               // segment index

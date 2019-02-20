@@ -263,7 +263,7 @@ namespace gr {
 
       acquisition_mode_t get_acquisition_mode() override;
 
-      void set_samples(int samples, int pre_samples = 0) override;
+      void set_samples(int pre_samples, int post_samples) override;
 
       void set_samp_rate(double rate) override;
 
@@ -465,9 +465,8 @@ namespace gr {
       // Number of pre- and post-trigger samples the user wants to see on the outputs.
       // Note when calculating actual number of pre- and post-trigger samples one should
       // take into account the user delay and realignment delay.
-
-      uint32_t d_samples;
       uint32_t d_pre_samples;
+      uint32_t d_post_samples;
 
       // Number of captures in rapid block mode
       uint32_t d_nr_captures;

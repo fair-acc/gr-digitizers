@@ -22,7 +22,7 @@ if $acquisition_mode == 'Streaming':
     self.$(id).set_driver_buffer_size($driver_buff_size)
     self.$(id).set_streaming($poll_rate)
 else:
-    self.$(id).set_samples($samples, $pre_samples)
+    self.$(id).set_samples($pre_samples, $post_samples)
     self.$(id).set_rapid_block($nr_waveforms)
     </make>
 
@@ -107,14 +107,14 @@ else:
     <param>
         <name>Pre-trigger Samples</name>
         <key>pre_samples</key>
-        <value>5000</value>
+        <value>1000</value>
         <type>int</type>
         <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
     </param>
     <param>
         <name>Post-trigger Samples</name>
-        <key>samples</key>
-        <value>10000</value>
+        <key>post_samples</key>
+        <value>9000</value>
         <type>int</type>
         <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
     </param>

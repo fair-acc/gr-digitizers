@@ -83,8 +83,8 @@ namespace gr {
        d_samp_rate(10000),
        d_actual_samp_rate(d_samp_rate),
        d_time_per_sample_ns(1000000000. / d_samp_rate),
-       d_samples(10000),
        d_pre_samples(1000),
+       d_post_samples(9000),
        d_nr_captures(1),
        d_buffer_size(8192),
        d_nr_buffers(100),
@@ -150,27 +150,23 @@ namespace gr {
    uint32_t
    digitizer_block_impl::get_pre_trigger_samples_with_downsampling() const
    {
-     auto count = d_pre_samples;
-     if (d_downsampling_mode != downsampling_mode_t::DOWNSAMPLING_MODE_NONE) {
-       count = count / d_downsampling_factor;
-     }
-     return count;
+     if (d_downsampling_mode != downsampling_mode_t::DOWNSAMPLING_MODE_NONE)
+       return d_pre_samples / d_downsampling_factor;
+     return d_pre_samples;
    }
 
    uint32_t
    digitizer_block_impl::get_post_trigger_samples_with_downsampling() const
    {
-     auto count = d_samples;
-     if (d_downsampling_mode != downsampling_mode_t::DOWNSAMPLING_MODE_NONE) {
-       count = count / d_downsampling_factor;
-     }
-     return count;
+     if (d_downsampling_mode != downsampling_mode_t::DOWNSAMPLING_MODE_NONE)
+       return d_post_samples / d_downsampling_factor;
+     return d_post_samples;
    }
 
    uint32_t
    digitizer_block_impl::get_block_size() const
    {
-     return d_samples + d_pre_samples;
+     return d_post_samples + d_pre_samples;
    }
 
    uint32_t
@@ -295,9 +291,9 @@ namespace gr {
    }
 
    void
-   digitizer_block_impl::set_samples(int samples, int pre_samples)
+   digitizer_block_impl::set_samples(int pre_samples, int post_samples)
    {
-     if (samples < 1)
+     if (post_samples < 1)
      {
        std::ostringstream message;
        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": post-trigger samples can't be less than one";
@@ -311,9 +307,9 @@ namespace gr {
        throw std::invalid_argument(message.str());
      }
 
-     d_samples = static_cast<uint32_t>(samples);
+     d_post_samples = static_cast<uint32_t>(post_samples);
      d_pre_samples = static_cast<uint32_t>(pre_samples);
-     d_buffer_size = d_samples + d_pre_samples;
+     d_buffer_size = d_post_samples + d_pre_samples;
    }
 
    void

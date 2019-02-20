@@ -638,7 +638,7 @@ namespace gr {
 
           auto status = ps3000aRunBlock(d_handle,
                   d_pre_samples,   // pre-triggersamples
-                  d_samples,       // post-trigger samples
+                  d_post_samples,  // post-trigger samples
                   timebase,        // timebase
                   0,               // oversample
                   NULL,            // time indispossed
