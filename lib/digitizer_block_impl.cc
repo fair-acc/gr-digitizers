@@ -172,9 +172,7 @@ namespace gr {
    uint32_t
    digitizer_block_impl::get_block_size_with_downsampling() const
    {
-       auto count = get_pre_trigger_samples_with_downsampling()
-               + get_post_trigger_samples_with_downsampling();
-       return count;
+       return get_pre_trigger_samples_with_downsampling() + get_post_trigger_samples_with_downsampling();
    }
 
    double
@@ -884,7 +882,7 @@ namespace gr {
                  pre_trigger_samples_with_downsampling,
                  post_trigger_samples_with_downsampling,
                  d_downsampling_factor,
-                 timestamp_now_ns_utc - (post_trigger_samples_with_downsampling * d_time_per_sample_ns),
+                 timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * d_time_per_sample_ns),
                  nitems_written(0) + pre_trigger_samples_with_downsampling,
                  d_status[i]);
 
@@ -895,7 +893,7 @@ namespace gr {
              pre_trigger_samples_with_downsampling,
              post_trigger_samples_with_downsampling,
              d_downsampling_factor,
-             timestamp_now_ns_utc - (post_trigger_samples_with_downsampling * d_time_per_sample_ns),
+             timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * d_time_per_sample_ns),
              nitems_written(0) + pre_trigger_samples_with_downsampling,
              0 ); //status
 
