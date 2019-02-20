@@ -86,7 +86,7 @@ namespace gr {
       auto source = fg.source;
 
 
-      fg.source->set_samples(samples, presamples);
+      fg.source->set_samples(presamples, samples);
       fg.source->set_data(d_cha_vec, d_chb_vec, d_port_vec);
       fg.source->set_rapid_block(1);
       fg.source->set_trigger_once(true);
@@ -116,7 +116,7 @@ namespace gr {
       auto fg = make_test_flowgraph(10000.0);
       auto source = fg.source;
 
-      fg.source->set_samples(samples, presamples);
+      fg.source->set_samples(presamples, samples);
       fg.source->set_data(d_cha_vec, d_chb_vec, d_port_vec);
       fg.source->set_rapid_block(1);
       fg.source->set_trigger_once(true);

@@ -57,7 +57,7 @@ namespace gr {
       auto ps = picoscope_4000a::make("", true);
       ps->set_aichan("A", true, 5.0, false);
       ps->set_samp_rate(10000.0);
-      ps->set_samples(1000, 33);
+      ps->set_samples(33, 1000);
       ps->set_rapid_block(1);
       ps->set_trigger_once(true);
 
@@ -74,7 +74,7 @@ namespace gr {
 
       // run once more, note configuration is applied at start
       sink->reset();
-      ps->set_samples(800, 200);
+      ps->set_samples(200, 800);
 
       top->run();
 
@@ -99,7 +99,7 @@ namespace gr {
       ps->set_aichan("D", true, 5.0, false);
 
       ps->set_samp_rate(10000.0);
-      ps->set_samples(1000, 50);
+      ps->set_samples(50, 1000);
       ps->set_rapid_block(1);
       ps->set_trigger_once(true);
 
@@ -134,7 +134,7 @@ namespace gr {
       auto ps = picoscope_4000a::make("", true);
       ps->set_aichan("A", true, 5.0, false);
       ps->set_samp_rate(10000.0); // 10kHz
-      ps->set_samples(1000, 0);
+      ps->set_samples(0, 1000);
       ps->set_rapid_block(1);
 
       auto sink = blocks::vector_sink_f::make(1);
@@ -169,7 +169,7 @@ namespace gr {
       auto ps = picoscope_4000a::make("", true);
       ps->set_aichan("A", true, 5.0, false);
       ps->set_samp_rate(10000.0);
-      ps->set_samples(1000, 200);
+      ps->set_samples(200, 1000);
       ps->set_downsampling(downsampling_mode_t::DOWNSAMPLING_MODE_DECIMATE, 4);
       ps->set_rapid_block(1);
       ps->set_trigger_once(true);
@@ -199,7 +199,7 @@ namespace gr {
         ps->set_aichan("D", true, 5.0, false);
 
         ps->set_samp_rate(10000.0);
-        ps->set_samples(10000, 1000);
+        ps->set_samples(1000, 10000);
         ps->set_rapid_block(1);
         ps->set_trigger_once(true);
 
@@ -251,7 +251,7 @@ namespace gr {
       auto ps = picoscope_4000a::make("", true);
       ps->set_aichan("A", true, 5.0, false);
       ps->set_samp_rate(samp_rate);
-      ps->set_samples(1000, 200);
+      ps->set_samples(200, 1000);
       ps->set_rapid_block(1);
       ps->set_trigger_once(true);
 
@@ -296,7 +296,7 @@ namespace gr {
       ps->set_aichan("A", true, 5.0, false);
       ps->set_diport("port0", true, 1.5);
       ps->set_samp_rate(samp_rate);
-      ps->set_samples(1000, 200);
+      ps->set_samples(200, 1000);
       ps->set_rapid_block(1);
       ps->set_trigger_once(true);
       ps->set_aichan_trigger("A", trigger_direction_t::TRIGGER_DIRECTION_RISING, 1.5);

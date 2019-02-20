@@ -899,14 +899,11 @@ namespace gr {
              nitems_written(0) + pre_trigger_samples_with_downsampling,
              0 ); //status
 
-       for (auto i = 0; i < d_ports
-             && vec_idx < (int)output_items.size(); i++, vec_idx++)
+       // Add tags to digital port
+       for (auto i = 0; i < d_ports  && vec_idx < (int)output_items.size(); i++, vec_idx++)
        {
-         if (!d_port_settings[i].enabled)
-         {
-           continue;
-         }
-         add_item_tag(vec_idx, trigger_tag);
+         if (d_port_settings[i].enabled)
+            add_item_tag(vec_idx, trigger_tag);
        }
 
        // update state
