@@ -16,9 +16,10 @@ namespace gr {
     {
      private:
       double d_delay;
+      int64_t d_sample_sample_distance_input_ns; // sample to sample distance on input ports in nanoseconds
 
      public:
-      decimate_and_adjust_timebase_impl(int decimation, double delay);
+      decimate_and_adjust_timebase_impl(int decimation, double delay, float samp_rate);
       ~decimate_and_adjust_timebase_impl();
 
       int work(int noutput_items,

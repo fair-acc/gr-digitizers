@@ -23,6 +23,7 @@ namespace gr {
     void
     qa_decimate_and_adjust_timebase::test_decimation()
     {
+        double samp_rate = 5000000;
         int decim_factor = 5;
         int n_samples = decim_factor * 100;
 
@@ -54,7 +55,7 @@ namespace gr {
         auto top = gr::make_top_block("test_single_decim_factor");
         auto src = blocks::vector_source_f::make(signal,false, 1, tags);
         auto snk = blocks::vector_sink_f::make(1);
-        auto decim = digitizers::decimate_and_adjust_timebase::make(decim_factor, 0.0);
+        auto decim = digitizers::decimate_and_adjust_timebase::make(decim_factor, 0.0, samp_rate);
         top->connect(src, 0, decim, 0);
         top->connect(decim, 0, snk, 0);
 
@@ -78,6 +79,57 @@ namespace gr {
         CPPUNIT_ASSERT_EQUAL(uint32_t(tag1.post_trigger_samples/decim_factor), trigger_tag_data0.post_trigger_samples);
         CPPUNIT_ASSERT_EQUAL(uint32_t(tag2.post_trigger_samples/decim_factor), trigger_tag_data1.post_trigger_samples);
         CPPUNIT_ASSERT_EQUAL(uint32_t(3), acq_info_tag.status); // logical OR of all stati
+    }
+
+    void
+    qa_decimate_and_adjust_timebase::offset_trigger_tag_test()
+    {
+      double samp_rate = 1000; // sample_to_sample distance = 1ms
+      double decim = 10;
+      size_t size = 1000;
+      std::vector<float> samples;
+
+      for(size_t i = 0; i < size; i++)
+          samples.push_back(1.);
+
+      trigger_t tag0, tag1,tag2,tag3;
+
+      // in order to simulate cascading decimation
+      tag0.offset_to_sample_ns = 0;
+      tag1.offset_to_sample_ns = 10;
+      tag2.offset_to_sample_ns = 20;
+      tag3.offset_to_sample_ns = 30;
+
+      std::vector<gr::tag_t> tags = {
+        make_trigger_tag(tag0,40), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So no offset is expected.
+        make_trigger_tag(tag1,41), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So a positive offset of 1 samples (= 1ms) is expected.
+        make_trigger_tag(tag2,75), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 5 samples (= 5ms) is expected.
+        make_trigger_tag(tag3,79), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 9 samples (= 9ms) is expected.
+      };
+
+      auto top = gr::make_top_block("single_input_test");
+      auto src = blocks::vector_source_f::make(samples, false, 1, tags);
+      auto avg = decimate_and_adjust_timebase::make(decim, 0.0, samp_rate);
+      auto snk = blocks::vector_sink_f::make(1);
+
+      top->connect(src, 0, avg, 0);
+      top->connect(avg, 0, snk, 0);
+
+      top->run();
+      auto data = snk->data();
+      auto tags_out = snk->tags();
+      CPPUNIT_ASSERT_EQUAL(size_t(4), tags_out.size());
+      CPPUNIT_ASSERT_EQUAL(data.size(),size_t(size/decim));
+
+      trigger_t trigger_tag_data0 = decode_trigger_tag(tags_out.at(0));
+      trigger_t trigger_tag_data1 = decode_trigger_tag(tags_out.at(1));
+      trigger_t trigger_tag_data2 = decode_trigger_tag(tags_out.at(2));
+      trigger_t trigger_tag_data3 = decode_trigger_tag(tags_out.at(3));
+
+      CPPUNIT_ASSERT_EQUAL(int64_t(0 ),trigger_tag_data0.offset_to_sample_ns);
+      CPPUNIT_ASSERT_EQUAL(int64_t(1 * 1000000 + 10), trigger_tag_data1.offset_to_sample_ns);
+      CPPUNIT_ASSERT_EQUAL(int64_t(5 * 1000000 + 20), trigger_tag_data2.offset_to_sample_ns);
+      CPPUNIT_ASSERT_EQUAL(int64_t(9 * 1000000 + 30), trigger_tag_data3.offset_to_sample_ns);
     }
 
   } /* namespace digitizers */

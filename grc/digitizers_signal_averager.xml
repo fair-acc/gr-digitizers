@@ -4,8 +4,15 @@
   <key>digitizers_signal_averager</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.signal_averager($n_ports, $window_size)</make>
+  <make>digitizers.signal_averager($n_ports, $window_size, $samp_rate)</make>
 
+  <param>
+    <name>Sample Rate</name>
+    <key>samp_rate</key>
+    <value>samp_rate</value>
+    <type>float</type>
+  </param>
+  
   <param>
     <name>Window size</name>
     <key>window_size</key>

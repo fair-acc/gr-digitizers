@@ -23,6 +23,8 @@ namespace gr {
   void
   qa_signal_averager::single_input_test()
   {
+    double samp_rate = 5000000;
+
     size_t num_of_repeats = 8;
     auto top = gr::make_top_block("single_input_test");
 
@@ -55,7 +57,7 @@ namespace gr {
     };
 
     auto src = blocks::vector_source_f::make(vec, false, 1, tags);
-    auto avg = signal_averager::make(1, simple.size());
+    auto avg = signal_averager::make(1, simple.size(), samp_rate);
     auto snk = blocks::vector_sink_f::make(1);
 
     top->connect(src, 0, avg, 0);
@@ -90,6 +92,7 @@ namespace gr {
   void
   qa_signal_averager::multiple_input_test()
   {
+    double samp_rate = 5000000;
     unsigned number_of = 8;
     auto top = gr::make_top_block("single_input_test");
 
@@ -103,7 +106,7 @@ namespace gr {
 
     auto src0 = blocks::vector_source_f::make(vec0);
     auto src1 = blocks::vector_source_f::make(vec1);
-    auto avg = signal_averager::make(2, simple.size());
+    auto avg = signal_averager::make(2, simple.size(), samp_rate);
     auto snk0 = blocks::vector_sink_f::make(1);
     auto snk1 = blocks::vector_sink_f::make(1);
 
@@ -123,6 +126,57 @@ namespace gr {
       desired_avg *= 2;
       CPPUNIT_ASSERT_DOUBLES_EQUAL(desired_avg, data1.at(i), 0.0001);
     }
+  }
+
+  void
+  qa_signal_averager::offset_trigger_tag_test()
+  {
+    double samp_rate = 1000; // sample_to_sample distance = 1ms
+    double decim = 10;
+    size_t size = 1000;
+    std::vector<float> samples;
+
+    for(size_t i = 0; i < size; i++)
+        samples.push_back(1.);
+
+    trigger_t tag0, tag1,tag2,tag3;
+
+    // in order to simulate cascading decimation
+    tag0.offset_to_sample_ns = 0;
+    tag1.offset_to_sample_ns = 10;
+    tag2.offset_to_sample_ns = 20;
+    tag3.offset_to_sample_ns = 30;
+
+    std::vector<gr::tag_t> tags = {
+      make_trigger_tag(tag0,40), // samples 40 till 49 should be merged. "Middle" is sample 45 So a negative offset of 5 samples (= -5ms) is expected.
+      make_trigger_tag(tag1,41), // samples 40 till 49 should be merged. "Middle" is sample 45 So a negative offset of 4 samples (= -4ms) is expected.
+      make_trigger_tag(tag2,75), // samples 70 till 79 should be merged. "Middle" is sample 75 So no offset is expected.
+      make_trigger_tag(tag3,79), // samples 70 till 79 should be merged. "Middle" is sample 75 So a positive offset of 4 samples (= +4ms) is expected.
+    };
+
+    auto top = gr::make_top_block("single_input_test");
+    auto src = blocks::vector_source_f::make(samples, false, 1, tags);
+    auto avg = signal_averager::make(1, decim, samp_rate);
+    auto snk = blocks::vector_sink_f::make(1);
+
+    top->connect(src, 0, avg, 0);
+    top->connect(avg, 0, snk, 0);
+
+    top->run();
+    auto data = snk->data();
+    auto tags_out = snk->tags();
+    CPPUNIT_ASSERT_EQUAL(size_t(4), tags_out.size());
+    CPPUNIT_ASSERT_EQUAL(data.size(),size_t(size/decim));
+
+    trigger_t trigger_tag_data0 = decode_trigger_tag(tags_out.at(0));
+    trigger_t trigger_tag_data1 = decode_trigger_tag(tags_out.at(1));
+    trigger_t trigger_tag_data2 = decode_trigger_tag(tags_out.at(2));
+    trigger_t trigger_tag_data3 = decode_trigger_tag(tags_out.at(3));
+
+    CPPUNIT_ASSERT_EQUAL(int64_t(-5 * 1000000 + 0),trigger_tag_data0.offset_to_sample_ns);
+    CPPUNIT_ASSERT_EQUAL(int64_t(-4 * 1000000 + 10), trigger_tag_data1.offset_to_sample_ns);
+    CPPUNIT_ASSERT_EQUAL(int64_t(0 + 20), trigger_tag_data2.offset_to_sample_ns);
+    CPPUNIT_ASSERT_EQUAL(int64_t(4 * 1000000 + 30), trigger_tag_data3.offset_to_sample_ns);
   }
 
   } /* namespace digitizers */

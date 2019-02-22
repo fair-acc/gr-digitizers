@@ -4,13 +4,20 @@
   <key>digitizers_decimate_and_adjust_timebase</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.decimate_and_adjust_timebase($decimation)</make>
+  <make>digitizers.decimate_and_adjust_timebase($decimation, $samp_rate)</make>
 
   <param>
     <name>Decimation</name>
     <key>decimation</key>
     <value>1</value>
     <type>int</type>
+  </param>
+  
+  <param>
+    <name>Sample Rate</name>
+    <key>samp_rate</key>
+    <value>samp_rate</value>
+    <type>float</type>
   </param>
 
   <sink>

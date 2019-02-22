@@ -34,8 +34,9 @@ namespace gr {
        *
        * \param decimation The decimation factor.
        * \param delay The acq info tag delay addition.
+       * \param samp_rate sampel rate on input
        */
-      static sptr make(int decimation, double delay);
+      static sptr make(int decimation, double delay, float samp_rate);
     };
 
   } // namespace digitizers

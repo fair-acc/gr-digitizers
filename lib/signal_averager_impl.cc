@@ -17,13 +17,13 @@ namespace gr {
   namespace digitizers {
 
     signal_averager::sptr
-    signal_averager::make(int num_inputs, int window_size)
+    signal_averager::make(int num_inputs, int window_size, float samp_rate)
     {
       return gnuradio::get_initial_sptr
-        (new signal_averager_impl(num_inputs, window_size));
+        (new signal_averager_impl(num_inputs, window_size, samp_rate));
     }
 
-    signal_averager_impl::signal_averager_impl(int num_inputs, int window_size)
+    signal_averager_impl::signal_averager_impl(int num_inputs, int window_size, float samp_rate)
       : gr::sync_decimator("signal_averager",
               gr::io_signature::make(num_inputs, num_inputs, sizeof(float)),
               gr::io_signature::make(num_inputs, num_inputs, sizeof(float)),
@@ -31,6 +31,9 @@ namespace gr {
         d_num_ports(num_inputs)
     {
       set_tag_propagation_policy(tag_propagation_policy_t::TPP_CUSTOM);
+
+      assert(samp_rate != 0);
+      d_sample_sample_distance_input_ns = 1000000000./samp_rate;
     }
 
     signal_averager_impl::~signal_averager_impl()
@@ -60,7 +63,7 @@ namespace gr {
           get_tags_in_range(tags, port, nitems_read(port) + i_in, nitems_read(port) + i_in + decim );
           // required to merge acq_infotags due to this bug: https://github.com/gnuradio/gnuradio/issues/2364
           // otherwise we will eat to much memory
-          // TODO: Fix bug in gnuradio and use TPP_ONE_TO_ONE (https://gitlab.com/al.schwinn/gr-digitizers/issues/33)
+          // TODO: Fix bug in gnuradio (https://gitlab.com/al.schwinn/gr-digitizers/issues/33)
           acq_info_t merged_acq_info;
           merged_acq_info.status = 0;
           bool found_acq_info = false;
@@ -72,6 +75,15 @@ namespace gr {
                   trigger_t trigger_tag_data = decode_trigger_tag(tag);
                   trigger_tag_data.pre_trigger_samples /= decim;
                   trigger_tag_data.post_trigger_samples /= decim;
+
+//                  std::cout << "tag.offset: " << tag.offset << std::endl;
+//                  std::cout << "nitems_read(port): " << nitems_read(port) << std::endl;
+//                  std::cout << "i_in: " << i_in << std::endl;
+//                  std::cout << "decim/2: " << decim/2 << std::endl;
+                  int64_t tag_sample_offset_rel = tag.offset - (nitems_read(port) + i_in + decim/2 );
+//                  std::cout << "tag_sample_offset_rel: " << tag_sample_offset_rel << std::endl;
+                  trigger_tag_data.offset_to_sample_ns += d_sample_sample_distance_input_ns * tag_sample_offset_rel;
+
                   add_item_tag(port, make_trigger_tag(trigger_tag_data, nitems_written(port) + i_out));
                   //std::cout << "trigger tag added" << std::endl;
               }

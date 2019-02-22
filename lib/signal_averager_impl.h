@@ -16,9 +16,10 @@ namespace gr {
     {
      private:
       int d_num_ports;
+      int64_t d_sample_sample_distance_input_ns; // sample to sample distance on input ports in nanoseconds
 
      public:
-      signal_averager_impl(int num_inputs, int window_size);
+      signal_averager_impl(int num_inputs, int window_size, float samp_rate);
       ~signal_averager_impl();
 
       int work(int noutput_items,

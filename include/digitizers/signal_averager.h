@@ -37,8 +37,9 @@ namespace gr {
        *
        * \param num_inputs Number of input signals
        * \param window_size The decimation factor.
+       * \param samp_rate sample rate on input
        */
-      static sptr make(int num_inputs, int window_size);
+      static sptr make(int num_inputs, int window_size, float samp_rate);
     };
 
   } // namespace digitizers

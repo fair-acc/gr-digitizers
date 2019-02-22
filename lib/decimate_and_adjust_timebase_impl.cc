@@ -17,20 +17,24 @@ namespace gr {
   namespace digitizers {
 
     decimate_and_adjust_timebase::sptr
-    decimate_and_adjust_timebase::make(int decimation, double delay)
+    decimate_and_adjust_timebase::make(int decimation, double delay, float samp_rate)
     {
       return gnuradio::get_initial_sptr
-        (new decimate_and_adjust_timebase_impl(decimation, delay));
+        (new decimate_and_adjust_timebase_impl(decimation, delay, samp_rate));
     }
 
-    decimate_and_adjust_timebase_impl::decimate_and_adjust_timebase_impl(int decimation, double delay)
+    decimate_and_adjust_timebase_impl::decimate_and_adjust_timebase_impl(int decimation, double delay, float samp_rate)
       : gr::sync_decimator("decimate_and_adjust_timebase",
               gr::io_signature::make(1, 1, sizeof(float)),
               gr::io_signature::make(1, 1, sizeof(float)), decimation),
         d_delay(delay)
+
     {
       set_relative_rate(1./decimation);
       set_tag_propagation_policy(TPP_CUSTOM);
+
+      assert(samp_rate != 0);
+      d_sample_sample_distance_input_ns = 1000000000./samp_rate;
     }
 
     decimate_and_adjust_timebase_impl::~decimate_and_adjust_timebase_impl()
@@ -57,7 +61,7 @@ namespace gr {
         get_tags_in_range(tags, 0, nitems_read(0) + i_in, nitems_read(0) + i_in + decim );
         // required to merge acq_infotags due to this bug: https://github.com/gnuradio/gnuradio/issues/2364
         // otherwise we will eat to much memory
-        // TODO: Fix bug in gnuradio and use TPP_ONE_TO_ONE (https://gitlab.com/al.schwinn/gr-digitizers/issues/33)
+        // TODO: Fix bug in gnuradio (https://gitlab.com/al.schwinn/gr-digitizers/issues/33)
         acq_info_t merged_acq_info;
         merged_acq_info.status = 0;
         bool found_acq_info = false;
@@ -69,6 +73,10 @@ namespace gr {
                 trigger_t trigger_tag_data = decode_trigger_tag(tag);
                 trigger_tag_data.pre_trigger_samples /= decim;
                 trigger_tag_data.post_trigger_samples /= decim;
+
+                int64_t tag_sample_offset_rel = tag.offset - ( nitems_read(0) + i_in );
+                trigger_tag_data.offset_to_sample_ns += d_sample_sample_distance_input_ns * tag_sample_offset_rel;
+
                 add_item_tag(0, make_trigger_tag(trigger_tag_data, nitems_written(0) + i_out));
                 //std::cout << "trigger tag added" << std::endl;
             }

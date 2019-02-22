@@ -52,7 +52,7 @@ namespace gr {
     {
       if(alg_id == algorithm_id_t::AVERAGE){
         d_averaging = true;
-        d_avg = signal_averager::make(2, decim);
+        d_avg = signal_averager::make(2, decim, samp_rate);
         connect(self(), 0, d_avg, 0);
         connect(self(), 1, d_avg, 1);
 
@@ -68,7 +68,7 @@ namespace gr {
         double delay_approx = d_fil0->get_delay_approximation();
 
         // Note, d_keep_nth is the only path where the tags are propagated
-        d_keep_nth = gr::digitizers::decimate_and_adjust_timebase::make(decim, delay_approx);
+        d_keep_nth = gr::digitizers::decimate_and_adjust_timebase::make(decim, delay_approx,samp_rate);
         d_sqr = gr::blocks::multiply_ff::make(1);
         d_del = gr::blocks::delay::make(sizeof(float), delay);
 

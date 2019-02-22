@@ -19,10 +19,12 @@ namespace gr {
     public:
       CPPUNIT_TEST_SUITE(qa_decimate_and_adjust_timebase);
       CPPUNIT_TEST(test_decimation);
+      CPPUNIT_TEST(offset_trigger_tag_test);
       CPPUNIT_TEST_SUITE_END();
 
     private:
       void test_decimation();
+      void offset_trigger_tag_test();
       void test_single_decim_factor(int n, int d);
     };
 

@@ -20,11 +20,13 @@ namespace gr {
       CPPUNIT_TEST_SUITE(qa_signal_averager);
       CPPUNIT_TEST(single_input_test);
       CPPUNIT_TEST(multiple_input_test);
+      CPPUNIT_TEST(offset_trigger_tag_test);
       CPPUNIT_TEST_SUITE_END();
 
     private:
       void single_input_test();
       void multiple_input_test();
+      void offset_trigger_tag_test();
     };
 
   } /* namespace digitizers */
