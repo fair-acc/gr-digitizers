@@ -131,9 +131,9 @@ namespace gr {
   void
   qa_signal_averager::offset_trigger_tag_test()
   {
-    double samp_rate = 1000; // sample_to_sample distance = 1ms
-    double decim = 10;
-    size_t size = 1000;
+    double samp_rate = 1000000; // sample_to_sample distance = 1µs
+    double decim = 100;
+    size_t size = 1000000;
     std::vector<float> samples;
 
     for(size_t i = 0; i < size; i++)
@@ -148,10 +148,10 @@ namespace gr {
     tag3.offset_to_sample_ns = 30;
 
     std::vector<gr::tag_t> tags = {
-      make_trigger_tag(tag0,40), // samples 40 till 49 should be merged. "Middle" is sample 45 So a negative offset of 5 samples (= -5ms) is expected.
-      make_trigger_tag(tag1,41), // samples 40 till 49 should be merged. "Middle" is sample 45 So a negative offset of 4 samples (= -4ms) is expected.
-      make_trigger_tag(tag2,75), // samples 70 till 79 should be merged. "Middle" is sample 75 So no offset is expected.
-      make_trigger_tag(tag3,79), // samples 70 till 79 should be merged. "Middle" is sample 75 So a positive offset of 4 samples (= +4ms) is expected.
+      make_trigger_tag(tag0,400), // samples 400 till 490 should be merged. "Middle" is sample 450 So a negative offset of 50 samples (= -50µs) is expected.
+      make_trigger_tag(tag1,410), // samples 400 till 490 should be merged. "Middle" is sample 450 So a negative offset of 4 samples (= -40µs) is expected.
+      make_trigger_tag(tag2,100750), // samples 700 till 790 should be merged. "Middle" is sample 750 So no offset is expected.
+      make_trigger_tag(tag3,100790), // samples 700 till 790 should be merged. "Middle" is sample 750 So a positive offset of 4 samples (= +40µs) is expected.
     };
 
     auto top = gr::make_top_block("single_input_test");
@@ -173,10 +173,10 @@ namespace gr {
     trigger_t trigger_tag_data2 = decode_trigger_tag(tags_out.at(2));
     trigger_t trigger_tag_data3 = decode_trigger_tag(tags_out.at(3));
 
-    CPPUNIT_ASSERT_EQUAL(int64_t(-5 * 1000000 + 0),trigger_tag_data0.offset_to_sample_ns);
-    CPPUNIT_ASSERT_EQUAL(int64_t(-4 * 1000000 + 10), trigger_tag_data1.offset_to_sample_ns);
+    CPPUNIT_ASSERT_EQUAL(int64_t(-50 * 1000 + 0),trigger_tag_data0.offset_to_sample_ns);
+    CPPUNIT_ASSERT_EQUAL(int64_t(-40 * 1000 + 10), trigger_tag_data1.offset_to_sample_ns);
     CPPUNIT_ASSERT_EQUAL(int64_t(0 + 20), trigger_tag_data2.offset_to_sample_ns);
-    CPPUNIT_ASSERT_EQUAL(int64_t(4 * 1000000 + 30), trigger_tag_data3.offset_to_sample_ns);
+    CPPUNIT_ASSERT_EQUAL(int64_t(40 * 1000 + 30), trigger_tag_data3.offset_to_sample_ns);
   }
 
   } /* namespace digitizers */
