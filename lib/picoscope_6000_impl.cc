@@ -298,12 +298,14 @@ namespace gr {
       else if (source == "D") {
         return PS6000_CHANNEL_D;
       }
-      else if (source == "EXTERNAL") {
-        return PS6000_EXTERNAL;
+      else if (source == TRIGGER_DIGITAL_SOURCE) {
+        return PS6000_TRIGGER_AUX;
       }
-      else {
-        // return invalid value
-        return PS6000_MAX_TRIGGER_SOURCES;
+      else
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Invalid trigger Source: " << source;
+          throw std::invalid_argument(message.str());
       }
     }
 
@@ -470,7 +472,7 @@ namespace gr {
       }
 
       // apply trigger configuration
-      if (d_trigger_settings.is_analog()
+      if (d_trigger_settings.is_enabled()
              && d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK)
       {
         status = ps6000SetSimpleTrigger(d_handle,
@@ -486,6 +488,7 @@ namespace gr {
         }
       }
       else {
+
         // disable triggers...
         PS6000_TRIGGER_CONDITIONS conds = {
               PS6000_CONDITION_DONT_CARE,

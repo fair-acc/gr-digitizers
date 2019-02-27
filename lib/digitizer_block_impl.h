@@ -160,7 +160,7 @@ namespace gr {
     };
 
     static const std::string TRIGGER_NONE_SOURCE    = "NONE";
-    static const std::string TRIGGER_DIGITAL_SOURCE = "DI";
+    static const std::string TRIGGER_DIGITAL_SOURCE = "DI"; // DI is as well used as "AUX" for p6000 scopes
 
     struct trigger_setting_t
     {
