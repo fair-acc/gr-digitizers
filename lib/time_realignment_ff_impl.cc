@@ -199,9 +199,8 @@ namespace gr {
                 return true;
             }
 
-            // this may happen .. possibly better to dont print a warning
-            GR_LOG_WARN(d_logger, "We dont have a wr-event for this trigger tag yet ... buffering will be used");
-            //std::cout << "we dont have a wr-event for this trigger tag yet ... buffering will be used" << std::endl;
+            // this may happen often.. possibly better to dont print a warning
+            //GR_LOG_WARN(d_logger, "We dont have a wr-event for this trigger tag yet ... buffering will be used");
             return false; // all trigger and samples before this trigger will be kept on input, better luck on the next work call
         }
 
