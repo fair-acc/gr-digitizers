@@ -77,7 +77,7 @@ namespace gr {
       return true;
     }
 
-    void
+    bool
     wr_receiver_f_impl::add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc)
     {
       wr_event_t event;
@@ -85,6 +85,7 @@ namespace gr {
       event.wr_trigger_stamp = wr_trigger_stamp;
       event.wr_trigger_stamp_utc = wr_trigger_stamp_utc;
       d_event_queue.push(event);
+      return true;
     }
 
   } /* namespace digitizers */

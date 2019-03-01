@@ -44,7 +44,7 @@ namespace gr {
        * \param wr_trigger_stamp event timestamp, TAI ns
        * \param wr_trigger_stamp_utc event timestamp UTC
        */
-      virtual void add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) = 0;
+      virtual bool add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) = 0;
     };
 
   } // namespace digitizers

@@ -28,20 +28,14 @@ namespace gr {
 
       // maximum time incoming triggers and samples will be buffered before forwarding them without realligment of the trigger tags
       int64_t d_max_buffer_time_ns;
-
       int64_t d_not_found_stamp_utc;
 
-      // 'received' timestamp and related WR-Event
+      // cyclic buffer of white rabbit events
+      std::vector< wr_event_t > d_wr_events;
+      size_t d_wr_events_size;
 
-      std::vector< wr_event_t > d_pending_events;
-
-      // Double buffer for new events
-      std::vector< wr_event_t >  d_new_events_buff1;
-      std::vector< wr_event_t >  d_new_events_buff2;
-      std::vector< wr_event_t >* d_new_events_add_pointer;
-      std::vector< wr_event_t >* d_new_events_consume_pointer;
-      bool                       d_new_events_available;
-      std::mutex                 d_buffer_swap_mutex;
+      std::vector< wr_event_t >::iterator d_wr_events_write_iter;
+      std::vector< wr_event_t >::iterator d_wr_events_read_iter;
 
      public:
       time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time);
@@ -62,9 +56,7 @@ namespace gr {
            gr_vector_const_void_star &input_items,
            gr_vector_void_star &output_items) override;
 
-      bool start() override;
-
-      void add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) override;
+      bool add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) override;
 
      private:
 

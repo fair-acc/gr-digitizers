@@ -51,10 +51,13 @@ namespace gr {
               gr::io_signature::make(1, 3, sizeof(float)),
               gr::io_signature::make(1, 2, sizeof(float))),
        d_user_delay(user_delay),
-       d_pending_events()
+       d_wr_events_size(10) // Maximum buffer of 10 WR-Events
     {
-      d_new_events_add_pointer = &d_new_events_buff1;
-      d_new_events_consume_pointer = &d_new_events_buff2;
+      wr_event_t empty;
+      for( size_t i = 0; i< d_wr_events_size; i++)
+          d_wr_events.push_back(empty);
+      d_wr_events_write_iter = d_wr_events.begin();
+      d_wr_events_read_iter = d_wr_events.begin();
       d_not_found_stamp_utc = 0;
       set_triggerstamp_matching_tolerance(triggerstamp_matching_tolerance);
       set_max_buffer_time(max_buffer_time);
@@ -134,8 +137,6 @@ namespace gr {
           //std::cout << "Trigger Tag incoming : " << get_timestamp_milli_utc() << std::endl;
           trigger_t trigger_tag_data = decode_trigger_tag(tag);
           //std::cout << "Trigger Stamp        : " << trigger_tag_data.timestamp / 1000000 <<  " ms" << std::endl;
-          update_pending_events();
-          check_pending_event_size();
           if(fill_wr_stamp(trigger_tag_data))
           {
               add_item_tag(0, make_trigger_tag(trigger_tag_data,tag.offset)); // add tag to port 0
@@ -182,79 +183,42 @@ namespace gr {
     }
 
     bool
-    time_realignment_ff_impl::start()
-    {
-      d_pending_events.clear();
-      return true;
-    }
-
-    bool
     time_realignment_ff_impl::fill_wr_stamp(trigger_t &trigger_tag_data)
     {
-        //std::cout << "start search" << std::endl;
-        for (auto pending_event = d_pending_events.begin(); pending_event!= d_pending_events.end();++pending_event)
+        // we dont have a wr-event for this trigger tag yet
+        if(d_wr_events_write_iter->wr_trigger_stamp == d_wr_events_read_iter->wr_trigger_stamp)
         {
-            int64_t delta_t = abs ( trigger_tag_data.timestamp - pending_event->wr_trigger_stamp_utc );
-            if(  delta_t < d_triggerstamp_matching_tolerance_ns )
+            if( d_not_found_stamp_utc == 0)
+                d_not_found_stamp_utc = get_timestamp_nano_utc();
+
+            if( d_not_found_stamp_utc != 0 && abs( get_timestamp_nano_utc() - d_not_found_stamp_utc ) > d_max_buffer_time_ns )
             {
-                d_not_found_stamp_utc = 0; // reset stamp
-                //std::cout << "found !!! " << std::endl;
-                //std::cout << "delta_t [sec]                      : " << delta_t/1000000000.f << std::endl;
-                trigger_tag_data.timestamp = pending_event->wr_trigger_stamp;
-                d_pending_events.erase(pending_event);
+                d_not_found_stamp_utc = 0; //reset stamp
+                GR_LOG_INFO(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
+                trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
                 return true;
             }
-            else
-            {
-//                std::cout << "pending_event.wr_trigger_stamp_utc : " << pending_event->wr_trigger_stamp_utc << std::endl;
-//                std::cout << "trigger_tag_data.timestamp         : " << trigger_tag_data.timestamp << std::endl;
-//                std::cout << "delta_t [sec]                      : " << delta_t/1000000000.f << std::endl;
-//                std::cout << "timeout[s]                         : " << d_triggerstamp_matching_tolerance_ns/1000000000.f << std::endl;
-//                GR_LOG_WARN(d_logger, "Time Realigment: Matching tolerance for trigger tag matching exceeded by '" + std::to_string(delta_t) + "' ns.");
-            }
 
-            //
-            if( d_not_found_stamp_utc != 0 && abs( d_not_found_stamp_utc - pending_event->wr_trigger_stamp_utc) > d_max_buffer_time_ns * 10 )
-            {
-                // TODO remove this very old unmatched pending event from our queue
-            }
+            // this may happen .. possibly better to dont print a warning
+            GR_LOG_WARN(d_logger, "We dont have a wr-event for this trigger tag yet ... buffering will be used");
+            //std::cout << "we dont have a wr-event for this trigger tag yet ... buffering will be used" << std::endl;
+            return false; // all trigger and samples before this trigger will be kept on input, better luck on the next work call
         }
 
-        // not found
-
-//        std::cout << "d_max_buffer_time_ns: " << d_max_buffer_time_ns << std::endl;
-//        std::cout << "d_not_found_stamp_utc: " << d_not_found_stamp_utc << std::endl;
-
-        // is out of buffer_time ?
-        if( d_not_found_stamp_utc != 0 && abs( get_timestamp_nano_utc() - d_not_found_stamp_utc ) > d_max_buffer_time_ns )
+        int64_t delta_t = abs ( trigger_tag_data.timestamp - d_wr_events_read_iter->wr_trigger_stamp_utc );
+        if(  delta_t > d_triggerstamp_matching_tolerance_ns )
         {
-            d_not_found_stamp_utc = 0; //reset stamp
-            GR_LOG_INFO(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
+            GR_LOG_WARN(d_logger, "WR Stamps was out of matching tolerance");
             trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
-            return true;
         }
 
-        // keeps stamp, in order to check how long the trigger was on the buffer
-        // only reset stamp when a trigger got processed
-        if( d_not_found_stamp_utc == 0)
-            d_not_found_stamp_utc = get_timestamp_nano_utc();
-
-        //std::cout << "queuesize: " << d_pending_events.size() << std::endl;
-        //std::cout << "end search" << std::endl;
-
-        return false; // all trigger and samples before this trigger will be kept on input, better luck on the next work call
-    }
-
-    void
-    time_realignment_ff_impl::check_pending_event_size()
-    {
-        if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_WARNING && d_pending_events.size() % NUMBER_OF_PENDING_TRIGGERS_WARNING == 0) {
-          GR_LOG_WARN(d_logger, d_name + ": " + std::to_string(d_pending_events.size()) + " pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
-        }
-      if (d_pending_events.size() > NUMBER_OF_PENDING_TRIGGERS_ERROR) {
-        GR_LOG_ERROR(d_logger, "Large number of pending WR events detected (possibly WR-Trigger cable missing ?) Make sure to configure flowgraph such that the same number of triggers & WR events is generated");
-        d_pending_events.clear();
-      }
+        d_not_found_stamp_utc = 0; // reset stamp
+        //std::cout << "delta_t [sec]                      : " << delta_t/1000000000.f << std::endl;
+        trigger_tag_data.timestamp = d_wr_events_read_iter->wr_trigger_stamp;
+        d_wr_events_read_iter++;
+        if(d_wr_events_read_iter == d_wr_events.end())
+            d_wr_events_read_iter = d_wr_events.begin();
+        return true;
     }
 
     int64_t
@@ -263,46 +227,26 @@ namespace gr {
       return static_cast<int64_t>(d_user_delay * 1000000000.0);
     }
 
-    void
+    bool
     time_realignment_ff_impl::add_timing_event(const std::string &event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc)
     {
-      wr_event_t event;
-      event.event_id = event_id;
-      event.wr_trigger_stamp = wr_trigger_stamp;
-      event.wr_trigger_stamp_utc = wr_trigger_stamp_utc;
+      d_wr_events_write_iter->event_id = event_id;
+      d_wr_events_write_iter->wr_trigger_stamp = wr_trigger_stamp;
+      d_wr_events_write_iter->wr_trigger_stamp_utc = wr_trigger_stamp_utc;
+      d_wr_events_write_iter++;
+      if(d_wr_events_write_iter == d_wr_events.end())
+          d_wr_events_write_iter = d_wr_events.begin();
+      if(d_wr_events_write_iter->wr_trigger_stamp == d_wr_events_read_iter->wr_trigger_stamp)
       {
-          std::lock_guard<std::mutex> lock(d_buffer_swap_mutex); // TODO: How about a lock-free solution ?
-          d_new_events_add_pointer->push_back(event);
-          d_new_events_available = true;
+          GR_LOG_ERROR(d_logger, "Write Iter reached read iter ...to few trigger tags");
+          return false;
       }
+      return true;
+
       //std::cout << "WR-Event Processing 5: " << get_timestamp_milli_utc() << std::endl;
     }
 
-    void
-    time_realignment_ff_impl::update_pending_events()
-    {
-        //std::cout << "WR-Event Processing 6: " << get_timestamp_milli_utc() << std::endl;
-        d_new_events_consume_pointer->clear();
-        {
-            std::lock_guard<std::mutex> lock(d_buffer_swap_mutex); // TODO: How about a lock-free solution ?
-            if( !d_new_events_available )
-                return; // no need to swap
 
-            //std::cout << "WR-Event Processing 7: " << get_timestamp_milli_utc() << std::endl;
-            auto temp = d_new_events_add_pointer;
-            d_new_events_add_pointer = d_new_events_consume_pointer;
-            d_new_events_consume_pointer = temp;
-            d_new_events_available = false;
-        }
-
-        d_pending_events.insert( d_pending_events.end(), d_new_events_consume_pointer->begin(), d_new_events_consume_pointer->end() );
-
-//        std::cout << "WR-Event Processing 8: " << get_timestamp_milli_utc() << std::endl;
-//        std::cout << "d_pending_events.size()             : " << d_pending_events.size() << std::endl;
-//        std::cout << "d_new_events_consume_pointer.size() : " << d_new_events_consume_pointer->size() << std::endl;
-//        if(!d_new_events_consume_pointer->empty())
-//            std::cout << "d_new_events_consume_pointer.timestamp_utc : " << d_new_events_consume_pointer->begin()->wr_trigger_stamp_utc / 1000000 <<  " ms" << std::endl;
-    }
 
   } /* namespace digitizers */
 } /* namespace gr */
