@@ -205,20 +205,30 @@ namespace gr {
             return false; // all trigger and samples before this trigger will be kept on input, better luck on the next work call
         }
 
-        int64_t delta_t = abs ( trigger_tag_data.timestamp - d_wr_events_read_iter->wr_trigger_stamp_utc );
-        if(  delta_t > d_triggerstamp_matching_tolerance_ns )
+        while(true)
         {
-            GR_LOG_WARN(d_logger, "WR Stamps was out of matching tolerance");
-            trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
+            int64_t delta_t = abs ( trigger_tag_data.timestamp - d_wr_events_read_iter->wr_trigger_stamp_utc );
+            if(  delta_t > d_triggerstamp_matching_tolerance_ns )
+            {
+                GR_LOG_WARN(d_logger, "WR Stamps was out of matching tolerance. Will be ignored");
+                trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
+                d_wr_events_read_iter++;
+                if(d_wr_events_read_iter == d_wr_events.end())
+                    d_wr_events_read_iter = d_wr_events.begin();
+                if(d_wr_events_write_iter->wr_trigger_stamp == d_wr_events_read_iter->wr_trigger_stamp)
+                    return true; // Forward the trigger tag with bad status .. for some reason it did not match any of our wr-events
+            }
+            else
+            {
+                d_not_found_stamp_utc = 0; // reset stamp
+                //std::cout << "delta_t [sec]                      : " << delta_t/1000000000.f << std::endl;
+                trigger_tag_data.timestamp = d_wr_events_read_iter->wr_trigger_stamp;
+                d_wr_events_read_iter++;
+                if(d_wr_events_read_iter == d_wr_events.end())
+                    d_wr_events_read_iter = d_wr_events.begin();
+                return true;
+            }
         }
-
-        d_not_found_stamp_utc = 0; // reset stamp
-        //std::cout << "delta_t [sec]                      : " << delta_t/1000000000.f << std::endl;
-        trigger_tag_data.timestamp = d_wr_events_read_iter->wr_trigger_stamp;
-        d_wr_events_read_iter++;
-        if(d_wr_events_read_iter == d_wr_events.end())
-            d_wr_events_read_iter = d_wr_events.begin();
-        return true;
     }
 
     int64_t
