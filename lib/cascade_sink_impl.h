@@ -75,6 +75,11 @@ namespace gr {
       time_domain_sink::sptr d_snk_interlock_ref;
       time_domain_sink::sptr d_snk_interlock_max;
 
+      bool d_streaming_sinks_enabled;
+      bool d_triggered_sinks_enabled;
+      bool d_frequency_sinks_enabled;
+      bool d_postmortem_sinks_enabled;
+      bool d_interlocks_enabled;
 
      public:
       cascade_sink_impl(int alg_id,

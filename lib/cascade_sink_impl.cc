@@ -75,7 +75,12 @@ namespace gr {
         bool interlocks_enabled)
       : gr::hier_block2("cascade_sink",
               gr::io_signature::make(2,2, sizeof(float)),
-              gr::io_signature::make(0,0 , sizeof(float)))
+              gr::io_signature::make(0,0 , sizeof(float))),
+              d_streaming_sinks_enabled(streaming_sinks_enabled),
+              d_triggered_sinks_enabled(triggered_sinks_enabled),
+              d_frequency_sinks_enabled(frequency_sinks_enabled),
+              d_postmortem_sinks_enabled(postmortem_sinks_enabled),
+              d_interlocks_enabled(interlocks_enabled)
     {
 
       //std::vector<int> allowed_cores = { 2,3,4 };
@@ -373,34 +378,72 @@ namespace gr {
     std::vector<time_domain_sink::sptr>
     cascade_sink_impl::get_time_domain_sinks()
     {
-      return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk10000_triggered};
-      //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
-      //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000};
-      //return {d_snk1000, d_snk10000};
-      //return {d_snk1, d_snk10, d_snk25};
+        if(d_streaming_sinks_enabled && d_triggered_sinks_enabled)
+        {
+            //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
+            return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk10000_triggered};
+        }
+        else if(d_streaming_sinks_enabled)
+        {
+            return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000};
+        }
+        else if(d_triggered_sinks_enabled)
+        {
+            //return {d_snk_raw_triggered, d_snk10000_triggered};
+            return {d_snk10000_triggered};
+        }
+        else
+        {
+            return {};
+        }
     }
 
     std::vector<post_mortem_sink::sptr>
     cascade_sink_impl::get_post_mortem_sinks()
     {
-      return {};
-      //return {d_pm_raw, d_pm_1000};
+        if(d_postmortem_sinks_enabled)
+        {
+            //return {d_pm_raw, d_pm_1000};
+            return {};
+        }
+        else
+        {
+            return {};
+        }
     }
 
     std::vector<freq_sink_f::sptr>
     cascade_sink_impl::get_frequency_domain_sinks()
     {
-     // return {d_freq_snk1000, d_freq_snk25, d_freq_snk10, d_freq_snk_triggered, d_freq_snk10k_triggered};
-     // return {d_freq_snk1000, d_freq_snk25, d_freq_snk10};
-     // return {d_freq_snk_triggered, d_freq_snk10k_triggered};
-        return {};
+        if(d_frequency_sinks_enabled && d_triggered_sinks_enabled)
+        {
+            // return {d_freq_snk_triggered, d_freq_snk10k_triggered};
+            // return {d_freq_snk1000, d_freq_snk25, d_freq_snk10, d_freq_snk_triggered, d_freq_snk10k_triggered};
+            return {};
+        }
+        else if(d_frequency_sinks_enabled)
+        {
+            // return {d_freq_snk1000, d_freq_snk25, d_freq_snk10};
+            return {};
+        }
+        else
+        {
+            return {};
+        }
     }
 
     std::vector<function_ff::sptr>
     cascade_sink_impl::get_reference_function_blocks()
     {
-      return {};
-      //return {d_interlock_reference_function};
+        if(d_interlocks_enabled)
+        {
+            return {};
+            //return {d_interlock_reference_function};
+        }
+        else
+        {
+            return {};
+        }
     }
 
   } /* namespace digitizers */
