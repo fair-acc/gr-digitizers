@@ -4,7 +4,7 @@
   <key>digitizers_cascade_sink</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.cascade_sink($alg_id, $delay, $fir_taps, $low_freq, $up_freq, $tr_width, $fb_user_taps, $fw_user_taps, $samp_rate, $pm_buffer, $signal_name, $signal_unit)</make>
+  <make>digitizers.cascade_sink($alg_id, $delay, $fir_taps, $low_freq, $up_freq, $tr_width, $fb_user_taps, $fw_user_taps, $samp_rate, $pm_buffer, $signal_name, $signal_unit, $streaming_sinks_enabled, $triggered_sinks_enabled, $frequency_sinks_enabled, $postmortem_sinks_enabled, $interlocks_enabled)</make>
   <param>
     <name>Algorithm ID</name>
     <key>alg_id</key>
@@ -42,41 +42,48 @@
       <name>Average (decimation factor)</name>
       <key>7</key>
     </option>
+    <hide>part</hide>
+    <tab>Downsampling</tab>
   </param> 
   <param>
     <name>Delay</name>
     <key>delay</key>
     <value>0</value>
     <type>float</type>
-    <hide>#if $alg_id() == 7 then 'all' else 'None'#</hide>
+    <hide>#if $alg_id() == 7 then 'all' else 'part'#</hide>
+    <tab>Downsampling</tab>
   </param>
   <param>
     <name>FIR Taps User</name>
     <key>fir_taps</key>
     <value></value>
     <type>real_vector</type>
-    <hide>#if $alg_id() == 2 or $alg_id() == 3  then 'None' else 'all'#</hide>
+    <hide>#if $alg_id() == 2 or $alg_id() == 3  then 'part' else 'all'#</hide>
+    <tab>Downsampling</tab>
   </param>
   <param>
     <name>Lower Frequency</name>
     <key>low_freq</key>
     <value>1000</value>
     <type>float</type>
-    <hide>#if $alg_id() == 1 or $alg_id() == 5 then 'None' else 'all'#</hide>
+    <hide>#if $alg_id() == 1 or $alg_id() == 5 then 'part' else 'all'#</hide>
+    <tab>Downsampling</tab>
   </param>
   <param>
     <name>Upper Frequency</name>
     <key>up_freq</key>
     <value>10000</value>
     <type>float</type>
-    <hide>#if $alg_id() == 2 or $alg_id() == 3 or $alg_id() == 5 or $alg_id() == 6 or $alg_id() == 7  then 'all' else 'none'#</hide>
+    <hide>#if $alg_id() == 2 or $alg_id() == 3 or $alg_id() == 5 or $alg_id() == 6 or $alg_id() == 7  then 'all' else 'part'#</hide>
+    <tab>Downsampling</tab>
   </param>
   <param>
     <name>Transition Width</name>
     <key>tr_width</key>
     <value>50</value>
     <type>float</type>
-    <hide>#if $alg_id() == 0 or $alg_id() == 1  then 'None' else 'all'#</hide>
+    <hide>#if $alg_id() == 0 or $alg_id() == 1  then 'part' else 'all'#</hide>
+    <tab>Downsampling</tab>
   </param>
   
   <param>
@@ -84,25 +91,21 @@
     <key>fb_user_taps</key>
     <value></value>
     <type>real_vector</type>
-    <hide>#if $alg_id() == 6 then 'None' else 'all'#</hide>
+    <hide>#if $alg_id() == 6 then 'part' else 'all'#</hide>
+    <tab>Downsampling</tab>
   </param>
   <param>
     <name>IIR Forward Taps User</name>
     <key>fw_user_taps</key>
     <value></value>
     <type>real_vector</type>
-    <hide>#if $alg_id() == 6 then 'None' else 'all'#</hide>
+    <hide>#if $alg_id() == 6 then 'part' else 'all'#</hide>
+    <tab>Downsampling</tab>
   </param>
   <param>
     <name>Sample Rate</name>
     <key>samp_rate</key>
     <value>samp_rate</value>
-    <type>float</type>
-  </param>
-  <param>
-    <name>Post-Mortem Buffer (s)</name>
-    <key>pm_buffer</key>
-    <value>2.0</value>
     <type>float</type>
   </param>
   <param>
@@ -115,6 +118,54 @@
     <key>signal_unit</key>
     <value></value>
     <type>string</type>
+  </param>
+  <param>
+    <name>Streaming Sinks Enabled</name>
+    <key>streaming_sinks_enabled</key>
+    <value>True</value>
+    <type>bool</type>
+    <tab>Functionallity</tab>
+    <hide>part</hide>
+  </param>
+  <param>
+    <name>Triggered Sinks Enabled</name>
+    <key>triggered_sinks_enabled</key>
+    <value>True</value>
+    <type>bool</type>
+    <tab>Functionallity</tab>
+    <hide>part</hide>
+  </param>
+  <param>
+    <name>Frequency Sinks Enabled</name>
+    <key>frequency_sinks_enabled</key>
+    <value>True</value>
+    <type>bool</type>
+    <tab>Functionallity</tab>
+    <hide>part</hide>
+  </param>
+  <param>
+    <name>Post-Mortem Sinks Enabled</name>
+    <key>postmortem_sinks_enabled</key>
+    <value>True</value>
+    <type>bool</type>
+    <tab>Functionallity</tab>
+    <hide>part</hide>
+  </param>
+    <param>
+    <name>Interlocks Enabled</name>
+    <key>interlocks_enabled</key>
+    <value>True</value>
+    <type>bool</type>
+    <tab>Functionallity</tab>
+    <hide>part</hide>
+  </param>
+  <param>
+    <name>Post-Mortem Buffer (s)</name>
+    <key>pm_buffer</key>
+    <value>2.0</value>
+    <type>float</type>
+    <tab>Functionallity</tab>
+    <hide>part</hide>
   </param>
 
   <sink>
