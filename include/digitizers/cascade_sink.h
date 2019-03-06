@@ -56,6 +56,11 @@ namespace gr {
        * \param pm_buffer Post mortem buffer size in seconds
        * \param signal_name signal name
        * \param unit_name signal unit
+       * \param streaming_sinks_enabled true to enable streaming sinks
+       * \param triggered_sinks_enabled true to enable triggered sinks
+       * \param frequency_sinks_enabled true to enable frequency sinks
+       * \param postmortem_sinks_enabled true to enable postmortem sinks
+       * \param interlocks_enabled signal true to enable interlocks
        */
       static sptr make(int alg_id,
           int delay,
@@ -68,7 +73,12 @@ namespace gr {
           double samp_rate,
           float pm_buffer,
           std::string signal_name,
-          std::string unit_name);
+          std::string unit_name,
+          bool streaming_sinks_enabled,
+          bool triggered_sinks_enabled,
+          bool frequency_sinks_enabled,
+          bool postmortem_sinks_enabled,
+          bool interlocks_enabled);
 
       /*!
        * \brief Returns all time-domain sinks contained within this module.

@@ -88,7 +88,12 @@ namespace gr {
           double samp_rate,
           float pm_buffer,
           std::string signal_name,
-          std::string unit_name);
+          std::string unit_name,
+          bool streaming_sinks_enabled,
+          bool triggered_sinks_enabled,
+          bool frequency_sinks_enabled,
+          bool postmortem_sinks_enabled,
+          bool interlocks_enabled);
 
       ~cascade_sink_impl();
 
