@@ -429,6 +429,39 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(tags.size(), out_tags.size());
 
     }
+
+    void
+    qa_demux_ff::test_hangup()
+    {
+      unsigned pre_trigger_samples = 2;
+      unsigned post_trigger_samples = 10;
+      unsigned trigger_samples = pre_trigger_samples + post_trigger_samples;
+
+      size_t data_size = 1000000;
+      auto values = make_test_data(data_size);
+      auto errors = make_test_data(data_size, 0.1);
+
+      std::vector<gr::tag_t> tags;
+
+      size_t distance = 1;
+      // Keep a factor 2 gap at the ends because the forecast demands such as minimum required input items
+      for ( size_t offset = 2 * pre_trigger_samples; offset < data_size - 2 * post_trigger_samples ; offset+=distance )
+      {
+          tags.push_back(make_trigger_tag(offset));
+          distance++;
+      }
+
+      auto flowgraph = make_test_flowgraph(values, errors, pre_trigger_samples, post_trigger_samples, tags);
+
+      flowgraph.run();
+
+      CPPUNIT_ASSERT_EQUAL((uint32_t)tags.size() * trigger_samples, (uint32_t)flowgraph.actual_values().size());
+      CPPUNIT_ASSERT_EQUAL((uint32_t)tags.size() * trigger_samples, (uint32_t)flowgraph.actual_errors().size());
+
+      auto out_tags = flowgraph.tags();
+      CPPUNIT_ASSERT_EQUAL(tags.size(), out_tags.size());
+
+    }
   } /* namespace digitizers */
 } /* namespace gr */
 

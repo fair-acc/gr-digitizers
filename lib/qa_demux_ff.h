@@ -25,6 +25,7 @@ namespace gr {
       CPPUNIT_TEST(test_window_overlap);
       CPPUNIT_TEST(test_triggers_lost1);
       CPPUNIT_TEST(test_triggers_lost2);
+      CPPUNIT_TEST(test_hangup);
       CPPUNIT_TEST_SUITE_END();
 
     private:
@@ -35,6 +36,7 @@ namespace gr {
       void test_window_overlap();
       void test_triggers_lost1();
       void test_triggers_lost2();
+      void test_hangup();
     };
 
   } /* namespace digitizers */
