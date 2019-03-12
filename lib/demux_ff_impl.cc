@@ -50,10 +50,7 @@ namespace gr {
         //ninput_items_required[0] = noutput_items ;
         //ninput_items_required[1] = noutput_items ;
       for (auto & required : ninput_items_required)
-      {
-        // factor of 2 makes block to run more smoooth (less CPU load peaks & lost samples on picoscope)
-        required = noutput_items * 2;
-      }
+        required = noutput_items;
     }
 
     int
@@ -79,6 +76,11 @@ namespace gr {
       }
 
       const uint64_t sample_to_stop_processing_abs = sample_to_start_processing_abs + ninput_items_min;
+
+      // We need at least d_window_size samples to do something
+      if ( ninput_items_min < d_window_size )
+          return nitems_produced;
+
 //      std::cout << "#####################################" << std::endl;
 //      std::cout << "ninput_items_min: " << ninput_items_min << std::endl;
 //      std::cout << "nitems_read_min: " << nitems_read_min << std::endl;
@@ -89,22 +91,18 @@ namespace gr {
       float *output_values = reinterpret_cast<float *>(output_items[0]);
       float *output_errors = reinterpret_cast<float *>(output_items[1]);
 
+      // loop an all tags which have a sufficient pre and post trigger window
       std::vector<gr::tag_t> tags;
-      get_tags_in_range(tags, 0, sample_to_start_processing_abs, sample_to_stop_processing_abs);
+      get_tags_in_range(tags, 0, sample_to_start_processing_abs + d_pre_trigger_window_size, sample_to_stop_processing_abs - d_post_trigger_window_size, pmt::mp(trigger_tag_name));
       //std::cout << "tags.size(): " << tags.size() << std::endl;
       for (const auto &tag : tags)
       {
-        if(tag.key != pmt::string_to_symbol(trigger_tag_name))
-            continue;
-
         //std::cout << "demux_ff::trigger tag recognized. Offset: " <<  tag.offset << std::endl;
 
         uint64_t window_start_abs = tag.offset - d_pre_trigger_window_size;
-        if( window_start_abs < sample_to_start_processing_abs ) // this tag already was processed in the last iteration
-            continue;
 
-        // If our output port is full, or the window is out of bound we cannot process the tag in this iteration.
-        if( int(nitems_produced + d_window_size) > noutput_items || window_start_abs + d_window_size >=  sample_to_stop_processing_abs )
+        // If our output port is full we cannot process the tag in this iteration.
+        if( int(nitems_produced + d_window_size) > noutput_items )
         {
             // cosume all samples which occured before this tag-window, than leave the work function
             unsigned nitems_consumed = window_start_abs - sample_to_start_processing_abs;

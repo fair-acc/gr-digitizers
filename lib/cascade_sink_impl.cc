@@ -238,15 +238,15 @@ namespace gr {
 
       if(triggered_sinks_enabled)
       {
-    //      // triggered demux blocks (triggered time-domain acquisition)
-    //      d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, TIME_SINK_MODE_TRIGGERED);
-    //      d_demux_raw  = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
-    //      // input to first raw-data-rate demux
-    //      connect(self(), 0, d_demux_raw, 0); // 0: values port
-    //      connect(self(), 1, d_demux_raw, 1); // 1: errors
-    //      // connect raw-data-rate demux to triggered time-domain sink
-    //      connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
-    //      connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
+          // triggered demux blocks (triggered time-domain acquisition)
+          d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, TIME_SINK_MODE_TRIGGERED);
+          d_demux_raw  = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
+          // input to first raw-data-rate demux
+          connect(self(), 0, d_demux_raw, 0); // 0: values port
+          connect(self(), 1, d_demux_raw, 1); // 1: errors
+          // connect raw-data-rate demux to triggered time-domain sink
+          connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
+          connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
           d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, TIME_SINK_MODE_TRIGGERED);
           d_demux_10000 = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW);
@@ -380,8 +380,8 @@ namespace gr {
     {
         if(d_streaming_sinks_enabled && d_triggered_sinks_enabled)
         {
-            //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
-            return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk10000_triggered};
+            return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk_raw_triggered, d_snk10000_triggered};
+            //return {d_snk1, d_snk10, d_snk25, d_snk100, d_snk1000, d_snk10000, d_snk10000_triggered};
         }
         else if(d_streaming_sinks_enabled)
         {
@@ -389,8 +389,8 @@ namespace gr {
         }
         else if(d_triggered_sinks_enabled)
         {
-            //return {d_snk_raw_triggered, d_snk10000_triggered};
-            return {d_snk10000_triggered};
+            return {d_snk_raw_triggered, d_snk10000_triggered};
+            //return {d_snk10000_triggered};
         }
         else
         {
