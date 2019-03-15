@@ -91,9 +91,9 @@ namespace gr {
       float *output_values = reinterpret_cast<float *>(output_items[0]);
       float *output_errors = reinterpret_cast<float *>(output_items[1]);
 
-      // loop an all tags which have a sufficient pre and post trigger window
+      // loop an all tags which have a sufficient pre trigger window
       std::vector<gr::tag_t> tags;
-      get_tags_in_range(tags, 0, sample_to_start_processing_abs + d_pre_trigger_window_size, sample_to_stop_processing_abs - d_post_trigger_window_size, pmt::mp(trigger_tag_name));
+      get_tags_in_range(tags, 0, sample_to_start_processing_abs + d_pre_trigger_window_size, sample_to_stop_processing_abs, pmt::mp(trigger_tag_name));
       //std::cout << "tags.size(): " << tags.size() << std::endl;
       for (const auto &tag : tags)
       {
@@ -102,7 +102,8 @@ namespace gr {
         uint64_t window_start_abs = tag.offset - d_pre_trigger_window_size;
 
         // If our output port is full we cannot process the tag in this iteration.
-        if( int(nitems_produced + d_window_size) > noutput_items )
+        // Or if the end of the window cannot be processed in this iteration
+        if( int(nitems_produced + d_window_size) > noutput_items || window_start_abs + d_window_size >=  sample_to_stop_processing_abs )
         {
             // cosume all samples which occured before this tag-window, than leave the work function
             unsigned nitems_consumed = window_start_abs - sample_to_start_processing_abs;
