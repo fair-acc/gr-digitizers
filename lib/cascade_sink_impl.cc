@@ -123,82 +123,72 @@ namespace gr {
           connect(d_agg10000, 1, d_snk10000, 1); // 1: errors
       }
 
-
-      // second stage 10 kS/s to 1 kS/s
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg1000  = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10000);
-      // first 10 kHz block to 1 kHz Block
-      connect(d_agg10000, 0, d_agg1000, 0);
-      connect(d_agg10000, 1, d_agg1000, 1);
-      // connect 1kHz stream to output
-      //connect(d_agg1000, 0, self(), 0);
-      //connect(d_agg1000, 1, self(), 1);
-      // connect 1kHz aggregation to corresponding FESA time-domain sink
-      if(streaming_sinks_enabled)
+      if(streaming_sinks_enabled || postmortem_sinks_enabled || interlocks_enabled )
       {
-          connect(d_agg1000, 0, d_snk1000, 0);
-          connect(d_agg1000, 1, d_snk1000, 1);
+          // second stage 10 kS/s to 1 kS/s
+          lf /= 10;
+          uf /= 10;
+          tr /= 10;
+          d_agg1000  = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10000);
+          // first 10 kHz block to 1 kHz Block
+          connect(d_agg10000, 0, d_agg1000, 0);
+          connect(d_agg10000, 1, d_agg1000, 1);
+          // connect 1kHz stream to output
+          //connect(d_agg1000, 0, self(), 0);
+          //connect(d_agg1000, 1, self(), 1);
       }
 
-      // third stage 1 kS/s -> 100 S/s
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg100   = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 1000);
-      // 1 kHz block to 100 Hz Block
-      connect(d_agg1000, 0, d_agg100, 0);
-      connect(d_agg1000, 1, d_agg100, 1);
-
       if(streaming_sinks_enabled)
       {
+          // connect 1kHz aggregation to corresponding FESA time-domain sink
+          connect(d_agg1000, 0, d_snk1000, 0);
+          connect(d_agg1000, 1, d_snk1000, 1);
+
+          // third stage 1 kS/s -> 100 S/s
+          lf /= 10;
+          uf /= 10;
+          tr /= 10;
+          d_agg100   = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 1000);
+          // 1 kHz block to 100 Hz Block
+          connect(d_agg1000, 0, d_agg100, 0);
+          connect(d_agg1000, 1, d_agg100, 1);
+
           // connect 100 Hz aggregation to corresponding FESA time-domain sink
           connect(d_agg100, 0, d_snk100, 0);
           connect(d_agg100, 1, d_snk100, 1);
-      }
 
-      // fourth stage 100 S/s -> 25 S/s -> N.B. alternate continuous update rate @ 25 Hz
-      d_agg25    = block_aggregation::make(alg_id,  4,                   delay, fir_taps, lf/4, uf/4, tr/4, fb_user_taps, fw_user_taps, 100);
-      // 100 Hz block to 25 Hz Block
-      connect(d_agg100, 0, d_agg25, 0);
-      connect(d_agg100, 1, d_agg25, 1);
+          // fourth stage 100 S/s -> 25 S/s -> N.B. alternate continuous update rate @ 25 Hz
+          d_agg25    = block_aggregation::make(alg_id,  4,                   delay, fir_taps, lf/4, uf/4, tr/4, fb_user_taps, fw_user_taps, 100);
+          // 100 Hz block to 25 Hz Block
+          connect(d_agg100, 0, d_agg25, 0);
+          connect(d_agg100, 1, d_agg25, 1);
 
-      if(streaming_sinks_enabled)
-      {
           // connect 25 Hz aggregation to corresponding FESA time-domain sink
           connect(d_agg25, 0, d_snk25, 0);
           connect(d_agg25, 1, d_snk25, 1);
-      }
 
-      // fourth stage 100 S/s -> 10 S/s
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg10    = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 100);
-      // 100 Hz block to 10 Hz Block
-      connect(d_agg100, 0, d_agg10, 0);
-      connect(d_agg100, 1, d_agg10, 1);
+          // fourth stage 100 S/s -> 10 S/s
+          lf /= 10;
+          uf /= 10;
+          tr /= 10;
+          d_agg10    = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 100);
+          // 100 Hz block to 10 Hz Block
+          connect(d_agg100, 0, d_agg10, 0);
+          connect(d_agg100, 1, d_agg10, 1);
 
-      if(streaming_sinks_enabled)
-      {
           // connect 10 Hz aggregation to corresponding FESA time-domain sink
           connect(d_agg10, 0, d_snk10, 0);
           connect(d_agg10, 1, d_snk10, 1);
-      }
 
+          // fifth stage 10 S/s -> 1 S/s (N.B. this slow speed is primarily relevant for super-slow storage rings (e.g. HESR)
+          lf /= 10;
+          uf /= 10;
+          tr /= 10;
+          d_agg1     = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10);
+          // 10 Hz block to 1 Hz Block
+          connect(d_agg10, 0, d_agg1, 0);
+          connect(d_agg10, 1, d_agg1, 1);
 
-      // fifth stage 10 S/s -> 1 S/s (N.B. this slow speed is primarily relevant for super-slow storage rings (e.g. HESR)
-      lf /= 10;
-      uf /= 10;
-      tr /= 10;
-      d_agg1     = block_aggregation::make(alg_id, 10,                    delay, fir_taps, lf, uf, tr, fb_user_taps, fw_user_taps, 10);
-      // 10 Hz block to 1 Hz Block
-      connect(d_agg10, 0, d_agg1, 0);
-      connect(d_agg10, 1, d_agg1, 1);
-
-      if(streaming_sinks_enabled)
-      {
           // connect 1 Hz aggregation to corresponding FESA time-domain sink
           connect(d_agg1, 0, d_snk1, 0);
           connect(d_agg1, 1, d_snk1, 1);
