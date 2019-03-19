@@ -14,6 +14,8 @@
 #include "ps_6000_defs.h"
 #include <cstring>
 
+#define MAX_PICO_DEVICES 64
+
 
 struct PicoStatus6000Errc : std::error_category
 {
@@ -160,6 +162,7 @@ namespace gr {
           actual_freq = 1000000000.0 / time_interval_ns;
           return timebase_estimate;
         }
+
       }
 
       // Calculate steps between timebase 3 and 4 and correct start_timebase estimate based on that
@@ -407,34 +410,95 @@ namespace gr {
     std::error_code
     picoscope_6000_impl::driver_initialize()
     {
-      PICO_STATUS status;
+      //std::cout << "picoscope_6000_impl::driver_initialize start" << std::endl;
+      PICO_STATUS status = PICO_OK;
+      int16_t temp_handles[MAX_PICO_DEVICES];
+      uint16_t devCount = 0;
 
       // Required to force sequence execution of open unit calls...
       boost::mutex::scoped_lock init_guard(g_init_mutex);
 
-      // take any if serial number is not provided (useful for testing purposes)
-      if (d_serial_number.empty()) {
-        status = ps6000OpenUnit(&(d_handle), NULL);
-      }
-      else {
-        status = ps6000OpenUnit(&(d_handle), (int8_t*)d_serial_number.c_str());
+      while(status != PICO_NOT_FOUND)
+      {
+          status = ps6000OpenUnit(&(temp_handles[devCount]),NULL);
+          if(status == PICO_OK || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT)
+              devCount++;
       }
 
-      if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "open unit failed: " + ps6000_get_error_message(status));
-        return make_pico_6000_error_code(status);
+      if (devCount == 0)
+      {
+          GR_LOG_ERROR(d_logger, "No ps6000 device found");
+          return make_pico_6000_error_code(12);
       }
+
+      if( d_serial_number.empty() )
+      {
+          if( devCount != 1)
+          {
+              GR_LOG_ERROR(d_logger, "There is more than one ps6000 connected. Please enter a serial!");
+              for(uint16_t i = 0; i< devCount; i++)
+                  ps6000CloseUnit(temp_handles[i]);
+              return make_pico_6000_error_code(12);
+          }
+      }
+      else
+      {
+          for(uint16_t i = 0; i< devCount; i++)
+          {
+              int16_t requiredSize = 20;
+              int8_t serial[requiredSize];
+
+              ps6000GetUnitInfo(temp_handles[i], serial, sizeof (serial), &requiredSize, PICO_BATCH_AND_SERIAL);
+              std::cout << "serial: " << serial << std::endl;
+
+              std::ostringstream convert;
+              for (int a = 0; serial[a] != int8_t('\0'); a++) {
+                  convert << serial[a];
+              }
+              if( convert.str() == d_serial_number )
+              {
+                  std::cout << "Device Found: " << convert.str() << std::endl;
+                  d_handle = temp_handles[i];
+              }
+              else
+              {
+                  std::cout << "Device Skipped: " << convert.str() << std::endl;
+                  ps6000CloseUnit(temp_handles[i]);
+              }
+          }
+      }
+
+      //exit(1);
+      //std::cout << "picoscope_6000_impl::driver_initialize 1" << std::endl;
+      //std::cout << "d_serial_number: " << d_serial_number <<  std::endl;
+      // take any if serial number is not provided (useful for testing purposes)
+
+
+//      if (d_serial_number.empty()) {
+//        status = ps6000OpenUnit(&(d_handle), NULL);
+//      }
+//      else {
+////        int8_t serial[20];
+////        size_t index = 0;
+////        for(; index < d_serial_number.size(); index++ )
+////        {
+////            serial[index] = d_serial_number[index];
+////        }
+////        serial[index] = int8_t('\0');
+////        std::cout << "serial:" << serial << std::endl;
+//        status = ps6000OpenUnit(&(d_handle), (int8_t*)d_serial_number.c_str());
+//      }
+//      std::cout << "picoscope_6000_impl::driver_initialize 2" << std::endl;
+//      if (status != PICO_OK) {
+//        GR_LOG_ERROR(d_logger, "open unit failed: " + ps6000_get_error_message(status));
+//        return make_pico_6000_error_code(status);
+//      }
 
       // maximum value is used for conversion to volts
       d_max_value = PS6000_MAX_VALUE;
-      if (status != PICO_OK) {
-        ps6000CloseUnit(d_handle);
-        GR_LOG_ERROR(d_logger, "ps6000MaximumValue: " + ps6000_get_error_message(status));
-        return make_pico_6000_error_code(status);
-      }
-
       return std::error_code{};
     }
+
 
     std::error_code
     picoscope_6000_impl::driver_configure()
