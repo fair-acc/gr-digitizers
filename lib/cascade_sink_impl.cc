@@ -230,6 +230,7 @@ namespace gr {
       {
           // triggered demux blocks (triggered time-domain acquisition)
           d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, TIME_SINK_MODE_TRIGGERED);
+          d_snk_raw_triggered->set_samples(0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
           d_demux_raw  = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
           // input to first raw-data-rate demux
           connect(self(), 0, d_demux_raw, 0); // 0: values port
@@ -239,6 +240,7 @@ namespace gr {
           connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
           d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, TIME_SINK_MODE_TRIGGERED);
+          d_snk10000_triggered->set_samples(0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW);
           d_demux_10000 = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW);
           // first 10 kHz block to 10 kHz demux
           connect(d_agg10000, 0, d_demux_10000, 0);

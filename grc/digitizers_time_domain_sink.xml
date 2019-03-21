@@ -51,14 +51,14 @@
   <param>
         <name>Pre-trigger Samples</name>
         <key>pre_samples</key>
-        <value>1000</value>
+        <value>pre_samples</value>
         <type>int</type>
         <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
   </param>
   <param>
         <name>Post-trigger Samples</name>
         <key>post_samples</key>
-        <value>9000</value>
+        <value>samples-pre_samples</value>
         <type>int</type>
         <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
   </param>
