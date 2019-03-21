@@ -23,6 +23,10 @@ namespace gr {
       signal_metadata_t d_metadata;
       std::size_t d_output_package_size;
 
+      // only used for triggered mode
+      uint32_t d_pre_samples;
+      uint32_t d_post_samples;
+
       cb_copy_data_t d_cb_copy_data;
       void* d_userdata;
 
@@ -43,6 +47,12 @@ namespace gr {
       time_sink_mode_t get_sink_mode() override;
 
       signal_metadata_t get_metadata() override;
+
+      void set_samples(int pre_samples, int post_samples) override;
+
+      uint32_t get_pre_samples() override;
+
+      uint32_t get_post_samples() override;
 
     };
 

@@ -33,6 +33,8 @@ namespace gr {
         d_samp_rate(samp_rate),
         d_sink_mode(mode),
         d_output_package_size(output_package_size),
+        d_pre_samples(0),
+        d_post_samples(0),
         d_cb_copy_data(nullptr),
         d_userdata(nullptr)
     {
@@ -123,6 +125,29 @@ namespace gr {
     time_domain_sink_impl::get_sample_rate()
     {
       return d_samp_rate;
+    }
+
+    void
+    time_domain_sink_impl::set_samples(int pre_samples, int post_samples)
+    {
+        d_pre_samples = pre_samples;
+        d_post_samples = post_samples;
+        d_output_package_size = d_pre_samples + d_post_samples;
+
+        // To simplify data copy in chunks
+        set_output_multiple(d_output_package_size);
+    }
+
+    uint32_t
+    time_domain_sink_impl::get_pre_samples()
+    {
+        return d_pre_samples;
+    }
+
+    uint32_t
+    time_domain_sink_impl::get_post_samples()
+    {
+        return d_post_samples;
     }
 
   } /* namespace digitizers */

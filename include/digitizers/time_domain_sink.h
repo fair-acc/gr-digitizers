@@ -89,6 +89,22 @@ namespace gr {
        * \returns time sink mode
        */
       virtual time_sink_mode_t get_sink_mode() = 0;
+
+      /*!
+       * \brief Configure number of pre- and post-trigger samples.
+       *
+       * Note in streaming mode pre- and post-trigger samples are used only when
+       * a trigger is enabled, that a triggered_data tag is added allowing other
+       * blocks to extracts trigger data if desired so.
+       *
+       * \param samples the number of samples to acquire before the trigger event
+       * \param pre_samples the number of samples to acquire
+       */
+      virtual void set_samples(int pre_samples, int post_samples) = 0;
+
+      virtual uint32_t get_pre_samples() = 0;
+
+      virtual uint32_t get_post_samples() = 0;
     };
 
   } // namespace digitizers
