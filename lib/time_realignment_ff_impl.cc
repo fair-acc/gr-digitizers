@@ -37,21 +37,21 @@ namespace gr {
   namespace digitizers {
 
     time_realignment_ff::sptr
-    time_realignment_ff::make(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time)
+    time_realignment_ff::make(const std::string id, float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time)
     {
       return gnuradio::get_initial_sptr
-        (new time_realignment_ff_impl(user_delay, triggerstamp_matching_tolerance, max_buffer_time));
+        (new time_realignment_ff_impl(id, user_delay, triggerstamp_matching_tolerance, max_buffer_time));
     }
 
     /*
      * The private constructor
      */
-    time_realignment_ff_impl::time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time)
-      : gr::block("time_realignment_ff",
-              gr::io_signature::make(2, 3, sizeof(float)),
-              gr::io_signature::make(2, 2, sizeof(float))),
-       d_user_delay(user_delay),
-       d_wr_events_size(10) // Maximum buffer of 10 WR-Events
+    time_realignment_ff_impl::time_realignment_ff_impl(const std::string id, float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time)
+      : gr::block(id,
+                  gr::io_signature::make(2, 3, sizeof(float)),
+                  gr::io_signature::make(2, 2, sizeof(float))),
+                  d_user_delay(user_delay),
+                  d_wr_events_size(10) // Maximum buffer of 10 WR-Events
     {
       wr_event_t empty;
       for( size_t i = 0; i< d_wr_events_size; i++)
@@ -194,7 +194,7 @@ namespace gr {
             if( d_not_found_stamp_utc != 0 && abs( get_timestamp_nano_utc() - d_not_found_stamp_utc ) > d_max_buffer_time_ns )
             {
                 d_not_found_stamp_utc = 0; //reset stamp
-                GR_LOG_ERROR(d_logger, "No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
+                GR_LOG_ERROR(d_logger, name() + ": No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );
                 trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
                 return true;
             }
@@ -209,7 +209,7 @@ namespace gr {
             int64_t delta_t = abs ( trigger_tag_data.timestamp - d_wr_events_read_iter->wr_trigger_stamp_utc );
             if(  delta_t > d_triggerstamp_matching_tolerance_ns )
             {
-                GR_LOG_WARN(d_logger, "WR Stamps was out of matching tolerance. Will be ignored");
+                GR_LOG_WARN(d_logger, name() + ": WR Stamps was out of matching tolerance. Will be ignored");
                 trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
                 d_wr_events_read_iter++;
                 if(d_wr_events_read_iter == d_wr_events.end())
@@ -247,7 +247,7 @@ namespace gr {
           d_wr_events_write_iter = d_wr_events.begin();
       if(d_wr_events_write_iter->wr_trigger_stamp == d_wr_events_read_iter->wr_trigger_stamp)
       {
-          GR_LOG_ERROR(d_logger, "Write Iter reached read iter ...to few trigger tags");
+          GR_LOG_ERROR(d_logger, name() + ": Write Iter reached read iter ...to few trigger tags");
           return false;
       }
       return true;

@@ -38,7 +38,7 @@ namespace gr {
       std::vector< wr_event_t >::iterator d_wr_events_read_iter;
 
      public:
-      time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time);
+      time_realignment_ff_impl(const std::string id, float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time);
       ~time_realignment_ff_impl();
 
       void set_user_delay(float user_delay) override;

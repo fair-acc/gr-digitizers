@@ -32,7 +32,7 @@ namespace gr {
        *
        * \param user_delay user defined delay in seconds
        */
-      static sptr make(float user_delay=0.0f, float triggerstamp_matching_tolerance=0.03f, float max_buffer_time=0.3f);
+      static sptr make(const std::string id, float user_delay=0.0f, float triggerstamp_matching_tolerance=0.03f, float max_buffer_time=0.3f);
 
       /*!
        * \brief Sets user delay.

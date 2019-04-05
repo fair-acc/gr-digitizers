@@ -46,7 +46,7 @@ namespace gr {
         top = gr::make_top_block("test");
         value_src = gr::blocks::vector_source_f::make(values, false, 1, tags);
         error_src = gr::blocks::vector_source_f::make(errors);
-        realign = gr::digitizers::time_realignment_ff::make(user_delay, triggerstamp_matching_tolerance, buffer_time);
+        realign = gr::digitizers::time_realignment_ff::make("id", user_delay, triggerstamp_matching_tolerance, buffer_time);
         for(auto event : wr_events)
             realign->add_timing_event(event.event_id, event.wr_trigger_stamp, event.wr_trigger_stamp_utc);
 
