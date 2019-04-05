@@ -48,8 +48,8 @@ namespace gr {
      */
     time_realignment_ff_impl::time_realignment_ff_impl(float user_delay, float triggerstamp_matching_tolerance, float max_buffer_time)
       : gr::block("time_realignment_ff",
-              gr::io_signature::make(1, 3, sizeof(float)),
-              gr::io_signature::make(1, 2, sizeof(float))),
+              gr::io_signature::make(2, 3, sizeof(float)),
+              gr::io_signature::make(2, 2, sizeof(float))),
        d_user_delay(user_delay),
        d_wr_events_size(10) // Maximum buffer of 10 WR-Events
     {

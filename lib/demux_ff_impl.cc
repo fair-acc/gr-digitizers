@@ -28,8 +28,8 @@ namespace gr {
      */
     demux_ff_impl::demux_ff_impl(unsigned post_trigger_window, unsigned pre_trigger_window)
       : gr::block("demux_ff",
-              gr::io_signature::make(1, 2, sizeof(float)),
-              gr::io_signature::make(1, 2, sizeof(float))),
+              gr::io_signature::make(2, 2, sizeof(float)),
+              gr::io_signature::make(2, 2, sizeof(float))),
       d_window_size(pre_trigger_window + post_trigger_window),
       d_pre_trigger_window_size(pre_trigger_window),
       d_post_trigger_window_size(post_trigger_window)

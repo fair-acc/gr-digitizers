@@ -41,7 +41,7 @@ namespace gr {
             bool send_udp_on_raising_edge, float timeout)
       : gr::block("edge_trigger_ff",
               gr::io_signature::make(1, 1, sizeof(float)),
-              gr::io_signature::make(0, 1, sizeof(float))),
+              gr::io_signature::make(1, 1, sizeof(float))),
         d_sampling_rate(sampling),
         d_lo_threshold(lo),
         d_hi_threshold(hi),

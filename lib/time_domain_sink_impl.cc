@@ -28,7 +28,7 @@ namespace gr {
      */
     time_domain_sink_impl::time_domain_sink_impl(std::string name, std::string unit, float samp_rate, size_t output_package_size, time_sink_mode_t mode)
       : gr::sync_block("time_domain_sink",
-              gr::io_signature::make(1, 2, sizeof(float)),
+              gr::io_signature::make(2, 2, sizeof(float)),
               gr::io_signature::make(0, 0, 0)),
         d_samp_rate(samp_rate),
         d_sink_mode(mode),

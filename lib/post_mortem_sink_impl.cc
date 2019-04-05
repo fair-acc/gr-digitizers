@@ -26,8 +26,8 @@ namespace gr {
 
     post_mortem_sink_impl::post_mortem_sink_impl(std::string name, std::string unit, float samp_rate, size_t buffer_size)
       : gr::sync_block("post_mortem_sink",
-              gr::io_signature::make(1, 2, sizeof(float)),
-              gr::io_signature::make(0, 2, sizeof(float))),
+              gr::io_signature::make(2, 2, sizeof(float)),
+              gr::io_signature::make(2, 2, sizeof(float))),
         d_samp_rate(samp_rate),
         d_buffer_values(buffer_size),
         d_buffer_errors(buffer_size),
