@@ -42,7 +42,8 @@ namespace gr {
       d_metadata.unit = unit;
 
       // To simplify data copy in chunks
-      set_output_multiple(d_output_package_size);
+      if(mode==TIME_SINK_MODE_STREAMING)
+          set_output_multiple(d_output_package_size);
 
       // This is a sink
       set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);

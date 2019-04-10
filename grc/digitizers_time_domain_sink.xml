@@ -6,7 +6,7 @@
   <import>import digitizers</import>
   <make>digitizers.time_domain_sink($signal_name, $signal_unit, $samp_rate, $output_package_size, $acquisition_type)
   
-  if $acquisition_mode == 'Triggered':
+  if $acquisition_type == 0:
     self.$(id).set_samples($pre_samples, $post_samples)
     </make>
   
@@ -20,7 +20,7 @@
     <name>Mode</name>
     <key>acquisition_type</key>
     <value>1</value>
-    <type>enum</type>
+    <type>int</type>
     <option>
         <name>Triggered</name>
         <key>0</key>
@@ -46,21 +46,21 @@
     <key>output_package_size</key>
     <value>1024</value>
     <type>int</type>
-    <hide>#if $acquisition_mode() == 'Triggered' then 'all' else 'None'#</hide>
+    <hide>#if $acquisition_type() == 0 then 'all' else 'None'#</hide>
   </param>
   <param>
-        <name>Pre-trigger Samples</name>
-        <key>pre_samples</key>
-        <value>pre_samples</value>
-        <type>int</type>
-        <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
+    <name>Pre-trigger Samples</name>
+    <key>pre_samples</key>
+    <value>pre_samples</value>
+    <type>int</type>
+    <hide>#if $acquisition_type() == 1 then 'all' else 'None'#</hide>
   </param>
   <param>
-        <name>Post-trigger Samples</name>
-        <key>post_samples</key>
-        <value>samples-pre_samples</value>
-        <type>int</type>
-        <hide>#if $acquisition_mode() == 'Streaming' then 'all' else 'None'#</hide>
+    <name>Post-trigger Samples</name>
+    <key>post_samples</key>
+    <value>samples-pre_samples</value>
+    <type>int</type>
+    <hide>#if $acquisition_type() == 1 then 'all' else 'None'#</hide>
   </param>
     <sink>
     <name>values</name>
