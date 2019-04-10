@@ -73,8 +73,6 @@ namespace gr {
               if(tag.key == pmt::string_to_symbol(trigger_tag_name))
               {
                   trigger_t trigger_tag_data = decode_trigger_tag(tag);
-                  trigger_tag_data.pre_trigger_samples /= decim;
-                  trigger_tag_data.post_trigger_samples /= decim;
 
 //                  std::cout << "tag.offset: " << tag.offset << std::endl;
 //                  std::cout << "nitems_read(port): " << nitems_read(port) << std::endl;

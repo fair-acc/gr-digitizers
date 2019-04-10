@@ -144,10 +144,9 @@ namespace gr {
 //                std::cout << "added tag new offset: " << new_offset << std::endl;
 
                 trigger_t trigger_tag_data = decode_trigger_tag(tag_in_window);
-                trigger_tag_data.pre_trigger_samples = d_pre_trigger_window_size;
-                trigger_tag_data.post_trigger_samples = d_post_trigger_window_size;
                 add_item_tag(0, make_trigger_tag(trigger_tag_data, new_offset ));
             }
+            // attention: other trigger tags are ignored !
 
             // copy all other non-trigger tags
             if(tag_in_window.key != pmt::string_to_symbol(trigger_tag_name))

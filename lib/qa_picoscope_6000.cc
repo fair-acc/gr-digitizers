@@ -273,8 +273,6 @@ namespace gr {
 
         if (key == trigger_tag_name) {
             auto triggered_data = decode_trigger_tag(tag);
-            CPPUNIT_ASSERT_EQUAL(200, (int)triggered_data.pre_trigger_samples);
-            CPPUNIT_ASSERT_EQUAL(800, (int)triggered_data.post_trigger_samples);
             CPPUNIT_ASSERT_EQUAL(uint32_t{0}, triggered_data.status);
         }
         else if (key == timebase_info_tag_name) {

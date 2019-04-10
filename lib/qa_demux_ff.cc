@@ -152,10 +152,7 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(2, (int)out_tags.size());
 
       CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
-      auto trigger_tag = decode_trigger_tag(out_tags[0]);
       CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples}, out_tags[0].offset);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag.pre_trigger_samples);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(acq_info_tag_name));
       CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples + 2000}, out_tags[1].offset);
@@ -229,10 +226,7 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(6, (int)out_tags.size());
       CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
 
-      auto trigger_tag1 = decode_trigger_tag(out_tags[0]);
       CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples}, out_tags[0].offset);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag1.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag1.pre_trigger_samples);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(acq_info_tag_name));
       CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples + 10}, out_tags[1].offset);
@@ -241,16 +235,10 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples + pre_trigger_samples - 50}, out_tags[2].offset);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[3].key, pmt::string_to_symbol(trigger_tag_name));
-      auto trigger_tag2 = decode_trigger_tag(out_tags[3]);
       CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples + pre_trigger_samples}, out_tags[3].offset);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag2.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag2.pre_trigger_samples);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[4].key, pmt::string_to_symbol(trigger_tag_name));
-      auto trigger_tag3 = decode_trigger_tag(out_tags[4]);
       CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples * 2 + pre_trigger_samples}, out_tags[4].offset);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag3.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag3.pre_trigger_samples);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[5].key, pmt::string_to_symbol(acq_info_tag_name));
       CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples * 2 + pre_trigger_samples + 199}, out_tags[5].offset);
@@ -352,22 +340,13 @@ namespace gr {
       CPPUNIT_ASSERT_EQUAL(3, (int)out_tags.size());
       CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
 
-      auto trigger_tag1 = decode_trigger_tag(out_tags[0]);
       CPPUNIT_ASSERT_EQUAL(uint64_t {pre_trigger_samples}, out_tags[0].offset);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag1.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag1.pre_trigger_samples);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(trigger_tag_name));
-      auto trigger_tag2 = decode_trigger_tag(out_tags[1]);
       CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples + pre_trigger_samples}, out_tags[1].offset);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag2.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag2.pre_trigger_samples);
 
       CPPUNIT_ASSERT_EQUAL(out_tags[2].key, pmt::string_to_symbol(trigger_tag_name));
-      auto trigger_tag3 = decode_trigger_tag(out_tags[2]);
       CPPUNIT_ASSERT_EQUAL(uint64_t {trigger_samples * 2 + pre_trigger_samples}, out_tags[2].offset);
-      CPPUNIT_ASSERT_EQUAL(post_trigger_samples, trigger_tag3.post_trigger_samples);
-      CPPUNIT_ASSERT_EQUAL(pre_trigger_samples, trigger_tag3.pre_trigger_samples);
     }
 
     void

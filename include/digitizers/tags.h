@@ -108,8 +108,6 @@ namespace gr {
     char const * const trigger_tag_name = "trigger";
     struct DIGITIZERS_API trigger_t
     {
-      uint32_t pre_trigger_samples;
-      uint32_t post_trigger_samples;
       uint32_t downsampling_factor;
       int64_t timestamp;
       int64_t offset_to_sample_ns; // After downsampling the sample originally holding the tag might not be available any more
@@ -123,8 +121,6 @@ namespace gr {
         gr::tag_t tag;
         tag.key = pmt::intern(trigger_tag_name);
         tag.value =  pmt::make_tuple(
-                pmt::from_long(static_cast<long>(trigger_tag_data.pre_trigger_samples)),
-                pmt::from_long(static_cast<long>(trigger_tag_data.post_trigger_samples)),
                 pmt::from_long(static_cast<long>(trigger_tag_data.downsampling_factor)),
                 pmt::from_uint64(static_cast<uint64_t>(trigger_tag_data.timestamp)),
                 pmt::from_uint64(static_cast<uint64_t>(trigger_tag_data.offset_to_sample_ns)),
@@ -135,13 +131,11 @@ namespace gr {
     }
 
     inline gr::tag_t
-    make_trigger_tag(uint32_t pre_trigger_samples, uint32_t post_trigger_samples, uint32_t downsampling_factor, int64_t timestamp, uint64_t offset, uint32_t status)
+    make_trigger_tag(uint32_t downsampling_factor, int64_t timestamp, uint64_t offset, uint32_t status)
     {
         gr::tag_t tag;
         tag.key = pmt::intern(trigger_tag_name);
         tag.value =  pmt::make_tuple(
-                pmt::from_long(static_cast<long>(pre_trigger_samples)),
-                pmt::from_long(static_cast<long>(post_trigger_samples)),
                 pmt::from_long(static_cast<long>(downsampling_factor)),
                 pmt::from_uint64(static_cast<uint64_t>(timestamp)),
                 pmt::from_uint64(static_cast<uint64_t>(0)),
@@ -159,8 +153,6 @@ namespace gr {
         tag.key = pmt::intern(trigger_tag_name);
         tag.value =  pmt::make_tuple(
                 pmt::from_long(static_cast<long>(0)),
-                pmt::from_long(static_cast<long>(0)),
-                pmt::from_long(static_cast<long>(0)),
                 pmt::from_uint64(static_cast<uint64_t>(0)),
                 pmt::from_uint64(static_cast<uint64_t>(0)),
                 pmt::from_long(static_cast<long>(0))
@@ -174,7 +166,7 @@ namespace gr {
     {
       assert(pmt::symbol_to_string(tag.key) == trigger_tag_name);
 
-      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 6)
+      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 4)
       {
           std::ostringstream message;
           message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid trigger tag format";
@@ -183,12 +175,10 @@ namespace gr {
 
       trigger_t trigger_tag;
       auto tag_tuple = pmt::to_tuple(tag.value);
-      trigger_tag.pre_trigger_samples = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 0)));
-      trigger_tag.post_trigger_samples = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 1)));
-      trigger_tag.downsampling_factor = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 2)));
-      trigger_tag.timestamp = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 3)));
-      trigger_tag.offset_to_sample_ns = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 4)));
-      trigger_tag.status = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 5)));
+      trigger_tag.downsampling_factor = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 0)));
+      trigger_tag.timestamp = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 1)));
+      trigger_tag.offset_to_sample_ns = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 2)));
+      trigger_tag.status = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 3)));
 
       return trigger_tag;
     }

@@ -869,8 +869,7 @@ namespace gr {
        // Attach trigger info to value outputs and to all ports
        auto vec_idx = 0;
        uint32_t pre_trigger_samples_with_downsampling = get_pre_trigger_samples_with_downsampling();
-       uint32_t post_trigger_samples_with_downsampling = get_post_trigger_samples_with_downsampling();
-       
+
        for (auto i = 0; i < d_ai_channels && vec_idx < (int)output_items.size(); i++, vec_idx+=2)
        {
          if (!d_channel_settings[i].enabled)
@@ -879,8 +878,6 @@ namespace gr {
          }
 
          auto trigger_tag = make_trigger_tag(
-                 pre_trigger_samples_with_downsampling,
-                 post_trigger_samples_with_downsampling,
                  d_downsampling_factor,
                  timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * d_time_per_sample_ns),
                  nitems_written(0) + pre_trigger_samples_with_downsampling,
@@ -890,8 +887,6 @@ namespace gr {
        }
 
        auto trigger_tag = make_trigger_tag(
-             pre_trigger_samples_with_downsampling,
-             post_trigger_samples_with_downsampling,
              d_downsampling_factor,
              timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * d_time_per_sample_ns),
              nitems_written(0) + pre_trigger_samples_with_downsampling,
@@ -1207,8 +1202,6 @@ namespace gr {
 //       std::cout << "result               : " << uint64_t(timestamp_now_ns_utc - (( noutput_items - trigger_offset ) * d_time_per_sample_ns )) <<std::endl;
 //       std::cout << "tag offset: " << nitems_written(0) + trigger_offset <<std::endl;
        auto trigger_tag = make_trigger_tag(
-             0,
-             0,
              d_downsampling_factor,
              timestamp_now_ns_utc - uint64_t(( noutput_items - trigger_offset ) * d_time_per_sample_ns ),
              nitems_written(0) + trigger_offset,

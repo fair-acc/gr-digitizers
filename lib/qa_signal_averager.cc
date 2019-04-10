@@ -36,12 +36,7 @@ namespace gr {
     }
 
     trigger_t tag1;
-    tag1.pre_trigger_samples = 50;
-    tag1.post_trigger_samples = 100;
-
     trigger_t tag2;
-    tag2.pre_trigger_samples = 500;
-    tag2.post_trigger_samples = 1000;
 
     acq_info_t acq_info_tag1;
     acq_info_tag1.status = 2;
@@ -72,14 +67,8 @@ namespace gr {
     CPPUNIT_ASSERT_EQUAL(uint64_t(7), tags_out[1].offset); // round down
     CPPUNIT_ASSERT_EQUAL(uint64_t(7), tags_out[2].offset); // round down
 
-    trigger_t trigger_tag_data0 = decode_trigger_tag(tags_out.at(0));
-    trigger_t trigger_tag_data1 = decode_trigger_tag(tags_out.at(1));
     acq_info_t acq_info_tag = decode_acq_info_tag(tags_out.at(2));
 
-    CPPUNIT_ASSERT_EQUAL(uint32_t(5),trigger_tag_data0.pre_trigger_samples);
-    CPPUNIT_ASSERT_EQUAL(uint32_t(50), trigger_tag_data1.pre_trigger_samples);
-    CPPUNIT_ASSERT_EQUAL(uint32_t(10), trigger_tag_data0.post_trigger_samples);
-    CPPUNIT_ASSERT_EQUAL(uint32_t(100), trigger_tag_data1.post_trigger_samples);
     CPPUNIT_ASSERT_EQUAL(uint32_t(3), acq_info_tag.status); // logical OR of all stati
 
     float desired_avg = data.at(0);
