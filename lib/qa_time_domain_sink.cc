@@ -121,7 +121,7 @@ namespace gr {
     void
     qa_time_domain_sink::stream_basics()
     {
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, 2048, TIME_SINK_MODE_STREAMING);
+        auto sink = time_domain_sink::make("test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, 2048);
         CPPUNIT_ASSERT_EQUAL(size_t{2048}, sink->get_output_package_size());
         CPPUNIT_ASSERT_EQUAL(1000.0f, sink->get_sample_rate());
     }
@@ -140,7 +140,7 @@ namespace gr {
         Test test(chunk_size);
 
         auto source = gr::blocks::vector_source_f::make(data);
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, chunk_size, TIME_SINK_MODE_STREAMING);
+        auto sink = time_domain_sink::make("test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, chunk_size);
 
         // connect and run
         top->connect(source, 0, sink, 0);
@@ -170,7 +170,7 @@ namespace gr {
         auto data_errs = get_test_data(chunk_size, 0.01);
         auto source_errs = gr::blocks::vector_source_f::make(data_errs);
 
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, chunk_size, TIME_SINK_MODE_STREAMING);
+        auto sink = time_domain_sink::make("test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, chunk_size);
 
         // connect and run
         top->connect(source, 0, sink, 0);
@@ -198,7 +198,7 @@ namespace gr {
         auto data = get_test_data(data_size);
         auto source = gr::blocks::vector_source_f::make(data);
 
-        auto sink = time_domain_sink::make("no_callback_test", "unit", 1000.0, data_size, TIME_SINK_MODE_STREAMING);
+        auto sink = time_domain_sink::make("no_callback_test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, data_size);
 
         // connect and run
         top->connect(source, 0, sink, 0);
@@ -244,7 +244,7 @@ namespace gr {
         };
 
         auto source = gr::blocks::vector_source_f::make(data, false, 1, tags);
-        auto sink = gr::digitizers::time_domain_sink::make("test", "unit", 1.0f/timebase, data_size/number_of_chunks, TIME_SINK_MODE_STREAMING);
+        auto sink = gr::digitizers::time_domain_sink::make("test", "unit", 1.0f/timebase, TIME_SINK_MODE_STREAMING,  data_size/number_of_chunks);
 
         sink->set_callback(copy_data_callback, &test);
 

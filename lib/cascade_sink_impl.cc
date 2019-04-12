@@ -100,13 +100,13 @@ namespace gr {
       if(streaming_sinks_enabled)
       {
           // create sinks -- FESA will see updates @10Hz at most.
-          //                                  signal-name,           unit name, sample rate, dataPackageSize, sink mode
-          d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     1000,            TIME_SINK_MODE_STREAMING);
-          d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,       100,            TIME_SINK_MODE_STREAMING);
-          d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,         10,            TIME_SINK_MODE_STREAMING);
-          d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,           1,            TIME_SINK_MODE_STREAMING);
-          d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,           1,            TIME_SINK_MODE_STREAMING);
-          d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,              1,            TIME_SINK_MODE_STREAMING);
+          //                                  signal-name,           unit name, sample rate, sink mode                ,dataPackageSize
+          d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     TIME_SINK_MODE_STREAMING, 1000            );
+          d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,      TIME_SINK_MODE_STREAMING,  100            );
+          d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,       TIME_SINK_MODE_STREAMING,   10            );
+          d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,        TIME_SINK_MODE_STREAMING,    1            );
+          d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,        TIME_SINK_MODE_STREAMING,    1            );
+          d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,           TIME_SINK_MODE_STREAMING,    1            );
       }
 
       //create aggregation blocks
@@ -235,8 +235,7 @@ namespace gr {
       if(triggered_sinks_enabled)
       {
           // triggered demux blocks (triggered time-domain acquisition)
-          d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, pre_trigger_window_raw + post_trigger_window_raw, TIME_SINK_MODE_TRIGGERED);
-          d_snk_raw_triggered->set_samples(pre_trigger_window_raw, post_trigger_window_raw);
+          d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TIME_SINK_MODE_TRIGGERED, pre_trigger_window_raw, post_trigger_window_raw);
           d_demux_raw  = demux_ff::make(post_trigger_window_raw, pre_trigger_window_raw);
           // input to first raw-data-rate demux
           connect(self(), 0, d_demux_raw, 0); // 0: values port
@@ -246,8 +245,7 @@ namespace gr {
           connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
           double samp_rate_factor = 10000.0 / samp_rate; // to cover the same time interval, just with a lower resoltution
-          d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0, samp_rate_factor * (pre_trigger_window_raw + post_trigger_window_raw), TIME_SINK_MODE_TRIGGERED);
-          d_snk10000_triggered->set_samples(samp_rate_factor * pre_trigger_window_raw, samp_rate_factor * post_trigger_window_raw);
+          d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0, TIME_SINK_MODE_TRIGGERED, samp_rate_factor * pre_trigger_window_raw, samp_rate_factor * post_trigger_window_raw);
           d_demux_10000 = demux_ff::make(samp_rate_factor * post_trigger_window_raw, samp_rate_factor * pre_trigger_window_raw);
           // first 10 kHz block to 10 kHz demux
           connect(d_agg10000, 0, d_demux_10000, 0);

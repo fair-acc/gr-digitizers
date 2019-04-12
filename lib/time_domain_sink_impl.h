@@ -32,7 +32,9 @@ namespace gr {
 
      public:
       
-      time_domain_sink_impl(std::string name, std::string unit, float samp_rate, size_t output_package_size, time_sink_mode_t mode);
+      time_domain_sink_impl(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, size_t output_package_size);
+
+      time_domain_sink_impl(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, int pre_samples, int post_samples);
 
       ~time_domain_sink_impl();
 
@@ -47,8 +49,6 @@ namespace gr {
       time_sink_mode_t get_sink_mode() override;
 
       signal_metadata_t get_metadata() override;
-
-      void set_samples(int pre_samples, int post_samples) override;
 
       uint32_t get_pre_samples() override;
 

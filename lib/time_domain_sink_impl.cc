@@ -18,15 +18,18 @@ namespace gr {
   namespace digitizers {
 
     time_domain_sink::sptr
-    time_domain_sink::make(std::string name, std::string unit, float samp_rate, size_t output_package_size, time_sink_mode_t mode)
+    time_domain_sink::make(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, size_t output_package_size)
     {
-      return gnuradio::get_initial_sptr(new time_domain_sink_impl(name, unit, samp_rate, output_package_size, mode));
+      return gnuradio::get_initial_sptr(new time_domain_sink_impl(name, unit, samp_rate, mode, output_package_size));
     }
 
-    /*
-     * The private constructor
-     */
-    time_domain_sink_impl::time_domain_sink_impl(std::string name, std::string unit, float samp_rate, size_t output_package_size, time_sink_mode_t mode)
+    time_domain_sink::sptr
+    time_domain_sink::make(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, int pre_samples, int post_samples)
+    {
+      return gnuradio::get_initial_sptr(new time_domain_sink_impl(name, unit, samp_rate, mode, pre_samples, post_samples));
+    }
+
+    time_domain_sink_impl::time_domain_sink_impl(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, size_t output_package_size)
       : gr::sync_block("time_domain_sink",
               gr::io_signature::make(2, 2, sizeof(float)),
               gr::io_signature::make(0, 0, 0)),
@@ -42,8 +45,29 @@ namespace gr {
       d_metadata.unit = unit;
 
       // To simplify data copy in chunks
-      if(mode==TIME_SINK_MODE_STREAMING)
-          set_output_multiple(d_output_package_size);
+      set_output_multiple(d_output_package_size);
+
+      // This is a sink
+      set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+    }
+
+    time_domain_sink_impl::time_domain_sink_impl(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, int pre_samples, int post_samples)
+      : gr::sync_block("time_domain_sink",
+              gr::io_signature::make(2, 2, sizeof(float)),
+              gr::io_signature::make(0, 0, 0)),
+        d_samp_rate(samp_rate),
+        d_sink_mode(mode),
+        d_output_package_size(pre_samples + post_samples),
+        d_pre_samples(pre_samples),
+        d_post_samples(post_samples),
+        d_cb_copy_data(nullptr),
+        d_userdata(nullptr)
+    {
+      d_metadata.name = name;
+      d_metadata.unit = unit;
+
+      // To simplify data copy in chunks
+      set_output_multiple(d_output_package_size);
 
       // This is a sink
       set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
@@ -126,17 +150,6 @@ namespace gr {
     time_domain_sink_impl::get_sample_rate()
     {
       return d_samp_rate;
-    }
-
-    void
-    time_domain_sink_impl::set_samples(int pre_samples, int post_samples)
-    {
-        d_pre_samples = pre_samples;
-        d_post_samples = post_samples;
-        d_output_package_size = d_pre_samples + d_post_samples;
-
-        // To simplify data copy in chunks
-        set_output_multiple(d_output_package_size);
     }
 
     uint32_t

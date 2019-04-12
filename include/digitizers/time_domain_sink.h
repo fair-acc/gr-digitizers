@@ -43,22 +43,36 @@ namespace gr {
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::time_domain_sink.
        *
+       * For streaming mode
        * Note in streaming acquisition mode the output_package_size argument determines the number
        * of samples to be consumed by the user at once. E.g. if sample-by-sample acquisition
-       * is desired then the output_package_size should be set to 1. In case of triggered acquisition
-       * the output_package_size parameter determines the maximum output_package_size or better the maximum
-       * number of trigger samples to be consumed at once. Similar is valid for other two
-       * acquisition modes as well.
+       * is desired then the output_package_size should be set to 1.
        *
        * \param name signal name
        * \param unit signal unit
        * \param samp_rate expected sample rate in Hz
-       * \param output_package_size output_package_size
        * \param mode time sink mode which is mostly used by FESA to determine how to handle the sink
+       * \param output_package_size output_package_size
        *
        * \returns shared_ptr to a new instance
        */
-      static sptr make(std::string name, std::string unit, float samp_rate, size_t output_package_size, time_sink_mode_t mode);
+      static sptr make(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, size_t output_package_size);
+
+      /*!
+       * \brief Return a shared_ptr to a new instance of digitizers::time_domain_sink.
+       *
+       * For triggered mode
+       *
+       * \param name signal name
+       * \param unit signal unit
+       * \param samp_rate expected sample rate in Hz
+       * \param mode time sink mode which is mostly used by FESA to determine how to handle the sink
+       * \param pre_samples pre trigger samples
+       * \param post_samples pre trigger samples
+       *
+       * \returns shared_ptr to a new instance
+       */
+      static sptr make(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, int pre_samples, int post_samples);
 
       /*!
        * \brief Get signal metadata, such as signal name, timebase and unit.
@@ -89,18 +103,6 @@ namespace gr {
        * \returns time sink mode
        */
       virtual time_sink_mode_t get_sink_mode() = 0;
-
-      /*!
-       * \brief Configure number of pre- and post-trigger samples.
-       *
-       * Note in streaming mode pre- and post-trigger samples are used only when
-       * a trigger is enabled, that a triggered_data tag is added allowing other
-       * blocks to extracts trigger data if desired so.
-       *
-       * \param samples the number of samples to acquire before the trigger event
-       * \param pre_samples the number of samples to acquire
-       */
-      virtual void set_samples(int pre_samples, int post_samples) = 0;
 
       virtual uint32_t get_pre_samples() = 0;
 
