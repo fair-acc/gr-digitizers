@@ -4,7 +4,7 @@
   <key>digitizers_cascade_sink</key>
   <category>[digitizers]</category>
   <import>import digitizers</import>
-  <make>digitizers.cascade_sink($alg_id, $delay, $fir_taps, $low_freq, $up_freq, $tr_width, $fb_user_taps, $fw_user_taps, $samp_rate, $pm_buffer, $signal_name, $signal_unit, $streaming_sinks_enabled, $triggered_sinks_enabled, $frequency_sinks_enabled, $postmortem_sinks_enabled, $interlocks_enabled)</make>
+  <make>digitizers.cascade_sink($alg_id, $delay, $fir_taps, $low_freq, $up_freq, $tr_width, $fb_user_taps, $fw_user_taps, $samp_rate, $pm_buffer, $signal_name, $signal_unit, $pre_trigger_samples_raw, $post_trigger_samples_raw)</make>
   <param>
     <name>Algorithm ID</name>
     <key>alg_id</key>
@@ -117,6 +117,18 @@
     <key>signal_unit</key>
     <value></value>
     <type>string</type>
+  </param>
+  <param>
+    <name>Pre Trigger Samples</name>
+    <key>pre_trigger_samples_raw</key>
+    <value>pre_trigger_samples</value>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Post Trigger Samples</name>
+    <key>post_trigger_samples_raw</key>
+    <value>post_trigger_samples</value>
+    <type>int</type>
   </param>
   <param>
     <name>Streaming Sinks Enabled</name>

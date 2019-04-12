@@ -78,7 +78,9 @@ namespace gr {
           bool triggered_sinks_enabled,
           bool frequency_sinks_enabled,
           bool postmortem_sinks_enabled,
-          bool interlocks_enabled);
+          bool interlocks_enabled,
+          unsigned pre_trigger_window_raw,
+          unsigned post_trigger_window_raw);
 
       /*!
        * \brief Returns all time-domain sinks contained within this module.

@@ -17,12 +17,6 @@
 #include <digitizers/demux_ff.h>
 #include <digitizers/stft_algorithms.h>
 
-
-#define MIN_HISTORY 0.01 // [ms] minimum history to ensure that WR triggers are found within
-
-#define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST 10000
-#define TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW 1000
-
 #define WINDOW_SIZE_FREQ_DOMAIN_FAST 1024
 #define WINDOW_SIZE_FREQ_DOMAIN_SLOW 1024
 
@@ -98,7 +92,9 @@ namespace gr {
           bool triggered_sinks_enabled,
           bool frequency_sinks_enabled,
           bool postmortem_sinks_enabled,
-          bool interlocks_enabled);
+          bool interlocks_enabled,
+          unsigned pre_trigger_window_raw,
+          unsigned post_trigger_window_raw);
 
       ~cascade_sink_impl();
 

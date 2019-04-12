@@ -51,14 +51,14 @@
   <param>
     <name>Pre-trigger Samples</name>
     <key>pre_samples</key>
-    <value>pre_samples</value>
+    <value>pre_trigger_samples</value>
     <type>int</type>
     <hide>#if $acquisition_type() == 1 then 'all' else 'None'#</hide>
   </param>
   <param>
     <name>Post-trigger Samples</name>
     <key>post_samples</key>
-    <value>samples-pre_samples</value>
+    <value>trigger_samples-pre_trigger_samples</value>
     <type>int</type>
     <hide>#if $acquisition_type() == 1 then 'all' else 'None'#</hide>
   </param>

@@ -31,7 +31,9 @@ namespace gr {
         bool triggered_sinks_enabled,
         bool frequency_sinks_enabled,
         bool postmortem_sinks_enabled,
-        bool interlocks_enabled)
+        bool interlocks_enabled,
+        unsigned pre_trigger_window_raw,
+        unsigned post_trigger_window_raw)
     {
       return gnuradio::get_initial_sptr
         (new cascade_sink_impl(alg_id,
@@ -50,7 +52,9 @@ namespace gr {
             triggered_sinks_enabled,
             frequency_sinks_enabled,
             postmortem_sinks_enabled,
-            interlocks_enabled));
+            interlocks_enabled,
+            pre_trigger_window_raw,
+            post_trigger_window_raw));
     }
 
     /*
@@ -72,7 +76,9 @@ namespace gr {
         bool triggered_sinks_enabled,
         bool frequency_sinks_enabled,
         bool postmortem_sinks_enabled,
-        bool interlocks_enabled)
+        bool interlocks_enabled,
+        unsigned pre_trigger_window_raw,
+        unsigned post_trigger_window_raw)
       : gr::hier_block2("cascade_sink",
               gr::io_signature::make(2,2, sizeof(float)),
               gr::io_signature::make(0,0 , sizeof(float))),
@@ -229,9 +235,9 @@ namespace gr {
       if(triggered_sinks_enabled)
       {
           // triggered demux blocks (triggered time-domain acquisition)
-          d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, TIME_SINK_MODE_TRIGGERED);
-          d_snk_raw_triggered->set_samples(0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
-          d_demux_raw  = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_FAST);
+          d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, pre_trigger_window_raw + post_trigger_window_raw, TIME_SINK_MODE_TRIGGERED);
+          d_snk_raw_triggered->set_samples(pre_trigger_window_raw, post_trigger_window_raw);
+          d_demux_raw  = demux_ff::make(post_trigger_window_raw, pre_trigger_window_raw);
           // input to first raw-data-rate demux
           connect(self(), 0, d_demux_raw, 0); // 0: values port
           connect(self(), 1, d_demux_raw, 1); // 1: errors
@@ -239,9 +245,10 @@ namespace gr {
           connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
           connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
-          d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0,   TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, TIME_SINK_MODE_TRIGGERED);
-          d_snk10000_triggered->set_samples(0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, 0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW);
-          d_demux_10000 = demux_ff::make(0.9*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW, 0.1*TRIGGER_BUFFER_SIZE_TIME_DOMAIN_SLOW);
+          double samp_rate_factor = 10000.0 / samp_rate; // to cover the same time interval, just with a lower resoltution
+          d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0, samp_rate_factor * (pre_trigger_window_raw + post_trigger_window_raw), TIME_SINK_MODE_TRIGGERED);
+          d_snk10000_triggered->set_samples(samp_rate_factor * pre_trigger_window_raw, samp_rate_factor * post_trigger_window_raw);
+          d_demux_10000 = demux_ff::make(samp_rate_factor * post_trigger_window_raw, samp_rate_factor * pre_trigger_window_raw);
           // first 10 kHz block to 10 kHz demux
           connect(d_agg10000, 0, d_demux_10000, 0);
           connect(d_agg10000, 1, d_demux_10000, 1);
@@ -299,7 +306,7 @@ namespace gr {
           /* FIXME: Cascase Triggered Freq.Sinks dont need much extra memory, however they simply are not visible/usable in FESA currently .. to be investigated why
           // triggered frequency domain sinks
           d_freq_snk_triggered    = freq_sink_f::make(signal_name+":TriggeredSpectrum@Raw",    SAMPLE_RATE_TRIGGERED_FREQ_SINK, WINDOW_SIZE_FREQ_DOMAIN_FAST, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
-          d_demux_freq_raw  = demux_ff::make(samp_rate, MIN_HISTORY * samp_rate, WINDOW_SIZE_FREQ_DOMAIN_FAST, 0);
+          d_demux_freq_raw  = demux_ff::make(samp_rate, WINDOW_SIZE_FREQ_DOMAIN_FAST, 0);
           // connect raw-data-rate demux to STFT and then frequency-domain sink
           connect(self(), 0, d_demux_freq_raw, 0); // 0: values port
           connect(self(), 1, d_demux_freq_raw, 1); // 1: errors
@@ -312,7 +319,7 @@ namespace gr {
           connect(stft_raw_triggered, 2, d_freq_snk_triggered, 2); // frequency inputs
 
           d_freq_snk10k_triggered = freq_sink_f::make(signal_name+":TriggeredSpectrum@10kHz", SAMPLE_RATE_TRIGGERED_FREQ_SINK, WINDOW_SIZE_FREQ_DOMAIN_SLOW, N_BUFFERS, 1, FREQ_SINK_MODE_TRIGGERED);
-          d_demux_freq_10k = demux_ff::make(10000.0f , MIN_HISTORY * 10000.0f, WINDOW_SIZE_FREQ_DOMAIN_SLOW, 0);
+          d_demux_freq_10k = demux_ff::make(10000.0f, WINDOW_SIZE_FREQ_DOMAIN_SLOW, 0);
           // connect 10 kHz freq demux to STFT and then frequency-domain sink
           connect(d_agg10000, 0, d_demux_freq_10k, 0);
           connect(d_agg10000, 1, d_demux_freq_10k, 1);
