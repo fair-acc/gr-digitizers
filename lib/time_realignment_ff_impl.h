@@ -60,8 +60,6 @@ namespace gr {
 
      private:
 
-      int64_t get_timestamp_utc_ns();
-
       void check_pending_event_size();
 
       void update_pending_events();

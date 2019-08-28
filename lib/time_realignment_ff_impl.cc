@@ -209,7 +209,22 @@ namespace gr {
             int64_t delta_t = abs ( trigger_tag_data.timestamp - d_wr_events_read_iter->wr_trigger_stamp_utc );
             if(  delta_t > d_triggerstamp_matching_tolerance_ns )
             {
-                GR_LOG_WARN(d_logger, name() + ": WR Stamps was out of matching tolerance. Will be ignored");
+                GR_LOG_WARN(d_logger, name() + ": WR Stamps was out of matching tolerance by " + std::to_string(delta_t/1000)+ "µs. Will be ignored");
+                GR_LOG_WARN(d_logger, name() + ": trigger_tag_data.timestamp                  " + std::to_string(trigger_tag_data.timestamp / 1000000)  + "ms");
+                GR_LOG_WARN(d_logger, name() + ": d_wr_events_read_iter->wr_trigger_stamp_utc " + std::to_string(d_wr_events_read_iter->wr_trigger_stamp_utc /1000000) + "ms");
+
+//                {
+//                    time_t wrStampSeconds = trigger_tag_data.timestamp / 1000000000;
+//                    struct tm * timeinfo;
+//                    timeinfo = localtime (&wrStampSeconds);
+//                    printf ("trigger_tag_data.timestamp: %s", asctime(timeinfo));
+//                }
+//                {
+//                    time_t wrStampSeconds = d_wr_events_read_iter->wr_trigger_stamp_utc / 1000000000;
+//                    struct tm * timeinfo;
+//                    timeinfo = localtime (&wrStampSeconds);
+//                    printf ("d_wr_events_read_iter->wr_trigger_stamp_utc: %s", asctime(timeinfo));
+//                }
                 trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
                 d_wr_events_read_iter++;
                 if(d_wr_events_read_iter == d_wr_events.end())
