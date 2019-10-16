@@ -209,8 +209,9 @@ namespace gr {
             int64_t delta_t = abs ( trigger_tag_data.timestamp - d_wr_events_read_iter->wr_trigger_stamp_utc );
             if(  delta_t > d_triggerstamp_matching_tolerance_ns )
             {
-                GR_LOG_WARN(d_logger, "WR Stamps was out of matching tolerance. Will be ignored");
-                trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
+                // Clockmaster between may drift by several milliseconds .. so applying this logic would cause alot of log messages (to be fixed in master branch)
+                //GR_LOG_WARN(d_logger, "WR Stamps was out of matching tolerance. Will be ignored");
+                //trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
                 d_wr_events_read_iter++;
                 if(d_wr_events_read_iter == d_wr_events.end())
                     d_wr_events_read_iter = d_wr_events.begin();
