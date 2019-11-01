@@ -25,16 +25,11 @@ TARBALL_NAME=Digitizer-${VERSION}.tar
 mkdir -p ${INSTALL_DIR_LIB}
 mkdir -p ${INSTALL_DIR_BIN}
 
-if [ $VERSION = "master" ]
-    then
-        cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-*.master.so.0.0.0 ${INSTALL_DIR_LIB}
+#cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-*.master.so.0.0.0 ${INSTALL_DIR_LIB}
 
-    else
-        cp ${SCRIPTPATH}/build/lib/libgnuradio-digitizers-${VERSION}.master.so.0.0.0 ${INSTALL_DIR_LIB}
-fi
-
-cp ${SCRIPTPATH}/build/lib/test-digitizers ${INSTALL_DIR_BIN}
-cp ${SCRIPTPATH}/build/lib/test_digitizers_test.sh ${INSTALL_DIR_BIN}
+cp /common/usr/cscofe/opt/gr-digitizer/${VERSION}/lib64/libgnuradio-digitizers-*.so.0.0.0 ${INSTALL_DIR_LIB}
+#cp ${SCRIPTPATH}/build/lib/test-digitizers ${INSTALL_DIR_BIN}          ## needed for what ?
+#cp ${SCRIPTPATH}/build/lib/test_digitizers_test.sh ${INSTALL_DIR_BIN}  ## needed for what ?
 
 tar cfv ${TARBALL_NAME} ${FOLDER_TO_TAR}
 rm -rf ${FOLDER_TO_TAR}
