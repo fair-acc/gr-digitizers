@@ -90,10 +90,13 @@ namespace gr {
         auto source = gr::blocks::vector_source_f::make(data);
         auto pm = post_mortem_sink::make("test", "unit", DEFAULT_SAMP_RATE, data_size * 2);
         auto sink = gr::blocks::vector_sink_f::make();
+        auto sink_errs = gr::blocks::vector_sink_f::make();
 
-        // connect and run
+        // connect data and error and than run
         top->connect(source, 0, pm, 0);
+        top->connect(source, 0, pm, 1);
         top->connect(pm, 0, sink, 0);
+        top->connect(pm, 1, sink_errs, 0);
         top->run();
 
         CPPUNIT_ASSERT_EQUAL(data_size, pm->nitems_read(0));
@@ -107,7 +110,6 @@ namespace gr {
         CPPUNIT_ASSERT_EQUAL(data_size, retval);
         assert_equal(data, values);
         assert_equal(data, sink->data());
-        assert_zero(errors, data_size);
         CPPUNIT_ASSERT_EQUAL(int64_t{-1}, info.timestamp);
     }
 

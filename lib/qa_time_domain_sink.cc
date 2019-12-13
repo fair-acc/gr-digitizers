@@ -142,15 +142,15 @@ namespace gr {
         auto source = gr::blocks::vector_source_f::make(data);
         auto sink = time_domain_sink::make("test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, chunk_size);
 
-        // connect and run
+        // connect data and error and run
         top->connect(source, 0, sink, 0);
+        top->connect(source, 0, sink, 1);
         sink->set_callback(copy_data_callback, &test);
         top->run();
 
         CPPUNIT_ASSERT_EQUAL(chunk_size, test.values_size_);
         test.check_values_equal(data);
         CPPUNIT_ASSERT(test.tags_per_call_[0].empty());
-        CPPUNIT_ASSERT_EQUAL(test.errors_size_, size_t(0));
     }
 
     /*
@@ -200,8 +200,9 @@ namespace gr {
 
         auto sink = time_domain_sink::make("no_callback_test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, data_size);
 
-        // connect and run
+        // connect data and error and run
         top->connect(source, 0, sink, 0);
+        top->connect(source, 0, sink, 1);
         top->run();
 
         // Just run it without failure
@@ -248,8 +249,9 @@ namespace gr {
 
         sink->set_callback(copy_data_callback, &test);
 
-        // connect and run
+        // connect data and error and run
         top->connect(source, 0, sink, 0);
+        top->connect(source, 0, sink, 1);
         top->run();
 
         CPPUNIT_ASSERT_EQUAL(test.callback_calls_, number_of_chunks);
