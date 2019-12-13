@@ -61,7 +61,8 @@ namespace gr {
       d_not_found_stamp_utc = 0;
       set_triggerstamp_matching_tolerance(triggerstamp_matching_tolerance);
       set_max_buffer_time(max_buffer_time);
-      set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+      // FIXME: Currently time_realiggment does nothing !!
+      set_tag_propagation_policy(tag_propagation_policy_t::TPP_ONE_TO_ONE);
     }
 
     /*
@@ -110,62 +111,63 @@ namespace gr {
          gr_vector_const_void_star &input_items,
          gr_vector_void_star &output_items)
     {
+// FIXME: Currently time_realiggment does nothing !!
       uint64_t ninput_items_min;
-      uint64_t sample_to_start_processing_abs;
+ //     uint64_t sample_to_start_processing_abs;
       bool errors_connected = input_items.size() > 1 && output_items.size() > 1;
       if (errors_connected)
       {
           ninput_items_min = std::min( ninput_items[0], ninput_items[1]);
-          sample_to_start_processing_abs = std::min( nitems_read(0), nitems_read(1));
+//          sample_to_start_processing_abs = std::min( nitems_read(0), nitems_read(1));
       }
       else
       {
           ninput_items_min = ninput_items[0];
-          sample_to_start_processing_abs = nitems_read(0);
+ //         sample_to_start_processing_abs = nitems_read(0);
       }
       int64_t copy_data_len = std::min( int(noutput_items), int(ninput_items_min));
-      uint64_t max_sample_to_end_processing_abs = sample_to_start_processing_abs + copy_data_len;
-
-      // Get all the tags, for performance reason a member variable is used
-      std::vector<gr::tag_t> tags;
-      get_tags_in_range(tags, 0, sample_to_start_processing_abs, max_sample_to_end_processing_abs);
-      for (auto tag: tags)
-      {
-        if (tag.key == pmt::string_to_symbol(trigger_tag_name))
-        {
-          //std::cout << "trigger tag incoming. Offset: " << tag.offset << std::endl;
-          //std::cout << "Trigger Tag incoming : " << get_timestamp_milli_utc() << std::endl;
-          trigger_t trigger_tag_data = decode_trigger_tag(tag);
-          //std::cout << "Trigger Stamp        : " << trigger_tag_data.timestamp / 1000000 <<  " ms" << std::endl;
-          if(fill_wr_stamp(trigger_tag_data))
-          {
-              add_item_tag(0, make_trigger_tag(trigger_tag_data,tag.offset)); // add tag to port 0
-          }
-          else
-          {
-              //std::cout << "tag.offset: " << tag.offset << std::endl;
-              //std::cout << "sample_to_start_processing_abs: " << sample_to_start_processing_abs << std::endl;
-
-              // No WR-Stamp availabe yet. Keep data on the input queue and leave. Better luck on next iteration
-              copy_data_len = tag.offset - sample_to_start_processing_abs - 1; // only copy all data before the tag
-              if(copy_data_len <= 0) // nothing more to do
-              {
-                  consume(0, 0);
-                  if (errors_connected)
-                      consume(1, 0);
-                  return 0;
-              }
-              //std::cout << "tag.offset: " << tag.offset << std::endl;
-              //std::cout << "sample_to_start_processing_abs: " << sample_to_start_processing_abs << std::endl;
-              break;
-          }
-        }
-        else
-        {
-            //std::cout << "unknown tag incoming" << std::endl;
-          add_item_tag(0, tag); // forward all others by default
-        }
-      }
+//      uint64_t max_sample_to_end_processing_abs = sample_to_start_processing_abs + copy_data_len;
+//
+//      // Get all the tags, for performance reason a member variable is used
+//      std::vector<gr::tag_t> tags;
+//      get_tags_in_range(tags, 0, sample_to_start_processing_abs, max_sample_to_end_processing_abs);
+//      for (auto tag: tags)
+//      {
+//        if (tag.key == pmt::string_to_symbol(trigger_tag_name))
+//        {
+//          //std::cout << "trigger tag incoming. Offset: " << tag.offset << std::endl;
+//          //std::cout << "Trigger Tag incoming : " << get_timestamp_milli_utc() << std::endl;
+//          trigger_t trigger_tag_data = decode_trigger_tag(tag);
+//          //std::cout << "Trigger Stamp        : " << trigger_tag_data.timestamp / 1000000 <<  " ms" << std::endl;
+//          if(fill_wr_stamp(trigger_tag_data))
+//          {
+//              add_item_tag(0, make_trigger_tag(trigger_tag_data,tag.offset)); // add tag to port 0
+//          }
+//          else
+//          {
+//              //std::cout << "tag.offset: " << tag.offset << std::endl;
+//              //std::cout << "sample_to_start_processing_abs: " << sample_to_start_processing_abs << std::endl;
+//
+//              // No WR-Stamp availabe yet. Keep data on the input queue and leave. Better luck on next iteration
+//              copy_data_len = tag.offset - sample_to_start_processing_abs - 1; // only copy all data before the tag
+//              if(copy_data_len <= 0) // nothing more to do
+//              {
+//                  consume(0, 0);
+//                  if (errors_connected)
+//                      consume(1, 0);
+//                  return 0;
+//              }
+//              //std::cout << "tag.offset: " << tag.offset << std::endl;
+//              //std::cout << "sample_to_start_processing_abs: " << sample_to_start_processing_abs << std::endl;
+//              break;
+//          }
+//        }
+//        else
+//        {
+//            //std::cout << "unknown tag incoming" << std::endl;
+//          add_item_tag(0, tag); // forward all others by default
+//        }
+//      }
 
       //std::cout << "memcpy: copy_data_len: " << copy_data_len << std::endl;
 

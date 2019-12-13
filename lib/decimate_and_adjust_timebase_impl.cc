@@ -71,10 +71,6 @@ namespace gr {
             if(tag.key == pmt::string_to_symbol(trigger_tag_name))
             {
                 trigger_t trigger_tag_data = decode_trigger_tag(tag);
-
-                int64_t tag_sample_offset_rel = tag.offset - ( nitems_read(0) + i_in );
-                trigger_tag_data.offset_to_sample_ns += d_sample_sample_distance_input_ns * tag_sample_offset_rel;
-
                 add_item_tag(0, make_trigger_tag(trigger_tag_data, nitems_written(0) + i_out));
                 //std::cout << "trigger tag added" << std::endl;
             }

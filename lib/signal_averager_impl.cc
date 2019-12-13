@@ -78,9 +78,6 @@ namespace gr {
 //                  std::cout << "nitems_read(port): " << nitems_read(port) << std::endl;
 //                  std::cout << "i_in: " << i_in << std::endl;
 //                  std::cout << "decim/2: " << decim/2 << std::endl;
-                  int64_t tag_sample_offset_rel = tag.offset - (nitems_read(port) + i_in + decim/2 );
-//                  std::cout << "tag_sample_offset_rel: " << tag_sample_offset_rel << std::endl;
-                  trigger_tag_data.offset_to_sample_ns += d_sample_sample_distance_input_ns * tag_sample_offset_rel;
 
                   add_item_tag(port, make_trigger_tag(trigger_tag_data, nitems_written(port) + i_out));
                   //std::cout << "trigger tag added" << std::endl;

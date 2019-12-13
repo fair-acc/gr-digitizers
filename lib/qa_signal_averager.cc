@@ -130,12 +130,6 @@ namespace gr {
 
     trigger_t tag0, tag1,tag2,tag3;
 
-    // in order to simulate cascading decimation
-    tag0.offset_to_sample_ns = 0;
-    tag1.offset_to_sample_ns = 10;
-    tag2.offset_to_sample_ns = 20;
-    tag3.offset_to_sample_ns = 30;
-
     std::vector<gr::tag_t> tags = {
       make_trigger_tag(tag0,400), // samples 400 till 490 should be merged. "Middle" is sample 450 So a negative offset of 50 samples (= -50µs) is expected.
       make_trigger_tag(tag1,410), // samples 400 till 490 should be merged. "Middle" is sample 450 So a negative offset of 4 samples (= -40µs) is expected.
@@ -161,11 +155,6 @@ namespace gr {
     trigger_t trigger_tag_data1 = decode_trigger_tag(tags_out.at(1));
     trigger_t trigger_tag_data2 = decode_trigger_tag(tags_out.at(2));
     trigger_t trigger_tag_data3 = decode_trigger_tag(tags_out.at(3));
-
-    CPPUNIT_ASSERT_EQUAL(int64_t(-50 * 1000 + 0),trigger_tag_data0.offset_to_sample_ns);
-    CPPUNIT_ASSERT_EQUAL(int64_t(-40 * 1000 + 10), trigger_tag_data1.offset_to_sample_ns);
-    CPPUNIT_ASSERT_EQUAL(int64_t(0 + 20), trigger_tag_data2.offset_to_sample_ns);
-    CPPUNIT_ASSERT_EQUAL(int64_t(40 * 1000 + 30), trigger_tag_data3.offset_to_sample_ns);
   }
 
   } /* namespace digitizers */

@@ -18,11 +18,14 @@ namespace gr {
     {
     public:
       CPPUNIT_TEST_SUITE(qa_time_realignment_ff);
-      CPPUNIT_TEST(default_case);
-      CPPUNIT_TEST(no_timing);
-      CPPUNIT_TEST(no_wr_events);
-      CPPUNIT_TEST(out_of_tolerance_1);
-      CPPUNIT_TEST(out_of_tolerance_2);
+
+// Currently time-realligment doe nothing
+// Possibly we "entomb" it at some later point
+//      CPPUNIT_TEST(default_case);
+//      CPPUNIT_TEST(no_timing);
+//      CPPUNIT_TEST(no_wr_events);
+//      CPPUNIT_TEST(out_of_tolerance_1);
+//      CPPUNIT_TEST(out_of_tolerance_2);
 
       CPPUNIT_TEST_SUITE_END();
 
