@@ -869,6 +869,7 @@ namespace gr {
        // Attach trigger info to value outputs and to all ports
        auto vec_idx = 0;
        uint32_t pre_trigger_samples_with_downsampling = get_pre_trigger_samples_with_downsampling();
+       double time_per_sample_with_downsampling_ns = d_time_per_sample_ns * d_downsampling_factor;
 
        for (auto i = 0; i < d_ai_channels && vec_idx < (int)output_items.size(); i++, vec_idx+=2)
        {
@@ -879,7 +880,7 @@ namespace gr {
 
          auto trigger_tag = make_trigger_tag(
                  d_downsampling_factor,
-                 timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * d_time_per_sample_ns),
+                 timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * time_per_sample_with_downsampling_ns),
                  nitems_written(0) + pre_trigger_samples_with_downsampling,
                  d_status[i]);
 
@@ -888,7 +889,7 @@ namespace gr {
 
        auto trigger_tag = make_trigger_tag(
              d_downsampling_factor,
-             timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * d_time_per_sample_ns),
+             timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling * time_per_sample_with_downsampling_ns),
              nitems_written(0) + pre_trigger_samples_with_downsampling,
              0 ); //status
 
@@ -1191,19 +1192,21 @@ namespace gr {
          trigger_offsets = find_digital_triggers(buffer, d_buffer_size, mask);
      }
 
+     double time_per_sample_with_downsampling_ns = d_time_per_sample_ns * d_downsampling_factor;
+
      // Attach trigger tags
      for (auto trigger_offset : trigger_offsets)
      {
 //       std::cout << "trigger_offset       : " << trigger_offset<<std::endl;
 //       std::cout << "noutput_items        : " << noutput_items <<std::endl;
-//       std::cout << "d_time_per_sample_ns : " << d_time_per_sample_ns<<std::endl;
+//       std::cout << "d_time_per_sample_ns : " << time_per_sample_with_downsampling_ns <<std::endl;
 //       std::cout << "timestamp_now_ns_utc : " << timestamp_now_ns_utc<<std::endl;
-//       std::cout << "diff[ns]             : " << uint64_t((noutput_items - trigger_offset ) * d_time_per_sample_ns )<<std::endl;
-//       std::cout << "result               : " << uint64_t(timestamp_now_ns_utc - (( noutput_items - trigger_offset ) * d_time_per_sample_ns )) <<std::endl;
+//       std::cout << "diff[ns]             : " << uint64_t((noutput_items - trigger_offset ) * time_per_sample_with_downsampling_ns )<<std::endl;
+//       std::cout << "result               : " << uint64_t(timestamp_now_ns_utc - (( noutput_items - trigger_offset ) * time_per_sample_with_downsampling_ns )) <<std::endl;
 //       std::cout << "tag offset: " << nitems_written(0) + trigger_offset <<std::endl;
        auto trigger_tag = make_trigger_tag(
              d_downsampling_factor,
-             timestamp_now_ns_utc - uint64_t(( noutput_items - trigger_offset ) * d_time_per_sample_ns ),
+             timestamp_now_ns_utc - uint64_t(( noutput_items - trigger_offset ) * time_per_sample_with_downsampling_ns ),
              nitems_written(0) + trigger_offset,
              0 ); //status
 
