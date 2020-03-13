@@ -160,6 +160,11 @@ namespace gr {
           }
 
           actual_freq = 1000000000.0 / time_interval_ns;
+          if (actual_freq != desired_freq)
+          {
+              std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
+              exit(1);
+          }
           return timebase_estimate;
         }
 
@@ -201,6 +206,11 @@ namespace gr {
 
       // update actual update rate and return timebase number
       actual_freq = 1000000000.0 / timebases[distance];
+      if (actual_freq != desired_freq)
+      {
+          std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
+          exit(1);
+      }
       return start_timebase + distance;
     }
 
