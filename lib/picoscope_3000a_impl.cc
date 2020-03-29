@@ -240,6 +240,12 @@ namespace gr {
         actual_freq = 1000.0 / static_cast<double>(unint.interval);
       }
 
+      if (actual_freq != desired_freq)
+      {
+          std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
+          exit(1);
+      }
+
       return unint;
     }
 
