@@ -101,9 +101,9 @@ namespace gr {
       {
           // create sinks -- FESA will see updates @10Hz at most.
           //                                  signal-name,           unit name, sample rate, sink mode                ,dataPackageSize
-          d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     TIME_SINK_MODE_STREAMING, 1000            );
-          d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,      TIME_SINK_MODE_STREAMING,  100            );
-          d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,       TIME_SINK_MODE_STREAMING,   10            );
+          d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     TIME_SINK_MODE_STREAMING,  400            );
+          d_snk1000  = time_domain_sink::make(signal_name+"@1kHz",   unit_name, 1000.0,      TIME_SINK_MODE_STREAMING,   40            );
+          d_snk100   = time_domain_sink::make(signal_name+"@100Hz",  unit_name, 100.0,       TIME_SINK_MODE_STREAMING,    4            );
           d_snk25    = time_domain_sink::make(signal_name+"@25Hz",   unit_name, 25.0,        TIME_SINK_MODE_STREAMING,    1            );
           d_snk10    = time_domain_sink::make(signal_name+"@10Hz",   unit_name, 10.0,        TIME_SINK_MODE_STREAMING,    1            );
           d_snk1     = time_domain_sink::make(signal_name+"@1Hz",    unit_name, 1,           TIME_SINK_MODE_STREAMING,    1            );
