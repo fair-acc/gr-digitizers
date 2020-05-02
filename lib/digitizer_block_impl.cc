@@ -128,15 +128,6 @@ namespace gr {
      assert(d_ai_channels < MAX_SUPPORTED_AI_CHANNELS);
      assert(d_ports < MAX_SUPPORTED_PORTS);
 
-     // The rate in which this block is called is given by the number of free slots on its output buffer.
-     // TODO: Either calculate a meaningfull value, or make it variable / controllable in the flowgraph.  It should depend on the sample_rate
-     // Buffering of 0.5s seems to be sufficient to get this block called often enough
-     // TODO: Find another way to guarantee that we dont loose samples
-
-     // TODO:
-     // The required set_min_output_buffer strongly depends e.g. on the max_buffer_time of the time_realligment block
-     // So possibly a good idea to provide "max buffer time" as well on this block
-     set_min_output_buffer(1000000);
    }
 
    digitizer_block_impl::~digitizer_block_impl()
