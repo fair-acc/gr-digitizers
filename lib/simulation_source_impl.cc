@@ -227,7 +227,7 @@ namespace gr {
         err_b[i] = 0.005;
       }
 
-      buffer->d_local_timestamp = get_timestamp_utc_ns();
+      buffer->d_local_timestamp = get_timestamp_nano_utc();
       buffer->d_status = std::vector<uint32_t> { 0, 0 };
 
       d_app_buffer.add_full_data_chunk(buffer);

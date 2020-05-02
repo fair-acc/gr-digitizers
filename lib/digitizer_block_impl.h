@@ -54,18 +54,6 @@ namespace gr {
    * Helpers and struct definitions
    **********************************************************************/
 
-   /*!
-    * \brief Returns nanoseconds since UNIX epoch.
-    */
-    inline int64_t
-    get_timestamp_utc_ns()
-    {
-      auto timepoint = boost::chrono::high_resolution_clock::now();
-      auto nanosecods_since_epoch= boost::chrono::duration_cast<boost::chrono::nanoseconds>(
-              timepoint.time_since_epoch());
-      return nanosecods_since_epoch.count();
-    }
-
     /*!
      * A helper struct for keeping track which samples have been already processes
      * in rapid block mode.
@@ -223,7 +211,7 @@ namespace gr {
 
       void push(std::error_code ec)
       {
-        push(error_info_t{get_timestamp_utc_ns(), ec});
+        push(error_info_t{get_timestamp_nano_utc(), ec});
       }
 
       // Note circular buffer is cleared at get

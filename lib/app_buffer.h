@@ -65,7 +65,7 @@ namespace gr {
 
         std::vector<uint8_t> d_data;
         std::vector<uint32_t> d_status;  // see channel_status_t enum definition
-        int64_t d_local_timestamp;       // UTC nanoseconds
+        uint64_t d_local_timestamp;       // UTC nanoseconds
         int d_lost_count;                // number of buffers lost
       };
 

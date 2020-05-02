@@ -9,6 +9,7 @@
 #endif
 
 #include "digitizer_block_impl.h"
+#include "utils.h"
 #include <thread>
 #include <chrono>
 #include <boost/lexical_cast.hpp>
@@ -60,18 +61,6 @@ namespace gr {
    /**********************************************************************
     * Structors
     *********************************************************************/
-
-   uint64_t get_timestamp_nano_utc()
-   {
-       timespec start_time;
-       clock_gettime(CLOCK_REALTIME, &start_time);
-       return (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
-   }
-
-   uint64_t get_timestamp_milli_utc()
-   {
-       return uint64_t( get_timestamp_nano_utc() / 1000000 );
-   }
 
    // Relevant for debugging. If gnuradio calls this block not often enough, we will get "WARN: XX digitizer data buffers lost"
    // The rate in which this block is called is given by the number of free slots on its output buffer. So we choose a big value via set_min_output_buffer
@@ -1109,13 +1098,11 @@ namespace gr {
 
      // This will write samples directly into GR output buffers
      std::vector<uint32_t> channel_status;
-     timespec start_time;
-     clock_gettime(CLOCK_REALTIME, &start_time);
-     uint64_t timestamp_now_ns_utc = (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
-     int64_t local_timstamp;
-     auto lost_count = d_app_buffer.get_data_chunk(ai_buffers, ai_error_buffers, port_buffers, channel_status, local_timstamp);
+
+     int64_t timestamp_now_ns_utc;
+     auto lost_count = d_app_buffer.get_data_chunk(ai_buffers, ai_error_buffers, port_buffers, channel_status, timestamp_now_ns_utc);
      //std::cout << "timestamp_now_ns_utc: " << int64_t(timestamp_now_ns_utc) << std::endl;
-     //std::cout << "local_timstamp      : " << local_timstamp << std::endl;
+
      if (lost_count) {
        GR_LOG_WARN(d_logger, std::to_string(lost_count) + " digitizer data buffers lost");
      }
@@ -1123,7 +1110,7 @@ namespace gr {
      // Compile acquisition info tag
      acq_info_t tag_info{};
 
-     tag_info.timestamp = get_timestamp_utc_ns();
+     tag_info.timestamp = timestamp_now_ns_utc;
      tag_info.timebase = get_timebase_with_downsampling();
      tag_info.user_delay = 0.0;
      tag_info.actual_delay = 0.0;
@@ -1191,9 +1178,11 @@ namespace gr {
 //       std::cout << "trigger_offset       : " << trigger_offset<<std::endl;
 //       std::cout << "noutput_items        : " << noutput_items <<std::endl;
 //       std::cout << "d_time_per_sample_ns : " << time_per_sample_with_downsampling_ns <<std::endl;
-//       std::cout << "timestamp_now_ns_utc : " << timestamp_now_ns_utc<<std::endl;
+//       std::cout << "local_timstamp        : " << local_timstamp << std::endl;
+//       std::cout << "another now           :" << now << std::endl;
+//       std::cout << "timestamp_now_ns_utc  : " << timestamp_now_ns_utc<<std::endl;
 //       std::cout << "diff[ns]             : " << uint64_t((noutput_items - trigger_offset ) * time_per_sample_with_downsampling_ns )<<std::endl;
-//       std::cout << "result               : " << uint64_t(timestamp_now_ns_utc - (( noutput_items - trigger_offset ) * time_per_sample_with_downsampling_ns )) <<std::endl;
+//       std::cout << "stamp added           : " << uint64_t(timestamp_now_ns_utc - (( noutput_items - trigger_offset ) * time_per_sample_with_downsampling_ns )) <<std::endl;
 //       std::cout << "tag offset: " << nitems_written(0) + trigger_offset <<std::endl;
        auto trigger_tag = make_trigger_tag(
              d_downsampling_factor,

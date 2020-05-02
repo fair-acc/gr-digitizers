@@ -64,7 +64,7 @@ namespace gr {
     picoscope_impl::streaming_callback(int32_t nr_samples, uint32_t start_index, int16_t overflow)
     {
       // trigger timestamp
-      auto local_timestamp = get_timestamp_utc_ns();
+       uint64_t local_timestamp = get_timestamp_nano_utc();
 
       // According to well informed sources, the driver indicates the buffer overrun by setting
       // all the bits of the overflow argument to true.

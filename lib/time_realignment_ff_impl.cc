@@ -18,20 +18,6 @@
 #define NUMBER_OF_PENDING_TRIGGERS_WARNING 100
 #define NUMBER_OF_PENDING_TRIGGERS_ERROR 1000
 
-namespace {
-uint64_t get_timestamp_nano_utc()
-{
-    timespec start_time;
-    clock_gettime(CLOCK_REALTIME, &start_time);
-    return (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
-}
-
-uint64_t get_timestamp_milli_utc()
-{
-    return uint64_t( get_timestamp_nano_utc() / 1000000 );
-}
-
-}
 
 namespace gr {
   namespace digitizers {

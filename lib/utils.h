@@ -26,6 +26,18 @@
 namespace gr {
   namespace digitizers {
 
+    inline uint64_t get_timestamp_nano_utc()
+    {
+      timespec start_time;
+      clock_gettime(CLOCK_REALTIME, &start_time);
+      return (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
+    }
+
+    inline uint64_t get_timestamp_milli_utc()
+    {
+      return uint64_t( get_timestamp_nano_utc() / 1000000 );
+    }
+
     /*!
      * \brief Converts an integer value to hex (string).
      */
