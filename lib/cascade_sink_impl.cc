@@ -234,15 +234,15 @@ namespace gr {
 
       if(triggered_sinks_enabled)
       {
-//          // triggered demux blocks (triggered time-domain acquisition)
-//          d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TIME_SINK_MODE_TRIGGERED, pre_trigger_window_raw, post_trigger_window_raw);
-//          d_demux_raw  = demux_ff::make(post_trigger_window_raw, pre_trigger_window_raw);
-//          // input to first raw-data-rate demux
-//          connect(self(), 0, d_demux_raw, 0); // 0: values port
-//          connect(self(), 1, d_demux_raw, 1); // 1: errors
-//          // connect raw-data-rate demux to triggered time-domain sink
-//          connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
-//          connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
+          // triggered demux blocks (triggered time-domain acquisition)
+          d_snk_raw_triggered  = time_domain_sink::make(signal_name+":Triggered@Raw",  unit_name, samp_rate, TIME_SINK_MODE_TRIGGERED, pre_trigger_window_raw, post_trigger_window_raw);
+          d_demux_raw  = demux_ff::make(post_trigger_window_raw, pre_trigger_window_raw);
+          // input to first raw-data-rate demux
+          connect(self(), 0, d_demux_raw, 0); // 0: values port
+          connect(self(), 1, d_demux_raw, 1); // 1: errors
+          // connect raw-data-rate demux to triggered time-domain sink
+          connect(d_demux_raw, 0, d_snk_raw_triggered, 0); // 0: values port
+          connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
           double samp_rate_factor = 10000.0 / samp_rate; // to cover the same time interval, just with a lower resoltution
           d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0, TIME_SINK_MODE_TRIGGERED, samp_rate_factor * pre_trigger_window_raw, samp_rate_factor * post_trigger_window_raw);
@@ -386,7 +386,7 @@ namespace gr {
         }
         else if(d_triggered_sinks_enabled)
         {
-            return {d_snk10000_triggered};
+            return {d_snk_raw_triggered, d_snk10000_triggered};
             //return {d_snk10000_triggered};
         }
         else
