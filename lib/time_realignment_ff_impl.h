@@ -28,7 +28,7 @@ namespace gr {
 
       // maximum time incoming triggers and samples will be buffered before forwarding them without realligment of the trigger tags
       int64_t d_max_buffer_time_ns;
-      int64_t d_not_found_stamp_utc;
+      uint64_t d_not_found_stamp_utc;
 
       // cyclic buffer of white rabbit events
       std::vector< wr_event_t > d_wr_events;

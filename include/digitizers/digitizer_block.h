@@ -57,7 +57,7 @@ namespace gr {
      */
     struct DIGITIZERS_API error_info_t
     {
-      int64_t timestamp;
+      uint64_t timestamp;
       std::error_code code;
     };
 

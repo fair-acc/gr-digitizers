@@ -68,14 +68,6 @@ namespace gr {
         }
     }
 
-    static void
-    assert_zero(float *returned, size_t size)
-    {
-        for (size_t i=0; i<size; i++) {
-            CPPUNIT_ASSERT_EQUAL(float{0.0}, returned[i]);
-        }
-    }
-
     static const float DEFAULT_SAMP_RATE = 100000.0f;
 
     void

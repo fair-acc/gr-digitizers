@@ -103,11 +103,6 @@ namespace gr {
       auto tags_out = snk->tags();
       CPPUNIT_ASSERT_EQUAL(size_t(4), tags_out.size());
       CPPUNIT_ASSERT_EQUAL(data.size(),size_t(size/decim));
-
-      trigger_t trigger_tag_data0 = decode_trigger_tag(tags_out.at(0));
-      trigger_t trigger_tag_data1 = decode_trigger_tag(tags_out.at(1));
-      trigger_t trigger_tag_data2 = decode_trigger_tag(tags_out.at(2));
-      trigger_t trigger_tag_data3 = decode_trigger_tag(tags_out.at(3));
     }
 
   } /* namespace digitizers */
