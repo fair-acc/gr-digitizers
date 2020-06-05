@@ -88,17 +88,14 @@ namespace gr {
               d_postmortem_sinks_enabled(postmortem_sinks_enabled),
               d_interlocks_enabled(interlocks_enabled)
     {
-
       //std::vector<int> allowed_cores = { 2,3,4 };
       //set_processor_affinity(allowed_cores);
-
       int samp_rate_to_ten_kilo = static_cast<int>(samp_rate / 10000.0);
-      if(samp_rate != (samp_rate_to_ten_kilo * 10000.0)) {
-        GR_LOG_ALERT(logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
-      }
-
       if(streaming_sinks_enabled)
       {
+          if(samp_rate != (samp_rate_to_ten_kilo * 10000.0))
+            GR_LOG_ALERT(logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
+
           // create sinks -- FESA will see updates @10Hz at most.
           //                                  signal-name,           unit name, sample rate, sink mode                ,dataPackageSize
           d_snk10000 = time_domain_sink::make(signal_name+"@10kHz",  unit_name, 10000.0,     TIME_SINK_MODE_STREAMING,  400            );
@@ -245,8 +242,14 @@ namespace gr {
           connect(d_demux_raw, 1, d_snk_raw_triggered, 1); // 1: errors
 
           double samp_rate_factor = 10000.0 / samp_rate; // to cover the same time interval, just with a lower resoltution
-          d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0, TIME_SINK_MODE_TRIGGERED, samp_rate_factor * pre_trigger_window_raw, samp_rate_factor * post_trigger_window_raw);
-          d_demux_10000 = demux_ff::make(samp_rate_factor * post_trigger_window_raw, samp_rate_factor * pre_trigger_window_raw);
+          unsigned pre_trigger_window = samp_rate_factor * pre_trigger_window_raw;
+          unsigned post_trigger_window = samp_rate_factor * post_trigger_window_raw;
+          if (post_trigger_window_raw > 0 && post_trigger_window < 1)
+            GR_LOG_ALERT(logger, "Samp_rate to low or post_trigger_window to small ... less than 1 sample for :Triggered@10kHz Sink");
+          if (pre_trigger_window_raw > 0 && pre_trigger_window < 1)
+            GR_LOG_ALERT(logger, "Samp_rate to low or pre_trigger_window to small ... less than 1 sample for :Triggered@10kHz Sink");
+          d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0, TIME_SINK_MODE_TRIGGERED, pre_trigger_window, post_trigger_window);
+          d_demux_10000 = demux_ff::make(post_trigger_window, pre_trigger_window);
           // first 10 kHz block to 10 kHz demux
           connect(d_agg10000, 0, d_demux_10000, 0);
           connect(d_agg10000, 1, d_demux_10000, 1);
