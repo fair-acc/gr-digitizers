@@ -38,6 +38,9 @@ namespace gr {
 
       ~time_domain_sink_impl();
 
+      // To simplify data copy in chunks
+      void set_output_multiple_(size_t multiple);
+
       int work(int noutput_items, gr_vector_const_void_star &input_items, gr_vector_void_star &output_items) override;
 
       void set_callback(cb_copy_data_t cb_copy_data, void* userdata) override;

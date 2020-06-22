@@ -29,6 +29,28 @@ namespace gr {
       return gnuradio::get_initial_sptr(new time_domain_sink_impl(name, unit, samp_rate, mode, pre_samples, post_samples));
     }
 
+    void time_domain_sink_impl::set_output_multiple_(size_t multiple)
+    {
+        if(multiple == 0)
+        {
+          std::ostringstream message;
+          message << "Exception in:" << __FILE__ << ":" << __LINE__ << " Channel: " << d_metadata.name << " cannot set output_multiple to 0";
+          throw std::runtime_error(message.str());
+        }
+
+        try
+        {
+            // To simplify data copy in chunks
+            set_output_multiple(multiple);
+        }
+        catch (std::exception ex)
+        {
+            std::ostringstream message;
+            message << "Exception in:" << __FILE__ << ":" << __LINE__ << " Channel: " << d_metadata.name << " Error: " << ex.what();
+            throw std::runtime_error(message.str());
+        }
+    }
+
     time_domain_sink_impl::time_domain_sink_impl(std::string name, std::string unit, float samp_rate, time_sink_mode_t mode, size_t output_package_size)
       : gr::sync_block("time_domain_sink",
               gr::io_signature::make(2, 2, sizeof(float)),
@@ -45,7 +67,7 @@ namespace gr {
       d_metadata.unit = unit;
 
       // To simplify data copy in chunks
-      set_output_multiple(d_output_package_size);
+      set_output_multiple_(d_output_package_size);
 
       // This is a sink
       set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
@@ -67,7 +89,7 @@ namespace gr {
       d_metadata.unit = unit;
 
       // To simplify data copy in chunks
-      set_output_multiple(d_output_package_size);
+      set_output_multiple_(d_output_package_size);
 
       // This is a sink
       set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
