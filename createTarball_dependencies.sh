@@ -79,6 +79,7 @@ cp ${SYSTEM_LIB_DIR}/libbz2.so.1 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libvolk.so.1.4 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libfftw3f.so.3 ${INSTALL_DIR_LIB64}
 cp ${SYSTEM_LIB_DIR}/libfftw3f_threads.so.3 ${INSTALL_DIR_LIB64}
+cp ${SYSTEM_LIB_DIR}/libpng15.so.15 ${INSTALL_DIR_LIB64}
 
 # system - needed by "test-digitizers"
 cp ${SYSTEM_LIB_DIR}/libcppunit-1.12.so.1 ${INSTALL_DIR_LIB64}
@@ -126,7 +127,7 @@ cp /usr/bin/fftw-wisdom ${INSTALL_DIR_BIN}
 
 tar cfv ${TARBALL_NAME} ${FOLDER_TO_TAR}
 rm -rf ${FOLDER_TO_TAR}
-gzip ${TARBALL_NAME}
+gzip -f ${TARBALL_NAME}
 
 cp ${TARBALL_NAME}.gz ${INSTALL_PATH_ASL}
 echo "${TARBALL_NAME}.gz copied to ${INSTALL_PATH_ASL}"
