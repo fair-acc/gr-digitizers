@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e
 
+if [ $# -eq 0 ]
+  then
+    echo "Error: No arguments supplied. First and only argument has to be Version (or "master")"
+    exit 1
+fi
+if [ $# -ne 1 ]
+  then
+    echo "Error: Wrong number arguments supplied. First and only argument has to be Version (or "master")"
+    exit 1
+fi
+
 FOLDER_TO_TAR=usr
 INSTALL_DIR_LIB=${FOLDER_TO_TAR}/lib
 INSTALL_DIR_LIB64=${FOLDER_TO_TAR}/lib64
@@ -15,7 +26,13 @@ ROOT_ETC_DIR=/opt/cern/root/etc
 GNURADIO_VERSION=3.7.12.0
 BOOST_VERSION=1.53.0
 
-TARBALL_NAME=DigitizerDependencies-master.tar
+VERSION=$1
+MAJOR=`echo $VERSION | cut -d. -f1`
+MINOR=`echo $VERSION | cut -d. -f2`
+TARBALL_NAME=DigitizerDependencies-${VERSION}.tar
+TARBALL_NAME_MAJOR=DigitizerDependencies-${MAJOR}.tar
+TARBALL_NAME_MAJOR_MINOR=DigitizerDependencies-${MAJOR}.${MINOR}.tar
+INSTALL_PATH_ASL=/common/export/fesa/arch/x86_64
 
 mkdir -p ${INSTALL_DIR_LIB64}
 mkdir -p ${INSTALL_DIR_LIB}
@@ -111,4 +128,16 @@ tar cfv ${TARBALL_NAME} ${FOLDER_TO_TAR}
 rm -rf ${FOLDER_TO_TAR}
 gzip ${TARBALL_NAME}
 
-cp ${TARBALL_NAME}.gz /common/export/fesa/arch/x86_64
+cp ${TARBALL_NAME}.gz ${INSTALL_PATH_ASL}
+echo "${TARBALL_NAME}.gz copied to ${INSTALL_PATH_ASL}"
+
+if [ -L ${INSTALL_PATH_ASL}/${TARBALL_NAME_MAJOR}.gz ]; then
+  unlink ${INSTALL_PATH_ASL}/${TARBALL_NAME_MAJOR}.gz
+fi
+if [ -L ${INSTALL_PATH_ASL}/${TARBALL_NAME_MAJOR_MINOR}.gz ]; then
+  unlink ${INSTALL_PATH_ASL}/${TARBALL_NAME_MAJOR_MINOR}.gz
+fi
+
+ln -s ${TARBALL_NAME_MAJOR_MINOR}.gz ${INSTALL_PATH_ASL}/${TARBALL_NAME_MAJOR}.gz
+ln -s ${TARBALL_NAME}.gz ${INSTALL_PATH_ASL}/${TARBALL_NAME_MAJOR_MINOR}.gz
+echo "symlinks updated"
