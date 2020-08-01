@@ -163,7 +163,7 @@ namespace gr {
           if (actual_freq != desired_freq)
           {
               std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-              exit(1);
+              //exit(1); FIXME: SInce for ps6000 calculations are plain wrong, we will just go ahead and only show the message
           }
           return timebase_estimate;
         }
@@ -206,10 +206,13 @@ namespace gr {
 
       // update actual update rate and return timebase number
       actual_freq = 1000000000.0 / timebases[distance];
+
+      // FIXME: calculations here are not precise, for some reason ps6000GetTimebase2 returns
+      // 6.4000000000000003553 as obtained_time_interval_ns for 156.25MS
       if (actual_freq != desired_freq)
       {
           std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-          exit(1);
+          //exit(1); FIXME: SInce for ps6000 calculations are plain wrong, we will just go ahead and only show the message
       }
       return start_timebase + distance;
     }
@@ -244,7 +247,7 @@ namespace gr {
       if (actual_freq != desired_freq)
       {
           std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-          exit(1);
+          //exit(1); FIXME: SInce for ps6000 calculations are plain wrong, we will just go ahead and only show the message
       }
 
       return unint;
