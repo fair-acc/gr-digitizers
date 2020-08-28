@@ -126,6 +126,22 @@ namespace gr {
       }
     }
 
+    void
+    validate_desired_actual_frequency_ps4000(double desired_freq, double actual_freq)
+    {
+        // In order to prevent exceptions/exit due to rounding errors, we dont directly compare actual_freq to desired_freq,
+        // but instead allow a difference up to 0.001%
+        double max_diff_percentage = 0.001;
+        double diff_percent = (actual_freq - desired_freq) * 100 / desired_freq;
+        if (abs(diff_percent) > max_diff_percentage)
+        {
+            std::ostringstream message;
+            message << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
+            GR_LOG_ERROR(d_logger, message);
+            throw std::runtime_error(message.str());
+        }
+    }
+
     /*!
      * Note this function has to be called after the call to the ps3000aSetChannel function, that is
      * just befor the arm!!!
@@ -165,11 +181,7 @@ namespace gr {
           }
 
           actual_freq = 1000000000.0 / time_interval_ns;
-          if (actual_freq != desired_freq)
-          {
-              std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-              exit(1);
-          }
+          validate_desired_actual_frequency_ps4000(desired_freq, actual_freq);
           return timebase_estimate;
         }
       }
@@ -209,13 +221,8 @@ namespace gr {
       assert (distance < search_space);
 
       // update actual update rate and return timebase number
-      actual_freq = 1000000000.0 / timebases[distance];
-
-      if (actual_freq != desired_freq)
-      {
-          std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-          exit(1);
-      }
+      actual_freq = 1000000000.0 / double(timebases[distance]);
+      validate_desired_actual_frequency_ps4000(desired_freq, actual_freq);
       return start_timebase + distance;
     }
 
@@ -245,13 +252,7 @@ namespace gr {
         unint.interval = static_cast<uint32_t>(1000.0 / desired_freq);
         actual_freq = 1000.0 / static_cast<double>(unint.interval);
       }
-
-      if (actual_freq != desired_freq)
-      {
-          std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-          exit(1);
-      }
-
+      validate_desired_actual_frequency_ps4000(desired_freq, actual_freq);
       return unint;
     }
 
@@ -534,6 +535,10 @@ namespace gr {
           }
         }
       }
+
+      // In order to validate desired frequency before startup
+      double actual_freq;
+      convert_frequency_to_ps4000a_timebase(d_samp_rate, actual_freq);
 
       return std::error_code{};
     }

@@ -121,6 +121,23 @@ namespace gr {
       }
     }
 
+    void
+    validate_desired_actual_frequency_ps6000(double desired_freq, double actual_freq)
+    {
+        // In order to prevent exceptions/exit due to rounding errors, we dont directly compare actual_freq to desired_freq,
+        // but instead allow a difference up to 0.001%
+        double max_diff_percentage = 0.001;
+        double diff_percent = (actual_freq - desired_freq) * 100 / desired_freq;
+
+        if (abs(diff_percent) > max_diff_percentage)
+        {
+            std::ostringstream message;
+            message << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
+            GR_LOG_ERROR(d_logger, message);
+            throw std::runtime_error(message.str());
+        }
+    }
+
     /*!
      * Note this function has to be called after the call to the ps6000SetChannel function, that is
      * just before the arm!!!
@@ -159,12 +176,8 @@ namespace gr {
               throw std::runtime_error(message.str());
           }
 
-          actual_freq = 1000000000.0 / time_interval_ns;
-          if (actual_freq != desired_freq)
-          {
-              std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-              //exit(1); FIXME: SInce for ps6000 calculations are plain wrong, we will just go ahead and only show the message
-          }
+          actual_freq = 1000000000.0 / double(time_interval_ns);
+          validate_desired_actual_frequency_ps6000(desired_freq, actual_freq);
           return timebase_estimate;
         }
 
@@ -205,15 +218,8 @@ namespace gr {
       assert (distance < search_space);
 
       // update actual update rate and return timebase number
-      actual_freq = 1000000000.0 / timebases[distance];
-
-      // FIXME: calculations here are not precise, for some reason ps6000GetTimebase2 returns
-      // 6.4000000000000003553 as obtained_time_interval_ns for 156.25MS
-      if (actual_freq != desired_freq)
-      {
-          std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-          //exit(1); FIXME: SInce for ps6000 calculations are plain wrong, we will just go ahead and only show the message
-      }
+      actual_freq = 1000000000.0 / double(timebases[distance]);
+      validate_desired_actual_frequency_ps6000(desired_freq, actual_freq);
       return start_timebase + distance;
     }
 
@@ -244,12 +250,7 @@ namespace gr {
         actual_freq = 1000.0 / static_cast<double>(unint.interval);
       }
 
-      if (actual_freq != desired_freq)
-      {
-          std::cout  << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-          //exit(1); FIXME: SInce for ps6000 calculations are plain wrong, we will just go ahead and only show the message
-      }
-
+      validate_desired_actual_frequency_ps6000(desired_freq, actual_freq);
       return unint;
     }
 
@@ -588,6 +589,10 @@ namespace gr {
           return make_pico_6000_error_code(status);
         }
       }
+
+      // In order to validate desired frequency before startup
+      double actual_freq;
+      convert_frequency_to_ps6000_timebase(d_samp_rate, actual_freq);
 
       return std::error_code{};
     }
