@@ -1039,7 +1039,7 @@ namespace gr {
 // used for debugging in order to see how often gr calls this block
 //     uint64_t now = get_timestamp_milli_utc();
 //     if( now - last_call_utc > 20)
-//       std::cout << "now - last_call_utc: " << now - last_call_utc << std::endl;
+//       std::cout << "now - last_call_utc [ms]: " << now - last_call_utc << std::endl;
 //     last_call_utc = get_timestamp_milli_utc();
 
      assert(noutput_items >= static_cast<int>(d_buffer_size));
@@ -1104,7 +1104,7 @@ namespace gr {
      //std::cout << "timestamp_now_ns_utc: " << int64_t(timestamp_now_ns_utc) << std::endl;
 
      if (lost_count) {
-       GR_LOG_WARN(d_logger, std::to_string(lost_count) + " digitizer data buffers lost");
+       GR_LOG_ERROR(d_logger, std::to_string(lost_count) + " digitizer data buffers lost. Usually the cause of this error is, that the work method of the Digitizer block is called with low frequency because of a 'traffic jam' in the flowgraph. (One of the next blocks cannot process incoming data in time)");
      }
 
      // Compile acquisition info tag
