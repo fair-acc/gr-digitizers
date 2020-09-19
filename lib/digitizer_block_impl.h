@@ -496,6 +496,7 @@ namespace gr {
 
       // Flags
       bool d_initialized;
+      bool d_closed;
       bool d_armed;
       bool d_auto_arm;
       bool d_trigger_once;

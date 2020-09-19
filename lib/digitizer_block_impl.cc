@@ -92,6 +92,7 @@ namespace gr {
        d_was_last_callback_timestamp_taken(false),
        d_estimated_sample_rate(AVERAGE_HISTORY_LENGTH),
        d_initialized(false),
+       d_closed(false),
        d_armed(false),
        d_auto_arm(auto_arm),
        d_trigger_once(false),
@@ -660,7 +661,7 @@ namespace gr {
        add_error_code(ec);
        GR_LOG_WARN(d_logger, "close failed: " + to_string(ec));
      }
-
+     d_closed = true;
      d_initialized = false;
    }
 
@@ -938,6 +939,10 @@ namespace gr {
            GR_LOG_ERROR(d_logger, "poll failed with: " + to_string(ec));
            // Notify work method about the error... Work method will re-arm the driver if required.
            d_app_buffer.notify_data_ready(ec);
+
+           // Prevent error-flood on close
+           if(d_closed)
+               return;
          }
 
          // Watchdog is "turned on" only some time after the acquisition start for two reasons:
