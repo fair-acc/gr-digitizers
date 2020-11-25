@@ -35,8 +35,8 @@ namespace gr {
       d_ranges.push_back(range_t(20));
 
       // Enable all channels and ports
-      set_aichan("A", true, 20.0, false);
-      set_aichan("B", true, 20.0, false);
+      set_aichan("A", true, 20.0, AC_1M);
+      set_aichan("B", true, 20.0, AC_1M);
       set_diport("port0", true, 0.7);
     }
 

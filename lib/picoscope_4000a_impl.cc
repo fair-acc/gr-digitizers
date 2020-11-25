@@ -65,6 +65,21 @@ namespace gr {
     * Converters - helper functions
     *********************************************************************/
 
+    static PS4000A_COUPLING
+    convert_to_ps4000a_coupling(coupling_t coupling)
+    {
+      if (coupling == AC_1M)
+          return PS4000A_AC;
+      else if (coupling == DC_1M)
+          return PS4000A_DC;
+      else
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": unsupported coupling mode:" << coupling;
+          throw std::runtime_error(message.str());
+      }
+    }
+
     static PS4000A_RANGE
     convert_to_ps4000a_range(float desired_range, float &actual_range)
     {
@@ -492,13 +507,13 @@ namespace gr {
       // configure analog channels
       for (auto i = 0; i < d_ai_channels; i++) {
         auto enabled = d_channel_settings[i].enabled;
-        auto dc_coupled = d_channel_settings[i].dc_coupled ? PS4000A_DC : PS4000A_AC;
+        auto coupling = convert_to_ps4000a_coupling(d_channel_settings[i].coupling);
         auto range = convert_to_ps4000a_range(
                 d_channel_settings[i].range, d_channel_settings[i].actual_range);
         auto offset = d_channel_settings[i].offset;
 
         status = ps4000aSetChannel(d_handle,
-                static_cast<PS4000A_CHANNEL>(i), enabled, dc_coupled, static_cast<PICO_CONNECT_PROBE_RANGE>(range), offset);
+                static_cast<PS4000A_CHANNEL>(i), enabled, coupling, static_cast<PICO_CONNECT_PROBE_RANGE>(range), offset);
         if(status != PICO_OK) {
           GR_LOG_ERROR(d_logger, "ps3000aSetChannel (chan " + std::to_string(i)
               + "): " + ps4000a_get_error_message(status));

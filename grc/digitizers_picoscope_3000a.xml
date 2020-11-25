@@ -236,12 +236,12 @@ else:
         <type>bool</type>
         <hide>#if $enable_ai_a() then 'part' else 'all'#</hide>
         <option>
-            <name>DC</name>
-            <key>True</key>
+            <name>DC_1M</name>
+            <key>DC_1M</key>
         </option>
         <option>
-            <name>AC</name>
-            <key>False</key>
+            <name>AC_1M</name>
+            <key>AC_1M</key>
         </option>
         <tab>Analog Config</tab>											 
     </param>
@@ -325,12 +325,12 @@ else:
         <type>bool</type>
         <hide>#if $enable_ai_b() then 'part' else 'all'#</hide>
         <option>
-            <name>DC</name>
-            <key>True</key>
+            <name>DC_1M</name>
+            <key>DC_1M</key>
         </option>
         <option>
-            <name>AC</name>
-            <key>False</key>
+            <name>AC_1M</name>
+            <key>AC_1M</key>
         </option>
         <tab>Analog Config</tab>											 
     </param>
@@ -414,12 +414,12 @@ else:
         <type>bool</type>
         <hide>#if $enable_ai_c() then 'part' else 'all'#</hide>
         <option>
-            <name>DC</name>
-            <key>True</key>
+            <name>DC_1M</name>
+            <key>DC_1M</key>
         </option>
         <option>
-            <name>AC</name>
-            <key>False</key>
+            <name>AC_1M</name>
+            <key>AC_1M</key>
         </option>
         <tab>Analog Config</tab>											 
     </param>
@@ -503,12 +503,12 @@ else:
         <type>bool</type>
         <hide>#if $enable_ai_d() then 'part' else 'all'#</hide>
         <option>
-            <name>DC</name>
-            <key>True</key>
+            <name>DC_1M</name>
+            <key>DC_1M</key>
         </option>
         <option>
-            <name>AC</name>
-            <key>False</key>
+            <name>AC_1M</name>
+            <key>AC_1M</key>
         </option>
         <tab>Analog Config</tab>											 
     </param>

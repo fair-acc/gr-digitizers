@@ -28,6 +28,17 @@ namespace gr {
     };
 
     /*!
+     * \brief An enum representing coupling mode
+     * \ingroup digitizers
+     */
+    enum DIGITIZERS_API coupling_t
+    {
+      DC_1M,  /* DC, 1 MOhm */
+      AC_1M,  /* AC, 1 MOhm */
+      DC_50R, /* DC, 50 Ohm */
+    };
+
+    /*!
      * \brief Specifies a trigger mechanism
      * \ingroup digitizers
      */
@@ -216,10 +227,10 @@ namespace gr {
        * \param id Channel name e.g. "A", "B", "C", "D", ...
        * \param enabled Set desired state. Enabled or disabled channel
        * \param range desired voltage range in Volts
-       * \param dc_coupling the coupling type
+       * \param dc_coupling the coupling type (AC 1M / DC 1M / DC 50R)
        * \param range_offset desired voltage offset in Volts
        */
-      virtual void set_aichan(const std::string &id, bool enabled, double range, bool dc_coupling, double range_offset = 0) = 0;
+      virtual void set_aichan(const std::string &id, bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
 
       /*!
        * \brief Configure an AI channel with user defined range and offset.

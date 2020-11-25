@@ -126,14 +126,14 @@ namespace gr {
           actual_range(2.0),
           offset(0.0),
           enabled(false),
-          dc_coupled(false)
+          coupling(AC_1M)
       {}
 
       float range;
       float actual_range;
       float offset;
       bool enabled;
-      bool dc_coupled;
+      coupling_t coupling;
     };
 
     struct port_setting_t
@@ -273,7 +273,7 @@ namespace gr {
 
       void set_downsampling(downsampling_mode_t mode, int downsample_factor) override;
 
-      void set_aichan(const std::string &id, bool enabled, double range, bool dc_coupling, double range_offset = 0) override;
+      void set_aichan(const std::string &id, bool enabled, double range, coupling_t coupling, double range_offset = 0) override;
 
       /*!
        * \brief Returns number of enabled analog channels.

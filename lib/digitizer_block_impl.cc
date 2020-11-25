@@ -435,13 +435,13 @@ namespace gr {
    }
 
    void
-   digitizer_block_impl::set_aichan(const std::string &id, bool enabled, double range, bool dc_coupling, double range_offset)
+   digitizer_block_impl::set_aichan(const std::string &id, bool enabled, double range, coupling_t coupling, double range_offset)
    {
      auto idx = convert_to_aichan_idx(id);
      d_channel_settings[idx].range = range;
      d_channel_settings[idx].offset = range_offset;
      d_channel_settings[idx].enabled = enabled;
-     d_channel_settings[idx].dc_coupled = dc_coupling;
+     d_channel_settings[idx].coupling = coupling;
    }
 
    int

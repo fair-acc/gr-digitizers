@@ -20,10 +20,10 @@ void wire_rapid_block()
 
     auto ps = picoscope_3000a::make("", true);
 
-    ps->set_aichan("A", true, 5.0, false);
-    ps->set_aichan("B", true, 5.0, false);
-    ps->set_aichan("C", true, 5.0, false);
-    ps->set_aichan("D", true, 5.0, false);
+    ps->set_aichan("A", true, 5.0, AC_1M);
+    ps->set_aichan("B", true, 5.0, AC_1M);
+    ps->set_aichan("C", true, 5.0, AC_1M);
+    ps->set_aichan("D", true, 5.0, AC_1M);
     ps->set_diport("port0", true, 3.0);
     ps->set_diport("port1", true, 3.0);
 
@@ -67,10 +67,10 @@ void wire_streaming()
 
     auto ps = picoscope_3000a::make("", true);
 
-    ps->set_aichan("A", true, 5.0, false);
-    ps->set_aichan("B", true, 5.0, false);
-    ps->set_aichan("C", true, 5.0, false);
-    ps->set_aichan("D", true, 5.0, false);
+    ps->set_aichan("A", true, 5.0, AC_1M);
+    ps->set_aichan("B", true, 5.0, AC_1M);
+    ps->set_aichan("C", true, 5.0, AC_1M);
+    ps->set_aichan("D", true, 5.0, AC_1M);
     ps->set_diport("port0", true, 1.5);
     ps->set_diport("port1", true, 1.5);
 

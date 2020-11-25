@@ -56,7 +56,7 @@ namespace gr {
       auto top = gr::make_top_block("basics");
 
       auto ps = picoscope_3000a::make("", true);
-      ps->set_aichan("A", true, 5.0, false);
+      ps->set_aichan("A", true, 5.0, AC_1M);
       ps->set_samp_rate(10000.0);
       ps->set_samples(33, 1000);
       ps->set_rapid_block(1);
@@ -94,10 +94,10 @@ namespace gr {
 
       auto ps = picoscope_3000a::make("", true);
 
-      ps->set_aichan("A", true, 5.0, false);
-      ps->set_aichan("B", true, 5.0, false);
-      ps->set_aichan("C", true, 5.0, false);
-      ps->set_aichan("D", true, 5.0, false);
+      ps->set_aichan("A", true, 5.0, AC_1M);
+      ps->set_aichan("B", true, 5.0, AC_1M);
+      ps->set_aichan("C", true, 5.0, AC_1M);
+      ps->set_aichan("D", true, 5.0, AC_1M);
       ps->set_diport("port0", true, 3.0);
       ps->set_diport("port1", true, 3.0);
 
@@ -143,7 +143,7 @@ namespace gr {
       auto top = gr::make_top_block("continuous");
 
       auto ps = picoscope_3000a::make("", true);
-      ps->set_aichan("A", true, 5.0, false);
+      ps->set_aichan("A", true, 5.0, AC_1M);
       ps->set_samp_rate(10000.0); // 10kHz
       ps->set_samples(0, 1000);
       ps->set_rapid_block(1);
@@ -178,7 +178,7 @@ namespace gr {
       auto top = gr::make_top_block("downsampling");
 
       auto ps = picoscope_3000a::make("", true);
-      ps->set_aichan("A", true, 5.0, false);
+      ps->set_aichan("A", true, 5.0, AC_1M);
       ps->set_samp_rate(10000.0);
       ps->set_samples(200, 1000);
       ps->set_downsampling(downsampling_mode_t::DOWNSAMPLING_MODE_DECIMATE, 4);
@@ -204,10 +204,10 @@ namespace gr {
 
         auto ps = picoscope_3000a::make("", true);
 
-        ps->set_aichan("A", true, 5.0, false);
-        ps->set_aichan("B", true, 5.0, false);
-        ps->set_aichan("C", true, 5.0, false);
-        ps->set_aichan("D", true, 5.0, false);
+        ps->set_aichan("A", true, 5.0, AC_1M);
+        ps->set_aichan("B", true, 5.0, AC_1M);
+        ps->set_aichan("C", true, 5.0, AC_1M);
+        ps->set_aichan("D", true, 5.0, AC_1M);
         ps->set_diport("port0", true, 3.0);
         ps->set_diport("port1", true, 3.0);
 
@@ -269,7 +269,7 @@ namespace gr {
 
       auto samp_rate = 10000.0;
       auto ps = picoscope_3000a::make("", true);
-      ps->set_aichan("A", true, 5.0, false);
+      ps->set_aichan("A", true, 5.0, AC_1M);
       ps->set_samp_rate(samp_rate);
       ps->set_samples(200, 1000);
       ps->set_rapid_block(1);
@@ -311,7 +311,7 @@ namespace gr {
 
       auto samp_rate = 10000.0;
       auto ps = picoscope_3000a::make("", true);
-      ps->set_aichan("A", true, 5.0, false);
+      ps->set_aichan("A", true, 5.0, AC_1M);
       ps->set_diport("port0", true, 1.5);
       ps->set_samp_rate(samp_rate);
       ps->set_samples(200, 1000);
@@ -353,7 +353,7 @@ namespace gr {
       auto top = gr::make_top_block("streaming_basic");
       auto ps = picoscope_3000a::make("", true);
 
-      ps->set_aichan("A", true, 5.0, false);
+      ps->set_aichan("A", true, 5.0, AC_1M);
       ps->set_samp_rate(10000.0);
       ps->set_buffer_size(100000);
       ps->set_streaming(0.00001);

@@ -68,6 +68,23 @@ namespace gr {
     * Converters - helper functions
     *********************************************************************/
 
+    static PS6000_COUPLING
+    convert_to_ps6000_coupling(coupling_t coupling)
+    {
+      if (coupling == AC_1M)
+          return PS6000_AC;
+      else if (coupling == DC_1M)
+          return PS6000_DC_1M;
+      else if (coupling == DC_50R)
+          return PS6000_DC_50R;
+      else
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": unsupported coupling mode:" << coupling;
+          throw std::runtime_error(message.str());
+      }
+    }
+
     static PS6000_RANGE
     convert_to_ps6000_range(float desired_range, float &actual_range)
     {
@@ -541,13 +558,13 @@ namespace gr {
       // configure analog channels
       for (auto i = 0; i < d_ai_channels; i++) {
         auto enabled = d_channel_settings[i].enabled;
-        auto dc_coupled = d_channel_settings[i].dc_coupled ? PS6000_DC_1M : PS6000_AC;
+        auto coupling = convert_to_ps6000_coupling(d_channel_settings[i].coupling);
         auto range = convert_to_ps6000_range(
                 d_channel_settings[i].range, d_channel_settings[i].actual_range);
         auto offset = d_channel_settings[i].offset;
 
         status = ps6000SetChannel(d_handle,
-                static_cast<PS6000_CHANNEL>(i), enabled, dc_coupled, range, offset, PS6000_BW_FULL);
+                static_cast<PS6000_CHANNEL>(i), enabled, coupling, range, offset, PS6000_BW_FULL);
         if(status != PICO_OK) {
           GR_LOG_ERROR(d_logger, "ps6000SetChannel (chan " + std::to_string(i)
               + "): " + ps6000_get_error_message(status));
