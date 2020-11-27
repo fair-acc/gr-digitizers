@@ -69,8 +69,15 @@ namespace gr {
     *********************************************************************/
 
     static PS6000_COUPLING
-    convert_to_ps6000_coupling(coupling_t coupling)
+    convert_to_ps6000_coupling(coupling_t coupling, float desired_range)
     {
+      if (desired_range >= 10.0 && coupling == DC_50R)
+      {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Ranges 10V and 20V are only supported for 1M Ohm coupling";
+          throw std::runtime_error(message.str());
+      }
+
       if (coupling == AC_1M)
           return PS6000_AC;
       else if (coupling == DC_1M)
@@ -558,7 +565,7 @@ namespace gr {
       // configure analog channels
       for (auto i = 0; i < d_ai_channels; i++) {
         auto enabled = d_channel_settings[i].enabled;
-        auto coupling = convert_to_ps6000_coupling(d_channel_settings[i].coupling);
+        auto coupling = convert_to_ps6000_coupling(d_channel_settings[i].coupling, d_channel_settings[i].range);
         auto range = convert_to_ps6000_range(
                 d_channel_settings[i].range, d_channel_settings[i].actual_range);
         auto offset = d_channel_settings[i].offset;
