@@ -93,56 +93,38 @@ namespace gr {
     }
 
     static PS6000_RANGE
-    convert_to_ps6000_range(float desired_range, float &actual_range)
+    convert_to_ps6000_range(float range)
     {
-      if (desired_range <= 0.01){
-        actual_range = 0.01;
+      if (range == 0.01)
         return PS6000_10MV;
-      }
-      else if (desired_range <= 0.02){
-        actual_range = 0.05;
+      else if (range == 0.02)
         return PS6000_20MV;
-      }
-      else if (desired_range <= 0.05){
-        actual_range = 0.05;
+      else if (range == 0.05)
         return PS6000_50MV;
-      }
-      else if (desired_range <= 0.1) {
-        actual_range = 0.1;
+      else if (range == 0.1)
         return PS6000_100MV;
-      }
-      else if (desired_range <= 0.2) {
-        actual_range = 0.2;
+      else if (range == 0.2)
         return PS6000_200MV;
-      }
-      else if (desired_range <= 0.5) {
-        actual_range = 0.5;
+      else if (range == 0.5)
         return PS6000_500MV;
-      }
-      else if (desired_range <= 1.0) {
-        actual_range = 1.0;
+      else if (range == 1.0)
         return PS6000_1V;
-      }
-      else if (desired_range <= 2.0) {
-        actual_range = 2.0;
+      else if (range == 2.0)
         return PS6000_2V;
-      }
-      else if (desired_range <= 5.0) {
-        actual_range = 5.0;
+      else if (range == 5.0)
         return PS6000_5V;
-      }
-      else if (desired_range <= 10.0) {
-        actual_range = 10.0;
+      else if (range == 10.0)
         return PS6000_10V;
-      }
-      else if (desired_range <= 20.0) {
-        actual_range = 20.0;
+      else if (range == 20.0)
         return PS6000_20V;
-      }
-      else {
-        actual_range = 50.0;
+      else if (range == 50.0)
         return PS6000_50V;
-      }
+      else
+        {
+            std::ostringstream message;
+            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Range value not supported: " << range;
+            throw std::runtime_error(message.str());
+        }
     }
 
     void
@@ -566,8 +548,7 @@ namespace gr {
       for (auto i = 0; i < d_ai_channels; i++) {
         auto enabled = d_channel_settings[i].enabled;
         auto coupling = convert_to_ps6000_coupling(d_channel_settings[i].coupling, d_channel_settings[i].range);
-        auto range = convert_to_ps6000_range(
-                d_channel_settings[i].range, d_channel_settings[i].actual_range);
+        auto range = convert_to_ps6000_range(d_channel_settings[i].range);
         auto offset = d_channel_settings[i].offset;
 
         status = ps6000SetChannel(d_handle,
@@ -787,7 +768,7 @@ namespace gr {
           status[chan_idx] = 0;
         }
 
-        float voltage_multiplier = d_channel_settings[chan_idx].actual_range / (float)d_max_value;
+        float voltage_multiplier = d_channel_settings[chan_idx].range / (float)d_max_value;
 
         float *out = (float *) arrays.at(vec_index);
         float *err_out = (float *) arrays.at(vec_index + 1);
@@ -799,7 +780,7 @@ namespace gr {
             out[i] = (voltage_multiplier * (float)in[i]);
           }
           // According to specs
-          auto error_estimate = d_channel_settings[chan_idx].actual_range * 0.03;
+          auto error_estimate = d_channel_settings[chan_idx].range * 0.03;
           for (size_t i=0; i<length; i++) {
             err_out[i] = error_estimate;
           }
@@ -821,7 +802,7 @@ namespace gr {
             out[i] = (voltage_multiplier * (float)in[i]);
           }
           // According to specs
-          auto error_estimate_single = d_channel_settings[chan_idx].actual_range * 0.03;
+          auto error_estimate_single = d_channel_settings[chan_idx].range * 0.03;
           auto error_estimate = error_estimate_single / std::sqrt((float)d_downsampling_factor);
           for (size_t i = 0; i < length; i++) {
             err_out[i] = error_estimate;

@@ -121,7 +121,7 @@ namespace gr {
             continue;
           }
 
-          const float voltage_multiplier = (float)d_channel_settings[channel_idx].actual_range / (float)d_max_value;
+          const float voltage_multiplier = (float)d_channel_settings[channel_idx].range / (float)d_max_value;
 
           // Buffer organization:
           //   <chan 1 values> <chan 1 errors> <chan 2 values> <chan 2 errors> ...
@@ -146,7 +146,7 @@ namespace gr {
             //}
 
             // According to specs
-            const auto error_estimate = d_channel_settings[channel_idx].actual_range * d_vertical_precision;
+            const auto error_estimate = d_channel_settings[channel_idx].range * d_vertical_precision;
             for (uint32_t i = 0; i < samples_to_convert; i++) {
               tmp_buffer_errors[i] = error_estimate;
             }
@@ -171,7 +171,7 @@ namespace gr {
             //}
 
             // According to specs
-            const auto error_estimate_single = d_channel_settings[channel_idx].actual_range * d_vertical_precision;
+            const auto error_estimate_single = d_channel_settings[channel_idx].range * d_vertical_precision;
             const auto error_estimate = error_estimate_single / std::sqrt((float)d_downsampling_factor);
             for (uint32_t i = 0; i < samples_to_convert; i++) {
               tmp_buffer_errors[i] = error_estimate;

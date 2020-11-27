@@ -191,7 +191,7 @@ namespace gr {
      if (d_trigger_settings.direction == TRIGGER_DIRECTION_RISING
              || d_trigger_settings.direction == TRIGGER_DIRECTION_HIGH) {
 
-       float band = d_channel_settings[aichan].actual_range / 100.0;
+       float band = d_channel_settings[aichan].range / 100.0;
        float lo = static_cast<float>(d_trigger_settings.threshold - band);
 
        for(auto i = 0; i < nsamples; i++) {
@@ -207,7 +207,7 @@ namespace gr {
      else if (d_trigger_settings.direction == TRIGGER_DIRECTION_FALLING
              || d_trigger_settings.direction == TRIGGER_DIRECTION_LOW) {
 
-       float band = d_channel_settings[aichan].actual_range / 100.0;
+       float band = d_channel_settings[aichan].range / 100.0;
        float hi = static_cast<float>(d_trigger_settings.threshold + band);
 
        for(auto i = 0; i < nsamples; i++) {

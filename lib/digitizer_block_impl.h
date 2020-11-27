@@ -123,14 +123,12 @@ namespace gr {
     {
       channel_setting_t()
         : range(2.0),
-          actual_range(2.0),
           offset(0.0),
           enabled(false),
           coupling(AC_1M)
       {}
 
       float range;
-      float actual_range;
       float offset;
       bool enabled;
       coupling_t coupling;
