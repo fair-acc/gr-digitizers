@@ -33,9 +33,9 @@ namespace gr {
      */
     enum DIGITIZERS_API coupling_t
     {
-      DC_1M,  /* DC, 1 MOhm */
-      AC_1M,  /* AC, 1 MOhm */
-      DC_50R, /* DC, 50 Ohm */
+      DC_1M =  0,  /* DC, 1 MOhm */
+      AC_1M =  1,  /* AC, 1 MOhm */
+      DC_50R = 2,  /* DC, 50 Ohm */
     };
 
     /*!
