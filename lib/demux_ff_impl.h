@@ -18,19 +18,40 @@
 namespace gr {
   namespace digitizers {
 
+    enum class extractor_state
+    {
+      WaitTrigger,
+      CalcOutputRange,
+      WaitAllData,
+      OutputData
+    };
+
     class demux_ff_impl : public demux_ff
     {
      private:
-      unsigned d_window_size;
-      unsigned d_pre_trigger_window_size;
-      unsigned d_post_trigger_window_size;
+      unsigned d_my_history;
+      unsigned d_pre_trigger_window;
+      unsigned d_post_trigger_window;
+
+      // <tag, offset-relative-to-trigger-tag>
+      std::vector<std::pair<acq_info_t, int64_t> > d_acq_info_tags;
+
+      extractor_state d_state;
+
+      // absolute sample count where the last timing event appeared
+      trigger_t d_trigger_tag_data;
+      uint64_t d_last_trigger_offset;
+
+      uint64_t d_trigger_start_range;
+      uint64_t d_trigger_end_range;
 
      public:
       demux_ff_impl(unsigned post_trigger_window, unsigned pre_trigger_window);
       ~demux_ff_impl();
 
-      void forecast(int noutput_items, gr_vector_int &ninput_items_required) override;
+      bool start() override;
 
+//      void forecast(int noutput_items, gr_vector_int &ninput_items_required) override;
 
       int general_work(int noutput_items,
            gr_vector_int &ninput_items,
