@@ -3,12 +3,12 @@ set -e
 
 if [ $# -eq 0 ]
   then
-    echo "Error: No arguments supplied. First and only argument has to be Version (or "master")"
+    echo "Error: No arguments supplied. First and only argument has to be Version"
     exit 1
 fi
 if [ $# -ne 1 ]
   then
-    echo "Error: Wrong number arguments supplied. First and only argument has to be Version (or "master")"
+    echo "Error: Wrong number arguments supplied. First and only argument has to be Version"
     exit 1
 fi
 
