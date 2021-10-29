@@ -8,10 +8,11 @@
 #define INCLUDED_DIGITIZERS_PICOSCOPE_IMPL_H
 
 #include "digitizer_block_impl.h"
-#include "digitizers/range.h"
+
+#include <digitizers_39/range.h>
 
 namespace gr {
-  namespace digitizers {
+  namespace digitizers_39 {
 
     typedef boost::function<void(int32_t, uint32_t, int16_t)> streaming_callback_function_t;
 

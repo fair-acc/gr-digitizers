@@ -9,11 +9,12 @@
 #endif
 
 #include "picoscope_impl.h"
-#include <digitizers/status.h>
+#include <digitizers_39/status.h>
+
 #include <volk/volk.h>
 
 namespace gr {
-  namespace digitizers {
+  namespace digitizers_39 {
 
     /**********************************************************************
      * Structors

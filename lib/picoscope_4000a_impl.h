@@ -7,16 +7,21 @@
 #ifndef INCLUDED_DIGITIZERS_PICOSCOPE_4000A_IMPL_H
 #define INCLUDED_DIGITIZERS_PICOSCOPE_4000A_IMPL_H
 
-#include <digitizers/picoscope_4000a.h>
+#include <digitizers_39/picoscope_4000a.h>
+
 #include "picoscope_impl.h"
-#include "utils.h"
+#include <digitizers_39/utils.h>
 #include <system_error>
 
-#include <ps4000aApi.h>
-#include <PicoStatus.h>
+
+// Third party headers included via cmake
+//#include <ps4000aApi.h>
+#include </opt/picoscope/include/libps4000a/ps4000aApi.h>
+//#include <PicoStatus.h>
+#include </opt/picoscope/include/libps4000a/PicoStatus.h>
 
 namespace gr {
-  namespace digitizers {
+  namespace digitizers_39 {
 
     class picoscope_4000a_impl : public picoscope_impl, public picoscope_4000a
     {

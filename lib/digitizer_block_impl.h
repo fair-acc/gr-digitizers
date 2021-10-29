@@ -7,10 +7,10 @@
 #ifndef INCLUDED_DIGITIZERS_DIGITIZER_BLOCK_IMPL_H
 #define INCLUDED_DIGITIZERS_DIGITIZER_BLOCK_IMPL_H
 
-#include <digitizers/digitizer_block.h>
-#include "utils.h"
+#include <digitizers_39/digitizer_block.h>
+#include <digitizers_39/utils.h>
 #include "error.h"
-#include "app_buffer.h"
+#include <digitizers_39/app_buffer.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/chrono.hpp>
@@ -18,7 +18,7 @@
 
 
 namespace gr {
-  namespace digitizers {
+  namespace digitizers_39 {
 
     enum class digitizer_block_errc
     {
@@ -36,12 +36,12 @@ namespace gr {
 namespace std
 {
   template <>
-  struct is_error_code_enum<gr::digitizers::digitizer_block_errc> : true_type {};
+  struct is_error_code_enum<gr::digitizers_39::digitizer_block_errc> : true_type {};
 }
 
 
 namespace gr {
-  namespace digitizers {
+  namespace digitizers_39 {
 
   /**********************************************************************
    * Hardcoded values

@@ -1,0 +1,19 @@
+id: digitizers_39_picoscope_4000a
+label: picoscope 4000a
+category: '[Digitizers_39]'
+templates:
+  imports: import digitizers_39
+  make: digitizers_39.picoscope_4000a(${serial_number}, ${auto_arm})
+parameters:
+- id: serial_number
+  label: Serial_number
+  dtype: string
+- id: auto_arm
+  label: Auto_arm
+  dtype: raw
+outputs:
+- label: out
+  domain: stream
+  dtype: float
+  multiplicity: '16'
+file_format: 1

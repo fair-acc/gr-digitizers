@@ -1,10 +1,10 @@
 <block>
     <name>PicoScope 4000a</name>
     <key>digitizers_picoscope_4000a</key>
-    <category>[digitizers]</category>
+    <category>[digitizers_39]</category>
     <flags>throttle</flags>
-    <import>import digitizers</import>
-    <make>digitizers.picoscope_4000a($serial_number, True)
+    <import>import digitizers_39</import>
+    <make>digitizers_39.picoscope_4000a($serial_number, True)
 self.$(id).set_trigger_once($trigger_once)
 self.$(id).set_samp_rate($samp_rate)
 self.$(id).set_downsampling($downsampling_mode, $downsampling_factor)

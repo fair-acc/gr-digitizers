@@ -1,6 +1,6 @@
 /*!
- * \defgroup block GNU Radio DIGITIZERS C++ Signal Processing Blocks
- * \brief All C++ blocks that can be used from the DIGITIZERS GNU Radio
+ * \defgroup block GNU Radio DIGITIZERS_39 C++ Signal Processing Blocks
+ * \brief All C++ blocks that can be used from the DIGITIZERS_39 GNU Radio
  *        module are listed here or in the subcategories below.
  *
  */

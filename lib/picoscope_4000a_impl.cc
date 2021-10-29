@@ -8,10 +8,12 @@
 #include "config.h"
 #endif
 
-#include <digitizers/status.h>
 #include "picoscope_4000a_impl.h"
-#include "utils.h"
-#include "ps_4000a_defs.h"
+
+#include <digitizers_39/status.h>
+#include <digitizers_39/utils.h>
+#include <digitizers_39/ps_4000a_defs.h>
+
 #include <cstring>
 
 
@@ -49,7 +51,7 @@ namespace
 }
 
 namespace gr {
-  namespace digitizers {
+  namespace digitizers_39 {
 
     /*!
      * a structure used for streaming setup
@@ -130,7 +132,7 @@ namespace gr {
         {
             std::ostringstream message;
             message << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
-            GR_LOG_ERROR(d_logger, message);
+            ////GR_LOG_ERROR(this->d_logger, message);
             throw std::runtime_error(message.str());
         }
     }
@@ -162,8 +164,8 @@ namespace gr {
         auto status = ps4000aGetTimebase2(d_handle, 3 + i, 1024, &time_interval_ns_34[i], &dummy, 0);
         if(status != PICO_OK)
         {
-          GR_LOG_NOTICE(d_logger, "timebase cannot be obtained: " + ps4000a_get_error_message(status));
-          GR_LOG_NOTICE(d_logger, "    estimated timebase will be used...");
+          //GR_LOG_NOTICE(this->d_logger, "timebase cannot be obtained: " + ps4000a_get_error_message(status));
+          //GR_LOG_NOTICE(this->d_logger, "    estimated timebase will be used...");
 
           float time_interval_ns;
           status = ps4000aGetTimebase2(d_handle, timebase_estimate, 1024, &time_interval_ns, &dummy, 0);
@@ -447,7 +449,7 @@ namespace gr {
       }
 
       if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "open unit failed: " + ps4000a_get_error_message(status));
+        //GR_LOG_ERROR(this->d_logger, "open unit failed: " + ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
       }
 
@@ -455,7 +457,7 @@ namespace gr {
       status = ps4000aMaximumValue(d_handle, &d_max_value);
       if (status != PICO_OK) {
         ps4000aCloseUnit(d_handle);
-        GR_LOG_ERROR(d_logger, "ps4000aMaximumValue: " + ps4000a_get_error_message(status));
+        //GR_LOG_ERROR(this->d_logger, "ps4000aMaximumValue: " + ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
       }
 
@@ -470,14 +472,14 @@ namespace gr {
       int32_t max_samples;
       PICO_STATUS status = ps4000aMemorySegments(d_handle, d_nr_captures, &max_samples);
       if(status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aMemorySegments: " + ps4000a_get_error_message(status));
+        //GR_LOG_ERROR(this->d_logger, "ps4000aMemorySegments: " + ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
       }
 
       if (d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
         status = ps4000aSetNoOfCaptures(d_handle, d_nr_captures);
         if(status != PICO_OK) {
-          GR_LOG_ERROR(d_logger, "ps4000aSetNoOfCaptures: " + ps4000a_get_error_message(status));
+          //GR_LOG_ERROR(this->d_logger, "ps4000aSetNoOfCaptures: " + ps4000a_get_error_message(status));
           return make_pico_4000a_error_code(status);
         }
       }
@@ -492,8 +494,8 @@ namespace gr {
         status = ps4000aSetChannel(d_handle,
                 static_cast<PS4000A_CHANNEL>(i), enabled, coupling, static_cast<PICO_CONNECT_PROBE_RANGE>(range), offset);
         if(status != PICO_OK) {
-          GR_LOG_ERROR(d_logger, "ps3000aSetChannel (chan " + std::to_string(i)
-              + "): " + ps4000a_get_error_message(status));
+          //GR_LOG_ERROR(this->d_logger, "ps3000aSetChannel (chan " + std::to_string(i)
+              //+ "): " + ps4000a_get_error_message(status));
           return make_pico_4000a_error_code(status);
         }
       }
@@ -510,7 +512,7 @@ namespace gr {
               0,     // delay
              -1);    // auto trigger
         if(status != PICO_OK) {
-          GR_LOG_ERROR(d_logger, "ps4000aSetSimpleTrigger: " + ps4000a_get_error_message(status));
+          //GR_LOG_ERROR(this->d_logger, "ps4000aSetSimpleTrigger: " + ps4000a_get_error_message(status));
           return make_pico_4000a_error_code(status);
         }
       }
@@ -522,7 +524,7 @@ namespace gr {
           cond.condition =PS4000A_CONDITION_DONT_CARE;
           status = ps4000aSetTriggerChannelConditions(d_handle, &cond, 1, PS4000A_CLEAR);
           if(status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps4000aSetTriggerChannelConditionsV2: " + ps4000a_get_error_message(status));
+            //GR_LOG_ERROR(this->d_logger, "ps4000aSetTriggerChannelConditionsV2: " + ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
           }
         }
@@ -563,7 +565,7 @@ namespace gr {
                   (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
                   this);
           if(status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps4000aRunBlock: " + ps4000a_get_error_message(status));
+            //GR_LOG_ERROR(this->d_logger, "ps4000aRunBlock: " + ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
           }
       }
@@ -584,7 +586,7 @@ namespace gr {
             d_driver_buffer_size);
 
         if(status != PICO_OK) {
-          GR_LOG_ERROR(d_logger, "ps4000aRunStreaming: " + ps4000a_get_error_message(status));
+          //GR_LOG_ERROR(this->d_logger, "ps4000aRunStreaming: " + ps4000a_get_error_message(status));
           return make_pico_4000a_error_code(status);
         }
       }
@@ -597,7 +599,7 @@ namespace gr {
     {
       auto status = ps4000aStop(d_handle);
       if(status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aStop: " + ps4000a_get_error_message(status));
+        //GR_LOG_ERROR(this->d_logger, "ps4000aStop: " + ps4000a_get_error_message(status));
       }
 
       return make_pico_4000a_error_code(status);
@@ -612,7 +614,7 @@ namespace gr {
 
       auto status = ps4000aCloseUnit(d_handle);
       if(status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aCloseUnit: " + ps4000a_get_error_message(status));
+        //GR_LOG_ERROR(this->d_logger, "ps4000aCloseUnit: " + ps4000a_get_error_message(status));
       }
 
       d_handle = -1;
@@ -653,8 +655,8 @@ namespace gr {
         }
 
         if(status != PICO_OK) {
-          GR_LOG_ERROR(d_logger, "ps4000aSetDataBuffer (chan " + std::to_string(aichan)
-                + "): " + ps4000a_get_error_message(status));
+          //GR_LOG_ERROR(this->d_logger, "ps4000aSetDataBuffer (chan " + std::to_string(aichan)
+              //  + "): " + ps4000a_get_error_message(status));
           return make_pico_4000a_error_code(status);
         }
       }
@@ -679,7 +681,7 @@ namespace gr {
           block_number,
           &d_overflow);
       if(status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aGetValues: " + ps4000a_get_error_message(status));
+        //GR_LOG_ERROR(this->d_logger, "ps4000aGetValues: " + ps4000a_get_error_message(status));
       }
 
       return make_pico_4000a_error_code(status);

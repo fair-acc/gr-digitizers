@@ -9,15 +9,15 @@
 #endif
 
 #include "digitizer_block_impl.h"
-#include "utils.h"
+#include <digitizers_39/utils.h>
 #include <thread>
 #include <chrono>
 #include <boost/lexical_cast.hpp>
-#include <digitizers/tags.h>
+#include <digitizers_39/tags.h>
 #include <gnuradio/thread/thread.h> // set_name
 
 namespace gr {
-  namespace digitizers {
+  namespace digitizers_39 {
 
 
    /**********************************************************************
