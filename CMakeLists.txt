@@ -170,11 +170,11 @@ install(FILES cmake/Modules/digitizers_39Config.cmake
 # Find gnuradio build dependencies
 ########################################################################
 
-# set(PICOSCOPE_INCLUDE_DIR /opt/picoscope/include)
-# if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps4000a/ps4000aApi.h)
-#   message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
-# else()
-#   include_directories(${PICOSCOPE_INCLUDE_DIR}/libps4000a)
-# endif()
+set(PICOSCOPE_INCLUDE_DIR /opt/picoscope/include)
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
+  message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
+else()
+  include_directories(${PICOSCOPE_INCLUDE_DIR})
+endif()
 
 # ! OLD !

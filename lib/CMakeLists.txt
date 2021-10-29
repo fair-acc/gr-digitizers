@@ -15,9 +15,6 @@ list(APPEND digitizers_39_sources
     digitizer_block_impl.cc
     picoscope_impl.cc
     picoscope_4000a_impl.cc
-    /opt/picoscope/include/libps4000a/ps4000aApi.h 
-    /opt/picoscope/include/libps4000a/PicoStatus.h 
-    /opt/picoscope/include/libps4000a/PicoConnectProbes.h
 )
 
 set(digitizers_39_sources "${digitizers_39_sources}" PARENT_SCOPE)
@@ -25,8 +22,6 @@ if(NOT digitizers_39_sources)
     MESSAGE(STATUS "No C++ sources... skipping lib/")
     return()
 endif(NOT digitizers_39_sources)
-
-#set(PICOSCOPE_INCLUDE_SOURCES /opt/picoscope/include/libps4000a/ps4000aApi.h /opt/picoscope/include/libps4000a/PicoStatus.h /opt/picoscope/include/libps4000a/PicoConnectProbes.h)
 
 # MESSAGE(STATUS "Values:")
 # MESSAGE(STATUS ${PICOSCOPE_INCLUDE_SOURCES})
