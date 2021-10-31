@@ -151,7 +151,7 @@ namespace gr {
       // Note, for some devices, the above formula might be wrong! To overcome this limitation
       // we use the ps3000aGetTimebase2 function to find the closest possible timebase. The below
       // timebase estimate is therefore used as a fallback only.
-      auto time_interval_ns = 1000000000.0 / desired_freq;
+      float time_interval_ns = 1000000000.0 / desired_freq;
       uint32_t timebase_estimate = (static_cast<uint32_t>(time_interval_ns) / 8) + 2;
 
       // In order to cover for all possible 30000 series devices, we use ps3000aGetTimebase2
@@ -167,7 +167,7 @@ namespace gr {
           //GR_LOG_NOTICE(this->d_logger, "timebase cannot be obtained: " + ps4000a_get_error_message(status));
           //GR_LOG_NOTICE(this->d_logger, "    estimated timebase will be used...");
 
-          float time_interval_ns;
+          //float time_interval_ns = 1.0F;
           status = ps4000aGetTimebase2(d_handle, timebase_estimate, 1024, &time_interval_ns, &dummy, 0);
           if(status != PICO_OK) {
             std::ostringstream message;
@@ -196,7 +196,7 @@ namespace gr {
 
       for (auto i = 0; i < search_space; i++) {
 
-        float obtained_time_interval_ns;
+        float obtained_time_interval_ns = 0.0F;
         auto status = ps4000aGetTimebase2(d_handle, start_timebase + i, 1024, &obtained_time_interval_ns, &dummy, 0);
         if(status != PICO_OK)
         {

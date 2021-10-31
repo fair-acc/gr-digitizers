@@ -143,6 +143,7 @@ add_subdirectory(include/digitizers_39)
 add_subdirectory(lib)
 add_subdirectory(apps)
 add_subdirectory(docs)
+add_subdirectory(examples/cpp)
 # NOTE: manually update below to use GRC to generate C++ flowgraphs w/o python
 if(ENABLE_PYTHON)
   message(STATUS "PYTHON and GRC components are enabled")
@@ -171,10 +172,33 @@ install(FILES cmake/Modules/digitizers_39Config.cmake
 ########################################################################
 
 set(PICOSCOPE_INCLUDE_DIR /opt/picoscope/include)
-if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps4000a/ps4000aApi.h)
   message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
 else()
   include_directories(${PICOSCOPE_INCLUDE_DIR})
 endif()
+
+########################################################################
+# Setup the include and linker paths
+########################################################################
+include_directories(
+        ${CMAKE_SOURCE_DIR}/lib
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_BINARY_DIR}/lib
+        ${CMAKE_BINARY_DIR}/include
+        ${Boost_INCLUDE_DIRS}
+        ${CPPUNIT_INCLUDE_DIRS}
+        ${GNURADIO_ALL_INCLUDE_DIRS}
+        ${PICOSCOPE_INCLUDE_DIR}
+)
+
+link_directories(
+        ${Boost_LIBRARY_DIRS}
+        ${CPPUNIT_LIBRARY_DIRS}
+        ${GNURADIO_RUNTIME_LIBRARY_DIRS}
+)
+
+# Set component parameters
+set(GR_DIGITIZERS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "" FORCE)
 
 # ! OLD !

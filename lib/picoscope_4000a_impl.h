@@ -15,8 +15,8 @@
 
 
 // Third party headers included via cmake
-#include <ps4000aApi.h>
-#include <PicoStatus.h>
+#include </opt/picoscope/include/libps4000a/ps4000aApi.h> //TODO: remove ugly workaround
+#include </opt/picoscope/include/libps4000a/PicoStatus.h> //TODO: remove ugly workaround
 
 namespace gr {
   namespace digitizers_39 {

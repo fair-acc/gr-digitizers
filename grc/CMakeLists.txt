@@ -8,6 +8,6 @@
 
 install(FILES
     # digitizers_39_picoscope_4000a.block.yml DESTINATION share/gnuradio/grc/blocks
-    digitizers_picoscope_4000a.xml DESTINATION share/gnuradio/grc/blocks
+        digitizers_39_picoscope_4000a.xml DESTINATION share/gnuradio/grc/blocks
     # digitizers_39_digitizers_picoscope_4000a DESTINATION share/gnuradio/grc/blocks
 )

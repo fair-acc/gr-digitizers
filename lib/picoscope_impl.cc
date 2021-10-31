@@ -10,7 +10,8 @@
 
 #include "picoscope_impl.h"
 #include <digitizers_39/status.h>
-
+#include <boost/bind.hpp>
+#include <functional>
 #include <volk/volk.h>
 
 namespace gr {

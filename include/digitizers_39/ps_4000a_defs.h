@@ -7,7 +7,7 @@
 #ifndef LIB_PS_4000A_DEFS_H_
 #define LIB_PS_4000A_DEFS_H_
 
-#include <PicoStatus.h>
+#include </opt/picoscope/include/libps4000a/PicoStatus.h> //TODO: remove ugly workaround
 #include <string>
 
 inline std::string

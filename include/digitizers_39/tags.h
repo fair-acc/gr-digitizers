@@ -1,10 +1,3 @@
-/* -*- c++ -*- */
-/* Copyright (C) 2018 GSI Darmstadt, Germany - All Rights Reserved
- * co-developed with: Cosylab, Ljubljana, Slovenia and CERN, Geneva, Switzerland
- * You may use, distribute and modify this code under the terms of the GPL v.3  license.
- */
-
-
 #ifndef INCLUDED_DIGITIZERS_TAGS_H
 #define INCLUDED_DIGITIZERS_TAGS_H
 
@@ -18,41 +11,41 @@ namespace gr {
   // ################################################################################################################
   // ################################################################################################################
 
-    /*!
-     * \brief A convenience structure holding information about the measurement.
-     * \ingroup digitizers
-     *
-     * General use:
-     *
-     * Digitizers are expected to attach the 'acq_info' tag to all the enabled channels including
-     * digital ports. In streaming mode this should be done whenever a new chunk of data is obtained
-     * from the device.
-     *
-     * If trigger detection is enabled in streaming mode, then the acq_info tag should be attached to
-     * the output streams whenever a trigger is detected. In this case the triggered_data field should
-     * be set to True allowing other post-processing modules (i.e. B.2 Demux) to work with triggered data
-     * only.
-     *
-     *
-     * The acq_info tag contains two delays, namely the user_delay and the actual_delay. The following ascii
-     * figure depicts relation between different terms:
-     *
-     * user_delay                 |--->          (3 us)
-     * realignment_delay          |--------->    (9 us)
-     * actual_delay               |------------> (3 + 9 = 12 us)
-     *
-     * Those delays are used for two purposes: (TODO: This doc. is outdated, fix it)
-     *
-     * 1) Time synchronization:
-     *    User delay is added to the actual timestamp of a given sample the tag is attached to. Field
-     *    timestamp therefore contains timestamp calculated like this:
-     *
-     *    timestamp = <actual acquisition timestamp> + user_delay
-     *
-     * 2) Extraction of triggered data
-     *    Actual delay, that is user delay and edge-trigger based delay synchronization is accounted
-     *    for when extracting triggered data. See B.2 block description for more details (extractor.h).
-     */
+  /*!
+   * \brief A convenience structure holding information about the measurement.
+   * \ingroup digitizers
+   *
+   * General use:
+   *
+   * Digitizers are expected to attach the 'acq_info' tag to all the enabled channels including
+   * digital ports. In streaming mode this should be done whenever a new chunk of data is obtained
+   * from the device.
+   *
+   * If trigger detection is enabled in streaming mode, then the acq_info tag should be attached to
+   * the output streams whenever a trigger is detected. In this case the triggered_data field should
+   * be set to True allowing other post-processing modules (i.e. B.2 Demux) to work with triggered data
+   * only.
+   *
+   *
+   * The acq_info tag contains two delays, namely the user_delay and the actual_delay. The following ascii
+   * figure depicts relation between different terms:
+   *
+   * user_delay                 |---&gt;          (3 us)
+   * realignment_delay          |---------&gt;    (9 us)
+   * actual_delay               |------------&gt; (3 + 9 = 12 us)
+   *
+   * Those delays are used for two purposes: (TODO: This doc. is outdated, fix it)
+   *
+   * 1) Time synchronization:
+   *    User delay is added to the actual timestamp of a given sample the tag is attached to. Field
+   *    timestamp therefore contains timestamp calculated like this:
+   *
+   *    timestamp = &lt;actual acquisition timestamp&gt; + user_delay
+   *
+   * 2) Extraction of triggered data
+   *    Actual delay, that is user delay and edge-trigger based delay synchronization is accounted
+   *    for when extracting triggered data. See B.2 block description for more details (extractor.h).
+   */
 
     char const * const acq_info_tag_name = "acq_info";
     struct DIGITIZERS_39_API acq_info_t

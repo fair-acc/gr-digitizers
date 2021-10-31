@@ -62,6 +62,7 @@ include(GrTest)
 
 # If your unit tests require special include paths, add them here
 #include_directories()
+include_directories(${PICOSCOPE_INCLUDE_DIR})
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_digitizers_39_sources
 qa_picoscope_4000a.cc
