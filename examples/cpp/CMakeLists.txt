@@ -17,23 +17,23 @@ link_directories(
     /opt/picoscope/lib
 )
 
-add_executable(test_tags test_tags.cc)
+# add_executable(test_tags test_tags.cc)
 
-target_link_libraries(test_tags
-	${GNURADIO_RUNTIME_LIBRARIES}
-	${GNURADIO_ANALOG_LIBRARIES}
-	${GNURADIO_BLOCKS_LIBRARIES}
-	${GNURADIO_PMT_LIBRARIES}
-    ${Boost_LIBRARIES}
-	gnuradio-digitizers_39
-#	asan
-)
+# target_link_libraries(test_tags
+# 	${GNURADIO_RUNTIME_LIBRARIES}
+# 	${GNURADIO_ANALOG_LIBRARIES}
+# 	${GNURADIO_BLOCKS_LIBRARIES}
+# 	${GNURADIO_PMT_LIBRARIES}
+#     ${Boost_LIBRARIES}
+# 	gnuradio-digitizers_39
+# #	asan
+# )
 
-INSTALL(TARGETS
-  test_tags
-  DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
-  COMPONENT "digitizers_examples"
-)
+# INSTALL(TARGETS
+#   test_tags
+#   DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
+#   COMPONENT "digitizers_examples"
+# )
 
 add_executable(ps4000a_test ps4000a_test.cc)
 find_package(Gnuradio "3.9" COMPONENTS

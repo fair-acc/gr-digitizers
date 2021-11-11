@@ -36,6 +36,9 @@
 *.out
 *.app
 
+### VS Code ###
+.vscode
+
 ### CMake ###
 CMakeLists.txt.user
 CMakeCache.txt
@@ -253,3 +256,5 @@ $RECYCLE.BIN/
 
 /Digitizer*tar.gz
 /DigitizerDependencies*tar.gz
+
+*.h5

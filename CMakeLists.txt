@@ -200,5 +200,3 @@ link_directories(
 
 # Set component parameters
 set(GR_DIGITIZERS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "" FORCE)
-
-# ! OLD !

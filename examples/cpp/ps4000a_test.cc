@@ -10,23 +10,23 @@
 using namespace gr::digitizers_39;
 using namespace gr::blocks;
 
-void wire_streaming()
+void wire_streaming(int time)
 {
     auto top = gr::make_top_block("channels");
 
     auto ps = picoscope_4000a::make("", true);
 
     ps->set_aichan("A", true, 5.0, AC_1M);
-    ps->set_aichan("B", true, 5.0, AC_1M);
-    ps->set_aichan("C", true, 5.0, AC_1M);
+    ps->set_aichan("B", true, 1.0, AC_1M);
+    ps->set_aichan("C", true, 1.0, AC_1M);
     ps->set_aichan("D", false, 5.0, AC_1M);
 
     //ps->set_aichan_trigger("A", TRIGGER_DIRECTION_RISING, 1.0);
 
-    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 3, const_cast<char *>("tcp://*:5001"), 100, false, -1);
+    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 3, const_cast<char *>("tcp://10.0.0.2:5001"), 100, false, -1);
     auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 3);
 
-    double samp_rate = 10000000.0;
+    double samp_rate = 2'000'000.0;
     ps->set_samp_rate(samp_rate);
     ps->set_samples(500000, 10000);
     ps->set_buffer_size(8192);
@@ -66,21 +66,29 @@ void wire_streaming()
 
     // connect PS to stream-to-vector-block and then ZeroMQ Sink
     top->connect(blocks_streams_to_vector, 0, zeromq_pub_sink, 0);
-    top->connect(ps, 0, blocks_streams_to_vector, 1);
-    top->connect(ps, 2, blocks_streams_to_vector, 0);
+    top->connect(ps, 0, blocks_streams_to_vector, 0);
+    top->connect(ps, 2, blocks_streams_to_vector, 1);
     top->connect(ps, 4, blocks_streams_to_vector, 2);
 
     top->start();
 
-    sleep(30);
+    sleep(time);
 
     top->stop();
     top->wait();
 }
 
 int main(int argc, char **argv) {
+  int i = 1;
+  int time = 60;
+
+  if(argc > 1)
+  {
+    time = std::stoi(argv[1]);
+
+  }
   std::cout << "start example\n";
-  wire_streaming();
+  wire_streaming(time);
   std::cout << "example finished\n";
   return 0;
 }
