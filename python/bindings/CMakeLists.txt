@@ -29,7 +29,8 @@ include(GrPybind)
 ########################################################################
 
 list(APPEND digitizers_39_python_files
-    picoscope_4000a_python.cc python_bindings.cc)
+    picoscope_4000a_python.cc
+    power_calc_python.cc python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(digitizers_39 
    ../..

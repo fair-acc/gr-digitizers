@@ -1,0 +1,35 @@
+id: digitizers_39_power_calc
+label: power_calc
+category: '[digitizers_39]'
+
+templates:
+  imports: import digitizers_39
+  make: digitizers_39.power_calc(${alpha})
+
+parameters:
+- id: alpha
+  label: Alpha
+  dtype: real
+  default: '0.0001'
+
+inputs:
+- label: Voltage
+  dtype: complex
+
+- label: Current
+  dtype: complex
+
+outputs:
+- label: P
+  dtype: float
+
+- label: Q
+  dtype: float
+
+- label: S
+  dtype: float
+
+- label: Phi
+  dtype: float
+  
+file_format: 1

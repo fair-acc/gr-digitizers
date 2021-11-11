@@ -1,6 +1,9 @@
 #include <digitizers_39/picoscope_4000a.h>
+#include <digitizers_39/power_calc.h>
+#include <gnuradio/fft/goertzel.h>
 #include <gnuradio/top_block.h>
 #include <gnuradio/blocks/null_sink.h>
+#include <gnuradio/blocks/stream_to_vector.h>
 #include <gnuradio/blocks/streams_to_vector.h>
 #include <gnuradio/zeromq/pub_sink.h>
 
@@ -18,7 +21,7 @@ void wire_streaming(int time)
 
     ps->set_aichan("A", true, 5.0, AC_1M);
     ps->set_aichan("B", true, 1.0, AC_1M);
-    ps->set_aichan("C", true, 1.0, AC_1M);
+    ps->set_aichan("C", false, 1.0, AC_1M);
     ps->set_aichan("D", false, 5.0, AC_1M);
 
     //ps->set_aichan_trigger("A", TRIGGER_DIRECTION_RISING, 1.0);

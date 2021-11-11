@@ -18,5 +18,6 @@ install(FILES
     range.h 
     app_buffer.h 
     digitizer_block.h 
-    status.h DESTINATION include/digitizers_39
+    status.h
+    power_calc.h DESTINATION include/digitizers_39
 )
