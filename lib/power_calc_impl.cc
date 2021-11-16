@@ -28,7 +28,7 @@ namespace gr {
     power_calc_impl::power_calc_impl(double alpha)
       : gr::sync_block("power_calc",
               gr::io_signature::make(2 /* min inputs */, 2 /* max inputs */, sizeof(gr_complex)),
-              gr::io_signature::make(4 /* min outputs */, 4 /*max outputs */, sizeof(float)))
+              gr::io_signature::make(8 /* min outputs */, 8 /*max outputs */, sizeof(float)))
     {
       set_alpha(alpha);
     }
@@ -74,15 +74,17 @@ namespace gr {
         {
           double mag_sqrd = mag_in[i] * mag_in[i];
           d_avg = d_beta * d_avg + d_alpha * mag_sqrd;
-          rms_out[i] = sqrt(d_avg);
+          rms_out[i] = sqrtf(d_avg);
         }
     }
 
     void power_calc_impl::calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
-        {
-          phi_out[i] = gr::fast_atan2f(u_in[i]) - gr::fast_atan2f(i_in[i]);
+        { 
+          float vultage_phi = (float)(gr::fast_atan2f(u_in[i]));
+          float current_phi = (float)(gr::fast_atan2f(i_in[i]));
+          phi_out[i] = vultage_phi - current_phi;
         }
     }
 
@@ -90,7 +92,7 @@ namespace gr {
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          p_out[i] = rms_u[i] * rms_i[i] * cos(phi_out[i]);
+          p_out[i] = (float)(rms_u[i] * rms_i[i] * cos(phi_out[i]));
         }
     }
 
@@ -98,7 +100,7 @@ namespace gr {
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          q_out[i] = rms_u[i] * rms_i[i] * sin(phi_out[i]);
+          q_out[i] = (float)(rms_u[i] * rms_i[i] * sin(phi_out[i]));
         }
     }
 
@@ -106,7 +108,7 @@ namespace gr {
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          s_out[i] = rms_u[i] * rms_i[i];
+          s_out[i] = (float)(rms_u[i] * rms_i[i]);
         }
     }
 
@@ -123,11 +125,11 @@ namespace gr {
       float* s_out = (float*)output_items[2];
       float* phi_out = (float*)output_items[3];
 
-      float* mag_u_in = (float*)malloc(noutput_items*sizeof(float));
-      float* mag_i_in = (float*)malloc(noutput_items*sizeof(float));
+      float* mag_u_in = (float*)output_items[4];// (float*)malloc(noutput_items*sizeof(float));
+      float* mag_i_in = (float*)output_items[5];// (float*)malloc(noutput_items*sizeof(float));
 
-      float* rms_u = (float*)malloc(noutput_items*sizeof(float));
-      float* rms_i = (float*)malloc(noutput_items*sizeof(float));
+      float* rms_u = (float*)output_items[6];// (float*)malloc(noutput_items*sizeof(float));
+      float* rms_i = (float*)output_items[7];// (float*)malloc(noutput_items*sizeof(float));
 
       //magnitude_generic(mag_u_in, u_in, noutput_items);
       //magnitude_generic(mag_i_in, i_in, noutput_items);
@@ -136,16 +138,17 @@ namespace gr {
 
       calc_rms(rms_u, mag_u_in, noutput_items);
       calc_rms(rms_i, mag_i_in, noutput_items);
-      free(mag_u_in);
-      free(mag_i_in);
 
       calc_phi(phi_out, u_in, i_in, noutput_items);
 
       calc_active_power(p_out, rms_u, rms_i, phi_out, noutput_items);
       calc_reactive_power(q_out, rms_u, rms_i, phi_out, noutput_items);
       calc_apparent_power(s_out, rms_u, rms_i, noutput_items);
-      free(rms_u);
-      free(rms_i);
+
+      // free(mag_u_in);
+      // free(mag_i_in);
+      // free(rms_u);
+      // free(rms_i);
 
       return noutput_items;
     }

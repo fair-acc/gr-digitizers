@@ -6,6 +6,7 @@
 #include <gnuradio/blocks/stream_to_vector.h>
 #include <gnuradio/blocks/streams_to_vector.h>
 #include <gnuradio/zeromq/pub_sink.h>
+#include <gnuradio/fft/goertzel_fc.h>
 
 #include <iostream>
 #include <vector>
@@ -15,7 +16,9 @@ using namespace gr::blocks;
 
 void wire_streaming(int time)
 {
-    auto top = gr::make_top_block("channels");
+    double samp_rate = 2'000'000.0;
+
+    auto top = gr::make_top_block("ps4000a_to_power_calc");
 
     auto ps = picoscope_4000a::make("", true);
 
@@ -24,19 +27,20 @@ void wire_streaming(int time)
     ps->set_aichan("C", false, 1.0, AC_1M);
     ps->set_aichan("D", false, 5.0, AC_1M);
 
-    //ps->set_aichan_trigger("A", TRIGGER_DIRECTION_RISING, 1.0);
-
-    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>("tcp://10.0.0.2:5001"), 100, false, -1);
-    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 2);
-
-    double samp_rate = 2'000'000.0;
     ps->set_samp_rate(samp_rate);
     ps->set_samples(500000, 10000);
     ps->set_buffer_size(8192);
     ps->set_nr_buffers(64);
     ps->set_driver_buffer_size(200000);
     ps->set_streaming(0.0005);
-    //ps->set_downsampling(DOWNSAMPLING_MODE_DECIMATE, 16);
+
+    auto power_calc_block = power_calc::make(0.00001);
+
+    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 8, const_cast<char *>("tcp://*:5001"), 100, false, -1);
+    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 8);
+
+    auto goertzel_fc_0_0 = gr::fft::goertzel_fc::make(10000, 1, 50);
+    auto goertzel_fc_0 = gr::fft::goertzel_fc::make(10000, 1, 50);
 
     auto sinkA = null_sink::make(sizeof(float));
     auto sinkB = null_sink::make(sizeof(float));
@@ -55,7 +59,6 @@ void wire_streaming(int time)
     auto errsinkG = null_sink::make(sizeof(float));
     auto errsinkH = null_sink::make(sizeof(float));
 
-
     // connect and run
     top->connect(ps, 0, sinkA, 0); top->connect(ps, 1, errsinkA, 0);
     top->connect(ps, 2, sinkB, 0); top->connect(ps, 3, errsinkB, 0);
@@ -69,8 +72,20 @@ void wire_streaming(int time)
 
     // connect PS to stream-to-vector-block and then ZeroMQ Sink
     top->connect(blocks_streams_to_vector, 0, zeromq_pub_sink, 0);
-    top->connect(ps, 0, blocks_streams_to_vector, 0);
-    top->connect(ps, 2, blocks_streams_to_vector, 1);
+    top->connect(power_calc_block, 0, blocks_streams_to_vector, 0);
+    top->connect(power_calc_block, 1, blocks_streams_to_vector, 1);
+    top->connect(power_calc_block, 2, blocks_streams_to_vector, 2);
+    top->connect(power_calc_block, 3, blocks_streams_to_vector, 3);
+    top->connect(power_calc_block, 4, blocks_streams_to_vector, 4);
+    top->connect(power_calc_block, 5, blocks_streams_to_vector, 5);
+    top->connect(power_calc_block, 6, blocks_streams_to_vector, 6);
+    top->connect(power_calc_block, 7, blocks_streams_to_vector, 7);
+
+    top->connect(ps, 0, goertzel_fc_0_0, 0);
+    top->connect(ps, 2, goertzel_fc_0, 0);
+
+    top->connect(goertzel_fc_0, 0, power_calc_block, 0);
+    top->connect(goertzel_fc_0_0, 0, power_calc_block, 1);
 
     top->start();
 

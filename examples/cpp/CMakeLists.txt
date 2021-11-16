@@ -36,7 +36,8 @@ link_directories(
 # )
 
 # add_executable(ps4000a_test ps4000a_test.cc)
-add_executable(power_calc_test power_calc_test.cc)
+# add_executable(power_calc_test power_calc_test.cc)
+add_executable(ps4000a_plus_power_calc ps4000a_plus_power_calc.cc)
 
 find_package(Gnuradio "3.9" COMPONENTS
 		blocks
@@ -72,7 +73,22 @@ find_package(Gnuradio "3.9" COMPONENTS
 # #	asan
 # )
 
-target_link_libraries(power_calc_test
+# target_link_libraries(power_calc_test
+# 	${GNURADIO_RUNTIME_LIBRARIES}
+# 	${GNURADIO_ANALOG_LIBRARIES}
+# 	${GNURADIO_BLOCKS_LIBRARIES}
+# 	${GNURADIO_PMT_LIBRARIES}
+#     ${Boost_LIBRARIES}
+# 	gnuradio-digitizers_39
+# 	gnuradio::gnuradio-blocks
+#     gnuradio::gnuradio-qtgui
+#     gnuradio::gnuradio-fft
+#     gnuradio::gnuradio-analog
+#     gnuradio::gnuradio-zeromq
+# #	asan
+# )
+
+target_link_libraries(ps4000a_plus_power_calc
 	${GNURADIO_RUNTIME_LIBRARIES}
 	${GNURADIO_ANALOG_LIBRARIES}
 	${GNURADIO_BLOCKS_LIBRARIES}
@@ -93,11 +109,18 @@ target_link_libraries(power_calc_test
 #   COMPONENT "digitizers_examples"
 # )
 
+# INSTALL(TARGETS
+#   power_calc_test
+#   DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
+#   COMPONENT "digitizers_examples"
+# )
+
 INSTALL(TARGETS
-  power_calc_test
+  ps4000a_plus_power_calc
   DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
   COMPONENT "digitizers_examples"
 )
+
 #add_executable(edge_trigger_cli edge_trigger_cli.cc)
 
 #target_link_libraries(edge_trigger_cli
