@@ -32,7 +32,9 @@ namespace gr {
        * class. digitizers_39::power_calc::make is the public interface for
        * creating new instances.
        */
-      static sptr make(double alpha);
+      static sptr make(double alpha = 0.0000001);
+
+      virtual void set_alpha(double alpha) = 0;
     };
 
   } // namespace digitizers_39

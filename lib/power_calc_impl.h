@@ -21,14 +21,15 @@ namespace gr {
 
      public:
       power_calc_impl(double alpha = 0.0000001); // 100n
-      ~power_calc_impl();
+      ~power_calc_impl() override;
 
       void calc_active_power(float* p_out, float* rms_u, float* rms_i, float* phi_out, int noutput_items);
       void calc_reactive_power(float* p_out, float* rms_u, float* rms_i, float* phi_out, int noutput_items);
       void calc_apparent_power(float* s_out, float* rms_u, float* rms_ih, int noutput_items);
       void calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items);
       void calc_rms(float* rms_out, float* mag_in, int noutput_items);
-      void set_alpha(double alpha); //step-length
+      void magnitude_generic(float* mag_in, const gr_complex* val_in, int noutput_items);
+      void set_alpha(double alpha) override; //step-length
 
       // Where all the action really happens
       int work(
