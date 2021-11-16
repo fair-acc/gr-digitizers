@@ -7,7 +7,8 @@
 
 #include <gnuradio/io_signature.h>
 #include "power_calc_impl.h"
-#include <cmath>
+#include <cstdlib>
+//#include <cmath>
 #include <gnuradio/math.h>
 #include <volk/volk.h>
 
@@ -46,17 +47,24 @@ namespace gr {
         d_avg = 0;
     }
 
-    void power_calc_impl::magnitude_generic(float* mag_in, const lv_32fc_t* val_in, int noutput_items)
+    void power_calc_impl::magnitude_generic(float* mag_in, const gr_complex* val_in, int noutput_items)
     {
       // gr_complex* val = const_cast<gr_complex*>(val_in);
       const float* complexVectorPtr = (float*)val_in;
       float* magnitudeVectorPtr = mag_in;
       unsigned int number = 0;
+      // std::cout << "Calc ONE Square root: \n";
+      // std::cout << noutput_items << "\n";
       for(number = 0; number < noutput_items; number++)
       {
         const float real = *complexVectorPtr++;
         const float imag = *complexVectorPtr++;
-        //*magnitudeVectorPtr++ = sqrtf((real*real) + (imag*imag));
+        //float product = (float)((real*real) + (imag*imag));
+        //std::cout << "Square root " << number;
+        //std::cout << product << '\n';
+        *magnitudeVectorPtr++ = sqrtf((real*real) + (imag*imag));
+        //*magnitudeVectorPtr++ = sqrtf(15.4863);
+        //std::cout << sqrtf(15.4863) << '\n';
       }
     }
 
@@ -115,25 +123,29 @@ namespace gr {
       float* s_out = (float*)output_items[2];
       float* phi_out = (float*)output_items[3];
 
-      float* mag_u_in;
-      float* mag_i_in;
+      float* mag_u_in = (float*)malloc(noutput_items*sizeof(float));
+      float* mag_i_in = (float*)malloc(noutput_items*sizeof(float));
 
-      float* rms_u;
-      float* rms_i;
+      float* rms_u = (float*)malloc(noutput_items*sizeof(float));
+      float* rms_i = (float*)malloc(noutput_items*sizeof(float));
 
-      magnitude_generic(mag_u_in, u_in, noutput_items);
-      magnitude_generic(mag_i_in, i_in, noutput_items);
-      // volk_32fc_magnitude_32f_u(mag_u_in, u_in, noutput_items);
-      // volk_32fc_magnitude_32f_u(mag_i_in, i_in, noutput_items);
+      //magnitude_generic(mag_u_in, u_in, noutput_items);
+      //magnitude_generic(mag_i_in, i_in, noutput_items);
+      volk_32fc_magnitude_32f_u(mag_u_in, u_in, noutput_items);
+      volk_32fc_magnitude_32f_u(mag_i_in, i_in, noutput_items);
 
-      // calc_rms(rms_u, mag_u_in, noutput_items);
-      // calc_rms(rms_i, mag_i_in, noutput_items);
+      calc_rms(rms_u, mag_u_in, noutput_items);
+      calc_rms(rms_i, mag_i_in, noutput_items);
+      free(mag_u_in);
+      free(mag_i_in);
 
-      // calc_phi(phi_out, u_in, i_in, noutput_items);
+      calc_phi(phi_out, u_in, i_in, noutput_items);
 
-      // calc_active_power(p_out, rms_u, rms_i, phi_out, noutput_items);
-      // calc_reactive_power(q_out, rms_u, rms_i, phi_out, noutput_items);
-      // calc_apparent_power(s_out, rms_u, rms_i, noutput_items);
+      calc_active_power(p_out, rms_u, rms_i, phi_out, noutput_items);
+      calc_reactive_power(q_out, rms_u, rms_i, phi_out, noutput_items);
+      calc_apparent_power(s_out, rms_u, rms_i, noutput_items);
+      free(rms_u);
+      free(rms_i);
 
       return noutput_items;
     }
