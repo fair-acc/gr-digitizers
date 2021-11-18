@@ -82,10 +82,6 @@ namespace gr {
         // float* current_phi = (float*)malloc(noutput_items*sizeof(float));
         // volk_32fc_s32f_atan2_32f(current_phi, i_in, 250.0, noutput_items);
 
-        float pi = 3.14159265358979323846;
-        float pi_halfed_positive = 1.57079632679489661923;
-        float pi_halfed_negative = -1.57079632679489661923;
-
         for (int i = 0; i < noutput_items; i++)
         { 
           float voltage_phi = (float)(gr::fast_atan2f(u_in[i]));
@@ -93,13 +89,13 @@ namespace gr {
 
           phi_out[i] = voltage_phi - current_phi;
 
-          if (phi_out[i] < pi_halfed_negative)
+          if (phi_out[i] < (M_PI_2 * -1))
           {
-            phi_out[i] += pi;
+            phi_out[i] += M_PI;
           }
-          else if (phi_out[i] > pi_halfed_positive)
+          else if (phi_out[i] > M_PI_2)
           {
-            phi_out[i] -= pi;
+            phi_out[i] -= M_PI;
           }
         }
         // free(voltage_phi);
