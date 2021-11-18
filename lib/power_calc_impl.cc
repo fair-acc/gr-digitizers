@@ -77,12 +77,33 @@ namespace gr {
 
     void power_calc_impl::calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items)
     {
-        for (int i = 0; i < noutput_items; i++) 
+        // float* voltage_phi = (float*)malloc(noutput_items*sizeof(float));
+        // volk_32fc_s32f_atan2_32f(voltage_phi, u_in, 250.0, noutput_items);
+        // float* current_phi = (float*)malloc(noutput_items*sizeof(float));
+        // volk_32fc_s32f_atan2_32f(current_phi, i_in, 250.0, noutput_items);
+
+        float pi = 3.14159265358979323846;
+        float pi_halfed_positive = 1.57079632679489661923;
+        float pi_halfed_negative = -1.57079632679489661923;
+
+        for (int i = 0; i < noutput_items; i++)
         { 
-          float vultage_phi = (float)(gr::fast_atan2f(u_in[i]));
+          float voltage_phi = (float)(gr::fast_atan2f(u_in[i]));
           float current_phi = (float)(gr::fast_atan2f(i_in[i]));
-          phi_out[i] = vultage_phi - current_phi;
+
+          phi_out[i] = voltage_phi - current_phi;
+
+          if (phi_out[i] < pi_halfed_negative)
+          {
+            phi_out[i] += pi;
+          }
+          else if (phi_out[i] > pi_halfed_positive)
+          {
+            phi_out[i] -= pi;
+          }
         }
+        // free(voltage_phi);
+        // free(current_phi);
     }
 
     void power_calc_impl::calc_active_power(float* out, float* in_u, float* in_i, float* phi_out, int noutput_items)
@@ -145,7 +166,6 @@ namespace gr {
       //volk_32fc_magnitude_32f_u(mag_i_in, i_in, noutput_items);
 
       calc_rms_u(rms_u, u_in, noutput_items);
-      //set_alpha(d_alpha);
       calc_rms_i(rms_i, i_in, noutput_items);
 
       calc_phi(phi_out, u_in, i_in, noutput_items);
