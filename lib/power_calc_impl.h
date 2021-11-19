@@ -16,7 +16,7 @@ namespace gr {
     class power_calc_impl : public power_calc
     {
      private:
-        double d_alpha, d_beta, d_avg_u, d_avg_i;
+        double d_alpha, d_beta, d_avg_u, d_avg_i, d_avg_phi;
         float d_phi;
 
      public:
@@ -27,11 +27,10 @@ namespace gr {
       void calc_reactive_power(float* out, float* in_u, float* in_i, float* phi_out, int noutput_items);
       void calc_apparent_power(float* out, float* in_u, float* in_i, int noutput_items);
       void calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items);
-      //void calc_rms(float* rms_out, float* mag_in, int noutput_items);
-      //void calc_rms(float* output, const gr_complex* input, int noutput_items);
       void calc_rms_u(float* output, const gr_complex* input, int noutput_items);
       void calc_rms_i(float* output, const gr_complex* input, int noutput_items);
-      void magnitude_generic(float* mag_in, const gr_complex* val_in, int noutput_items);
+      // void calc_signed_rms_phase(float* output, float * input, int noutput_items);
+      // void calc_phase_correction(float* output, float * input, int noutput_items);
 
       void set_alpha(double alpha) override; //step-length
 

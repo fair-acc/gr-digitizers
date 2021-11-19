@@ -1,12 +1,14 @@
 #include <digitizers_39/picoscope_4000a.h>
 #include <digitizers_39/power_calc.h>
-#include <gnuradio/fft/goertzel.h>
 #include <gnuradio/top_block.h>
 #include <gnuradio/blocks/null_sink.h>
-#include <gnuradio/blocks/stream_to_vector.h>
+
 #include <gnuradio/blocks/streams_to_vector.h>
 #include <gnuradio/zeromq/pub_sink.h>
-#include <gnuradio/fft/goertzel_fc.h>
+
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/filter/fir_filter_blk.h>
+#include <gnuradio/fft/window.h>
 
 #include <iostream>
 #include <vector>
@@ -39,8 +41,27 @@ void wire_streaming(int time)
     auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 8, const_cast<char *>("tcp://*:5001"), 100, false, -1);
     auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 8);
 
-    auto goertzel_fc_0_0 = gr::fft::goertzel_fc::make(10000, 1, 50);
-    auto goertzel_fc_0 = gr::fft::goertzel_fc::make(10000, 1, 50);
+    auto band_pass_filter_0_0 = gr::filter::fir_filter_fcc::make(
+        100.0,
+        gr::filter::firdes::complex_band_pass(
+            1.0,
+            100000.0,
+            10,
+            100,
+            50,
+            gr::fft::window::WIN_HANN,
+            6.76));
+
+    auto band_pass_filter_0 = gr::filter::fir_filter_fcc::make(
+        100.0,
+        gr::filter::firdes::complex_band_pass(
+            1.0,
+            100000.0,
+            10,
+            100,
+            50,
+            gr::fft::window::WIN_HANN,
+            6.76));
 
     auto sinkA = null_sink::make(sizeof(float));
     auto sinkB = null_sink::make(sizeof(float));
@@ -81,11 +102,11 @@ void wire_streaming(int time)
     top->connect(power_calc_block, 6, blocks_streams_to_vector, 6);
     top->connect(power_calc_block, 7, blocks_streams_to_vector, 7);
 
-    top->connect(ps, 0, goertzel_fc_0_0, 0);
-    top->connect(ps, 2, goertzel_fc_0, 0);
+    top->connect(ps, 0, band_pass_filter_0_0, 0);
+    top->connect(ps, 2, band_pass_filter_0, 0);
 
-    top->connect(goertzel_fc_0, 0, power_calc_block, 0);
-    top->connect(goertzel_fc_0_0, 0, power_calc_block, 1);
+    top->connect(band_pass_filter_0, 0, power_calc_block, 0);
+    top->connect(band_pass_filter_0_0, 0, power_calc_block, 1);
 
     top->start();
 

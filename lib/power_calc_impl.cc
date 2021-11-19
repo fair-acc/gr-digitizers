@@ -27,7 +27,7 @@ namespace gr {
     power_calc_impl::power_calc_impl(double alpha)
       : gr::sync_block("power_calc",
               gr::io_signature::make(2 /* min inputs */, 2 /* max inputs */, sizeof(gr_complex)),
-              gr::io_signature::make(6 /* min outputs */, 6 /*max outputs */, sizeof(float)))
+              gr::io_signature::make(4 /* min outputs */, 4 /*max outputs */, sizeof(float)))
     {
       set_alpha(alpha);
     }
@@ -37,22 +37,6 @@ namespace gr {
      */
     power_calc_impl::~power_calc_impl()
     {
-    }
-
-    void power_calc_impl::magnitude_generic(float* mag_in, const gr_complex* val_in, int noutput_items)
-    {
-      // gr_complex* val = const_cast<gr_complex*>(val_in);
-      const float* complexVectorPtr = (float*)val_in;
-      float* magnitudeVectorPtr = mag_in;
-      unsigned int number = 0;
-      // std::cout << "Calc ONE Square root: \n";
-      // std::cout << noutput_items << "\n";
-      for(number = 0; number < noutput_items; number++)
-      {
-        const float real = *complexVectorPtr++;
-        const float imag = *complexVectorPtr++;
-        *magnitudeVectorPtr++ = sqrtf((real*real) + (imag*imag));
-      }
     }
 
     void power_calc_impl::calc_rms_u(float* output, const gr_complex* input, int noutput_items)
@@ -77,29 +61,33 @@ namespace gr {
 
     void power_calc_impl::calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items)
     {
-        // float* voltage_phi = (float*)malloc(noutput_items*sizeof(float));
-        // volk_32fc_s32f_atan2_32f(voltage_phi, u_in, 250.0, noutput_items);
-        // float* current_phi = (float*)malloc(noutput_items*sizeof(float));
-        // volk_32fc_s32f_atan2_32f(current_phi, i_in, 250.0, noutput_items);
-
         for (int i = 0; i < noutput_items; i++)
         { 
           float voltage_phi = (float)(gr::fast_atan2f(u_in[i]));
           float current_phi = (float)(gr::fast_atan2f(i_in[i]));
+          float tmp = 0.0;
 
-          phi_out[i] = voltage_phi - current_phi;
+          tmp = voltage_phi - current_phi;
 
-          if (phi_out[i] < (M_PI_2 * -1))
+          // Phase correction
+          if (tmp <= (M_PI_2 * -1))
           {
-            phi_out[i] += M_PI;
+            phi_out[i] = tmp + (M_PI * 2);
           }
-          else if (phi_out[i] > M_PI_2)
+          else if (tmp >= M_PI_2)
           {
-            phi_out[i] -= M_PI;
+            phi_out[i] = tmp - (M_PI * 2);
           }
+          else
+          {
+            phi_out[i] = tmp;
+          }
+
+          // Signed RMS
+          double mag_sqrd = phi_out[i] * phi_out[i];
+          d_avg_phi = d_beta * d_avg_phi + d_alpha * mag_sqrd;
+          phi_out[i] = copysignl(sqrt(d_avg_phi), phi_out[i]);
         }
-        // free(voltage_phi);
-        // free(current_phi);
     }
 
     void power_calc_impl::calc_active_power(float* out, float* in_u, float* in_i, float* phi_out, int noutput_items)
@@ -122,10 +110,7 @@ namespace gr {
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          //std::cout << "CALC S:\n";
-          //std::cout << in_u[i] << " x " << in_i[i] << "\n";
           out[i] = (float)(in_u[i] * in_i[i]);
-          //std::cout << "= " << out[i] << "\n";
         }
     }
 
@@ -135,6 +120,7 @@ namespace gr {
         d_beta = 1 - d_alpha;
         d_avg_u = 0;
         d_avg_i = 0;
+        d_avg_phi = 0;
     }
 
     int
@@ -150,16 +136,8 @@ namespace gr {
       float* s_out = (float*)output_items[2];
       float* phi_out = (float*)output_items[3];
 
-      //float* mag_u_in = (float*)output_items[4];// (float*)malloc(noutput_items*sizeof(float));
-      //float* mag_i_in = (float*)output_items[5];// (float*)malloc(noutput_items*sizeof(float));
-
-      float* rms_u = (float*)output_items[4];// (float*)malloc(noutput_items*sizeof(float));
-      float* rms_i = (float*)output_items[5];// (float*)malloc(noutput_items*sizeof(float));
-
-      //magnitude_generic(mag_u_in, u_in, noutput_items);
-      //magnitude_generic(mag_i_in, i_in, noutput_items);
-      //volk_32fc_magnitude_32f_u(mag_u_in, u_in, noutput_items);
-      //volk_32fc_magnitude_32f_u(mag_i_in, i_in, noutput_items);
+      float* rms_u = (float*)malloc(noutput_items*sizeof(float));
+      float* rms_i = (float*)malloc(noutput_items*sizeof(float));
 
       calc_rms_u(rms_u, u_in, noutput_items);
       calc_rms_i(rms_i, i_in, noutput_items);
@@ -170,10 +148,8 @@ namespace gr {
       calc_reactive_power(q_out, rms_u, rms_i, phi_out, noutput_items);
       calc_apparent_power(s_out, rms_u, rms_i, noutput_items);
 
-      // free(mag_u_in);
-      // free(mag_i_in);
-      // free(rms_u);
-      // free(rms_i);
+      free(rms_u);
+      free(rms_i);
 
       return noutput_items;
     }
