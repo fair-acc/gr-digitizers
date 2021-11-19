@@ -42,10 +42,10 @@ void wire_streaming(int time)
     auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 4);
 
     auto band_pass_filter_0_0 = gr::filter::fir_filter_fcc::make(
-        100.0,
+        200.0,
         gr::filter::firdes::complex_band_pass(
             1.0,
-            100000.0,
+            samp_rate,
             10,
             100,
             50,
@@ -56,7 +56,7 @@ void wire_streaming(int time)
         100.0,
         gr::filter::firdes::complex_band_pass(
             1.0,
-            100000.0,
+            samp_rate,
             10,
             100,
             50,
