@@ -29,6 +29,7 @@ namespace gr {
       void calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items);
       void calc_rms_u(float* output, const gr_complex* input, int noutput_items);
       void calc_rms_i(float* output, const gr_complex* input, int noutput_items);
+      void get_timestamp_ms(float* out);
       // void calc_signed_rms_phase(float* output, float * input, int noutput_items);
       // void calc_phase_correction(float* output, float * input, int noutput_items);
 

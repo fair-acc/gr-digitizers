@@ -12,6 +12,7 @@
 #include <gnuradio/math.h>
 #include <volk/volk.h>
 
+
 namespace gr {
   namespace digitizers_39 {
 
@@ -27,7 +28,7 @@ namespace gr {
     power_calc_impl::power_calc_impl(double alpha)
       : gr::sync_block("power_calc",
               gr::io_signature::make(2 /* min inputs */, 2 /* max inputs */, sizeof(gr_complex)),
-              gr::io_signature::make(4 /* min outputs */, 4 /*max outputs */, sizeof(float)))
+              gr::io_signature::make(5 /* min outputs */, 5 /*max outputs */, sizeof(float)))
     {
       set_alpha(alpha);
     }
@@ -37,6 +38,16 @@ namespace gr {
      */
     power_calc_impl::~power_calc_impl()
     {
+    }
+
+    /*
+     * convert back uint64_t int64 = ((long long) out[0] << 32) | out[1];
+     */
+    void power_calc_impl::get_timestamp_ms(float* out)
+    {
+      uint64_t microseconds_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+      out[0] = float(microseconds_since_epoch >> 32);
+      out[1] = float(microseconds_since_epoch);
     }
 
     void power_calc_impl::calc_rms_u(float* output, const gr_complex* input, int noutput_items)
@@ -135,6 +146,7 @@ namespace gr {
       float* q_out = (float*)output_items[1];
       float* s_out = (float*)output_items[2];
       float* phi_out = (float*)output_items[3];
+      float* timestamp_ms = (float*)output_items[4];
 
       float* rms_u = (float*)malloc(noutput_items*sizeof(float));
       float* rms_i = (float*)malloc(noutput_items*sizeof(float));
@@ -150,6 +162,8 @@ namespace gr {
 
       free(rms_u);
       free(rms_i);
+
+      get_timestamp_ms(timestamp_ms);
 
       return noutput_items;
     }
