@@ -98,6 +98,9 @@ namespace gr {
           double mag_sqrd = phi_out[i] * phi_out[i];
           d_avg_phi = d_beta * d_avg_phi + d_alpha * mag_sqrd;
           phi_out[i] = copysignl(sqrt(d_avg_phi), phi_out[i]);
+          // Single Pole IIR Filter
+          // d_avg_phi = d_alpha * phi_out[i] + d_beta * d_avg_phi;
+          // phi_out[i] = d_avg_phi;
         }
     }
 

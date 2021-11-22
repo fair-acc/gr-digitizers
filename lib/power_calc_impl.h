@@ -17,7 +17,6 @@ namespace gr {
     {
      private:
         double d_alpha, d_beta, d_avg_u, d_avg_i, d_avg_phi;
-        float d_phi;
 
      public:
       power_calc_impl(double alpha = 0.0000001); // 100n
