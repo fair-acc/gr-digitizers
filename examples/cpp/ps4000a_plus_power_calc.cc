@@ -53,7 +53,7 @@ void wire_streaming(int time)
             6.76));
 
     auto band_pass_filter_0 = gr::filter::fir_filter_fcc::make(
-        100.0,
+        200.0,
         gr::filter::firdes::complex_band_pass(
             1.0,
             samp_rate,
