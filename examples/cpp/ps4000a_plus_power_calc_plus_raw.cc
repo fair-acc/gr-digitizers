@@ -46,9 +46,9 @@ void wire_streaming(int time)
         gr::filter::firdes::complex_band_pass(
             1.0,
             samp_rate,
+            30,
+            70,
             10,
-            100,
-            50,
             gr::fft::window::WIN_HANN,
             6.76));
 
@@ -57,9 +57,9 @@ void wire_streaming(int time)
         gr::filter::firdes::complex_band_pass(
             1.0,
             samp_rate,
+            30,
+            70,
             10,
-            100,
-            50,
             gr::fft::window::WIN_HANN,
             6.76));
 
@@ -98,8 +98,8 @@ void wire_streaming(int time)
     top->connect(power_calc_block, 2, blocks_streams_to_vector, 2);
     top->connect(power_calc_block, 3, blocks_streams_to_vector, 3);
     top->connect(power_calc_block, 3, blocks_streams_to_vector, 4);
-    top->connect(band_pass_filter_0, 4, blocks_streams_to_vector, 4);
-    top->connect(band_pass_filter_0_0, 5, blocks_streams_to_vector, 5);
+    top->connect(ps, 0, blocks_streams_to_vector, 4);
+    top->connect(ps, 2, blocks_streams_to_vector, 5);
 
     top->connect(ps, 0, band_pass_filter_0_0, 0);
     top->connect(ps, 2, band_pass_filter_0, 0);
