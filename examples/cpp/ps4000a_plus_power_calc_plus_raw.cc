@@ -46,9 +46,9 @@ void wire_streaming(int time)
         gr::filter::firdes::complex_band_pass(
             1.0,
             samp_rate,
-            30,
-            70,
             10,
+            100,
+            50,
             gr::fft::window::WIN_HANN,
             6.76));
 
@@ -57,9 +57,9 @@ void wire_streaming(int time)
         gr::filter::firdes::complex_band_pass(
             1.0,
             samp_rate,
-            30,
-            70,
             10,
+            100,
+            50,
             gr::fft::window::WIN_HANN,
             6.76));
 
