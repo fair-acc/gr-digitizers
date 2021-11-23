@@ -24,8 +24,8 @@ void power_calc_streaming()
 
     auto power_calc_block = power_calc::make(0.00001);
 
-    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 5, const_cast<char *>("tcp://*:5001"), 100, false, -1);
-    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 5);
+    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 4, const_cast<char *>("tcp://*:5001"), 100, false, -1);
+    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 4);
     
     auto band_pass_filter_0_0 = gr::filter::fir_filter_fcc::make(
         100.0,
@@ -61,7 +61,7 @@ void power_calc_streaming()
     top->connect(power_calc_block, 1, blocks_streams_to_vector, 1);
     top->connect(power_calc_block, 2, blocks_streams_to_vector, 2);
     top->connect(power_calc_block, 3, blocks_streams_to_vector, 3);
-    top->connect(power_calc_block, 4, blocks_streams_to_vector, 4);
+    // top->connect(power_calc_block, 4, blocks_streams_to_vector, 4);
 
     top->connect(analog_sig_source_x_0, 0, band_pass_filter_0_0, 0);
     top->connect(analog_sig_source_x_0_0, 0, band_pass_filter_0, 0);
