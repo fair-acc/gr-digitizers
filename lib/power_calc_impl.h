@@ -22,9 +22,9 @@ namespace gr {
       power_calc_impl(double alpha = 0.0000001); // 100n
       ~power_calc_impl() override;
 
-      void calc_active_power(float* out, float* in_u, float* in_i, float* phi_out, int noutput_items);
-      void calc_reactive_power(float* out, float* in_u, float* in_i, float* phi_out, int noutput_items);
-      void calc_apparent_power(float* out, float* in_u, float* in_i, int noutput_items);
+      void calc_active_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items);
+      void calc_reactive_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items);
+      void calc_apparent_power(float* out, float* voltage, float* current, int noutput_items);
       void calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items);
       void calc_rms_u(float* output, const gr_complex* input, int noutput_items);
       void calc_rms_i(float* output, const gr_complex* input, int noutput_items);

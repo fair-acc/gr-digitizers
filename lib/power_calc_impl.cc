@@ -28,7 +28,7 @@ namespace gr {
     power_calc_impl::power_calc_impl(double alpha)
       : gr::sync_block("power_calc",
               gr::io_signature::make(2 /* min inputs */, 2 /* max inputs */, sizeof(gr_complex)),
-              gr::io_signature::make(4 /* min outputs */, 4 /*max outputs */, sizeof(float)))
+              gr::io_signature::make(6 /* min outputs */, 6 /*max outputs */, sizeof(float)))
     {
       set_alpha(alpha);
     }
@@ -54,7 +54,7 @@ namespace gr {
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          double mag_sqrd = input[i].real() * input[i].real() + input[i].imag() * input[i].imag();
+          double mag_sqrd = input[i].real() * input[i].real(); // + input[i].imag() * input[i].imag();
           d_avg_u = d_beta * d_avg_u + d_alpha * mag_sqrd;
           output[i] = sqrt(d_avg_u);
         }
@@ -64,7 +64,7 @@ namespace gr {
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          double mag_sqrd = input[i].real() * input[i].real() + input[i].imag() * input[i].imag();
+          double mag_sqrd = input[i].real() * input[i].real(); // + input[i].imag() * input[i].imag();
           d_avg_i = d_beta * d_avg_i + d_alpha * mag_sqrd;
           output[i] = sqrt(d_avg_i);
         }
@@ -104,27 +104,27 @@ namespace gr {
         }
     }
 
-    void power_calc_impl::calc_active_power(float* out, float* in_u, float* in_i, float* phi_out, int noutput_items)
+    void power_calc_impl::calc_active_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          out[i] = (float)(in_u[i] * in_i[i] * cos(phi_out[i]));
+          out[i] = (float)(voltage[i] * current[i] * cos(phi_out[i]));
         }
     }
 
-    void power_calc_impl::calc_reactive_power(float* out, float* in_u, float* in_i, float* phi_out, int noutput_items)
+    void power_calc_impl::calc_reactive_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          out[i] = (float)(in_u[i] * in_u[i] * sin(phi_out[i]));
+          out[i] = (float)(voltage[i] * current[i] * sin(phi_out[i]));
         }
     }
 
-    void power_calc_impl::calc_apparent_power(float* out, float* in_u, float* in_i, int noutput_items)
+    void power_calc_impl::calc_apparent_power(float* out, float* voltage, float* current, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          out[i] = (float)(in_u[i] * in_i[i]);
+          out[i] = (float)(voltage[i] * current[i]);
         }
     }
 
@@ -151,8 +151,8 @@ namespace gr {
       float* phi_out = (float*)output_items[3];
       // float* timestamp_ms = (float*)output_items[4];
       
-      float* rms_u = (float*)malloc(noutput_items*sizeof(float));
-      float* rms_i = (float*)malloc(noutput_items*sizeof(float));
+      float* rms_u = (float*)output_items[4];//(float*)malloc(noutput_items*sizeof(float));
+      float* rms_i = (float*)output_items[5];//(float*)malloc(noutput_items*sizeof(float));
 
       calc_rms_u(rms_u, u_in, noutput_items);
       calc_rms_i(rms_i, i_in, noutput_items);
@@ -163,8 +163,8 @@ namespace gr {
       calc_reactive_power(q_out, rms_u, rms_i, phi_out, noutput_items);
       calc_apparent_power(s_out, rms_u, rms_i, noutput_items);
 
-      free(rms_u);
-      free(rms_i);
+      // free(rms_u);
+      // free(rms_i);
 
       // get_timestamp_ms(timestamp_ms);
 
