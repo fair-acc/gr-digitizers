@@ -42,8 +42,8 @@ void wire_streaming(int time)
 
     auto power_calc_block = power_calc::make(0.00001);
 
-    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 10, const_cast<char *>("tcp://10.0.0.2:5001"), 100, false, -1);
-    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 10);
+    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 6, const_cast<char *>("tcp://10.0.0.2:5001"), 100, false, -1);
+    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 6);
 
     auto mmse_resampler_xx_0_0 = gr::filter::mmse_resampler_ff::make(
             0,
@@ -111,7 +111,7 @@ void wire_streaming(int time)
     top->connect(power_calc_block, 3, blocks_streams_to_vector, 3);
     // top->connect(power_calc_block, 3, blocks_streams_to_vector, 4);
     top->connect(mmse_resampler_xx_0_0, 0, blocks_streams_to_vector, 4);
-    top->connect(mmse_resampler_xx_0, 2, blocks_streams_to_vector, 5);
+    top->connect(mmse_resampler_xx_0, 0, blocks_streams_to_vector, 5);
 
     top->connect(band_pass_filter_0, 0, power_calc_block, 0);
     top->connect(band_pass_filter_0_0, 0, power_calc_block, 1);
