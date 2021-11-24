@@ -23,6 +23,7 @@ using namespace gr::blocks;
 void wire_streaming(int time)
 {
     double samp_rate = 2000000.0;
+    double decimation = 2000.0;
 
     auto top = gr::make_top_block("ps4000a_to_power_calc");
 
@@ -47,16 +48,16 @@ void wire_streaming(int time)
 
     auto mmse_resampler_xx_0_0 = gr::filter::mmse_resampler_ff::make(
             0,
-            200);
+            decimation);
 
     auto mmse_resampler_xx_0 = gr::filter::mmse_resampler_ff::make(
             0,
-            200);
+            decimation);
 
     auto band_pass_filter_0_0 = gr::filter::fir_filter_fcc::make(
-        200.0,
+        decimation,
         gr::filter::firdes::complex_band_pass(
-            1.0,
+            2.0,
             samp_rate,
             10,
             100,
@@ -65,9 +66,9 @@ void wire_streaming(int time)
             6.76));
 
     auto band_pass_filter_0 = gr::filter::fir_filter_fcc::make(
-        200.0,
+        decimation,
         gr::filter::firdes::complex_band_pass(
-            1.0,
+            2.0,
             samp_rate,
             10,
             100,
