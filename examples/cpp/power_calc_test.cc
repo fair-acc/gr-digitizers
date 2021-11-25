@@ -10,6 +10,8 @@
 
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/filter/fir_filter_blk.h>
+#include <gnuradio/filter/mmse_resampler_ff.h>
+
 #include <gnuradio/fft/window.h>
 
 #include <iostream>
@@ -30,6 +32,14 @@ void power_calc_streaming()
     auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 6, const_cast<char *>("tcp://*:5001"), 100, false, -1);
     auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 6);
     
+    auto mmse_resampler_xx_0_0 = gr::filter::mmse_resampler_ff::make(
+            0,
+            decimation);
+
+    auto mmse_resampler_xx_0 = gr::filter::mmse_resampler_ff::make(
+            0,
+            decimation);
+
     auto band_pass_filter_0_0 = gr::filter::fir_filter_fcc::make(
         decimation,
         gr::filter::firdes::complex_band_pass(
@@ -64,14 +74,17 @@ void power_calc_streaming()
     top->connect(power_calc_block, 1, blocks_streams_to_vector, 1);
     top->connect(power_calc_block, 2, blocks_streams_to_vector, 2);
     top->connect(power_calc_block, 3, blocks_streams_to_vector, 3);
-    top->connect(power_calc_block, 4, blocks_streams_to_vector, 4);
-    top->connect(power_calc_block, 5, blocks_streams_to_vector, 5);
+    top->connect(mmse_resampler_xx_0, 0, blocks_streams_to_vector, 4);
+    top->connect(mmse_resampler_xx_0_0, 0, blocks_streams_to_vector, 5);
 
     top->connect(analog_sig_source_x_0, 0, band_pass_filter_0_0, 0);
     top->connect(analog_sig_source_x_0_0, 0, band_pass_filter_0, 0);
 
     top->connect(band_pass_filter_0, 0, power_calc_block, 0);
     top->connect(band_pass_filter_0_0, 0, power_calc_block, 1);
+
+    top->connect(analog_sig_source_x_0, 0, mmse_resampler_xx_0_0, 0);
+    top->connect(analog_sig_source_x_0_0, 0, mmse_resampler_xx_0, 0);
 
     top->start();
 
