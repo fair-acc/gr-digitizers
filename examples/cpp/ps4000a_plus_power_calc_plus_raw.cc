@@ -42,7 +42,7 @@ void wire_streaming(int time)
     ps->set_driver_buffer_size(200000);
     ps->set_streaming(0.0005);
 
-    auto power_calc_block = power_calc::make(0.00001);
+    auto power_calc_block = power_calc::make(0.007);
 
     auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 6, const_cast<char *>("tcp://*:5001"), 100, false, -1);
     auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 6);
@@ -64,9 +64,9 @@ void wire_streaming(int time)
         gr::filter::firdes::complex_band_pass(
             2.0,
             samp_rate,
+            20,
+            80,
             10,
-            100,
-            50,
             gr::fft::window::WIN_HANN,
             6.76));
 
@@ -75,9 +75,9 @@ void wire_streaming(int time)
         gr::filter::firdes::complex_band_pass(
             2.0,
             samp_rate,
+            20,
+            80,
             10,
-            100,
-            50,
             gr::fft::window::WIN_HANN,
             6.76));
 
