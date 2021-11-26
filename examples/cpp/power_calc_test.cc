@@ -46,12 +46,12 @@ void power_calc_streaming(int runtime=60,
     float source_1_noice_amp_percentage_calc = 0.0;
     float source_2_noice_amp_percentage_calc = 0.0;
 
-    if (source_1_noice_percent > 0)
+    if (source_1_noice_percent != 0)
     {
         source_1_noice_amp_percentage_calc = float((float)source_1_amp * (float)source_1_noice_percent / 100.0);
     }
 
-    if (source_2_noice_percent > 0)
+    if (source_2_noice_percent != 0)
     {
         source_2_noice_amp_percentage_calc = float((float)source_2_amp * (float)source_2_noice_percent / 100.0);
     }
@@ -152,8 +152,8 @@ int main(int argc, char **argv) {
         int source_2_freq=50;
         int source_1_phase=0; 
         int source_2_phase=1;
-        int source_1_noice_percent=10;
-        int source_2_noice_percent=10;
+        int source_1_noice_percent=1;
+        int source_2_noice_percent=1;
 
         po::options_description desc("Allowed options");
         desc.add_options()
