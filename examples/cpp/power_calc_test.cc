@@ -40,20 +40,20 @@ void power_calc_streaming(int runtime=60,
                         int source_2_freq=50,
                         int source_1_phase=0, 
                         int source_2_phase=1,
-                        int source_1_noice_percent=10,
-                        int source_2_noice_percent=10)
+                        int source_1_noice_percent=1,
+                        int source_2_noice_percent=1)
 {   
-    float source_1_noice_amp_percentage_calc = 0;
-    float source_2_noice_amp_percentage_calc = 0;
+    float source_1_noice_amp_percentage_calc = 0.0;
+    float source_2_noice_amp_percentage_calc = 0.0;
 
-    if (source_1_noice_percent != 0)
+    if (source_1_noice_percent > 0)
     {
-        source_1_noice_amp_percentage_calc = float(source_1_amp * source_1_noice_percent / 100);
+        source_1_noice_amp_percentage_calc = float((float)source_1_amp * (float)source_1_noice_percent / 100.0);
     }
 
-    if (source_2_noice_percent != 0)
+    if (source_2_noice_percent > 0)
     {
-        source_2_noice_amp_percentage_calc = float(source_2_amp * source_2_noice_percent / 100);
+        source_2_noice_amp_percentage_calc = float((float)source_2_amp * (float)source_2_noice_percent / 100.0);
     }
 
     auto top = gr::make_top_block("power_block_test");
@@ -95,11 +95,11 @@ void power_calc_streaming(int runtime=60,
 
     // 5,0,5,0 -> P,Q,S,PHI
     auto analog_sig_source_x_0_0 = gr::analog::sig_source_f::make(samp_rate, gr::analog::GR_SIN_WAVE, source_1_freq, source_1_amp, 0, source_1_phase);
-    auto analog_noise_source_x_0_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, 1.0, 0);
+    auto analog_noise_source_x_0_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, source_1_noice_amp_percentage_calc, 0);
     auto blocks_add_xx_0_0 = gr::blocks::add_ff::make(1);
 
     auto analog_sig_source_x_0 = gr::analog::sig_source_f::make(samp_rate, gr::analog::GR_SIN_WAVE, source_2_freq, source_2_amp, 0, source_2_phase);
-    auto analog_noise_source_x_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, 1.0, 0);
+    auto analog_noise_source_x_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, source_2_noice_amp_percentage_calc, 0);
     auto blocks_add_xx_0 = gr::blocks::add_ff::make(1);
     // auto blocks_file_source_1 = gr::blocks::file_source::make(sizeof(float)*1, "/home/neumann/voltage", true, 0, 0);
     // auto blocks_file_source_0 = gr::blocks::file_source::make(sizeof(float)*1, "/home/neumann/current", true, 0, 0);
@@ -164,8 +164,8 @@ int main(int argc, char **argv) {
             ("rt", po::value<int>(&runtime)->required()->default_value(runtime), "The runtime in seconds")
             ("sr", po::value<double>(&samp_rate)->required()->default_value(samp_rate), "The symulated rate of samples")
             ("dec", po::value<double>(&decimation)->required()->default_value(decimation), "The decimation factor of output values")
-            ("prmsa", po::value<double>(&power_rms_alpha)->required()->default_value(power_rms_alpha), "preprocess both header and body")
-            ("bpg", po::value<double>(&band_pass_gain)->required()->default_value(band_pass_gain), "preprocess body in the header context")
+            ("prmsa", po::value<double>(&power_rms_alpha)->required()->default_value(power_rms_alpha), "RMS alpha value")
+            ("bpg", po::value<double>(&band_pass_gain)->required()->default_value(band_pass_gain), "Band Pass Filter gain")
             ("s1amp", po::value<int>(&source_1_amp)->required()->default_value(source_1_amp), "Simulated amplitude of source 1")
             ("s2amp", po::value<int>(&source_2_amp)->required()->default_value(source_2_amp), "Simulated amplitude of source 2")
             ("s1freq", po::value<int>(&source_1_freq)->required()->default_value(source_1_freq), "Simulated frequency of source 1")
