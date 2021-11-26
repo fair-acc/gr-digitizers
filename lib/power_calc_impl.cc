@@ -8,7 +8,6 @@
 #include <gnuradio/io_signature.h>
 #include "power_calc_impl.h"
 #include <cstdlib>
-//#include <cmath>
 #include <gnuradio/math.h>
 #include <volk/volk.h>
 
@@ -17,13 +16,21 @@ namespace gr {
   namespace digitizers_39 {
 
     power_calc::sptr
+
+    /**
+     * @brief Construct a new power calc::make object
+     * 
+     * @param alpha A value > 0 < 1
+     */
     power_calc::make(double alpha)
     {
       return gnuradio::make_block_sptr<power_calc_impl>(alpha);
     }
 
-    /*
-     * The private constructor
+    /**
+     * @brief Construct a new power calc impl::power calc impl object (private constructor)
+     * 
+     * @param alpha A value > 0 < 1
      */
     power_calc_impl::power_calc_impl(double alpha)
       : gr::sync_block("power_calc",
@@ -33,15 +40,18 @@ namespace gr {
       set_alpha(alpha);
     }
 
-    /*
-     * Our virtual destructor.
+    /**
+     * @brief Destroy the power calc impl::power calc impl object (virtual destructor)
+     * 
      */
     power_calc_impl::~power_calc_impl()
     {
     }
 
-    /*
-     * convert back uint64_t int64 = ((long long) out[0] << 32) | out[1];
+    /**
+     * @brief Generates a timestamp (per routine) of milliseconds since New York 1970 UTC and splits them into to floats | convert back uint64_t int64 = ((long long) out[0] << 32) | out[1];
+     * 
+     * @param out The pointer containing 2 values, the first 4 byte (high) and the last 4 byte (low) | out[0]=>high; out[1]=>low
      */
     void power_calc_impl::get_timestamp_ms(float* out)
     {
@@ -50,6 +60,13 @@ namespace gr {
       out[1] = (float)(milliseconds_since_epoch);
     }
 
+    /**
+     * @brief Calculates RMS for voltage for the number of items currently available
+     * 
+     * @param output The input pointer for peak voltage, over number of input items
+     * @param input The input pointer for raw voltage, over number of input items
+     * @param noutput_items The samples currently available for cumputation
+     */
     void power_calc_impl::calc_rms_u(float* output, const gr_complex* input, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
@@ -60,6 +77,13 @@ namespace gr {
         }
     }
 
+    /**
+     * @brief Calculates RMS for current for the number of items currently available
+     * 
+     * @param output The input pointer for peak current, over number of input items
+     * @param input The input pointer for raw current, over number of input items
+     * @param noutput_items The samples currently available for cumputation
+     */
     void power_calc_impl::calc_rms_i(float* output, const gr_complex* input, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
@@ -70,6 +94,14 @@ namespace gr {
         }
     }
 
+    /**
+     * @brief Calculates Phi between voltage and current; Adds phase correction; Flattens the value | Phi = PHIu - PHIi | for the number of items currently available
+     * 
+     * @param phi_out The output pointer containing Phi over all concurrent Phi voltage and Phi current values
+     * @param u_in The input pointer for raw voltage, over number of input items
+     * @param i_in The input pointer for raw current, over number of input items
+     * @param noutput_items The samples currently available for cumputation
+     */
     void power_calc_impl::calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++)
@@ -104,6 +136,15 @@ namespace gr {
         }
     }
 
+    /**
+     * @brief Calculates active power | P = RMSu * RMSi * cos(Phi) | for the number of items currently available
+     * 
+     * @param out The output pointer containing P over all concurrent RMS and Phi values
+     * @param voltage The input pointer for peak voltage, over number of input items
+     * @param current The input pointer for peak current, over number of input items
+     * @param phi_out The input pointer for phi, over number of input items
+     * @param noutput_items The samples currently available for cumputation
+     */
     void power_calc_impl::calc_active_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
@@ -112,6 +153,15 @@ namespace gr {
         }
     }
 
+    /**
+     * @brief Calculates reactive power | Q = RMSu * RMSi * sin(Phi) | for the number of items currently available
+     * 
+     * @param out The output pointer containing Q over all concurrent RMS and Phi values
+     * @param voltage The input pointer for peak voltage, over number of input items
+     * @param current The input pointer for peak current, over number of input items
+     * @param phi_out The input pointer for phi, over number of input items
+     * @param noutput_items The samples currently available for cumputation
+     */
     void power_calc_impl::calc_reactive_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
@@ -120,6 +170,14 @@ namespace gr {
         }
     }
 
+    /**
+     * @brief Calculates apperent power | S = RMSu * RMSi | for the number of items currently available
+     * 
+     * @param out The output pointer containing S over all concurrent RMS values
+     * @param voltage The input pointer for peak voltage, over number of input items
+     * @param current The input pointer for peak current, over number of input items
+     * @param noutput_items The samples currently available for cumputation
+     */
     void power_calc_impl::calc_apparent_power(float* out, float* voltage, float* current, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
@@ -128,17 +186,29 @@ namespace gr {
         }
     }
 
+    /**
+     * @brief Sets global alpha, beta und average for all RMS calculations
+     * 
+     * @param alpha A value > 0 < 1
+     */
     void power_calc_impl::set_alpha(double alpha)
     {
-        d_alpha = alpha;
+        d_alpha = alpha; ///< impacts the "flattening" | default value 0.00001
         d_beta = 1 - d_alpha;
-        d_avg_u = 0;
-        d_avg_i = 0;
-        d_avg_phi = 0;
+        d_avg_u = 0; ///< RMS average for voltage
+        d_avg_i = 0; ///< RMS average for current
+        d_avg_phi = 0; ///< RMS | single point iir filter average
     }
 
-    int
-    power_calc_impl::work(int noutput_items,
+    /**
+     * @brief Main | Core block routine
+     * 
+     * @param noutput_items The samples currently available for cumputation
+     * @param input_items The item vector containing the input items
+     * @param output_items  The item vector that will contain the output items
+     * @return number of output items
+     */
+    int power_calc_impl::work(int noutput_items,
         gr_vector_const_void_star &input_items,
         gr_vector_void_star &output_items)
     {

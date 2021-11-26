@@ -29,7 +29,7 @@ using namespace std;
 using namespace gr::digitizers_39;
 using namespace gr::blocks;
 
-void power_calc_streaming(int runtime,
+void power_calc_streaming(int runtime=60,
                         double samp_rate=2000000.0,
                         double decimation=200.0,
                         double power_rms_alpha=0.00001,
@@ -42,18 +42,19 @@ void power_calc_streaming(int runtime,
                         int source_2_phase=1,
                         int source_1_noice_percent=10,
                         int source_2_noice_percent=10)
-{
-    if (source_1_noice_percent == 0)
+{   
+    float source_1_noice_amp_percentage_calc = 0;
+    float source_2_noice_amp_percentage_calc = 0;
+
+    if (source_1_noice_percent != 0)
     {
-        source_1_noice_percent = 1;
-    }
-    else if (source_2_noice_percent == 0)
-    {
-        source_2_noice_percent = 1;
+        source_1_noice_amp_percentage_calc = float(source_1_amp * source_1_noice_percent / 100);
     }
 
-    double source_1_noice_amp_percentage_calc = double((source_1_noice_percent / 100) * source_1_amp);
-    double source_2_noice_amp_percentage_calc = double((source_2_noice_percent / 100) * source_2_amp);
+    if (source_2_noice_percent != 0)
+    {
+        source_2_noice_amp_percentage_calc = float(source_2_amp * source_2_noice_percent / 100);
+    }
 
     auto top = gr::make_top_block("power_block_test");
 
@@ -94,11 +95,11 @@ void power_calc_streaming(int runtime,
 
     // 5,0,5,0 -> P,Q,S,PHI
     auto analog_sig_source_x_0_0 = gr::analog::sig_source_f::make(samp_rate, gr::analog::GR_SIN_WAVE, source_1_freq, source_1_amp, 0, source_1_phase);
-    auto analog_noise_source_x_0_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, source_1_noice_amp_percentage_calc, 0);
+    auto analog_noise_source_x_0_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, 1.0, 0);
     auto blocks_add_xx_0_0 = gr::blocks::add_ff::make(1);
 
     auto analog_sig_source_x_0 = gr::analog::sig_source_f::make(samp_rate, gr::analog::GR_SIN_WAVE, source_2_freq, source_2_amp, 0, source_2_phase);
-    auto analog_noise_source_x_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, source_2_noice_amp_percentage_calc, 0);
+    auto analog_noise_source_x_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, 1.0, 0);
     auto blocks_add_xx_0 = gr::blocks::add_ff::make(1);
     // auto blocks_file_source_1 = gr::blocks::file_source::make(sizeof(float)*1, "/home/neumann/voltage", true, 0, 0);
     // auto blocks_file_source_0 = gr::blocks::file_source::make(sizeof(float)*1, "/home/neumann/current", true, 0, 0);
