@@ -60,6 +60,10 @@ find_package(Gnuradio "3.9" COMPONENTS
 add_executable(power_calc_test power_calc_test.cc)
 add_executable(ps4000a_plus_power_calc ps4000a_plus_power_calc.cc)
 add_executable(ps4000a_plus_power_calc_plus_raw ps4000a_plus_power_calc_plus_raw.cc)
+add_executable(ps4000a_plus_power_calc_plus_raw_two_zmq ps4000a_plus_power_calc_plus_raw_two_zmq.cc)
+add_executable(ps4000a_plus_power_calc_plus_raw_three_zmq ps4000a_plus_power_calc_plus_raw_three_zmq.cc)
+add_executable(ps4000a_plus_power_calc_plus_raw_three_files ps4000a_plus_power_calc_plus_raw_three_files.cc)
+
 
 # target_link_libraries(ps4000a_test
 # 	power_calc_test
@@ -119,12 +123,60 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw
     gnuradio::gnuradio-zeromq
 )
 
+target_link_libraries(ps4000a_plus_power_calc_plus_raw_two_zmq
+	${GNURADIO_RUNTIME_LIBRARIES}
+	${GNURADIO_ANALOG_LIBRARIES}
+	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_PMT_LIBRARIES}
+    ${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+	gnuradio::gnuradio-filter
+    gnuradio::gnuradio-qtgui
+    gnuradio::gnuradio-fft
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
+)
+
+target_link_libraries(ps4000a_plus_power_calc_plus_raw_three_zmq
+	${GNURADIO_RUNTIME_LIBRARIES}
+	${GNURADIO_ANALOG_LIBRARIES}
+	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_PMT_LIBRARIES}
+    ${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+	gnuradio::gnuradio-filter
+    gnuradio::gnuradio-qtgui
+    gnuradio::gnuradio-fft
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
+)
+
+target_link_libraries(ps4000a_plus_power_calc_plus_raw_three_files
+	${GNURADIO_RUNTIME_LIBRARIES}
+	${GNURADIO_ANALOG_LIBRARIES}
+	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_PMT_LIBRARIES}
+    ${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+	gnuradio::gnuradio-filter
+    gnuradio::gnuradio-qtgui
+    gnuradio::gnuradio-fft
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
+)
+
 INSTALL(TARGETS
-  ps4000a_plus_power_calc_plus_raw
-  ps4000a_plus_power_calc
-  power_calc_test
-  DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
-  COMPONENT "digitizers_examples"
+	ps4000a_plus_power_calc_plus_raw_three_files
+	ps4000a_plus_power_calc_plus_raw_three_zmq
+	ps4000a_plus_power_calc_plus_raw_two_zmq
+	ps4000a_plus_power_calc_plus_raw
+	ps4000a_plus_power_calc
+	power_calc_test
+	DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
+	COMPONENT "digitizers_examples"
 )
 
 # INSTALL(TARGETS

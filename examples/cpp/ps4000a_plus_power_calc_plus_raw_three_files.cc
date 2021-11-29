@@ -6,8 +6,7 @@
 #include <gnuradio/blocks/null_sink.h>
 #include <gnuradio/blocks/streams_to_vector.h>
 #include <gnuradio/blocks/multiply_const.h>
-
-#include <gnuradio/zeromq/pub_sink.h>
+#include <gnuradio/blocks/file_sink.h>
 
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/filter/fir_filter_blk.h>
@@ -44,20 +43,16 @@ void wire_streaming(int time)
 
     auto power_calc_block = power_calc::make(0.007);
 
-    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 6, const_cast<char *>("tcp://*:5001"), 100, false, -1);
-    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 6);
+    auto blocks_file_sink_0_0_0 = gr::blocks::file_sink::make(sizeof(float)*4, "/home/p01900/test_three_files/power", false);
+    auto blocks_file_sink_0_0 = gr::blocks::file_sink::make(sizeof(float)*2, "/home/p01900/test_three_files/raw", false);
+    auto blocks_file_sink_0 = gr::blocks::file_sink::make(sizeof(gr_complex)*2, "/home/p01900/test_three_files/band_pass", false);
+
+    auto blocks_streams_to_vector_0_0_0 = gr::blocks::streams_to_vector::make(sizeof(float)*1, 4);
+    auto blocks_streams_to_vector_0_0 = gr::blocks::streams_to_vector::make(sizeof(float)*1, 2);
+    auto blocks_streams_to_vector_0 = gr::blocks::streams_to_vector::make(sizeof(gr_complex)*1, 2);
 
     auto blocks_multiply_const_vxx_0_0 = gr::blocks::multiply_const_ff::make(100);
-
     auto blocks_multiply_const_vxx_0 = gr::blocks::multiply_const_ff::make(2.5);
-
-    auto mmse_resampler_xx_0_0 = gr::filter::mmse_resampler_ff::make(
-            0,
-            decimation);
-
-    auto mmse_resampler_xx_0 = gr::filter::mmse_resampler_ff::make(
-            0,
-            decimation);
 
     auto band_pass_filter_0_0 = gr::filter::fir_filter_fcc::make(
         decimation,
@@ -109,28 +104,28 @@ void wire_streaming(int time)
     top->connect(ps, 12, sinkG, 0); top->connect(ps, 13, errsinkG, 0);
     top->connect(ps, 14, sinkH, 0); top->connect(ps, 15, errsinkH, 0);
 
-    // connect PS to stream-to-vector-block and then ZeroMQ Sink
-    top->connect(blocks_streams_to_vector, 0, zeromq_pub_sink, 0);
-    top->connect(power_calc_block, 0, blocks_streams_to_vector, 0);
-    top->connect(power_calc_block, 1, blocks_streams_to_vector, 1);
-    top->connect(power_calc_block, 2, blocks_streams_to_vector, 2);
-    top->connect(power_calc_block, 3, blocks_streams_to_vector, 3);
-    // top->connect(power_calc_block, 3, blocks_streams_to_vector, 4);
-    top->connect(mmse_resampler_xx_0_0, 0, blocks_streams_to_vector, 4);
-    top->connect(mmse_resampler_xx_0, 0, blocks_streams_to_vector, 5);
+    top->connect(power_calc_block, 0, blocks_streams_to_vector_0_0_0, 0);
+    top->connect(power_calc_block, 1, blocks_streams_to_vector_0_0_0, 1);
+    top->connect(power_calc_block, 2, blocks_streams_to_vector_0_0_0, 2);
+    top->connect(power_calc_block, 3, blocks_streams_to_vector_0_0_0, 3);
+    top->connect(blocks_streams_to_vector_0_0_0, 0, blocks_file_sink_0_0_0, 0);
+
+    top->connect(blocks_multiply_const_vxx_0_0, 0, blocks_streams_to_vector_0_0, 0);
+    top->connect(blocks_multiply_const_vxx_0, 0, blocks_streams_to_vector_0_0, 1);
+    top->connect(blocks_streams_to_vector_0_0, 0, blocks_file_sink_0_0, 0);
+
+    top->connect(band_pass_filter_0, 0, blocks_streams_to_vector_0, 0);
+    top->connect(band_pass_filter_0_0, 0, blocks_streams_to_vector_0, 1);
+    top->connect(blocks_streams_to_vector_0, 0, blocks_file_sink_0, 0);
 
     top->connect(band_pass_filter_0, 0, power_calc_block, 0);
     top->connect(band_pass_filter_0_0, 0, power_calc_block, 1);
-
-    top->connect(blocks_multiply_const_vxx_0_0, 0, mmse_resampler_xx_0_0, 0);
-    top->connect(blocks_multiply_const_vxx_0, 0, mmse_resampler_xx_0, 0);
 
     top->connect(blocks_multiply_const_vxx_0_0, 0, band_pass_filter_0_0, 0);
     top->connect(blocks_multiply_const_vxx_0, 0, band_pass_filter_0, 0);
 
     top->connect(ps, 0, blocks_multiply_const_vxx_0_0, 0);
     top->connect(ps, 2, blocks_multiply_const_vxx_0, 0);
-
 
     top->start();
 

@@ -44,20 +44,15 @@ void wire_streaming(int time)
 
     auto power_calc_block = power_calc::make(0.007);
 
-    auto zeromq_pub_sink = gr::zeromq::pub_sink::make(sizeof(float), 6, const_cast<char *>("tcp://*:5001"), 100, false, -1);
-    auto blocks_streams_to_vector = gr::blocks::streams_to_vector::make(sizeof(float)*1, 6);
+    auto zeromq_pub_sink_power = gr::zeromq::pub_sink::make(sizeof(float), 4, const_cast<char *>("tcp://10.0.0.2:5001"), 100, false, -1);
+    auto zeromq_pub_sink_raw = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>("tcp://10.0.0.2:5002"), 100, false, -1);
+
+    auto blocks_streams_to_vector_power = gr::blocks::streams_to_vector::make(sizeof(float)*1, 4);
+    auto blocks_streams_to_vector_raw = gr::blocks::streams_to_vector::make(sizeof(float)*1, 2);
 
     auto blocks_multiply_const_vxx_0_0 = gr::blocks::multiply_const_ff::make(100);
 
     auto blocks_multiply_const_vxx_0 = gr::blocks::multiply_const_ff::make(2.5);
-
-    auto mmse_resampler_xx_0_0 = gr::filter::mmse_resampler_ff::make(
-            0,
-            decimation);
-
-    auto mmse_resampler_xx_0 = gr::filter::mmse_resampler_ff::make(
-            0,
-            decimation);
 
     auto band_pass_filter_0_0 = gr::filter::fir_filter_fcc::make(
         decimation,
@@ -110,27 +105,25 @@ void wire_streaming(int time)
     top->connect(ps, 14, sinkH, 0); top->connect(ps, 15, errsinkH, 0);
 
     // connect PS to stream-to-vector-block and then ZeroMQ Sink
-    top->connect(blocks_streams_to_vector, 0, zeromq_pub_sink, 0);
-    top->connect(power_calc_block, 0, blocks_streams_to_vector, 0);
-    top->connect(power_calc_block, 1, blocks_streams_to_vector, 1);
-    top->connect(power_calc_block, 2, blocks_streams_to_vector, 2);
-    top->connect(power_calc_block, 3, blocks_streams_to_vector, 3);
+    top->connect(blocks_streams_to_vector_power, 0, zeromq_pub_sink_power, 0);
+    top->connect(power_calc_block, 0, blocks_streams_to_vector_power, 0);
+    top->connect(power_calc_block, 1, blocks_streams_to_vector_power, 1);
+    top->connect(power_calc_block, 2, blocks_streams_to_vector_power, 2);
+    top->connect(power_calc_block, 3, blocks_streams_to_vector_power, 3);
     // top->connect(power_calc_block, 3, blocks_streams_to_vector, 4);
-    top->connect(mmse_resampler_xx_0_0, 0, blocks_streams_to_vector, 4);
-    top->connect(mmse_resampler_xx_0, 0, blocks_streams_to_vector, 5);
+
+    top->connect(blocks_streams_to_vector_raw, 0, zeromq_pub_sink_raw, 0);
+    top->connect(blocks_multiply_const_vxx_0_0, 0, blocks_streams_to_vector_raw, 0);
+    top->connect(blocks_multiply_const_vxx_0, 0, blocks_streams_to_vector_raw, 1);
 
     top->connect(band_pass_filter_0, 0, power_calc_block, 0);
     top->connect(band_pass_filter_0_0, 0, power_calc_block, 1);
-
-    top->connect(blocks_multiply_const_vxx_0_0, 0, mmse_resampler_xx_0_0, 0);
-    top->connect(blocks_multiply_const_vxx_0, 0, mmse_resampler_xx_0, 0);
 
     top->connect(blocks_multiply_const_vxx_0_0, 0, band_pass_filter_0_0, 0);
     top->connect(blocks_multiply_const_vxx_0, 0, band_pass_filter_0, 0);
 
     top->connect(ps, 0, blocks_multiply_const_vxx_0_0, 0);
     top->connect(ps, 2, blocks_multiply_const_vxx_0, 0);
-
 
     top->start();
 

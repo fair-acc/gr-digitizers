@@ -32,7 +32,7 @@ void wire_streaming(int time)
 
     ps->set_samp_rate(samp_rate);
     ps->set_samples(500000, 10000);
-    ps->set_buffer_size(8192);
+    ps->set_buffer_size(200000); //8192
     ps->set_nr_buffers(64);
     ps->set_driver_buffer_size(200000);
     ps->set_streaming(0.0005);
