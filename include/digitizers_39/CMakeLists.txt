@@ -19,5 +19,6 @@ install(FILES
     app_buffer.h 
     digitizer_block.h 
     status.h
-    power_calc.h DESTINATION include/digitizers_39
+    power_calc.h
+    mains_frequency_calc.h DESTINATION include/digitizers_39
 )

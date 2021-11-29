@@ -16,6 +16,7 @@ list(APPEND digitizers_39_sources
     picoscope_impl.cc
     picoscope_4000a_impl.cc
     power_calc_impl.cc
+    mains_frequency_calc_impl.cc
 )
 
 set(digitizers_39_sources "${digitizers_39_sources}" PARENT_SCOPE)
