@@ -26,6 +26,7 @@ namespace gr {
       : gr::sync_block("mains_frequency_calc",
               gr::io_signature::make(1 /* min inputs */, 1 /* max inputs */, sizeof(float)),
               gr::io_signature::make(1 /* min outputs */, 1 /*max outputs */, sizeof(float))),
+              d_expected_sample_rate(expected_sample_rate),
               d_lo(low_threshold),
               d_hi(high_threshold),
               d_last_state(0.0),
@@ -43,22 +44,32 @@ namespace gr {
     {
     }
 
-    void mains_frequency_calc_impl::calc_average_ms_of_period(float* ms_low ,float* ms_high, bool* is_threshold, int noutput_items)
+    void mains_frequency_calc_impl::calc_frequency_per_halfed_period(float* f_out, int count, int noutput_items)
     {
-      for (int i = 0; i < noutput_items; i++) 
-      {
-        if (is_threshold[i] == 0.0 && counter_low[i] != 0)
-        {
-          ms_low[i] = ;
-        }
-        else if (is_threshold[i] == 0.0 && counter_high[i] != 0)
-        {
-          ms_high[i] = ;
-        }
-      }
+      int start = noutput_items - count;
+      int end = noutput_items - 1;
+
+      std::cout << "COUNT" << "\n" ;
+      std::cout << count << "\n" ;
+      std::cout << "----------------" << "\n" ;
+
+      float seconds_per_halfed_period = (float)((double)count / d_expected_sample_rate);
+      std::cout << "MS per halfed period" << "\n" ;
+      std::cout << seconds_per_halfed_period << "\n" ;
+      std::cout << "----------------" << "\n" ;
+
+      float mains_frequency_per_half_period = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
+
+      std::cout << "Mains Frequency:" << "\n" ;
+      std::cout << mains_frequency_per_half_period << "\n" ;
+      std::cout << "----------------" << "\n" ;
+      // for (int i = start; i < end; i++) 
+      // {
+      //   f_out[i] = mains_frequency_per_half_period;
+      // }
     }
 
-    void mains_frequency_calc_impl::mains_threshold(float* is_threshold, int* counter_low, int* counter_high, const float* frequenzy_in, int noutput_items)
+    void mains_frequency_calc_impl::mains_threshold(float* f_out, const float* frequenzy_in, int noutput_items)
     {
       for (int i = 0; i < noutput_items; i++) 
       {
@@ -67,10 +78,18 @@ namespace gr {
             // save prior state
             if (d_last_state == 0.0)
             {
-              counter_low[i] = no_low;
+              // std::cout << "" << "\n" ;
+              // std::cout << "Positive Flank" << "\n" ;
+              // std::cout << "" << "\n" ;
+              // std::cout << "Count LOW" << "\n" ;
+              // std::cout << no_low << "\n" ;
+              // std::cout << "----------------" << "\n" ;
+              calc_frequency_per_halfed_period(f_out, no_low, noutput_items);
+
               reset_no_low();
             }
-            is_threshold[i] = 1.0;
+
+            // is_threshold[i] = 1.0;
             d_last_state = 1.0;
             no_high++;
         } 
@@ -79,35 +98,31 @@ namespace gr {
             // save prior state
             if (d_last_state == 1.0)
             {
-              counter_high[i] = no_high;
+              // std::cout << "" << "\n" ;
+              // std::cout << "Negative Flank:" << "\n" ;
+              // std::cout << "" << "\n" ;
+              // std::cout << "Count HIGH" << "\n" ;
+              // std::cout << no_high << "\n" ;
+              // std::cout << "----------------" << "\n" ;
+              calc_frequency_per_halfed_period(f_out, no_high, noutput_items);
+
               reset_no_hight();
             }
-            is_threshold[i] = 0.0;
+            // is_threshold[i] = 0.0;
             d_last_state = 0.0;
             no_low++;
         } 
-        else
-            if (d_last_state == 0.0)
-            {
-              reset_no_hight();
-              //no_low++;
-            }
-            else
-            {
-              reset_no_low();
-              //no_high++;
-            }
-        }
+      }
     }
 
-    void reset_no_low()
+    void mains_frequency_calc_impl::reset_no_low()
     {
-      int no_low = 0;
+      no_low = 0;
     }
 
-    void reset_no_hight()
+    void mains_frequency_calc_impl::reset_no_hight()
     {
-      int no_high = 0;
+      no_high = 0;
     }
 
     int
@@ -115,25 +130,26 @@ namespace gr {
         gr_vector_const_void_star &input_items,
         gr_vector_void_star &output_items)
     {
-      const float* f_in =  (const float*)input_items[0];
-      float* nf_out = (float*)output_items[0];
+      const float* frequency_in =  (const float*)input_items[0];
+      float* mains_frequency_out = (float*)output_items[0];
 
-      bool* is_mains_threshold = (bool*)malloc(noutput_items*sizeof(bool));
+      mains_threshold(mains_frequency_out, frequency_in, noutput_items);
 
-      int* counter_low = (int*)malloc(noutput_items*sizeof(float));
-      memset(counter_low, 0, noutput_items * sizeof(*counter_low));
-      int* counter_high = (int*)malloc(noutput_items*sizeof(float));
-      memset(counter_high, 0, noutput_items * sizeof(*counter_high));
+      memset(mains_frequency_out, 0.0, noutput_items * sizeof(*mains_frequency_out));
 
-      float* ms_low = (float*)malloc(noutput_items*sizeof(float));
-      memset(ms_low, 0.0, noutput_items * sizeof(*ms_low));
-      float* ms_high = (float*)malloc(noutput_items*sizeof(float));
-      memset(ms_high, 0.0, noutput_items * sizeof(*ms_high));
+      // halfed_period_t* mains_data_pos_neg = (halfed_period_t*)malloc(noutput_items*sizeof(halfed_period_t));
+
+      // int* counter_low = (int*)malloc(noutput_items*sizeof(float));
+      // memset(counter_low, 0, noutput_items * sizeof(*counter_low));
+      // int* counter_high = (int*)malloc(noutput_items*sizeof(float));
+      // memset(counter_high, 0, noutput_items * sizeof(*counter_high));
+
+      // float* ms_low = (float*)malloc(noutput_items*sizeof(float));
+      // memset(ms_low, 0.0, noutput_items * sizeof(*ms_low));
+      // float* ms_high = (float*)malloc(noutput_items*sizeof(float));
+      // memset(ms_high, 0.0, noutput_items * sizeof(*ms_high));
       
       // Threshold
-      mains_threshold(is_mains_threshold, f_in, noutput_items);
-
-
 
       return noutput_items;
     }
