@@ -17,8 +17,9 @@ namespace gr {
     {
      private:
       double d_expected_sample_rate;
-      float d_lo, d_hi, d_last_state;
-      int no_low, no_high;
+      float d_lo, d_hi, prev_half, current_half;
+      int no_low, no_high, prev_no_high, prev_no_low;
+      bool d_last_state;
 
       // struct halfed_period_t {
       //   int start_index;
@@ -30,10 +31,12 @@ namespace gr {
       mains_frequency_calc_impl(double expected_sample_rate=2000000.0, float low_threshold=-5, float high_threshold=5);
       ~mains_frequency_calc_impl();
 
-      void calc_frequency_per_halfed_period(float* f_out, int count, int noutput_items);
+      void calc_frequency_average_over_period(float* mains_frequency_out, int prev_count, int current_count ,int current_position);
+      void calc_frequency_per_halfed_period(int current_count, int noutput_items);
       void mains_threshold(float* f_out, const float* frequenzy_in, int noutput_items);
       void reset_no_low();
-      void reset_no_hight();
+      void reset_no_high();
+      void reset_last_state();
 
       // Where all the action really happens
       int work(

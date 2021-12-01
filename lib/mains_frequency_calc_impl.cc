@@ -29,12 +29,16 @@ namespace gr {
               d_expected_sample_rate(expected_sample_rate),
               d_lo(low_threshold),
               d_hi(high_threshold),
-              d_last_state(0.0),
+              d_last_state(false),
               no_low(0), 
-              no_high(0)
+              no_high(0),
+              prev_no_high(0), 
+              prev_no_low(0),
+              prev_half(0), 
+              current_half(0)
     {
       reset_no_low();
-      reset_no_hight();
+      reset_no_high();
     }
 
     /*
@@ -44,85 +48,109 @@ namespace gr {
     {
     }
 
-    void mains_frequency_calc_impl::calc_frequency_per_halfed_period(float* f_out, int count, int noutput_items)
+    void mains_frequency_calc_impl::calc_frequency_average_over_period(float* mains_frequency_out, int prev_count, int current_count, int current_position)
     {
-      int start = noutput_items - count;
-      int end = noutput_items - 1;
+      int total_period_length = prev_count + current_count;
+      int start = current_position - total_period_length;
 
-      std::cout << "COUNT" << "\n" ;
-      std::cout << count << "\n" ;
-      std::cout << "----------------" << "\n" ;
+      std::ofstream outfile;
+      outfile.open("data.txt", std::ios_base::app); // append instead of overwrite
 
-      float seconds_per_halfed_period = (float)((double)count / d_expected_sample_rate);
-      std::cout << "MS per halfed period" << "\n" ;
-      std::cout << seconds_per_halfed_period << "\n" ;
-      std::cout << "----------------" << "\n" ;
+      outfile << "Period Lenght:" << "\n";
+      outfile << total_period_length << "\n";
 
-      float mains_frequency_per_half_period = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
+      outfile << "Start:" << "\n";
+      outfile << start << "\n";
 
-      std::cout << "Mains Frequency:" << "\n" ;
-      std::cout << mains_frequency_per_half_period << "\n" ;
-      std::cout << "----------------" << "\n" ;
-      // for (int i = start; i < end; i++) 
+      // for (int i = start; i < total_period_length; i++)
       // {
-      //   f_out[i] = mains_frequency_per_half_period;
+      //   mains_frequency_out[i] = (float)((prev_half + current_half) / 2.0);
       // }
     }
 
-    void mains_frequency_calc_impl::mains_threshold(float* f_out, const float* frequenzy_in, int noutput_items)
+    void mains_frequency_calc_impl::calc_frequency_per_halfed_period(int current_count, int noutput_items)
     {
-      for (int i = 0; i < noutput_items; i++) 
+      float seconds_per_halfed_period = (float)((double)current_count / d_expected_sample_rate);
+
+      float mains_frequency_per_half_period = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
+
+      current_half = mains_frequency_per_half_period;
+    }
+
+    void mains_frequency_calc_impl::mains_threshold(float* mains_frequency_out, const float* frequenzy_in, int noutput_items)
+    {
+      // outfile << "HI" << "\n";
+      // outfile << d_hi << "\n";
+      // outfile << "LO" << "\n";
+      // outfile << d_lo << "\n";
+
+      for (int i = 0; i < noutput_items; i++)
       {
-        if (frequenzy_in[i] > d_hi) 
+        if ((float)(frequenzy_in[i]) > d_hi && !d_last_state) 
         {
-            // save prior state
-            if (d_last_state == 0.0)
-            {
-              // std::cout << "" << "\n" ;
-              // std::cout << "Positive Flank" << "\n" ;
-              // std::cout << "" << "\n" ;
-              // std::cout << "Count LOW" << "\n" ;
-              // std::cout << no_low << "\n" ;
-              // std::cout << "----------------" << "\n" ;
-              calc_frequency_per_halfed_period(f_out, no_low, noutput_items);
+            calc_frequency_per_halfed_period(no_low, i);
 
-              reset_no_low();
-            }
+            calc_frequency_average_over_period(mains_frequency_out, prev_no_high, no_low, noutput_items);
 
-            // is_threshold[i] = 1.0;
-            d_last_state = 1.0;
+            reset_no_low();
+            
+            prev_half = current_half;
+
+            d_last_state = true;
             no_high++;
         } 
-        else if (frequenzy_in[i] < d_lo) 
+        else if ((float)(frequenzy_in[i]) > d_hi && d_last_state) 
         {
-            // save prior state
-            if (d_last_state == 1.0)
-            {
-              // std::cout << "" << "\n" ;
-              // std::cout << "Negative Flank:" << "\n" ;
-              // std::cout << "" << "\n" ;
-              // std::cout << "Count HIGH" << "\n" ;
-              // std::cout << no_high << "\n" ;
-              // std::cout << "----------------" << "\n" ;
-              calc_frequency_per_halfed_period(f_out, no_high, noutput_items);
-
-              reset_no_hight();
-            }
-            // is_threshold[i] = 0.0;
-            d_last_state = 0.0;
-            no_low++;
+            no_high++;
         } 
+        else if ((float)(frequenzy_in[i]) > d_lo &&  (float)(frequenzy_in[i]) < d_hi && d_last_state) 
+        {  
+            no_high++;
+        }
+        else if ((float)(frequenzy_in[i]) < d_lo && d_last_state)
+        {
+            calc_frequency_per_halfed_period(no_high, i);
+
+            calc_frequency_average_over_period(mains_frequency_out, prev_no_low, no_high, noutput_items);
+
+            reset_no_high();
+
+            prev_half = current_half;
+
+            d_last_state = false;
+            no_low++;
+        }
+        else if ((float)(frequenzy_in[i]) < d_lo && !d_last_state)
+        {
+          no_low++;
+        }
+        else if ((float)(frequenzy_in[i]) > d_lo &&  (float)(frequenzy_in[i]) < d_hi && !d_last_state)
+        {
+          no_low++;
+        }
+        else
+        {
+          std::cerr << "ERROR: Lower and Upper threshold are asynchronous!" << "\n";
+        }
+        // outfile << "F: " << (float)(frequenzy_in[i]) << " " << "H: " << no_high << " " << "L: " << no_low << " " << "S: " << d_last_state << "\n";
       }
     }
 
     void mains_frequency_calc_impl::reset_no_low()
     {
+      prev_no_low = no_low;
       no_low = 0;
     }
 
-    void mains_frequency_calc_impl::reset_no_hight()
+    void mains_frequency_calc_impl::reset_no_high()
     {
+      prev_no_low = no_high;
       no_high = 0;
+    }
+
+    void mains_frequency_calc_impl::reset_last_state()
+    {
+      d_last_state = false;
     }
 
     int
@@ -130,12 +158,14 @@ namespace gr {
         gr_vector_const_void_star &input_items,
         gr_vector_void_star &output_items)
     {
-      const float* frequency_in =  (const float*)input_items[0];
+      const float* samples_in =  (const float*)input_items[0];
       float* mains_frequency_out = (float*)output_items[0];
 
-      mains_threshold(mains_frequency_out, frequency_in, noutput_items);
+      float current_half_frequency = 0.0;
 
-      memset(mains_frequency_out, 0.0, noutput_items * sizeof(*mains_frequency_out));
+      mains_threshold(mains_frequency_out, samples_in, noutput_items);
+
+      // memset(mains_frequency_out, 0.0, noutput_items * sizeof(*mains_frequency_out));
 
       // halfed_period_t* mains_data_pos_neg = (halfed_period_t*)malloc(noutput_items*sizeof(halfed_period_t));
 

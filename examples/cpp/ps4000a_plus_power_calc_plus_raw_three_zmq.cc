@@ -119,8 +119,8 @@ void wire_streaming(int time)
     top->connect(blocks_multiply_const_vxx_0, 0, blocks_streams_to_vector_raw, 1);
 
     top->connect(blocks_streams_to_vector_raw_band_pass, 0, zeromq_pub_sink_raw_band_pass, 0);
-    top->connect(band_pass_filter_0, 0, blocks_streams_to_vector_raw_band_pass, 0);
-    top->connect(band_pass_filter_0_0, 0, blocks_streams_to_vector_raw_band_pass, 1);
+    top->connect(band_pass_filter_0_0, 0, blocks_streams_to_vector_raw_band_pass, 0);
+    top->connect(band_pass_filter_0, 0, blocks_streams_to_vector_raw_band_pass, 1);
 
     top->connect(band_pass_filter_0, 0, power_calc_block, 0);
     top->connect(band_pass_filter_0_0, 0, power_calc_block, 1);

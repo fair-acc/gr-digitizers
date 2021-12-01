@@ -30,7 +30,7 @@ using namespace gr::digitizers_39;
 using namespace gr::blocks;
 
 void power_calc_streaming(int runtime=60,
-                        double samp_rate=2000000.0,
+                        double samp_rate=20000.0,
                         float low_threshold=-0.5,
                         float high_threshold=0.5,
                         int source_1_amp=5, 
@@ -65,8 +65,8 @@ void power_calc_streaming(int runtime=60,
 
     // 5,0,5,0 -> P,Q,S,PHI
     auto analog_sig_source_x_0_0 = gr::analog::sig_source_f::make(samp_rate, gr::analog::GR_SIN_WAVE, source_1_freq, source_1_amp, 0, source_1_phase);
-    // auto analog_noise_source_x_0_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, source_1_noise_amp_percentage_calc, 0);
-    // auto blocks_add_xx_0_0 = gr::blocks::add_ff::make(1);
+    auto analog_noise_source_x_0_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, source_1_noise_amp_percentage_calc, 0);
+    auto blocks_add_xx_0_0 = gr::blocks::add_ff::make(1);
 
     // auto analog_sig_source_x_0 = gr::analog::sig_source_f::make(samp_rate, gr::analog::GR_SIN_WAVE, source_2_freq, source_2_amp, 0, source_2_phase);
     // auto analog_noise_source_x_0 = gr::analog::noise_source_f::make(gr::analog::GR_GAUSSIAN, source_2_noise_amp_percentage_calc, 0);
@@ -74,10 +74,13 @@ void power_calc_streaming(int runtime=60,
 
     // connect PS to stream-to-vector-block and then ZeroMQ Sink
     top->connect(blocks_streams_to_vector, 0, zeromq_pub_sink, 0);
-    top->connect(analog_sig_source_x_0_0, 0, blocks_streams_to_vector, 0);
+    top->connect(blocks_add_xx_0_0, 0, blocks_streams_to_vector, 0);
     top->connect(mains_freq_calc_block_source_1, 0, blocks_streams_to_vector, 1);
 
-    top->connect(analog_sig_source_x_0_0, 0, mains_freq_calc_block_source_1, 0);
+    top->connect(blocks_add_xx_0_0, 0, mains_freq_calc_block_source_1, 0);
+
+    top->connect(analog_noise_source_x_0_0, 0, blocks_add_xx_0_0, 0);
+    top->connect(analog_sig_source_x_0_0, 0, blocks_add_xx_0_0, 1);
 
     // top->connect(blocks_add_xx_0, 0, blocks_streams_to_vector, 2);
     // top->connect(mains_freq_calc_block_source_2, 0, blocks_streams_to_vector, 3);
@@ -85,8 +88,7 @@ void power_calc_streaming(int runtime=60,
     // top->connect(blocks_add_xx_0_0, 0, mains_freq_calc_block_source_1, 0);
     // top->connect(blocks_add_xx_0, 0, mains_freq_calc_block_source_2, 0);
 
-    // top->connect(analog_noise_source_x_0_0, 0, blocks_add_xx_0_0, 0);
-    // top->connect(analog_sig_source_x_0_0, 0, blocks_add_xx_0_0, 1);
+    
 
     // top->connect(analog_noise_source_x_0, 0, blocks_add_xx_0, 0);
     // top->connect(analog_sig_source_x_0, 0, blocks_add_xx_0, 1);
@@ -104,7 +106,7 @@ int main(int argc, char **argv) {
         int runtime=60;
         double samp_rate=2000000.0;
         float low_threshold=-0.5;
-        float high_threshold=-0.5;
+        float high_threshold=0.5;
         int source_1_amp=5;
         int source_2_amp=2;
         int source_1_freq=50;
