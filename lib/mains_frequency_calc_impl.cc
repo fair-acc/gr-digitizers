@@ -35,10 +35,11 @@ namespace gr {
               prev_no_high(0), 
               prev_no_low(0),
               prev_half(0), 
-              current_half(0)
+              current_half(0),
+              full_period(0)
     {
-      reset_no_low();
-      reset_no_high();
+      //reset_no_low();
+      //reset_no_high();
     }
 
     /*
@@ -53,22 +54,30 @@ namespace gr {
       int total_period_length = prev_count + current_count;
       int start = current_position - total_period_length;
 
+      if (prev_count == 0)
+      { 
+        start = 0;
+        total_period_length = total_period_length - abs(start);
+      }
+
       std::ofstream outfile;
       outfile.open("data.txt", std::ios_base::app); // append instead of overwrite
 
-      outfile << "Period Lenght:" << "\n";
-      outfile << total_period_length << "\n";
+      outfile << "prev_count:       " << prev_count << "\n";
+      outfile << "current_count:    " << current_count << "\n";
+      outfile << "current_position: " << current_position << "\n";
+      outfile << "Period Lenght:    " << total_period_length << "\n";
+      outfile << "Start:            " << start << "\n";
+      outfile << "-------------------------------" << "\n";
 
-      outfile << "Start:" << "\n";
-      outfile << start << "\n";
 
-      // for (int i = start; i < total_period_length; i++)
-      // {
-      //   mains_frequency_out[i] = (float)((prev_half + current_half) / 2.0);
-      // }
+      for (int i = start; i < total_period_length; i++)
+      {
+        mains_frequency_out[i] = (float)((prev_half + current_half) / 2.0);
+      }
     }
 
-    void mains_frequency_calc_impl::calc_frequency_per_halfed_period(int current_count, int noutput_items)
+    void mains_frequency_calc_impl::calc_frequency_per_halfed_period(int current_count)
     {
       float seconds_per_halfed_period = (float)((double)current_count / d_expected_sample_rate);
 
@@ -79,46 +88,53 @@ namespace gr {
 
     void mains_frequency_calc_impl::mains_threshold(float* mains_frequency_out, const float* frequenzy_in, int noutput_items)
     {
-      // outfile << "HI" << "\n";
-      // outfile << d_hi << "\n";
-      // outfile << "LO" << "\n";
-      // outfile << d_lo << "\n";
-
       for (int i = 0; i < noutput_items; i++)
       {
         if ((float)(frequenzy_in[i]) > d_hi && !d_last_state) 
         {
-            calc_frequency_per_halfed_period(no_low, i);
+          full_period++;
 
-            calc_frequency_average_over_period(mains_frequency_out, prev_no_high, no_low, noutput_items);
+          calc_frequency_per_halfed_period(no_low);
 
-            reset_no_low();
-            
-            prev_half = current_half;
+          if (full_period == 2)
+          {
+            calc_frequency_average_over_period(mains_frequency_out, prev_no_high, no_low, i);
+            full_period = 0;
+          }
 
-            d_last_state = true;
-            no_high++;
+          reset_no_low();
+          
+          prev_half = current_half;
+
+          d_last_state = true;
+          no_high++;
         } 
         else if ((float)(frequenzy_in[i]) > d_hi && d_last_state) 
         {
-            no_high++;
+          no_high++;
         } 
         else if ((float)(frequenzy_in[i]) > d_lo &&  (float)(frequenzy_in[i]) < d_hi && d_last_state) 
         {  
-            no_high++;
+          no_high++;
         }
         else if ((float)(frequenzy_in[i]) < d_lo && d_last_state)
         {
-            calc_frequency_per_halfed_period(no_high, i);
+          full_period++;
 
-            calc_frequency_average_over_period(mains_frequency_out, prev_no_low, no_high, noutput_items);
+          calc_frequency_per_halfed_period(no_high);
 
-            reset_no_high();
+          if (full_period == 2)
+          {
+            calc_frequency_average_over_period(mains_frequency_out, prev_no_low, no_high, i);
+            full_period = 0;
+          }
 
-            prev_half = current_half;
+          reset_no_high();
 
-            d_last_state = false;
-            no_low++;
+          prev_half = current_half;
+
+          d_last_state = false;
+          no_low++;
         }
         else if ((float)(frequenzy_in[i]) < d_lo && !d_last_state)
         {
@@ -132,6 +148,7 @@ namespace gr {
         {
           std::cerr << "ERROR: Lower and Upper threshold are asynchronous!" << "\n";
         }
+        
         // outfile << "F: " << (float)(frequenzy_in[i]) << " " << "H: " << no_high << " " << "L: " << no_low << " " << "S: " << d_last_state << "\n";
       }
     }
@@ -140,12 +157,14 @@ namespace gr {
     {
       prev_no_low = no_low;
       no_low = 0;
+      prev_no_high = 0;
     }
 
     void mains_frequency_calc_impl::reset_no_high()
     {
-      prev_no_low = no_high;
+      prev_no_high = no_high;
       no_high = 0;
+      prev_no_low = 0;
     }
 
     void mains_frequency_calc_impl::reset_last_state()
@@ -161,7 +180,10 @@ namespace gr {
       const float* samples_in =  (const float*)input_items[0];
       float* mains_frequency_out = (float*)output_items[0];
 
-      float current_half_frequency = 0.0;
+      current_half = 0.0;
+      prev_half = 0.0;
+      prev_no_high = 0;
+      prev_no_low = 0;
 
       mains_threshold(mains_frequency_out, samples_in, noutput_items);
 
