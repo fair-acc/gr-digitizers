@@ -36,10 +36,12 @@ namespace gr {
               prev_no_low(0),
               prev_half(0), 
               current_half(0),
-              full_period(0)
+              full_period(0),
+              f_avg(0.0), 
+              d_alpha(0.007)
     {
-      //reset_no_low();
-      //reset_no_high();
+      reset_no_low();
+      reset_no_high();
     }
 
     /*
@@ -53,12 +55,6 @@ namespace gr {
     {
       int total_period_length = prev_count + current_count;
       int start = current_position - total_period_length;
-
-      if (prev_count == 0)
-      { 
-        start = 0;
-        total_period_length = total_period_length - abs(start);
-      }
 
       std::ofstream outfile;
       outfile.open("data.txt", std::ios_base::app); // append instead of overwrite
@@ -81,9 +77,9 @@ namespace gr {
     {
       float seconds_per_halfed_period = (float)((double)current_count / d_expected_sample_rate);
 
-      float mains_frequency_per_half_period = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
+      current_half = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
 
-      current_half = mains_frequency_per_half_period;
+      f_avg = d_alpha * current_half + (1 - d_alpha)  * f_avg;
     }
 
     void mains_frequency_calc_impl::mains_threshold(float* mains_frequency_out, const float* frequenzy_in, int noutput_items)
@@ -92,15 +88,15 @@ namespace gr {
       {
         if ((float)(frequenzy_in[i]) > d_hi && !d_last_state) 
         {
-          full_period++;
+          //full_period++;
 
           calc_frequency_per_halfed_period(no_low);
 
-          if (full_period == 2)
-          {
-            calc_frequency_average_over_period(mains_frequency_out, prev_no_high, no_low, i);
-            full_period = 0;
-          }
+          // if (full_period == 2)
+          // {
+          //   calc_frequency_average_over_period(mains_frequency_out, prev_no_high, no_low, i);
+          //   full_period = 0;
+          // }
 
           reset_no_low();
           
@@ -119,15 +115,15 @@ namespace gr {
         }
         else if ((float)(frequenzy_in[i]) < d_lo && d_last_state)
         {
-          full_period++;
+          //full_period++;
 
           calc_frequency_per_halfed_period(no_high);
 
-          if (full_period == 2)
-          {
-            calc_frequency_average_over_period(mains_frequency_out, prev_no_low, no_high, i);
-            full_period = 0;
-          }
+          // if (full_period == 2)
+          // {
+          //   calc_frequency_average_over_period(mains_frequency_out, prev_no_low, no_high, i);
+          //   full_period = 0;
+          // }
 
           reset_no_high();
 
@@ -146,10 +142,10 @@ namespace gr {
         }
         else
         {
-          std::cerr << "ERROR: Lower and Upper threshold are asynchronous!" << "\n";
+          std::cerr << "ERROR: No matching condition!" << "\n";
         }
-        
-        // outfile << "F: " << (float)(frequenzy_in[i]) << " " << "H: " << no_high << " " << "L: " << no_low << " " << "S: " << d_last_state << "\n";
+
+        mains_frequency_out[i] = f_avg;
       }
     }
 
@@ -157,14 +153,14 @@ namespace gr {
     {
       prev_no_low = no_low;
       no_low = 0;
-      prev_no_high = 0;
+      //prev_no_high = 0;
     }
 
     void mains_frequency_calc_impl::reset_no_high()
     {
       prev_no_high = no_high;
       no_high = 0;
-      prev_no_low = 0;
+      //prev_no_low = 0;
     }
 
     void mains_frequency_calc_impl::reset_last_state()
@@ -182,12 +178,13 @@ namespace gr {
 
       current_half = 0.0;
       prev_half = 0.0;
-      prev_no_high = 0;
-      prev_no_low = 0;
+      //prev_no_high = 0;
+      //prev_no_low = 0;
 
+      //memset(mains_frequency_out, 0.0, noutput_items * sizeof(*mains_frequency_out));
       mains_threshold(mains_frequency_out, samples_in, noutput_items);
 
-      // memset(mains_frequency_out, 0.0, noutput_items * sizeof(*mains_frequency_out));
+      
 
       // halfed_period_t* mains_data_pos_neg = (halfed_period_t*)malloc(noutput_items*sizeof(halfed_period_t));
 

@@ -17,7 +17,7 @@ namespace gr {
     {
      private:
       double d_expected_sample_rate;
-      float d_lo, d_hi, prev_half, current_half;
+      float d_lo, d_hi, prev_half, current_half, f_avg, d_alpha;
       int no_low, no_high, prev_no_high, prev_no_low, full_period;
       bool d_last_state;
 
