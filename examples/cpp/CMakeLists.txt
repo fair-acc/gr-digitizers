@@ -65,6 +65,7 @@ add_executable(ps4000a_plus_power_calc_plus_raw ps4000a_plus_power_calc_plus_raw
 add_executable(ps4000a_plus_power_calc_plus_raw_two_zmq ps4000a_plus_power_calc_plus_raw_two_zmq.cc)
 add_executable(ps4000a_plus_power_calc_plus_raw_three_zmq ps4000a_plus_power_calc_plus_raw_three_zmq.cc)
 add_executable(ps4000a_plus_power_calc_plus_raw_three_files ps4000a_plus_power_calc_plus_raw_three_files.cc)
+add_executable(ps4000a_plus_mains_frequency_calc_test ps4000a_plus_mains_frequency_calc_test.cc)
 
 
 
@@ -185,6 +186,19 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw_three_files
     gnuradio::gnuradio-zeromq
 )
 
+target_link_libraries(ps4000a_plus_mains_frequency_calc_test
+	${GNURADIO_RUNTIME_LIBRARIES}
+	${GNURADIO_ANALOG_LIBRARIES}
+	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_PMT_LIBRARIES}
+    ${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+    gnuradio::gnuradio-qtgui
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
+)
+
 INSTALL(TARGETS
 	ps4000a_plus_power_calc_plus_raw_three_files
 	ps4000a_plus_power_calc_plus_raw_three_zmq
@@ -192,6 +206,7 @@ INSTALL(TARGETS
 	ps4000a_plus_power_calc_plus_raw
 	ps4000a_plus_power_calc
 	power_calc_test
+	ps4000a_plus_mains_frequency_calc_test
 	mains_frequency_calc_test
 	DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
 	COMPONENT "digitizers_examples"
