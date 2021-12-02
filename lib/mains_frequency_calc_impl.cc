@@ -37,7 +37,7 @@ namespace gr {
               prev_half(0), 
               current_half(0),
               full_period(0),
-              f_avg(0.0), 
+              f_avg(50.0), 
               d_alpha(0.007)
     {
       reset_no_low();
