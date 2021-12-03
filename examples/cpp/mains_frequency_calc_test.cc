@@ -44,7 +44,7 @@ void power_calc_streaming(int runtime=60,
 {   
     float source_1_noise_amp_percentage_calc = 0.0;
     float source_2_noise_amp_percentage_calc = 0.0;
-
+ 
     if (source_1_noise_percent != 0)
     {
         source_1_noise_amp_percentage_calc = float((float)source_1_amp * (float)source_1_noise_percent / 100.0);

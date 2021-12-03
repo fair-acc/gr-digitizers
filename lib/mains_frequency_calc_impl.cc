@@ -43,8 +43,8 @@ namespace gr {
               d_last_state(false),
               no_low(0), 
               no_high(0),
-              current_half(0),
-              f_avg(50.0), 
+              current_half_frequency(0),
+              average_frequency(25.0), 
               d_alpha(0.007)
     {
       reset_no_low();
@@ -68,7 +68,7 @@ namespace gr {
     {
       float seconds_per_halfed_period = (float)((double)current_count / d_expected_sample_rate);
 
-      current_half = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
+      current_half_frequency = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
     }
 
     /**
@@ -77,7 +77,7 @@ namespace gr {
      */
     void mains_frequency_calc_impl::calc_current_average()
     {
-      f_avg = d_alpha * current_half + (1 - d_alpha)  * f_avg;
+      average_frequency = d_alpha * current_half_frequency + (1 - d_alpha)  * average_frequency;
     }
 
     /**
@@ -134,7 +134,7 @@ namespace gr {
           std::cerr << "ERROR: No matching condition!" << "\n";
         }
 
-        mains_frequency_out[i] = f_avg;
+        mains_frequency_out[i] = average_frequency;
       }
     }
 
