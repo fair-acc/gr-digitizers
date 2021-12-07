@@ -105,7 +105,7 @@ void wire_streaming(int time)
 
      // Calc [S]
     top->connect(blocks_multiply_const_vxx_0_0, 0, blocks_multiply_xx_0, 0);
-    top->connect(blocks_multiply_const_vxx_0, 1, blocks_multiply_xx_0, 1);
+    top->connect(blocks_multiply_const_vxx_0, 0, blocks_multiply_xx_0, 1);
 
     top->connect(ps, 0, blocks_multiply_const_vxx_0_0, 0);
     top->connect(ps, 2, blocks_multiply_const_vxx_0, 0);
