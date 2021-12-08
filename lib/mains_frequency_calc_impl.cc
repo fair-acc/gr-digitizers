@@ -44,7 +44,7 @@ namespace gr {
               no_low(0), 
               no_high(0),
               current_half_frequency(0),
-              average_frequency(25.0), 
+              average_frequency(50.0), 
               d_alpha(0.007)
     {
       reset_no_low();
