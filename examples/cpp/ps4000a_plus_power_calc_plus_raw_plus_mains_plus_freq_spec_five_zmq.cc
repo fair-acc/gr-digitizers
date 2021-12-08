@@ -62,7 +62,7 @@ void wire_streaming(int time)
     auto blocks_streams_to_vector_raw_band_pass = gr::blocks::streams_to_vector::make(sizeof(gr_complex)*1, 2);
 
     auto blocks_streams_to_mains_frequency = gr::blocks::streams_to_vector::make(sizeof(float)*1, 1);
-    auto blocks_streams_to_vector_frequency_spectrum = gr::blocks::streams_to_vector::make(sizeof(float)*1, 1);
+    // auto blocks_streams_to_vector_frequency_spectrum = gr::blocks::streams_to_vector::make(sizeof(float)*1, 1);
 
     auto blocks_multiply_const_vxx_voltage = gr::blocks::multiply_const_ff::make(100);
     auto blocks_multiply_const_vxx_current = gr::blocks::multiply_const_ff::make(2.5);
@@ -161,8 +161,8 @@ void wire_streaming(int time)
     top->connect(blocks_multiply_const_vxx_voltage, 0, mains_freq_calc, 0);
 
     // Freq Spec
-    top->connect(blocks_streams_to_vector_frequency_spectrum, 0, zeromq_pub_sink_frequency_spectrum, 0);
-    top->connect(fft_filter_xxx_0, 0, blocks_streams_to_vector_frequency_spectrum, 0);
+    top->connect(fft_filter_xxx_0, 0, zeromq_pub_sink_frequency_spectrum, 0);
+    // top->connect(fft_filter_xxx_0, 0, blocks_streams_to_vector_frequency_spectrum, 0);
     top->connect(low_pass_filter_0_0, 0, fft_filter_xxx_0, 0);
     top->connect(blocks_multiply_xx_raw_apperent_power, 0, low_pass_filter_0_0, 0);
 

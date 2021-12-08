@@ -24,6 +24,7 @@ namespace py = pybind11;
     void bind_picoscope_4000a(py::module& m);
     void bind_power_calc(py::module& m);
     void bind_mains_frequency_calc(py::module& m);
+    void bind_db_to_watt_ff(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -55,5 +56,6 @@ PYBIND11_MODULE(digitizers_39_python, m)
     bind_picoscope_4000a(m);
     bind_power_calc(m);
     bind_mains_frequency_calc(m);
+    bind_db_to_watt_ff(m);
     // ) END BINDING_FUNCTION_CALLS
 }
