@@ -27,8 +27,8 @@ using namespace gr::blocks;
 void wire_streaming(int time)
 {
     double samp_rate = 200000.0;
-    double decimation_power = 200.0; // => 1000KS out
-    double decimation_freq_spec = 2000.0; // => 100KS out
+    double decimation_power = 200.0; // => 1000S out
+    double decimation_freq_spec = 200.0; // => 1000S out
     size_t items = 1000;
 
     auto top = gr::make_top_block("ps4000a_full");
@@ -48,7 +48,7 @@ void wire_streaming(int time)
     ps->set_streaming(0.0005);
 
     auto power_calc_block = power_calc::make(0.007);
-    auto mains_freq_calc = mains_frequency_calc::make(samp_rate, -100, 100);
+    auto mains_freq_calc = mains_frequency_calc::make(samp_rate, -90, 90);
 
     auto zeromq_pub_sink_power = gr::zeromq::pub_sink::make(sizeof(float), 4, const_cast<char *>("tcp://10.0.0.2:5001"), 100, false, -1);
     auto zeromq_pub_sink_raw = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>("tcp://10.0.0.2:5002"), 100, false, -1);
