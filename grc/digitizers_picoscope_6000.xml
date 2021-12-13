@@ -14,11 +14,8 @@ self.$(id).set_aichan('C', $enable_ai_c, $range_ai_c, $coupling_ai_c, $offset_ai
 self.$(id).set_aichan('D', $enable_ai_d, $range_ai_d, $coupling_ai_d, $offset_ai_d)
 
 if $trigger_source != 'None':
-    if $trigger_source == 'AUX':
-        self.$(id).set_di_trigger($pin_number, $trigger_direction)
-    else:
-        self.$(id).set_aichan_trigger($trigger_source, $trigger_direction, $trigger_threshold)
-        
+    self.$(id).set_aichan_trigger($trigger_source, $trigger_direction, $trigger_threshold)
+
 if $acquisition_mode == 'Streaming':
     self.$(id).set_buffer_size($buff_size)
     self.$(id).set_nr_buffers($nr_buffers)
