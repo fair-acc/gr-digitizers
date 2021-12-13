@@ -465,7 +465,9 @@ namespace gr {
    void
    digitizer_block_impl::set_aichan_trigger(const std::string &id, trigger_direction_t direction, double threshold)
    {
-     convert_to_aichan_idx(id); // Just to verify id
+     // Some scopes have an dedicated AUX Trigger-Input. Skip id verification for them
+     if (id != "AUX")
+       convert_to_aichan_idx(id); // Just to verify id
 
      d_trigger_settings.source = id;
      d_trigger_settings.threshold = threshold;

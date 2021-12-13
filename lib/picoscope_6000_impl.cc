@@ -298,18 +298,16 @@ namespace gr {
     };
 
     int16_t
-    convert_voltage_to_ps6000_raw_logic_value(double value)
+    convert_voltage_to_ps6000_raw_logic_value(double voltage, float channel_range)
     {
-      double max_logical_voltage = 5.0;
-
-      if (value > max_logical_voltage)
-      {
+      if (fabs(voltage) > double (fabs(channel_range))) {
           std::ostringstream message;
-          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": max logical level is: " << max_logical_voltage;
-          throw std::invalid_argument(message.str());
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Voltage '" << voltage <<
+                  "' exceed maximum channel range (+/-" << channel_range << "V)";
+          GR_LOG_ERROR(d_logger, message.str());
       }
 
-      return (int16_t) ((value / max_logical_voltage) * (double)PS6000_MAX_VALUE);
+      return (int16_t) ((voltage / channel_range) * (double)PS6000_MAX_VALUE);
     }
 
     PS6000_CHANNEL
@@ -327,7 +325,7 @@ namespace gr {
       else if (source == "D") {
         return PS6000_CHANNEL_D;
       }
-      else if (source == TRIGGER_DIGITAL_SOURCE) {
+      else if (source == "AUX") {
         return PS6000_TRIGGER_AUX;
       }
       else
@@ -564,10 +562,28 @@ namespace gr {
       if (d_trigger_settings.is_enabled()
              && d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK)
       {
+        float channel_range;
+        if (d_trigger_settings.source == "A")
+            channel_range = d_channel_settings[0].range;
+        else if (d_trigger_settings.source == "B")
+            channel_range = d_channel_settings[1].range;
+        else if (d_trigger_settings.source == "C")
+            channel_range = d_channel_settings[2].range;
+        else if (d_trigger_settings.source == "D")
+            channel_range = d_channel_settings[3].range;
+        else if (d_trigger_settings.source == "AUX")
+            channel_range = 1.; // AUX can only be used for triggering, has a fixed Range of +/-1V according to Programmers guideline
+        else {
+            std::ostringstream message;
+            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Invalid Channel Name: " << d_trigger_settings.source;
+            GR_LOG_ERROR(d_logger, message.str());
+            return make_pico_6000_error_code(status);
+        }
+
         status = ps6000SetSimpleTrigger(d_handle,
               true,  // enable
               convert_to_ps6000_channel(d_trigger_settings.source),
-              convert_voltage_to_ps6000_raw_logic_value(d_trigger_settings.threshold),
+              convert_voltage_to_ps6000_raw_logic_value(d_trigger_settings.threshold, channel_range),
               convert_to_ps6000_threshold_direction(d_trigger_settings.direction),
               0,     // delay
              -1);    // auto trigger
@@ -575,6 +591,12 @@ namespace gr {
           GR_LOG_ERROR(d_logger, "ps6000SetSimpleTrigger: " + ps6000_get_error_message(status));
           return make_pico_6000_error_code(status);
         }
+        std::ostringstream message;
+        message <<  "Triggering enabled for picoscope: '" << d_serial_number <<
+                    "' Trigger source: '" << d_trigger_settings.source <<
+                    "' threshold: '" << d_trigger_settings.threshold <<
+                    "' direction: '" << d_trigger_settings.direction << "'.";
+        GR_LOG_INFO(d_logger, message.str());
       }
       else {
 
