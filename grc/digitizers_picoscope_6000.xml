@@ -26,7 +26,7 @@ else:
     self.$(id).set_rapid_block($nr_waveforms)
     </make>
 
-    
+
     <!-- BASIC CONFIG -->
     <param>
         <name>Serial Number</name>
@@ -148,7 +148,7 @@ else:
         <hide>#if $downsampling_mode() > 0 then 'None' else 'all'#</hide>
     </param>
 
-    
+
     <!-- Analog Config -->
     <param>
         <name>Channel A</name>
@@ -164,7 +164,7 @@ else:
             <name>Disable</name>
             <key>False</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range A</name>
@@ -220,7 +220,7 @@ else:
             <name>50 V</name>
             <key>50</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range Offset A (V)</name>
@@ -228,7 +228,7 @@ else:
         <value>0.0</value>
         <type>float</type>
         <hide>#if $enable_ai_a() then 'part' else 'all'#</hide>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Coupling A</name>
@@ -248,9 +248,9 @@ else:
             <name>DC_50R</name>
             <key>2</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
-    
+
     <param>
         <name>Channel B</name>
         <key>enable_ai_b</key>
@@ -265,7 +265,7 @@ else:
             <name>Disable</name>
             <key>False</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range B</name>
@@ -321,7 +321,7 @@ else:
             <name>50 V</name>
             <key>50</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range Offset B (V)</name>
@@ -329,7 +329,7 @@ else:
         <value>0.0</value>
         <type>float</type>
         <hide>#if $enable_ai_b() then 'part' else 'all'#</hide>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Coupling B</name>
@@ -349,7 +349,7 @@ else:
             <name>DC_50R</name>
             <key>2</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
 
     <param>
@@ -366,7 +366,7 @@ else:
             <name>Disable</name>
             <key>False</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range C</name>
@@ -422,7 +422,7 @@ else:
             <name>50 V</name>
             <key>50</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range Offset C (V)</name>
@@ -430,7 +430,7 @@ else:
         <value>0.0</value>
         <type>float</type>
         <hide>#if $enable_ai_c() then 'part' else 'all'#</hide>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Coupling C</name>
@@ -450,9 +450,9 @@ else:
             <name>DC_50R</name>
             <key>2</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
-    
+
     <param>
         <name>Channel D</name>
         <key>enable_ai_d</key>
@@ -467,7 +467,7 @@ else:
             <name>Disable</name>
             <key>False</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range D</name>
@@ -523,7 +523,7 @@ else:
             <name>50 V</name>
             <key>50</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Range Offset D (V)</name>
@@ -531,7 +531,7 @@ else:
         <value>0.0</value>
         <type>float</type>
         <hide>#if $enable_ai_d() then 'part' else 'all'#</hide>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
     <param>
         <name>Coupling D</name>
@@ -551,9 +551,9 @@ else:
             <name>DC_50R</name>
             <key>2</key>
         </option>
-        <tab>Analog Config</tab>											 
+        <tab>Analog Config</tab>
     </param>
-    
+
     <!-- Triggers -->
     <param>
         <name>Trigger Source</name>
