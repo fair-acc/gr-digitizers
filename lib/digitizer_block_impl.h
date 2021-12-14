@@ -278,6 +278,8 @@ namespace gr {
        */
       int get_enabled_aichan_count() const;
 
+      double get_aichan_range(const std::string &id) const;
+
       void set_aichan_range(const std::string &id, double range, double range_offset = 0) override;
 
       void set_aichan_trigger(const std::string &id, trigger_direction_t direction, double threshold) override;

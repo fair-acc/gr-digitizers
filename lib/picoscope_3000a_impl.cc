@@ -307,18 +307,32 @@ namespace gr {
     };
 
     int16_t
-    convert_voltage_to_ps3000a_raw_logic_value(double value)
+    convert_voltage_to_ps3000a_raw_logic_level(double voltage)
     {
       double max_logical_voltage = 5.0;
 
-      if (value > max_logical_voltage)
+      if (fabs(voltage) > fabs(max_logical_voltage))
       {
         std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": max logical level is: " << max_logical_voltage;
-        throw std::invalid_argument(message.str());
+        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Voltage '" << voltage <<
+                "' exceed maximum (+/-" << max_logical_voltage << "V)";
+        GR_LOG_ERROR(d_logger, message.str());
       }
 
-      return (int16_t) ((value / max_logical_voltage) * (double)PS3000A_MAX_LOGIC_LEVEL);
+      return (int16_t) ((voltage / max_logical_voltage) * (double)PS3000A_MAX_LOGIC_LEVEL);
+    }
+
+    int16_t
+    convert_voltage_to_ps3000a_raw_adc_count(double voltage, float channel_range, int16_t PS3000A_MAX_VALUE)
+    {
+      if (fabs(voltage) > double (fabs(channel_range))) {
+          std::ostringstream message;
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Voltage '" << voltage <<
+                  "' exceed maximum channel range (+/-" << channel_range << "V)";
+          GR_LOG_ERROR(d_logger, message.str());
+      }
+
+      return (int16_t) ((voltage / channel_range) * (double)PS3000A_MAX_VALUE);
     }
 
     PS3000A_CHANNEL
@@ -558,7 +572,7 @@ namespace gr {
                   d_handle,
                   static_cast<PS3000A_DIGITAL_PORT>(PS3000A_DIGITAL_PORT0 + port),
                   d_port_settings[port].enabled,
-                  convert_voltage_to_ps3000a_raw_logic_value(d_port_settings[port].logic_level));
+                  convert_voltage_to_ps3000a_raw_logic_level(d_port_settings[port].logic_level));
         if(status != PICO_OK) {
             GR_LOG_ERROR(d_logger, "ps3000aSetDigitalPort (port " + std::to_string(port)
                 + "): " + ps3000a_get_error_message(status));
@@ -570,10 +584,17 @@ namespace gr {
       if (d_trigger_settings.is_analog()
               && d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK)
       {
+        int16_t PS3000A_MAX_VALUE;
+        status = ps3000aMaximumValue(d_handle, &PS3000A_MAX_VALUE);
+        if(status != PICO_OK) {
+          GR_LOG_ERROR(d_logger, "ps3000aMaximumValue: " + ps3000a_get_error_message(status));
+          return make_pico_3000a_error_code(status);
+        }
+
         status = ps3000aSetSimpleTrigger(d_handle,
               true,  // enable
               convert_to_ps3000a_channel(d_trigger_settings.source),
-              convert_voltage_to_ps3000a_raw_logic_value(d_trigger_settings.threshold),
+              convert_voltage_to_ps3000a_raw_adc_count(d_trigger_settings.threshold, get_aichan_range(d_trigger_settings.source), PS3000A_MAX_VALUE),
               convert_to_ps3000a_threshold_direction(d_trigger_settings.direction),
               0,     // delay
              -1);    // auto trigger

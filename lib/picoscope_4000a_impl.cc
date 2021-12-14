@@ -287,18 +287,16 @@ namespace gr {
     };
 
     int16_t
-    convert_voltage_to_ps4000a_raw_logic_value(double value)
+    convert_voltage_to_ps4000a_raw_adc_count(double voltage, float channel_range, int16_t PS4000A_MAX_VALUE)
     {
-      double max_logical_voltage = 5.0;
-
-      if (value > max_logical_voltage)
-      {
+      if (fabs(voltage) > double (fabs(channel_range))) {
           std::ostringstream message;
-          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": max logical level is: " << max_logical_voltage;
-          throw std::invalid_argument(message.str());
+          message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Voltage '" << voltage <<
+                  "' exceed maximum channel range (+/-" << channel_range << "V)";
+          GR_LOG_ERROR(d_logger, message.str());
       }
-      // Note max channel value not provided with PicoScope API, we use ext max value
-      return (int16_t) ((value / max_logical_voltage) * (double)PS4000A_EXT_MAX_VALUE);
+
+      return (int16_t) ((voltage / channel_range) * (double)PS4000A_MAX_VALUE);
     }
 
     PS4000A_CHANNEL
@@ -502,10 +500,17 @@ namespace gr {
       if (d_trigger_settings.is_analog()
             && d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK)
       {
+        int16_t PS4000A_MAX_VALUE;
+        status = ps4000aMaximumValue(d_handle, &PS4000A_MAX_VALUE);
+        if(status != PICO_OK) {
+          GR_LOG_ERROR(d_logger, "ps3000aMaximumValue: " + ps4000a_get_error_message(status));
+          return make_pico_4000a_error_code(status);
+        }
+
         status = ps4000aSetSimpleTrigger(d_handle,
               true,  // enable
               convert_to_ps4000a_channel(d_trigger_settings.source),
-              convert_voltage_to_ps4000a_raw_logic_value(d_trigger_settings.threshold),
+              convert_voltage_to_ps4000a_raw_adc_count(d_trigger_settings.threshold, get_aichan_range(d_trigger_settings.source), PS4000A_MAX_VALUE),
               convert_to_ps4000a_threshold_direction(d_trigger_settings.direction),
               0,     // delay
              -1);    // auto trigger

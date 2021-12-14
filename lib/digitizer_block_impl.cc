@@ -454,6 +454,16 @@ namespace gr {
      return count;
    }
 
+   double
+   digitizer_block_impl::get_aichan_range(const std::string &id) const
+   {
+     if (id != "AUX")
+         return 1.; // AUX triger input has a fixed Range of +/- 1V
+
+     auto idx = convert_to_aichan_idx(id);
+     return d_channel_settings[idx].range;
+   }
+
    void
    digitizer_block_impl::set_aichan_range(const std::string &id, double range, double range_offset)
    {
