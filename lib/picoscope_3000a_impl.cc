@@ -584,17 +584,10 @@ namespace gr {
       if (d_trigger_settings.is_analog()
               && d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK)
       {
-        int16_t PS3000A_MAX_VALUE;
-        status = ps3000aMaximumValue(d_handle, &PS3000A_MAX_VALUE);
-        if(status != PICO_OK) {
-          GR_LOG_ERROR(d_logger, "ps3000aMaximumValue: " + ps3000a_get_error_message(status));
-          return make_pico_3000a_error_code(status);
-        }
-
         status = ps3000aSetSimpleTrigger(d_handle,
               true,  // enable
               convert_to_ps3000a_channel(d_trigger_settings.source),
-              convert_voltage_to_ps3000a_raw_adc_count(d_trigger_settings.threshold, get_aichan_range(d_trigger_settings.source), PS3000A_MAX_VALUE),
+              convert_voltage_to_ps3000a_raw_adc_count(d_trigger_settings.threshold, get_aichan_range(d_trigger_settings.source), d_max_value),
               convert_to_ps3000a_threshold_direction(d_trigger_settings.direction),
               0,     // delay
              -1);    // auto trigger
