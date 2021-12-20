@@ -35,3 +35,4 @@ GR_ADD_TEST(qa_picoscope_4000a ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/
 GR_ADD_TEST(qa_power_calc ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_power_calc.py)
 GR_ADD_TEST(qa_mains_frequency_calc ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_mains_frequency_calc.py)
 GR_ADD_TEST(qa_db_to_watt_ff ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_db_to_watt_ff.py)
+GR_ADD_TEST(qa_power_calc_ff ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_power_calc_ff.py)

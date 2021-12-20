@@ -1,4 +1,3 @@
-
 #add_compile_options(-std=c++11 -fsanitize=address -O1 -fno-omit-frame-pointer -g)
 
 add_compile_options(-std=c++17 -g)
@@ -70,6 +69,8 @@ add_executable(ps4000a_plus_low_frequency_spectrum_test ps4000a_plus_low_frequen
 add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq.cc)
 add_executable(db_to_watt_ff_test db_to_watt_ff_test.cc)
 
+add_executable(power_calc_entry_point_ff power_calc_entry_point_ff.cpp)
+add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff.cpp)
 
 
 # target_link_libraries(ps4000a_test
@@ -246,7 +247,32 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec
     gnuradio::gnuradio-zeromq
 )
 
+target_link_libraries(power_calc_entry_point_ff
+    gnuradio::gnuradio-blocks
+    gnuradio::gnuradio-qtgui
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
+    gnuradio::gnuradio-filter
+)
+
+target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff
+	${GNURADIO_RUNTIME_LIBRARIES}
+	${GNURADIO_ANALOG_LIBRARIES}
+	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_PMT_LIBRARIES}
+	${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+	gnuradio::gnuradio-filter
+	gnuradio::gnuradio-qtgui
+	gnuradio::gnuradio-fft
+	gnuradio::gnuradio-analog
+	gnuradio::gnuradio-zeromq
+)
+
 INSTALL(TARGETS
+	power_calc_entry_point_ff
+	ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff
 	ps4000a_plus_power_calc_plus_raw_three_files
 	ps4000a_plus_power_calc_plus_raw_three_zmq
 	ps4000a_plus_power_calc_plus_raw_two_zmq
@@ -261,6 +287,7 @@ INSTALL(TARGETS
 	DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
 	COMPONENT "digitizers_examples"
 )
+
 
 # INSTALL(TARGETS
 #   ps4000a_test

@@ -9,6 +9,9 @@
 #define INCLUDED_DIGITIZERS_39_POWER_CALC_IMPL_H
 
 #include <digitizers_39/power_calc.h>
+#include <cstdlib>
+#include <gnuradio/math.h>
+#include <volk/volk.h>
 
 namespace gr {
   namespace digitizers_39 {

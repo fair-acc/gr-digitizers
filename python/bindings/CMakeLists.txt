@@ -32,7 +32,8 @@ list(APPEND digitizers_39_python_files
     picoscope_4000a_python.cc
     power_calc_python.cc
     mains_frequency_calc_python.cc
-    db_to_watt_ff_python.cc python_bindings.cc)
+    db_to_watt_ff_python.cc
+    power_calc_ff_python.cc python_bindings.cc)
 
 GR_PYBIND_MAKE_OOT(digitizers_39 
    ../..

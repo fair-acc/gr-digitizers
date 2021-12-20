@@ -21,5 +21,6 @@ install(FILES
     status.h
     power_calc.h
     mains_frequency_calc.h
-    db_to_watt_ff.h DESTINATION include/digitizers_39
+    db_to_watt_ff.h
+    power_calc_ff.h DESTINATION include/digitizers_39
 )

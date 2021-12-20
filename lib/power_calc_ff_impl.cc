@@ -1,26 +1,26 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2021 Fair.
+ * Copyright 2021 fair.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 #include <gnuradio/io_signature.h>
-#include "power_calc_impl.h"
+#include "power_calc_ff_impl.h"
 
 namespace gr {
   namespace digitizers_39 {
 
-    power_calc::sptr
+    power_calc_ff::sptr
 
     /**
      * @brief Construct a new power calc::make object
      * 
      * @param alpha A value > 0 < 1
      */
-    power_calc::make(double alpha)
+    power_calc_ff::make(double alpha)
     {
-      return gnuradio::make_block_sptr<power_calc_impl>(alpha);
+      return gnuradio::make_block_sptr<power_calc_ff_impl>(alpha);
     }
 
     /**
@@ -28,9 +28,9 @@ namespace gr {
      * 
      * @param alpha A value > 0 < 1
      */
-    power_calc_impl::power_calc_impl(double alpha)
+    power_calc_ff_impl::power_calc_ff_impl(double alpha)
       : gr::sync_block("power_calc",
-              gr::io_signature::make(2 /* min inputs */, 2 /* max inputs */, sizeof(gr_complex)),
+              gr::io_signature::make(2 /* min inputs */, 2 /* max inputs */, sizeof(float)),
               gr::io_signature::make(4 /* min outputs */, 4 /*max outputs */, sizeof(float)))
     {
       set_alpha(alpha);
@@ -40,7 +40,7 @@ namespace gr {
      * @brief Destroy the power calc impl::power calc impl object (virtual destructor)
      * 
      */
-    power_calc_impl::~power_calc_impl()
+    power_calc_ff_impl::~power_calc_ff_impl()
     {
     }
 
@@ -49,7 +49,7 @@ namespace gr {
      * 
      * @param out The pointer containing 2 values, the first 4 byte (high) and the last 4 byte (low) | out[0]=>high; out[1]=>low
      */
-    void power_calc_impl::get_timestamp_ms(float* out)
+    void power_calc_ff_impl::get_timestamp_ms(float* out)
     {
       uint64_t milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       out[0] = (float)(milliseconds_since_epoch >> 32);
@@ -63,11 +63,11 @@ namespace gr {
      * @param input The input pointer for raw voltage, over number of input items
      * @param noutput_items The samples currently available for cumputation
      */
-    void power_calc_impl::calc_rms_u(float* output, const gr_complex* input, int noutput_items)
+    void power_calc_ff_impl::calc_rms_u(float* output, const float* input, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          double mag_sqrd = input[i].real() * input[i].real();// + input[i].imag() * input[i].imag();
+          double mag_sqrd = input[i] * input[i];// + input[i].imag() * input[i].imag();
           d_avg_u = d_beta * d_avg_u + d_alpha * mag_sqrd;
           output[i] = sqrt(d_avg_u);
         }
@@ -80,11 +80,11 @@ namespace gr {
      * @param input The input pointer for raw current, over number of input items
      * @param noutput_items The samples currently available for cumputation
      */
-    void power_calc_impl::calc_rms_i(float* output, const gr_complex* input, int noutput_items)
+    void power_calc_ff_impl::calc_rms_i(float* output, const float* input, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          double mag_sqrd = input[i].real() * input[i].real();// + input[i].imag() * input[i].imag();
+          double mag_sqrd = input[i] * input[i];// + input[i].imag() * input[i].imag();
           d_avg_i = d_beta * d_avg_i + d_alpha * mag_sqrd;
           output[i] = sqrt(d_avg_i);
         }
@@ -98,15 +98,15 @@ namespace gr {
      * @param i_in The input pointer for raw current, over number of input items
      * @param noutput_items The samples currently available for cumputation
      */
-    void power_calc_impl::calc_phi(float* phi_out, const gr_complex* u_in, const gr_complex* i_in, int noutput_items)
+    void power_calc_ff_impl::calc_phi(float* phi_out, const float* voltage_phi, const float* current_phi, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++)
         { 
-          float voltage_phi = (float)(gr::fast_atan2f(u_in[i]));
-          float current_phi = (float)(gr::fast_atan2f(i_in[i]));
+          // float voltage_phi = (float)(gr::fast_atan2f(u_in[i]));
+          // float current_phi = (float)(gr::fast_atan2f(i_in[i]));
           float tmp = 0.0;
 
-          tmp = voltage_phi - current_phi;
+          tmp = voltage_phi[i] - current_phi[i];
 
           // Phase correction
           if (tmp <= (M_PI_2 * -1))
@@ -141,7 +141,7 @@ namespace gr {
      * @param phi_out The input pointer for phi, over number of input items
      * @param noutput_items The samples currently available for cumputation
      */
-    void power_calc_impl::calc_active_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
+    void power_calc_ff_impl::calc_active_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
@@ -158,7 +158,7 @@ namespace gr {
      * @param phi_out The input pointer for phi, over number of input items
      * @param noutput_items The samples currently available for cumputation
      */
-    void power_calc_impl::calc_reactive_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
+    void power_calc_ff_impl::calc_reactive_power(float* out, float* voltage, float* current, float* phi_out, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
@@ -174,7 +174,7 @@ namespace gr {
      * @param current The input pointer for peak current, over number of input items
      * @param noutput_items The samples currently available for cumputation
      */
-    void power_calc_impl::calc_apparent_power(float* out, float* voltage, float* current, int noutput_items)
+    void power_calc_ff_impl::calc_apparent_power(float* out, float* voltage, float* current, int noutput_items)
     {
         for (int i = 0; i < noutput_items; i++) 
         {
@@ -187,7 +187,7 @@ namespace gr {
      * 
      * @param alpha A value > 0 < 1
      */
-    void power_calc_impl::set_alpha(double alpha)
+    void power_calc_ff_impl::set_alpha(double alpha)
     {
         d_alpha = alpha; ///< impacts the "flattening" | default value 0.00001
         d_beta = 1 - d_alpha;
@@ -204,12 +204,12 @@ namespace gr {
      * @param output_items  The item vector that will contain the output items
      * @return number of output items
      */
-    int power_calc_impl::work(int noutput_items,
+    int power_calc_ff_impl::work(int noutput_items,
         gr_vector_const_void_star &input_items,
         gr_vector_void_star &output_items)
     {
-      const gr_complex* u_in =  (const gr_complex*)input_items[0];
-      const gr_complex* i_in = (const gr_complex*)input_items[1];
+      const float* u_in =  (const float*)input_items[0];
+      const float* i_in = (const float*)input_items[1];
 
       float* p_out = (float*)output_items[0];
       float* q_out = (float*)output_items[1];
@@ -220,10 +220,16 @@ namespace gr {
       float* rms_u = (float*)malloc(noutput_items*sizeof(float));
       float* rms_i = (float*)malloc(noutput_items*sizeof(float));
 
+      float* voltage_phi = (float*)malloc(noutput_items*sizeof(float));
+      float* current_phi = (float*)malloc(noutput_items*sizeof(float));
+
       calc_rms_u(rms_u, u_in, noutput_items);
       calc_rms_i(rms_i, i_in, noutput_items);
 
-      calc_phi(phi_out, u_in, i_in, noutput_items);
+      volk_32f_atan_32f(voltage_phi, u_in, noutput_items);
+      volk_32f_atan_32f(current_phi, i_in, noutput_items);
+
+      calc_phi(phi_out, voltage_phi, current_phi, noutput_items);
 
       calc_active_power(p_out, rms_u, rms_i, phi_out, noutput_items);
       calc_reactive_power(q_out, rms_u, rms_i, phi_out, noutput_items);
@@ -246,4 +252,3 @@ namespace gr {
 
   } /* namespace digitizers_39 */
 } /* namespace gr */
-
