@@ -67,6 +67,7 @@ add_executable(ps4000a_plus_power_calc_plus_raw_three_files ps4000a_plus_power_c
 add_executable(ps4000a_plus_mains_frequency_calc_test ps4000a_plus_mains_frequency_calc_test.cc)
 add_executable(ps4000a_plus_low_frequency_spectrum_test ps4000a_plus_low_frequency_spectrum_test.cc)
 add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq.cc)
+add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local.cc)
 add_executable(db_to_watt_ff_test db_to_watt_ff_test.cc)
 
 add_executable(power_calc_entry_point_ff power_calc_entry_point_ff.cpp)
@@ -247,6 +248,7 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec
     gnuradio::gnuradio-zeromq
 )
 
+<<<<<<< HEAD
 target_link_libraries(power_calc_entry_point_ff
     gnuradio::gnuradio-blocks
     gnuradio::gnuradio-qtgui
@@ -256,10 +258,14 @@ target_link_libraries(power_calc_entry_point_ff
 )
 
 target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff
+=======
+target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local
+>>>>>>> c6b1f1462e94fc989a5d7277fdce2a193df00dbc
 	${GNURADIO_RUNTIME_LIBRARIES}
 	${GNURADIO_ANALOG_LIBRARIES}
 	${GNURADIO_BLOCKS_LIBRARIES}
 	${GNURADIO_PMT_LIBRARIES}
+<<<<<<< HEAD
 	${Boost_LIBRARIES}
 	gnuradio-digitizers_39
 	gnuradio::gnuradio-blocks
@@ -268,6 +274,16 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec
 	gnuradio::gnuradio-fft
 	gnuradio::gnuradio-analog
 	gnuradio::gnuradio-zeromq
+=======
+    ${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+	gnuradio::gnuradio-filter
+    gnuradio::gnuradio-qtgui
+    gnuradio::gnuradio-fft
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
+>>>>>>> c6b1f1462e94fc989a5d7277fdce2a193df00dbc
 )
 
 INSTALL(TARGETS
@@ -283,6 +299,7 @@ INSTALL(TARGETS
 	mains_frequency_calc_test
 	ps4000a_plus_low_frequency_spectrum_test
 	ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq
+	ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local
 	db_to_watt_ff_test
 	DESTINATION ${GR_DIGITIZERS_EXAMPLES_DIR}/cpp
 	COMPONENT "digitizers_examples"
