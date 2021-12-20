@@ -51,11 +51,12 @@ if((CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
 endif()
 
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    SET(CMAKE_CXX_STANDARD 14)
+    # SET(CMAKE_CXX_STANDARD 14)
+    SET(CMAKE_CXX_STANDARD 17)
 ELSEIF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    SET(CMAKE_CXX_STANDARD 14)
+    SET(CMAKE_CXX_STANDARD 17)
 ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    SET(CMAKE_CXX_STANDARD 14)
+    SET(CMAKE_CXX_STANDARD 17)
 ELSE()
     message(WARNING "C++ standard could not be set because compiler is not GNU, Clang or MSVC.")
 ENDIF()
@@ -155,6 +156,25 @@ endif(ENABLE_PYTHON)
 # Install cmake search helper for this library
 ########################################################################
 
+
+
+########################################################################
+# Find picoscope dependencies
+########################################################################
+find_package(picoscope REQUIRED)
+message(${PICOSCOPE_INCLUDE_DIR})
+
+#set(PICOSCOPE_INCLUDE_DIR /opt/picoscope/include)
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
+  message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
+endif()
+
+set(PS4000A_EXPORT_NAME ps4000aTargets)
+install(TARGETS ps4000a EXPORT ${PS4000A_EXPORT_NAME} LIBRARY DESTINATION lib/)
+install(EXPORT ${PS4000A_EXPORT_NAME} FILE ${PS4000A_EXPORT_NAME}.cmake DESTINATION cmake/)
 install(FILES cmake/Modules/pulsed_power_daqConfig.cmake
-    DESTINATION ${CMAKE_MODULES_DIR}/pulsed_power_daq
+            DESTINATION ${CMAKE_MODULES_DIR}/pulsed_power_daq
 )
+
+# Set component parameters
+set(GR_DIGITIZERS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "" FORCE)

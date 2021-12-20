@@ -258,3 +258,4 @@ $RECYCLE.BIN/
 /DigitizerDependencies*tar.gz
 
 *.h5
+python/bindings/failed_conversions.txt

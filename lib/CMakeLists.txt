@@ -27,10 +27,10 @@ endif(NOT pulsed_power_daq_sources)
 
 add_library(gnuradio-pulsed_power_daq SHARED ${pulsed_power_daq_sources})
 
-set(picoscope-ps4000a "/opt/picoscope/lib/libps4000.so")
-add_library(picoscope-ps4000a SHARED "/opt/picoscope/lib/libps4000.so")
+#set(picoscope-ps4000a "/opt/picoscope/lib/libps4000.so")
+#add_library(picoscope-ps4000a SHARED "/opt/picoscope/lib/libps4000.so")
 
-target_link_libraries(gnuradio-pulsed_power_daq gnuradio::gnuradio-runtime picoscope-ps4000a)
+target_link_libraries(gnuradio-pulsed_power_daq gnuradio::gnuradio-runtime )#picoscope-ps4000a)
 
 target_include_directories(gnuradio-pulsed_power_daq
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
@@ -38,13 +38,17 @@ target_include_directories(gnuradio-pulsed_power_daq
   )
 
 
-target_include_directories(picoscope-ps4000a
-    PUBLIC $<BUILD_INTERFACE:/opt/picoscope/include/libps4000a>
-    PUBLIC $<INSTALL_INTERFACE:include>
-  )
+#target_include_directories(picoscope-ps4000a
+#    PUBLIC $<BUILD_INTERFACE:/opt/picoscope/include/libps4000a>
+#    PUBLIC $<INSTALL_INTERFACE:include>
+#  )
 
-set_target_properties(gnuradio-pulsed_power_daq picoscope-ps4000a PROPERTIES DEFINE_SYMBOL "gnuradio_pulsed_power_daq_EXPORTS")
-set_target_properties(picoscope-ps4000a PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(gnuradio-pulsed_power_daq 
+#picoscope-ps4000a 
+PROPERTIES DEFINE_SYMBOL "gnuradio_pulsed_power_daq_EXPORTS")
+set_target_properties(
+    #picoscope-ps4000a 
+    PROPERTIES LINKER_LANGUAGE CXX)
 
 if(APPLE)
     set_target_properties(gnuradio-pulsed_power_daq PROPERTIES
@@ -60,6 +64,17 @@ endif(APPLE)
 ########################################################################
 include(GrMiscUtils)
 GR_LIBRARY_FOO(gnuradio-pulsed_power_daq)
+
+########################################################################
+# add picoscope
+########################################################################
+set(PS4000A_EXPORT_NAME ps4000aTargets)
+add_library(ps4000a SHARED /opt/picoscope)
+set_target_properties(ps4000a PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries( gnuradio-pulsed_power_daq ps4000a)
+#install (TARGETS ps4000a EXPORT picoscopeLib DESTINATION ${CMAKE_MODULES_DIR}/pulsed_power_daq)
+export(TARGETS ps4000a FILE ${PS4000A_EXPORT_NAME}.cmake)
+message(${PS4000A_EXPORT_NAME}.cmake)
 
 ########################################################################
 # Print summary
