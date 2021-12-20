@@ -1,0 +1,54 @@
+/* -*- c++ -*- */
+/*
+ * Copyright 2021 fair.
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+#ifndef INCLUDED_PULSED_POWER_DAQ_PICOSCOPE_4000A_SOURCE_H
+#define INCLUDED_PULSED_POWER_DAQ_PICOSCOPE_4000A_SOURCE_H
+
+// Digitizer
+#include "api.h"
+
+// GNU Radio
+#include <gnuradio/sync_block.h>
+#include <gnuradio/logger.h>
+
+// Picoscope - fair-GSI
+#include "picoscope_base.h"
+#include "ps_4000a_defs.h"
+#include "status.h"
+
+// Picoscope - picotech
+#include </opt/picoscope/include/libps4000a/PicoStatus.h>
+#include </opt/picoscope/include/libps4000a/ps4000aApi.h> //TODO: remove ugly workaround
+
+namespace gr {
+  namespace pulsed_power_daq {
+
+    /*!
+     * \brief <+description of block+>
+     * \ingroup pulsed_power_daq
+     *
+     */
+    class PULSED_POWER_DAQ_API picoscope_4000a_source : virtual public picoscope_base
+    {
+      public:
+        typedef std::shared_ptr<picoscope_4000a_source> sptr;
+
+        /*!
+        * \brief Return a shared_ptr to a new instance of pulsed_power_daq::picoscope_4000a_source.
+        *
+        * To avoid accidental use of raw pointers, pulsed_power_daq::picoscope_4000a_source's
+        * constructor is in a private implementation
+        * class. pulsed_power_daq::picoscope_4000a_source::make is the public interface for
+        * creating new instances.
+        */
+        static sptr make(std::string serial_number, bool auto_arm);
+    };
+
+  } // namespace pulsed_power_daq
+} // namespace gr
+
+#endif /* INCLUDED_PULSED_POWER_DAQ_PICOSCOPE_4000A_SOURCE_H */

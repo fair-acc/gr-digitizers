@@ -7,15 +7,15 @@
 # The presence of this file turns this directory into a Python package
 
 '''
-This is the GNU Radio DIGITIZERS_39 module. Place your Python package
+This is the GNU Radio PULSED_POWER_DAQ module. Place your Python package
 description here (python/__init__.py).
 '''
 import os
 
-# import pybind11 generated symbols into the digitizers_39 namespace
+# import pybind11 generated symbols into the pulsed_power_daq namespace
 try:
     # this might fail if the module is python-only
-    from .digitizers_39_python import *
+    from .pulsed_power_daq_python import *
 except ModuleNotFoundError:
     pass
 

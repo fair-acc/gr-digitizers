@@ -8,10 +8,10 @@
 ########################################################################
 # Check if there is C++ code at all
 ########################################################################
-if(NOT digitizers_39_sources)
+if(NOT pulsed_power_daq_sources)
     MESSAGE(STATUS "No C++ sources... skipping python bindings")
     return()
-endif(NOT digitizers_39_sources)
+endif(NOT pulsed_power_daq_sources)
 
 ########################################################################
 # Check for pygccxml
@@ -28,15 +28,16 @@ include(GrPybind)
 # Python Bindings
 ########################################################################
 
-list(APPEND digitizers_39_python_files
-    picoscope_4000a_python.cc
-    power_calc_python.cc
-    mains_frequency_calc_python.cc
-    db_to_watt_ff_python.cc python_bindings.cc)
+list(APPEND pulsed_power_daq_python_files
+    picoscope_4000a_source_python.cc 
+    python_bindings.cc)
 
-GR_PYBIND_MAKE_OOT(digitizers_39 
+GR_PYBIND_MAKE_OOT(pulsed_power_daq
    ../..
-   gr::digitizers_39
-   "${digitizers_39_python_files}")
+   gr::pulsed_power_daq
+   "${pulsed_power_daq_python_files}")
 
-install(TARGETS digitizers_39_python DESTINATION ${GR_PYTHON_DIR}/digitizers_39 COMPONENT pythonapi)
+set(picoscope-ps4000a "/opt/picoscope/lib/libps4000.so")
+
+install(TARGETS pulsed_power_daq_python EXPORT picoscope-ps4000a DESTINATION ${GR_PYTHON_DIR}/pulsed_power_daq COMPONENT pythonapi)
+install(EXPORT picoscope-ps4000a DESTINATION ${GR_PYTHON_DIR}/pulsed_power_daq)

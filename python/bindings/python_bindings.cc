@@ -21,10 +21,7 @@ namespace py = pybind11;
 // Please do not delete
 /**************************************/
 // BINDING_FUNCTION_PROTOTYPES(
-    void bind_picoscope_4000a(py::module& m);
-    void bind_power_calc(py::module& m);
-    void bind_mains_frequency_calc(py::module& m);
-    void bind_db_to_watt_ff(py::module& m);
+    void bind_picoscope_4000a_source(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -38,7 +35,7 @@ void* init_numpy()
     return NULL;
 }
 
-PYBIND11_MODULE(digitizers_39_python, m)
+PYBIND11_MODULE(pulsed_power_daq_python, m)
 {
     // Initialize the numpy C API
     // (otherwise we will see segmentation faults)
@@ -53,9 +50,6 @@ PYBIND11_MODULE(digitizers_39_python, m)
     // Please do not delete
     /**************************************/
     // BINDING_FUNCTION_CALLS(
-    bind_picoscope_4000a(m);
-    bind_power_calc(m);
-    bind_mains_frequency_calc(m);
-    bind_db_to_watt_ff(m);
+    bind_picoscope_4000a_source(m);
     // ) END BINDING_FUNCTION_CALLS
 }
