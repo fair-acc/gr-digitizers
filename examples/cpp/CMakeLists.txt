@@ -258,23 +258,10 @@ target_link_libraries(power_calc_entry_point_ff
 )
 
 target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff
-=======
-target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local
->>>>>>> c6b1f1462e94fc989a5d7277fdce2a193df00dbc
 	${GNURADIO_RUNTIME_LIBRARIES}
 	${GNURADIO_ANALOG_LIBRARIES}
 	${GNURADIO_BLOCKS_LIBRARIES}
 	${GNURADIO_PMT_LIBRARIES}
-<<<<<<< HEAD
-	${Boost_LIBRARIES}
-	gnuradio-digitizers_39
-	gnuradio::gnuradio-blocks
-	gnuradio::gnuradio-filter
-	gnuradio::gnuradio-qtgui
-	gnuradio::gnuradio-fft
-	gnuradio::gnuradio-analog
-	gnuradio::gnuradio-zeromq
-=======
     ${Boost_LIBRARIES}
 	gnuradio-digitizers_39
 	gnuradio::gnuradio-blocks
@@ -283,7 +270,21 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec
     gnuradio::gnuradio-fft
     gnuradio::gnuradio-analog
     gnuradio::gnuradio-zeromq
->>>>>>> c6b1f1462e94fc989a5d7277fdce2a193df00dbc
+)
+
+target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local
+	${GNURADIO_RUNTIME_LIBRARIES}
+	${GNURADIO_ANALOG_LIBRARIES}
+	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_PMT_LIBRARIES}
+    ${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+	gnuradio::gnuradio-filter
+    gnuradio::gnuradio-qtgui
+    gnuradio::gnuradio-fft
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
 )
 
 INSTALL(TARGETS
