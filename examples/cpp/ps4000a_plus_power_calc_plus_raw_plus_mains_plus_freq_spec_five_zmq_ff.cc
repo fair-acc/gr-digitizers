@@ -22,15 +22,26 @@
 #include <gnuradio/analog/sig_source.h>
 
 #include <iostream>
+#include <boost/format.hpp>
 #include <vector>
 
 using namespace gr::digitizers_39;
 using namespace gr::blocks;
 
+#define LOCAL 1
+
+static const char* address(std::string ip, std::string port)
+{
+    //std::string fmt = "tcp://{}:{}";
+    std::string tmp = (boost::format("tcp://%1%:%2%") % ip % port).str();
+    return tmp.c_str();
+}
+
+
 void wire_streaming(int time)
 {
     double samp_rate = 200000.0;
-    double decimation_power = 200.0; // => 1000S out
+    double decimation_power = 20.0; // => 1000S out
     double decimation_freq_spec = 200.0; // => 1000S out
     size_t items = 1000;
 
@@ -53,16 +64,36 @@ void wire_streaming(int time)
     auto power_calc_block = power_calc_ff::make(0.007);
     auto mains_freq_calc = mains_frequency_calc::make(samp_rate, -90, 90);
 
-    auto zeromq_pub_sink_power = gr::zeromq::pub_sink::make(sizeof(float), 4, const_cast<char *>("tcp://10.0.0.2:5001"), 100, false, -1);
-    auto zeromq_pub_sink_raw = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>("tcp://10.0.0.2:5002"), 100, false, -1);
-    auto zeromq_pub_sink_raw_band_pass = gr::zeromq::pub_sink::make(sizeof(gr_complex), 2, const_cast<char *>("tcp://10.0.0.2:5003"), 100, false, -1);
-    
-    auto zeromq_pub_sink_mains_frequency = gr::zeromq::pub_sink::make(sizeof(float), 1, const_cast<char *>("tcp://10.0.0.2:5004"), 100, false, -1);
-    auto zeromq_pub_sink_frequency_spectrum = gr::zeromq::pub_sink::make(sizeof(float), 1, const_cast<char *>("tcp://10.0.0.2:5005"), 100, false, -1);
-    
+#ifdef LOCAL == 1
+    std::string ip_string = "*";
+    const char * address_string = address(ip_string, "5001");
+    std::cout << address_string << "\n";
+    auto zeromq_pub_sink_power = gr::zeromq::pub_sink::make(sizeof(float), 4, const_cast<char *>("tcp://*:5001"), 100, false, -1);
+    address_string = address(ip_string, "5002");
+    auto zeromq_pub_sink_raw = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>("tcp://*:5002"), 100, false, -1);
+    address_string = address(ip_string, "5003");
+    auto zeromq_pub_sink_raw_band_pass = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>("tcp://*:5003"), 100, false, -1);
+    address_string = address(ip_string, "5004");
+    auto zeromq_pub_sink_mains_frequency = gr::zeromq::pub_sink::make(sizeof(float), 1, const_cast<char *>("tcp://*:5004"), 100, false, -1);
+    address_string = address(ip_string, "5005");
+    auto zeromq_pub_sink_frequency_spectrum = gr::zeromq::pub_sink::make(sizeof(float), 1, const_cast<char *>("tcp://*:5005"), 100, false, -1);
+#else
+    std::string ip_string = "10.0.0.2";
+    const char* address_string = address(ip_string, "5001");
+    auto zeromq_pub_sink_power = gr::zeromq::pub_sink::make(sizeof(float), 4, const_cast<char *>(address_string), 100, false, -1);
+    address_string = address(ip_string, "5002");
+    auto zeromq_pub_sink_raw = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>(address_string), 100, false, -1);
+    address_string = address(ip_string, "5003");
+    auto zeromq_pub_sink_raw_band_pass = gr::zeromq::pub_sink::make(sizeof(float), 2, const_cast<char *>(address_string), 100, false, -1);
+    address_string = address(ip_string, "5004");
+    auto zeromq_pub_sink_mains_frequency = gr::zeromq::pub_sink::make(sizeof(float), 1, const_cast<char *>(address_string), 100, false, -1);
+    address_string = address(ip_string, "5005");
+    auto zeromq_pub_sink_frequency_spectrum = gr::zeromq::pub_sink::make(sizeof(float), 1, const_cast<char *>(address_string), 100, false, -1);
+#endif
+
     auto blocks_streams_to_vector_power = gr::blocks::streams_to_vector::make(sizeof(float)*1, 4);
     auto blocks_streams_to_vector_raw = gr::blocks::streams_to_vector::make(sizeof(float)*1, 2);
-    auto blocks_streams_to_vector_raw_band_pass = gr::blocks::streams_to_vector::make(sizeof(gr_complex)*1, 2);
+    auto blocks_streams_to_vector_raw_band_pass = gr::blocks::streams_to_vector::make(sizeof(float)*1, 2);
 
     auto blocks_streams_to_mains_frequency = gr::blocks::streams_to_vector::make(sizeof(float)*1, 1);
 
@@ -94,7 +125,7 @@ void wire_streaming(int time)
             10000,
             60,
             10,
-            gr::fft::window::win_type::WIN_HAMMING,
+            gr::fft::window::win_type::WIN_HANN,
             6.76));
 
     auto low_pass_filter_0_1_1 = gr::filter::fir_filter_fff::make(
@@ -104,7 +135,7 @@ void wire_streaming(int time)
             10000,
             60,
             10,
-            gr::fft::window::win_type::WIN_HAMMING,
+            gr::fft::window::win_type::WIN_HANN,
             6.76));
 
     auto low_pass_filter_0_1_0 = gr::filter::fir_filter_fff::make(
@@ -114,7 +145,7 @@ void wire_streaming(int time)
             10000,
             60,
             10,
-            gr::fft::window::win_type::WIN_HAMMING,
+            gr::fft::window::win_type::WIN_HANN,
             6.76));
 
     auto low_pass_filter_0_1 = gr::filter::fir_filter_fff::make(
@@ -124,7 +155,7 @@ void wire_streaming(int time)
             10000,
             60,
             10,
-            gr::fft::window::win_type::WIN_HAMMING,
+            gr::fft::window::win_type::WIN_HANN,
             6.76));
 
     auto blocks_multiply_xx_0_2 = gr::blocks::multiply_ff::make(1);
@@ -230,8 +261,10 @@ void wire_streaming(int time)
     top->connect(power_calc_block, 2, blocks_streams_to_vector_power, 2);
     top->connect(power_calc_block, 3, blocks_streams_to_vector_power, 3);
 
-    top->connect(blocks_divide_xx_0, 0, power_calc_block, 0);
-    top->connect(blocks_divide_xx_0_0, 0, power_calc_block, 1);
+    top->connect(band_pass_filter_0, 0, power_calc_block, 0);
+    top->connect(band_pass_filter_0_0, 0, power_calc_block, 1);
+    top->connect(blocks_divide_xx_0, 0, power_calc_block, 2);
+    top->connect(blocks_divide_xx_0_0, 0, power_calc_block, 3);
 
     // Raw
     top->connect(blocks_streams_to_vector_raw, 0, zeromq_pub_sink_raw, 0);
@@ -254,8 +287,11 @@ void wire_streaming(int time)
     top->connect(blocks_multiply_xx_raw_apperent_power, 0, low_pass_filter_0_0, 0);
 
      // Calc apperent power [S]
-    top->connect(blocks_divide_xx_0, 0, blocks_multiply_xx_raw_apperent_power, 0);
-    top->connect(blocks_divide_xx_0_0, 0, blocks_multiply_xx_raw_apperent_power, 1);
+    // top->connect(blocks_divide_xx_0, 0, blocks_multiply_xx_raw_apperent_power, 0);
+    // top->connect(blocks_divide_xx_0_0, 0, blocks_multiply_xx_raw_apperent_power, 1);
+    top->connect(blocks_multiply_const_vxx_voltage, 0, blocks_multiply_xx_raw_apperent_power, 0);
+    top->connect(blocks_multiply_const_vxx_current, 0, blocks_multiply_xx_raw_apperent_power, 1);
+
 
     top->start();
 

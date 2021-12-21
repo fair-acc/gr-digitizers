@@ -30,7 +30,7 @@ namespace gr {
      */
     power_calc_ff_impl::power_calc_ff_impl(double alpha)
       : gr::sync_block("power_calc",
-              gr::io_signature::make(2 /* min inputs */, 2 /* max inputs */, sizeof(float)),
+              gr::io_signature::make(4 /* min inputs */, 4 /* max inputs */, sizeof(float)),
               gr::io_signature::make(4 /* min outputs */, 4 /*max outputs */, sizeof(float)))
     {
       set_alpha(alpha);
@@ -108,6 +108,9 @@ namespace gr {
 
           tmp = voltage_phi[i] - current_phi[i];
 
+          // std::cout << "post:" << '\n';
+          // std::cout << tmp << '\n';
+
           // Phase correction
           if (tmp <= (M_PI_2 * -1))
           {
@@ -121,11 +124,14 @@ namespace gr {
           {
             phi_out[i] = tmp;
           }
+          // std::cout << "past:" << '\n';
+          // std::cout << phi_out[i] << '\n';
 
           // Signed RMS
           // double mag_sqrd = phi_out[i] * phi_out[i];
           // d_avg_phi = d_beta * d_avg_phi + d_alpha * mag_sqrd;
           // phi_out[i] = copysignl(sqrt(d_avg_phi), phi_out[i]);
+
           // Single Pole IIR Filter
           d_avg_phi = d_alpha * phi_out[i] + d_beta * d_avg_phi;
           phi_out[i] = d_avg_phi;
@@ -211,6 +217,9 @@ namespace gr {
       const float* u_in =  (const float*)input_items[0];
       const float* i_in = (const float*)input_items[1];
 
+      const float* u_phase_in =  (const float*)input_items[2];
+      const float* i_phase_in = (const float*)input_items[3];
+
       float* p_out = (float*)output_items[0];
       float* q_out = (float*)output_items[1];
       float* s_out = (float*)output_items[2];
@@ -226,8 +235,8 @@ namespace gr {
       calc_rms_u(rms_u, u_in, noutput_items);
       calc_rms_i(rms_i, i_in, noutput_items);
 
-      volk_32f_atan_32f(voltage_phi, u_in, noutput_items);
-      volk_32f_atan_32f(current_phi, i_in, noutput_items);
+      volk_32f_atan_32f(voltage_phi, u_phase_in, noutput_items);
+      volk_32f_atan_32f(current_phi, i_phase_in, noutput_items);
 
       calc_phi(phi_out, voltage_phi, current_phi, noutput_items);
 
@@ -237,8 +246,10 @@ namespace gr {
 
       //std::cout << s_out[0] << '\n';
 
-      //free(rms_u);
-      //free(rms_i);
+      free(rms_u);
+      free(rms_i);
+      free(voltage_phi);
+      free(current_phi);
 
       // get_timestamp_ms(timestamp_ms);
 

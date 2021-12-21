@@ -70,8 +70,7 @@ add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_z
 add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_local.cc)
 add_executable(db_to_watt_ff_test db_to_watt_ff_test.cc)
 
-add_executable(power_calc_entry_point_ff power_calc_entry_point_ff.cpp)
-add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff.cpp)
+add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff.cc)
 
 
 # target_link_libraries(ps4000a_test
@@ -248,15 +247,6 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec
     gnuradio::gnuradio-zeromq
 )
 
-<<<<<<< HEAD
-target_link_libraries(power_calc_entry_point_ff
-    gnuradio::gnuradio-blocks
-    gnuradio::gnuradio-qtgui
-    gnuradio::gnuradio-analog
-    gnuradio::gnuradio-zeromq
-    gnuradio::gnuradio-filter
-)
-
 target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff
 	${GNURADIO_RUNTIME_LIBRARIES}
 	${GNURADIO_ANALOG_LIBRARIES}
@@ -288,7 +278,6 @@ target_link_libraries(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec
 )
 
 INSTALL(TARGETS
-	power_calc_entry_point_ff
 	ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_zmq_ff
 	ps4000a_plus_power_calc_plus_raw_three_files
 	ps4000a_plus_power_calc_plus_raw_three_zmq
