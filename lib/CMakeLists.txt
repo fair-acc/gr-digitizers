@@ -18,7 +18,6 @@ list(APPEND pulsed_power_daq_sources
     picoscope_base.cc
 )
 
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wl,--no-as-needed")
 
 set(pulsed_power_daq_sources "${pulsed_power_daq_sources}" PARENT_SCOPE)
 if(NOT pulsed_power_daq_sources)
@@ -70,13 +69,23 @@ GR_LIBRARY_FOO(gnuradio-pulsed_power_daq)
 ########################################################################
 # add picoscope
 ########################################################################
-set(PS4000A_EXPORT_NAME ps4000aTargets)
-add_library(ps4000a SHARED /opt/picoscope)
-set_target_properties(ps4000a PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries( gnuradio-pulsed_power_daq ps4000a)
+#set(PS4000A_EXPORT_NAME ps4000aTargets)
+find_package(picoscope)
+message("PICOSCOPE_LIB_DIR  " ${PICOSCOPE_LIB_DIR})
+#add_library(ps4000a SHARED ${PICOSCOPE_LIB_DIR} )
+add_library(picoscope SHARED IMPORTED)
+set_target_properties(picoscope PROPERTIES IMPORTED_LOCATION ${PICOSCOPE_LIB_DIR})
+target_link_libraries( gnuradio-pulsed_power_daq picoscope)
+
+#set_target_properties(ps4000a PROPERTIES DEFINE_SYMBOL "gnuradio_pulsed_power_daq_EXPORTS")
+#set_target_properties(picoscope PROPERTIES LINKER_LANGUAGE CXX)
+#target_link_options(gnuradio-pulsed_power_daq PUBLIC "-Wl,--whole-archive $<TARGET_PROPERTY:ps4000a> -Wl,--no-whole-archive" )
+
 #install (TARGETS ps4000a EXPORT picoscopeLib DESTINATION ${CMAKE_MODULES_DIR}/pulsed_power_daq)
-export(TARGETS ps4000a FILE ${PS4000A_EXPORT_NAME}.cmake)
-message(${PS4000A_EXPORT_NAME}.cmake)
+#export(TARGETS ps4000a FILE ${PS4000A_EXPORT_NAME}.cmake)
+#install(TARGETS ps4000a EXPORT ${PS4000A_EXPORT_NAME} LIBRARY DESTINATION lib/)
+#install(EXPORT ${PS4000A_EXPORT_NAME} FILE ${PS4000A_EXPORT_NAME}.cmake DESTINATION cmake/)
+#message(${PS4000A_EXPORT_NAME}.cmake)
 
 ########################################################################
 # Print summary

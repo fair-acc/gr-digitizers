@@ -77,6 +77,7 @@ ENDIF()
 find_package(Gnuradio "3.9" REQUIRED)
 include(GrVersion)
 
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wl,--no-as-needed")
 include(GrPlatform) #define LIB_SUFFIX
 
 if(NOT CMAKE_MODULES_DIR)
@@ -162,19 +163,23 @@ endif(ENABLE_PYTHON)
 # Find picoscope dependencies
 ########################################################################
 find_package(picoscope REQUIRED)
-message(${PICOSCOPE_INCLUDE_DIR})
+#message(${PICOSCOPE_INCLUDE_DIR})
 
 #set(PICOSCOPE_INCLUDE_DIR /opt/picoscope/include)
-if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
-  message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
-endif()
+#if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
+#  message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
+#else(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
+#  include_directories(${PICOSCOPE_INCLUDE_DIR})
+#  link_directories(${PICOSCOPE_LIB_DIR})
+#endif()
 
-set(PS4000A_EXPORT_NAME ps4000aTargets)
-install(TARGETS ps4000a EXPORT ${PS4000A_EXPORT_NAME} LIBRARY DESTINATION lib/)
-install(EXPORT ${PS4000A_EXPORT_NAME} FILE ${PS4000A_EXPORT_NAME}.cmake DESTINATION cmake/)
-install(FILES cmake/Modules/pulsed_power_daqConfig.cmake
-            DESTINATION ${CMAKE_MODULES_DIR}/pulsed_power_daq
-)
+#set(PS4000A_EXPORT_NAME ps4000aTargets)
+#install(TARGETS ps4000a EXPORT ${PS4000A_EXPORT_NAME} LIBRARY DESTINATION lib/)
+#install(EXPORT ${PS4000A_EXPORT_NAME} FILE ${PS4000A_EXPORT_NAME}.cmake DESTINATION cmake/)
+#install(FILES cmake/Modules/pulsed_power_daqConfig.cmake
+#            DESTINATION ${CMAKE_MODULES_DIR}/pulsed_power_daq
+#)
 
 # Set component parameters
 set(GR_DIGITIZERS_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include CACHE INTERNAL "" FORCE)
+#set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_CXX_COMPILER>  <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> -Wl,--start-group -Wl,--whole-archive <LINK_LIBRARIES> -Wl,--no-whole-archive -Wl,--end-group")
