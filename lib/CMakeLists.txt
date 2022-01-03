@@ -18,6 +18,8 @@ list(APPEND pulsed_power_daq_sources
     picoscope_base.cc
 )
 
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wl,--no-as-needed")
+
 set(pulsed_power_daq_sources "${pulsed_power_daq_sources}" PARENT_SCOPE)
 if(NOT pulsed_power_daq_sources)
     MESSAGE(STATUS "No C++ sources... skipping lib/")
