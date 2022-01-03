@@ -905,8 +905,8 @@ namespace gr {
    void
    digitizer_source::poll_work_function()
    {
-     boost::unique_lock<boost::mutex> lock(d_poller_mutex, boost::defer_lock);
-     auto poll_rate = boost::chrono::microseconds((long)(d_poll_rate * 1000000));
+     std::unique_lock<std::mutex> lock(d_poller_mutex, std::defer_lock);
+     auto poll_rate = std::chrono::microseconds((long)(d_poll_rate * 1000000));
 
      gr::thread::set_thread_name(pthread_self(), "poller");
 
@@ -928,7 +928,7 @@ namespace gr {
 
        if (state == poller_state_t::RUNNING) {
          // Start watchdog a new
-         auto poll_start = boost::chrono::high_resolution_clock::now();
+         auto poll_start = std::chrono::high_resolution_clock::now();
          auto ec = driver_poll();
          if (ec) {
            // Only print out an error message
@@ -961,9 +961,9 @@ namespace gr {
            d_app_buffer.notify_data_ready(digitizer_block_errc::Watchdog);
 
          }
-         boost::chrono::duration<float> poll_duration = boost::chrono::high_resolution_clock::now() - poll_start;
+         std::chrono::duration<float> poll_duration = std::chrono::high_resolution_clock::now() - poll_start;
 
-         boost::this_thread::sleep_for(poll_rate - poll_duration);
+         std::this_thread::sleep_for(poll_rate - poll_duration);
        }
        else {
          if (state == poller_state_t::PEND_IDLE) {
@@ -983,7 +983,7 @@ namespace gr {
          }
 
          // Relax CPU
-         boost::this_thread::sleep_for(boost::chrono::microseconds(100));
+         std::this_thread::sleep_for(std::chrono::microseconds(100));
        }
      }
    }
@@ -992,7 +992,7 @@ namespace gr {
    digitizer_source::start_poll_thread()
    {
      if (!d_poller.joinable()) {
-       boost::mutex::scoped_lock guard(d_poller_mutex);
+       std::scoped_lock guard(d_poller_mutex);
        d_poller_state = poller_state_t::IDLE;
        d_poller = boost::thread(&digitizer_source::poll_work_function, this);
      }
@@ -1005,9 +1005,9 @@ namespace gr {
        return;
      }
 
-     boost::unique_lock<boost::mutex> lock(d_poller_mutex);
+     std::unique_lock<std::mutex> lock(d_poller_mutex);
      d_poller_state = poller_state_t::PEND_EXIT;
-     d_poller_cv.wait_for(lock, boost::chrono::seconds(5),
+     d_poller_cv.wait_for(lock, std::chrono::seconds(5),
              [this] { return d_poller_state == poller_state_t::EXIT;});
      lock.unlock();
 
@@ -1017,7 +1017,7 @@ namespace gr {
    void
    digitizer_source::transit_poll_thread_to_idle()
    {
-     boost::unique_lock<boost::mutex> lock(d_poller_mutex);
+     std::unique_lock<std::mutex> lock(d_poller_mutex);
 
      if (d_poller_state == poller_state_t::EXIT) {
        return; // nothing to do
@@ -1030,7 +1030,7 @@ namespace gr {
    void
    digitizer_source::transit_poll_thread_to_running()
    {
-     boost::mutex::scoped_lock guard(d_poller_mutex);
+     std::scoped_lock guard(d_poller_mutex);
      d_poller_state = poller_state_t::RUNNING;
    }
 

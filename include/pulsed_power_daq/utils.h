@@ -91,7 +91,7 @@ namespace gr {
         /*!
          *\returns false if no data is available in time, otherwiese true.
          */
-        bool wait_and_pop(T& value, boost::chrono::milliseconds timeout)
+        bool wait_and_pop(T& value, std::chrono::milliseconds timeout)
         {
 
             boost::unique_lock<boost::mutex> lk(mut);

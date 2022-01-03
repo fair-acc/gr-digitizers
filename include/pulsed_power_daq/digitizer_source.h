@@ -26,6 +26,7 @@
 #include <system_error>
 #include <thread>
 #include <chrono>
+#include <condition_variable>
 
 
 namespace gr {
@@ -480,7 +481,7 @@ namespace gr {
       app_buffer_t d_app_buffer;
 
       // watchdog
-      using hr_time_point = boost::chrono::high_resolution_clock::time_point;
+      using hr_time_point = std::chrono::high_resolution_clock::time_point;
 
       // For samp_rate estimation
       hr_time_point d_last_callback_timestamp;
@@ -536,8 +537,8 @@ namespace gr {
       // Poller
       boost::thread d_poller;
       poller_state_t d_poller_state;
-      boost::mutex d_poller_mutex;
-      boost::condition_variable d_poller_cv;
+      std::mutex d_poller_mutex;
+      std::condition_variable d_poller_cv;
 
       std::string d_configure_exception_message;
     };

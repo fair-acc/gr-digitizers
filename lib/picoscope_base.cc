@@ -72,10 +72,10 @@ namespace gr {
       }
 
       // monitor sampler rate (estimated used by the watchdog)
-      auto timestamp_now = boost::chrono::high_resolution_clock::now();
+      auto timestamp_now = std::chrono::high_resolution_clock::now();
 
       if (d_was_last_callback_timestamp_taken) {
-        boost::chrono::duration<float> time_diff = timestamp_now - d_last_callback_timestamp;
+        std::chrono::duration<float> time_diff = timestamp_now - d_last_callback_timestamp;
         auto samp_rate = static_cast<float>(nr_samples) / time_diff.count();
 
         {
