@@ -35,7 +35,7 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
 # All of them need to be filled, otherwise the version will be named e.g. "libname-1.2.3..so"
 set(VERSION_INFO_MAJOR_VERSION 5)
 set(VERSION_INFO_API_COMPAT    0)
-set(VERSION_INFO_MINOR_VERSION 0)
+set(VERSION_INFO_MINOR_VERSION 1)
 set(VERSION_INFO_MAINT_VERSION 0)
 
 
