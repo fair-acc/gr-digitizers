@@ -33,7 +33,10 @@ namespace gr {
               d_old_sig_avg(0.0),
               d_decim(decim),
               d_counter(decim)
-    {}
+    {
+        std::cout << "freq_estimator_impl::freq_estimator_impl 2 " << std::endl;
+        set_tag_propagation_policy(TPP_DONT);
+    }
 
     freq_estimator_impl::~freq_estimator_impl()
     {
@@ -57,6 +60,8 @@ namespace gr {
       const float *in = (const float *) input_items[0];
       float *out = (float *) output_items[0];
       float new_sig_avg;
+      const auto samp0_count = nitems_read(0);
+
       for(int i = 0; i < n_in; i++) {
         //average the signal to get rid of noise
         new_sig_avg = d_sig_avg.add(in[i]);
@@ -75,10 +80,11 @@ namespace gr {
           //starter offset for next estimate.
           d_prev_zero_dist = -x;
         }
+
         //for the next iteration
         d_old_sig_avg = new_sig_avg;
 
-        //decimate and post
+        //decimate and post -----
         d_counter--;
         if(d_counter <= 0) {
           d_counter = d_decim;
@@ -86,6 +92,20 @@ namespace gr {
           n_out++;
         }
       }
+
+      // add tags with fixed offset to the output stream
+      std::vector<gr::tag_t> trigger_tags;
+      get_tags_in_range(trigger_tags, 0, samp0_count, samp0_count + n_in);
+      for (const auto &trigger_tag : trigger_tags)
+      {
+          tag_t new_tag = trigger_tag;
+          if(d_decim != 0)
+              new_tag.offset = uint64_t(trigger_tag.offset / d_decim);
+          else
+              new_tag.offset = uint64_t(trigger_tag.offset);
+          add_item_tag(0, new_tag);
+      }
+
       consume_each(n_in);
       return n_out;
     }
