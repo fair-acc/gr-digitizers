@@ -46,6 +46,26 @@ namespace gr {
         * creating new instances.
         */
         static sptr make(std::string serial_number, bool auto_arm);
+
+        virtual void set_trigger_once(bool auto_arm) = 0;
+        virtual void set_samp_rate(double rate) = 0;
+        virtual void set_downsampling(downsampling_mode_t mode, int downsample_factor=0) = 0;
+        
+        virtual void set_aichan(const std::string &id, bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_a(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_b(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_c(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_d(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_e(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_f(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_g(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        virtual void set_aichan_h(bool enabled, double range, coupling_t coupling, double range_offset = 0) = 0;
+        
+        
+        virtual void set_aichan_trigger(const std::string &id, trigger_direction_t direction, double threshold) = 0;
+        virtual void set_samples(int pre_samples, int post_samples) = 0;
+        virtual void set_rapid_block(int nr_waveforms) = 0;
+      
     };
 
   } // namespace pulsed_power_daq

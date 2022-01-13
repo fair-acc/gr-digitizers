@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(picoscope_4000a_source.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(d52135399b397a2bed702af8ac837fdd)                     */
+/* BINDTOOL_HEADER_FILE_HASH(653e16d62aa8ce7ec71cb0129ca15cf5)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -36,6 +36,9 @@ void bind_picoscope_4000a_source(py::module& m)
 
 
     py::class_<picoscope_4000a_source,
+        gr::sync_block,
+        gr::block,
+        gr::basic_block,
         std::shared_ptr<picoscope_4000a_source>>(m, "picoscope_4000a_source", D(picoscope_4000a_source))
 
         .def(py::init(&picoscope_4000a_source::make),
@@ -45,13 +48,27 @@ void bind_picoscope_4000a_source(py::module& m)
         )
         
 
-
-
+        .def("set_trigger_once", &picoscope_4000a_source::set_trigger_once, py::arg("trigger_once"))
+        .def("set_samp_rate", &picoscope_4000a_source::set_samp_rate, py::arg("samp_rate"))
+        .def("set_downsampling", &picoscope_4000a_source::set_downsampling, py::arg("downsampling_mode"), py::arg("downsampling_factor"))
+        .def("set_aichan_trigger", &picoscope_4000a_source::set_aichan_trigger, py::arg("id"), py::arg("direction"), py::arg("threshold"))
+        //.def("set_aichan", &picoscope_4000a_source::set_aichan, py::arg("id"), py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        
+        .def("set_aichan_a", &picoscope_4000a_source::set_aichan_a, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan_b", &picoscope_4000a_source::set_aichan_b, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan_c", &picoscope_4000a_source::set_aichan_c, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan_d", &picoscope_4000a_source::set_aichan_d, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan_e", &picoscope_4000a_source::set_aichan_e, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan_f", &picoscope_4000a_source::set_aichan_f, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan_g", &picoscope_4000a_source::set_aichan_g, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan_h", &picoscope_4000a_source::set_aichan_h, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        
+        .def("set_samples", &picoscope_4000a_source::set_samples, py::arg("pre_samples"), py::arg("post_samples"))
+        .def("set_rapid_block", &picoscope_4000a_source::set_rapid_block, py::arg("nr_waveforms"))
+        
         ;
 
-
-
-
+      
 }
 
 

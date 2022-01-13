@@ -31,7 +31,9 @@ add_library(gnuradio-pulsed_power_daq SHARED ${pulsed_power_daq_sources})
 #set(picoscope-ps4000a "/opt/picoscope/lib/libps4000.so")
 #add_library(picoscope-ps4000a SHARED "/opt/picoscope/lib/libps4000.so")
 
-target_link_libraries(gnuradio-pulsed_power_daq gnuradio::gnuradio-runtime )#picoscope-ps4000a)
+target_link_libraries(gnuradio-pulsed_power_daq 
+#"-Wl,--whole-archive picoscope-base.a -Wl,--no-whole-archive"
+gnuradio::gnuradio-runtime )#picoscope-ps4000a)
 
 target_include_directories(gnuradio-pulsed_power_daq
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>

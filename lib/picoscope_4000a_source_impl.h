@@ -118,6 +118,31 @@ namespace gr {
 
         std::error_code set_buffers(size_t samples, uint32_t block_number);
 
+        void set_trigger_once(bool trigger_once) override;
+
+        void set_samp_rate(double rate) override;
+
+        void set_downsampling(downsampling_mode_t mode, int downsample_factor=0) override;
+
+        void set_aichan(const std::string &id, bool enabled, double range, coupling_t coupling, double range_offset = 0) override;
+        
+        void set_aichan_trigger(const std::string &id, trigger_direction_t direction, double threshold) override;
+
+        void set_samples(int pre_samples, int post_samples);
+
+
+        void set_aichan_a(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        void set_aichan_b(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        void set_aichan_c(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        void set_aichan_d(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        void set_aichan_e(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        void set_aichan_f(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        void set_aichan_g(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        void set_aichan_h(bool enabled, double range, coupling_t coupling, double range_offset = 0);
+        
+        void set_rapid_block(int nr_waveforms);
+      
+        
         // uint32_t convert_frequency_to_ps4000a_timebase(double desired_freq, double &actual_freq);
 
         // // Where all the action really happens

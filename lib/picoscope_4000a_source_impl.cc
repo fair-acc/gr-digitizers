@@ -713,6 +713,59 @@ namespace gr {
       return make_pico_4000a_error_code(status);
     }
 
+
+    //TODO: verify this works
+    //quick hack to make these functions visible for gnuradio/pybind11
+    void picoscope_4000a_source_impl::set_trigger_once(bool trigger_once)
+    {
+        digitizer_source::set_trigger_once(trigger_once);
+    }
+
+    void
+   picoscope_4000a_source_impl::set_downsampling(downsampling_mode_t mode, int downsample_factor)
+   {
+     digitizer_source::set_downsampling(mode, downsample_factor);
+   }
+
+
+   void
+   picoscope_4000a_source_impl::set_samp_rate(double rate)
+   {
+     digitizer_source::set_samp_rate(rate);
+   }
+
+   void 
+   picoscope_4000a_source_impl::set_aichan(const std::string &id, bool enabled, double range, coupling_t coupling, double range_offset)
+   {
+      digitizer_source::set_aichan(id, enabled, range, coupling, range_offset);
+   }
+
+   void 
+   picoscope_4000a_source_impl::set_aichan_trigger(const std::string &id, trigger_direction_t direction, double threshold)
+   {
+     digitizer_source::set_aichan_trigger(id, direction,threshold);
+   }
+    void 
+    picoscope_4000a_source_impl::set_samples(int pre_samples, int post_samples)
+    {
+      digitizer_source::set_samples(pre_samples,post_samples);
+    }
+    void picoscope_4000a_source_impl::set_rapid_block(int nr_waveforms)
+    {
+      digitizer_source::set_rapid_block(nr_waveforms);
+    }
+      
+
+//TODO: verify
+//ugly workaround to avoid gnuradio's confusion
+    void picoscope_4000a_source_impl::set_aichan_a(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("A",enabled, range, coupling, range_offset);}
+    void picoscope_4000a_source_impl::set_aichan_b(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("B",enabled, range, coupling, range_offset);}
+    void picoscope_4000a_source_impl::set_aichan_c(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("C",enabled, range, coupling, range_offset);}
+    void picoscope_4000a_source_impl::set_aichan_d(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("D",enabled, range, coupling, range_offset);}
+    void picoscope_4000a_source_impl::set_aichan_e(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("E",enabled, range, coupling, range_offset);}
+    void picoscope_4000a_source_impl::set_aichan_f(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("F",enabled, range, coupling, range_offset);}
+    void picoscope_4000a_source_impl::set_aichan_g(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("G",enabled, range, coupling, range_offset);}
+    void picoscope_4000a_source_impl::set_aichan_h(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("H",enabled, range, coupling, range_offset);}
     // int
     // digitizer_source::work(int noutput_items,
     //     gr_vector_const_void_star &input_items,

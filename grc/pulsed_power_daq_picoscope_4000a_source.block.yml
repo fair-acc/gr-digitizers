@@ -435,21 +435,33 @@ outputs:
 
 templates:
     imports: import pulsed_power_daq
-    make: "pulsed_power_daq.picoscope_4000a_source(${serial_number}, True)\nself.${id}.set_trigger_once(${trigger_once})\n\
-        self.${id}.set_samp_rate(${samp_rate})\nself.${id}.set_downsampling(${downsampling_mode},\
-        \ ${downsampling_factor})\nself.${id}.set_aichan('A', ${enable_ai_a}, ${range_ai_a},\
-        \ ${coupling_ai_a}, ${offset_ai_a})\nself.${id}.set_aichan('B', ${enable_ai_b},\
-        \ ${range_ai_b}, ${coupling_ai_b}, ${offset_ai_b})\nself.${id}.set_aichan('C',\
-        \ ${enable_ai_c}, ${range_ai_c}, ${coupling_ai_c}, ${offset_ai_c})\nself.${id}.set_aichan('D',\
-        \ ${enable_ai_d}, ${range_ai_d}, ${coupling_ai_d}, ${offset_ai_d})\nself.${id}.set_aichan('E',\
-        \ ${enable_ai_e}, ${range_ai_e}, ${coupling_ai_e}, ${offset_ai_e})\nself.${id}.set_aichan('F',\
-        \ ${enable_ai_f}, ${range_ai_f}, ${coupling_ai_f}, ${offset_ai_f})\nself.${id}.set_aichan('G',\
-        \ ${enable_ai_g}, ${range_ai_g}, ${coupling_ai_g}, ${offset_ai_g})\nself.${id}.set_aichan('H',\
-        \ ${enable_ai_h}, ${range_ai_h}, ${coupling_ai_h}, ${offset_ai_h})\n\nif ${trigger_source}\
-        \ != 'None':\n    self.${id}.set_aichan_trigger(${trigger_source}, ${trigger_direction},\
-        \ ${trigger_threshold})\n\nif ${acquisition_mode} == 'Streaming':\n    self.${id}.set_buffer_size(${buff_size})\n\
-        \    self.${id}.set_nr_buffers(${nr_buffers})\n    self.${id}.set_driver_buffer_size(${driver_buff_size})\n\
-        \    self.${id}.set_streaming(${poll_rate})\nelse:\n    self.${id}.set_samples(${pre_samples},\
-        \ ${post_samples})\n    self.${id}.set_rapid_block(${nr_waveforms})\n    "
+    make: "pulsed_power_daq.picoscope_4000a_source(${serial_number}, True)"
+    #\n\
+#        \nif ${acquisition_mode} == 'Streaming':\n    self.${id}.set_buffer_size(${buff_size})\n\
+#        \    self.${id}.set_nr_buffers(${nr_buffers})\n    self.${id}.set_driver_buffer_size(${driver_buff_size})\n\
+#        \    self.${id}.set_streaming(${poll_rate})\nelse:\n    self.${id}.set_samples(${pre_samples},\
+#        \ ${post_samples})    "
+#self.${id}.set_rapid_block(${nr_waveforms})\n    "
+    callbacks:
+    - set_trigger_once(${trigger_once})
+    - set_samp_rate(${samp_rate})
+    - set_downsampling(${downsampling_mode}, ${downsampling_factor})
+    - set_aichan_trigger(${trigger_source}, ${trigger_direction}, ${trigger_threshold})
+    - set_aichan_a(${enable_ai_a}, ${range_ai_a}, ${coupling_ai_a}, ${offset_ai_a})
+    - set_aichan_b(${enable_ai_b}, ${range_ai_b}, ${coupling_ai_b}, ${offset_ai_b})
+    - set_aichan_c(${enable_ai_c}, ${range_ai_c}, ${coupling_ai_c}, ${offset_ai_c})
+    - set_aichan_d(${enable_ai_d}, ${range_ai_d}, ${coupling_ai_d}, ${offset_ai_d})
+    - set_aichan_e(${enable_ai_e}, ${range_ai_e}, ${coupling_ai_e}, ${offset_ai_e})
+    - set_aichan_f(${enable_ai_f}, ${range_ai_f}, ${coupling_ai_f}, ${offset_ai_f})
+    - set_aichan_g(${enable_ai_g}, ${range_ai_g}, ${coupling_ai_g}, ${offset_ai_g})
+    - set_aichan_h(${enable_ai_h}, ${range_ai_h}, ${coupling_ai_h}, ${offset_ai_h})
+    - set_rapid_block(${nr_waveforms})
+    - set_nr_buffers(${nr_buffers})
+    - set_samples(${pre_samples}, ${post_samples})
+    - set_streaming(${poll_rate})
+    - set_driver_buffer_size(${driver_buff_size})
+
+#cpp_templates:
+#    includes: ['#include <pulsed_power_daq/picoscope_4000a_source.h>']
 
 file_format: 1
