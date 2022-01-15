@@ -222,11 +222,14 @@ namespace gr {
           d_tmp_buffer->d_status.resize(get_enabled_aichan_count());
 
           for (auto i = 0; i < get_enabled_aichan_count(); i++) {
+            d_tmp_buffer->d_status[i] = 0;
+
             if (overflow & (1 << i)) {
-              d_tmp_buffer->d_status[i] = channel_status_t::CHANNEL_STATUS_OVERFLOW;
+              d_tmp_buffer->d_status[i] |= channel_status_t::CHANNEL_STATUS_OVERFLOW;
             }
-            else {
-              d_tmp_buffer->d_status[i] = 0;
+
+            if (d_tmp_buffer->d_lost_count > 0) {
+              d_tmp_buffer->d_status[i] |= channel_status_t::CHANNEL_STATUS_DATA_BUFFERS_LOST;
             }
           }
 
