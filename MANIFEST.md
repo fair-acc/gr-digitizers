@@ -40,3 +40,74 @@ Traceback (most recent call last):
   File "/usr/lib/python3/dist-packages/digitizers_39/__init__.py", line 18, in <module>
     from .digitizers_39_python import *
 ImportError: /usr/local/lib/x86_64-linux-gnu/libgnuradio-digitizers_39.so.1.0.0: undefined symbol: _ZN5boost6chrono12steady_clock3nowEv
+
+
+
+How to manually bind your C++ Code to python/gnuradio
+=====================================================
+
+create a new module and block using gr_modtool.
+Inthe following \<BLOCKNAME\> refers to the name of the block you are adding. 
+
+The following files need to be edited/added:
+
+* _python/bindings/\<BLOCKNAME\>\_python.cc_
+
+* _lib/\<BLOCKNAME\>\_impl.h and *.cc_
+
+* _grc/\<MODULENAME\>\_\<BLOCKNAME\>.block.yml_
+
+* _include/\<BLOCKNAME\>\_source.h_
+
+
+
+In _python/bindings/\<BLOCKNAME\>\_python.cc:_
+----------------------------------------
+  
+  
+
+Inheriting implicitly from blocks doesnt work.  
+Example:  
+
+    py::class_<<PARENT_BLOCKNAME>,  
+               std::shared_ptr<<BLOCKNAME>>>(m, "<BLOCKNAME>", D(<BLOCKNAME>))
+
+You need to explicitly add the blocks you are inheriting from. In this example from sync_block:
+
+    py::class_<block_name,  
+                gr::sync_block,  
+                gr::block,  
+                gr::basic_block,  
+                std::shared_ptr<<BLOCKNAME>>>(m, "<BLOCKNAME>", (<BLOCKNAME>))  
+
+Add your functions similar to make as:  
+
+    .def("FUNCTION_NAME", &<BLOCKNAME>::FUNCTION_NAME, py::arg("parameter_1"), py::arg("parameter_2"))
+
+for further information further:
+https://wiki.gnuradio.org/index.php/GNU_Radio_3.9_OOT_Module_Porting_Guide#CMakeLists.txt_changes_to_fix_OOT_module_testing
+
+
+In _lib/\<BLOCKNAME\>\_impl.h and *.cc:_
+---------------  
+  
+Explicitly implement inhereted functions required. Call parents' equivalents within.
+**TODO:** how to better describe this
+
+In _grc/\<MODULENAME\>\_\<BLOCKNAME\>.block.yml:_
+---------------  
+
+Add required functions as "callbacks":
+
+    templates:
+        imports: import pulsed_power_daq
+        make: "<MODULENAME>.<BLOCKNAME>(${paramter_1}, True)"
+        callbacks:
+        - FUNCTION_NAME(${parameter_1}, ${parameter_2})
+
+
+In _include/\<BLOCKNAME\>\_source.h:_
+---------------  
+
+Explicitly add inhereted virtual functions.  
+**TODO:** how to better describe this
