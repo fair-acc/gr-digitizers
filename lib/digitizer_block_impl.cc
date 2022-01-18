@@ -912,7 +912,7 @@ namespace gr {
    digitizer_block_impl::poll_work_function()
    {
      boost::unique_lock<boost::mutex> lock(d_poller_mutex, boost::defer_lock);
-     auto poll_rate = std::chrono::microseconds((long)(d_poll_rate * 1000000));
+     auto poll_duration = std::chrono::microseconds((long)(d_poll_rate * 1000000));
 
      gr::thread::set_thread_name(pthread_self(), "poller");
 
@@ -967,8 +967,10 @@ namespace gr {
            d_app_buffer.notify_data_ready(digitizer_block_errc::Watchdog);
 
          }
-         std::chrono::duration<float> poll_duration = std::chrono::high_resolution_clock::now() - poll_start;
-         std::this_thread::sleep_for(poll_rate - poll_duration);
+
+         // Substract the time each iteration itself took in order to get closer to the desired poll duration
+         std::chrono::duration<float> poll_duration_correction = std::chrono::high_resolution_clock::now() - poll_start;
+         std::this_thread::sleep_for(poll_duration - poll_duration_correction);
        }
        else {
          if (state == poller_state_t::PEND_IDLE) {
