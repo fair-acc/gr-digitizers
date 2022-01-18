@@ -51,13 +51,10 @@ namespace gr {
       // add tags with corrected offset to the output stream
       std::vector<gr::tag_t> tags;
       get_tags_in_range(tags, 0, samp0_count, samp0_count + input_items.size());
-      for (const auto &tag : tags){
-          tag_t new_tag = tag;
-          if(decimation() != 0)
-              new_tag.offset = uint64_t(tag.offset / decimation());
-          else
-              new_tag.offset = uint64_t(tag.offset);
-          add_item_tag(0, new_tag);
+      for (auto &tag : tags){
+        if(decimation() != 0)
+          tag.offset = uint64_t(tag.offset / decimation());
+        add_item_tag(0, tag);
       }
 
       return noutput_items;

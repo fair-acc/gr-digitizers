@@ -91,16 +91,13 @@ namespace gr {
         }
       }
 
-      // add tags with fixed offset to the output stream
-      std::vector<gr::tag_t> trigger_tags;
-      get_tags_in_range(trigger_tags, 0, samp0_count, samp0_count + n_in);
-      for (const auto &trigger_tag : trigger_tags) {
-          tag_t new_tag = trigger_tag;
-          if(d_decim != 0)
-              new_tag.offset = uint64_t(trigger_tag.offset / d_decim);
-          else
-              new_tag.offset = uint64_t(trigger_tag.offset);
-          add_item_tag(0, new_tag);
+      // add tags with corrected offset to the output stream
+      std::vector<gr::tag_t> tags;
+      get_tags_in_range(tags, 0, samp0_count, samp0_count + n_in);
+      for (auto &tag : tags) {
+        if(d_decim != 0)
+          tag.offset = uint64_t(tag.offset / d_decim);
+        add_item_tag(0, tag);
       }
 
       consume_each(n_in);
