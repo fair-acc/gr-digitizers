@@ -912,7 +912,7 @@ namespace gr {
    digitizer_block_impl::poll_work_function()
    {
      boost::unique_lock<boost::mutex> lock(d_poller_mutex, boost::defer_lock);
-     auto poll_duration = std::chrono::microseconds((long)(d_poll_rate * 1000000));
+     std::chrono::duration<float> poll_duration(d_poll_rate);
 
      gr::thread::set_thread_name(pthread_self(), "poller");
 
