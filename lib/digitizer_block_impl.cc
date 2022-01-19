@@ -912,7 +912,8 @@ namespace gr {
    digitizer_block_impl::poll_work_function()
    {
      boost::unique_lock<boost::mutex> lock(d_poller_mutex, boost::defer_lock);
-     auto poll_rate = boost::chrono::microseconds((long)(d_poll_rate * 1000000));
+     std::chrono::duration<float> poll_duration(d_poll_rate);
+     std::chrono::duration<float> sleep_time;
 
      gr::thread::set_thread_name(pthread_self(), "poller");
 
@@ -934,7 +935,7 @@ namespace gr {
 
        if (state == poller_state_t::RUNNING) {
          // Start watchdog a new
-         auto poll_start = boost::chrono::high_resolution_clock::now();
+         auto poll_start = std::chrono::high_resolution_clock::now();
          auto ec = driver_poll();
          if (ec) {
            // Only print out an error message
@@ -967,9 +968,18 @@ namespace gr {
            d_app_buffer.notify_data_ready(digitizer_block_errc::Watchdog);
 
          }
-         boost::chrono::duration<float> poll_duration = boost::chrono::high_resolution_clock::now() - poll_start;
 
-         boost::this_thread::sleep_for(poll_rate - poll_duration);
+         // Substract the time each iteration itself took in order to get closer to the desired poll duration
+         std::chrono::duration<float> remaining_poll_duration = std::chrono::high_resolution_clock::now() - poll_start;
+         if(remaining_poll_duration > poll_duration) {
+           sleep_time = std::chrono::duration<float>::zero();
+           GR_LOG_WARN(d_logger, "Watchdog: Poll rate is set too low (" + std::to_string(d_poll_rate) + "s) "
+                                   "Cannot ensure that the Digitizer block work method will be called within that rate.");
+         }
+         else {
+           sleep_time = poll_duration - remaining_poll_duration;
+         }
+         std::this_thread::sleep_for(sleep_time);
        }
        else {
          if (state == poller_state_t::PEND_IDLE) {
@@ -989,7 +999,7 @@ namespace gr {
          }
 
          // Relax CPU
-         boost::this_thread::sleep_for(boost::chrono::microseconds(100));
+         std::this_thread::sleep_for(std::chrono::microseconds(100));
        }
      }
    }
