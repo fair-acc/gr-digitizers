@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 /*
- * Copyright 2022 GSI.
+ * Copyright 2022 fair.
  *
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
