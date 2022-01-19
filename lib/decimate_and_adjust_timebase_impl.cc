@@ -46,51 +46,16 @@ namespace gr {
         gr_vector_const_void_star &input_items,
         gr_vector_void_star &output_items)
     {
-      const auto decim = decimation();
+      const auto samp0_count = nitems_read(0);
 
-      float *out = (float *) output_items[0];
-      const float *in = (const float *) input_items[0];
-
-      int i_in = 0, i_out = 0;
-      for(; i_out < noutput_items; i_out++)
-      {
-        // Keep one in N functionality
-        out[i_out] = in[i_in];
-
-        std::vector<gr::tag_t> tags;
-        get_tags_in_range(tags, 0, nitems_read(0) + i_in, nitems_read(0) + i_in + decim );
-        // required to merge acq_infotags due to this bug: https://github.com/gnuradio/gnuradio/issues/2364
-        // otherwise we will eat to much memory
-        // TODO: Fix bug in gnuradio (https://gitlab.com/al.schwinn/gr-digitizers/issues/33)
-        acq_info_t merged_acq_info;
-        merged_acq_info.status = 0;
-        bool found_acq_info = false;
-        for(auto tag : tags)
-        {
-            //std::cout << "tag found: " << tag.key << std::endl;
-            if(tag.key == pmt::string_to_symbol(trigger_tag_name))
-            {
-                trigger_t trigger_tag_data = decode_trigger_tag(tag);
-                add_item_tag(0, make_trigger_tag(trigger_tag_data, nitems_written(0) + i_out));
-                //std::cout << "trigger tag added" << std::endl;
-            }
-            else if(tag.key == pmt::string_to_symbol(acq_info_tag_name))
-            {
-                found_acq_info = true;
-                merged_acq_info.status |= decode_acq_info_tag(tag).status;
-            }
-            else
-            {
-                tag.offset = nitems_written(0) + i_out;
-                add_item_tag(0, tag);
-            }
-        }
-        if(found_acq_info)
-            add_item_tag(0, make_acq_info_tag(merged_acq_info, nitems_written(0) + i_out));
-
-        i_in += decim;
+      // add tags with corrected offset to the output stream
+      std::vector<gr::tag_t> tags;
+      get_tags_in_range(tags, 0, samp0_count, samp0_count + input_items.size());
+      for (auto &tag : tags){
+        if(decimation() != 0)
+          tag.offset = uint64_t(tag.offset / decimation());
+        add_item_tag(0, tag);
       }
-
 
       return noutput_items;
     }
