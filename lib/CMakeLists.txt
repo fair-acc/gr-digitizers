@@ -18,6 +18,7 @@ list(APPEND pulsed_power_daq_sources
     picoscope_base.cc
     power_calc_cc_impl.cc
     power_calc_ff_impl.cc
+    mains_frequency_calc_impl.cc
 )
 
 
