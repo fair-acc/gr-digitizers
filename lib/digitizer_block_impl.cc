@@ -913,6 +913,7 @@ namespace gr {
    {
      boost::unique_lock<boost::mutex> lock(d_poller_mutex, boost::defer_lock);
      std::chrono::duration<float> poll_duration(d_poll_rate);
+     std::chrono::duration<float> sleep_time;
 
      gr::thread::set_thread_name(pthread_self(), "poller");
 
@@ -970,7 +971,17 @@ namespace gr {
 
          // Substract the time each iteration itself took in order to get closer to the desired poll duration
          std::chrono::duration<float> poll_duration_correction = std::chrono::high_resolution_clock::now() - poll_start;
-         std::this_thread::sleep_for(poll_duration - poll_duration_correction);
+         if(poll_duration_correction > poll_duration)
+         {
+             sleep_time = std::chrono::duration<float>::zero();
+             GR_LOG_WARN(d_logger, "Watchdog: Poll rate is set too low (" + std::to_string(d_poll_rate) + "s) "
+                                   "Cannot ensure that the Digitizer block work method will be called within that rate.");
+         }
+         else
+         {
+             sleep_time = poll_duration - poll_duration_correction;
+         }
+         std::this_thread::sleep_for(sleep_time);
        }
        else {
          if (state == poller_state_t::PEND_IDLE) {
