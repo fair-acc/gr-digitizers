@@ -17,6 +17,7 @@ list(APPEND pulsed_power_daq_sources
     picoscope_4000a_source_impl.cc
     picoscope_base.cc
     power_calc_cc_impl.cc
+    power_calc_ff_impl.cc
 )
 
 
