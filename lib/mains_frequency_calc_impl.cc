@@ -22,7 +22,7 @@ using output_type = float;
      * @param low_threshold The thresold determining the begining and duration of the negative curve
      * @param high_threshold The thresold determining the begining and duration of the positive curve
      */
-    mains_frequency_calc::sptr mains_frequency_calc::make(int expected_sample_rate, float low_threshold, float high_threshold)
+    mains_frequency_calc::sptr mains_frequency_calc::make(float expected_sample_rate, float low_threshold, float high_threshold)
     {
       return gnuradio::make_block_sptr<mains_frequency_calc_impl>(
         expected_sample_rate, low_threshold, high_threshold);
@@ -35,7 +35,7 @@ using output_type = float;
      * @param low_threshold The thresold determining the begining and duration of the negative curve
      * @param high_threshold The thresold determining the begining and duration of the positive curve
      */
-    mains_frequency_calc_impl::mains_frequency_calc_impl(int expected_sample_rate, float low_threshold, float high_threshold)
+    mains_frequency_calc_impl::mains_frequency_calc_impl(float expected_sample_rate, float low_threshold, float high_threshold)
       : gr::sync_block("mains_frequency_calc",
               gr::io_signature::make(1 /* min inputs */, 1 /* max inputs */, sizeof(float)),
               gr::io_signature::make(1 /* min outputs */, 1 /*max outputs */, sizeof(float))),
@@ -68,7 +68,7 @@ using output_type = float;
      */
     void mains_frequency_calc_impl::calc_frequency_per_halfed_period(int current_count)
     {
-      float seconds_per_halfed_period = (float)((double)current_count / (double)d_expected_sample_rate);
+      float seconds_per_halfed_period = (float)((double)current_count / d_expected_sample_rate);
 
       current_half_frequency = float(1.0 / float(seconds_per_halfed_period + seconds_per_halfed_period));
     }

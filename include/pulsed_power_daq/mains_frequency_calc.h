@@ -33,7 +33,7 @@ public:
      * class. pulsed_power_daq::mains_frequency_calc::make is the public interface for
      * creating new instances.
      */
-    static sptr make(int expected_sample_rate, float low_threshold, float high_threshold);
+    static sptr make(float expected_sample_rate, float low_threshold, float high_threshold);
 };
 
 } // namespace pulsed_power_daq

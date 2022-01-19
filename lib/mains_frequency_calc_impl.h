@@ -16,12 +16,12 @@ namespace pulsed_power_daq {
 class mains_frequency_calc_impl : public mains_frequency_calc
 {
 private:
-      int  d_expected_sample_rate;
+      float  d_expected_sample_rate;
       float d_lo, d_hi, current_half_frequency, average_frequency, d_alpha;
       int no_low, no_high; 
       bool d_last_state;
 public:
-    mains_frequency_calc_impl(int expected_sample_rate=2000000, float low_threshold=-100, float high_threshold=100);
+    mains_frequency_calc_impl(float expected_sample_rate=2000000, float low_threshold=-100, float high_threshold=100);
     ~mains_frequency_calc_impl();
 
       void calc_frequency_per_halfed_period(int current_count);

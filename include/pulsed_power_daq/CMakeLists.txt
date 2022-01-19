@@ -25,5 +25,6 @@ install(FILES
     picoscope_4000a_source.h
     power_calc_cc.h
     power_calc_ff.h
-    mains_frequency_calc.h DESTINATION include/pulsed_power_daq
+    mains_frequency_calc.h
+    DESTINATION include/pulsed_power_daq
 )

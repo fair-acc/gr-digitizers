@@ -10,7 +10,6 @@
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
-
 list(APPEND pulsed_power_daq_sources
     digitizer_source.cc
     # picoscope_4000a_source_help_impl.cc
@@ -19,7 +18,7 @@ list(APPEND pulsed_power_daq_sources
     power_calc_cc_impl.cc
     power_calc_ff_impl.cc
     mains_frequency_calc_impl.cc
-)
+    )
 
 
 set(pulsed_power_daq_sources "${pulsed_power_daq_sources}" PARENT_SCOPE)

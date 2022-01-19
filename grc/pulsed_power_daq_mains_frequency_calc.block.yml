@@ -15,7 +15,7 @@ templates:
 parameters:
 - id: expected_sample_rate
   label: Expected sample rate
-  dtype: int
+  dtype: float
   default: 2000000
 
 - id: low_threshold

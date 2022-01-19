@@ -5,10 +5,10 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
-
 install(FILES
     pulsed_power_daq_picoscope_4000a_source.block.yml
     pulsed_power_daq_power_calc_cc.block.yml
     pulsed_power_daq_power_calc_ff.block.yml
-    pulsed_power_daq_mains_frequency_calc.block.yml DESTINATION share/gnuradio/grc/blocks
+    pulsed_power_daq_mains_frequency_calc.block.yml
+    DESTINATION share/gnuradio/grc/blocks
 )
