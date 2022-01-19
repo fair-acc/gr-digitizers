@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(picoscope_4000a_source.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(dd0bf866885894d66641305f44353466)                     */
+/* BINDTOOL_HEADER_FILE_HASH(653e16d62aa8ce7ec71cb0129ca15cf5)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>

@@ -22,5 +22,6 @@ install(FILES
     utils.h
     /opt/picoscope/include/libps4000a/ps4000aApi.h
     /opt/picoscope/include/libps4000a/PicoStatus.h
-    picoscope_4000a_source.h DESTINATION include/pulsed_power_daq
+    picoscope_4000a_source.h
+    power_calc_cc.h DESTINATION include/pulsed_power_daq
 )
