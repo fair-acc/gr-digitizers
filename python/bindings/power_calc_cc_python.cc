@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(power_calc_cc.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(41dd97347765b143e8115913116024b6)                     */
+/* BINDTOOL_HEADER_FILE_HASH(da016967d50aeb48291f85e1eb0804c2)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>

@@ -57,7 +57,6 @@ power_calc_ff_impl::~power_calc_ff_impl() {}
      */
     void power_calc_ff_impl::calc_rms_u(float* output, const float* input, int noutput_items)
     {
-        //TODO: wir rechenn hier alle inputs ein. Wenn äquivalent zu power_calc_cc müsste der imaginäre Teil übersprungen werden
         for (int i = 0; i < noutput_items; i++) 
         {
           double mag_sqrd = input[i] * input[i];// + input[i].imag() * input[i].imag();

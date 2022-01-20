@@ -113,10 +113,6 @@ power_calc_cc_impl::~power_calc_cc_impl() {}
     {
         for (int i = 0; i < noutput_items; i++) 
         {
-          //TODO: verify
-          //i läuft hier über alle outputs = 4 drüber, input ist aber eigentlich nur 2
-          //laufen wir hier aus dem eigentlich input array raus?
-          //dasselbe in power_calc_ff
           double mag_sqrd = input[i].real() * input[i].real();// + input[i].imag() * input[i].imag();
           d_avg_u = d_beta * d_avg_u + d_alpha * mag_sqrd;
           output[i] = sqrt(d_avg_u);

@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(mains_frequency_calc.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(2e2590630f30e15aacc27f1d9fb8e943)                     */
+/* BINDTOOL_HEADER_FILE_HASH(4fa4b61d0b34e97ffba2df37b79d202b)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
