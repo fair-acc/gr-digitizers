@@ -128,7 +128,7 @@ namespace gr {
           coupling(AC_1M)
       {}
 
-      float range;
+      double range;
       float offset;
       bool enabled;
       coupling_t coupling;

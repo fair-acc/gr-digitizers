@@ -69,7 +69,7 @@ namespace gr {
     *********************************************************************/
 
     static PS6000_COUPLING
-    convert_to_ps6000_coupling(coupling_t coupling, float desired_range)
+    convert_to_ps6000_coupling(coupling_t coupling, double desired_range)
     {
       if (desired_range >= 10.0 && coupling == DC_50R)
       {
