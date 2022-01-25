@@ -81,7 +81,7 @@ namespace gr {
     }
 
     static PS4000A_RANGE
-    convert_to_ps4000a_range(float range)
+    convert_to_ps4000a_range(double range)
     {
       if (range == 0.01)
         return PS4000A_10MV;
