@@ -700,9 +700,19 @@ namespace gr {
        }
      } catch (const std::exception& ex) {
        d_configure_exception_message = ex.what();
+       GR_LOG_ERROR(d_logger, d_configure_exception_message );
+
+       // It looks like the block is run by gnuradio, no matter if true or false is returned here
+       // TODO: "start" is called by gnuradio itself. Check if it is possible to stop the block from running when false is returned here.
        return false;
+
      } catch (...) {
+
        d_configure_exception_message = "Unknown Exception received in digitizer_block_impl::start";
+       GR_LOG_ERROR(d_logger, d_configure_exception_message );
+
+       // It looks like the block is run by gnuradio, no matter if true or false is returned here
+       // TODO: "start" is called by gnuradio itself. Check if it is possible to stop the block from running when false is returned here.
        return false;
      }
 
