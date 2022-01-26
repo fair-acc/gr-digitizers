@@ -1,0 +1,116 @@
+id: power_calc_prepper_ff
+label: power_calc_prepper_ff
+category: '[GRC Hier Blocks]'
+
+parameters:
+-   id: bp_decimantion
+    label: band pass decimantion
+    dtype: int
+    default: '20'
+    hide: none
+-   id: bp_gain
+    label: band pass gain
+    dtype: real
+    default: '1'
+    hide: none
+-   id: bp_high_cut
+    label: band pass high cutoff frequency
+    dtype: real
+    default: '80'
+    hide: none
+-   id: bp_low_cut
+    label: band pass low cutoff frequency
+    dtype: real
+    default: '20'
+    hide: none
+-   id: bp_trans
+    label: band pass transition width
+    dtype: real
+    default: '10'
+    hide: none
+-   id: in_samp_rate
+    label: in-coming samp rate
+    dtype: real
+    default: '200000'
+    hide: none
+-   id: lp_cut
+    label: low pass cutoff frequency
+    dtype: real
+    default: '60'
+    hide: none
+-   id: lp_decimantion
+    label: low pass decimantion
+    dtype: int
+    default: '1'
+    hide: none
+-   id: lp_gain
+    label: low pass gain
+    dtype: real
+    default: '1'
+    hide: none
+-   id: lp_trans
+    label: low pass transition width
+    dtype: real
+    default: '10'
+    hide: none
+-   id: out_samp_rate
+    label: out-going samp rate
+    dtype: real
+    default: '10000'
+    hide: none
+
+inputs:
+-   label: Current
+    dtype: float
+    vlen: 1
+-   label: Voltage
+    dtype: float
+    vlen: 1
+
+outputs:
+-   label: Delta phase PHI
+    dtype: float
+    vlen: 1
+-   label: Band pass current
+    dtype: float
+    vlen: 1
+-   label: Band pass voltage
+    dtype: float
+    vlen: 1
+-   label: Raw current
+    dtype: float
+    vlen: 1
+    optional: true
+-   label: Raw voltage
+    dtype: float
+    vlen: 1
+    optional: true
+
+templates:
+    imports: 'from power_calc_prepper_ff import power_calc_prepper_ff  # grc-generated
+        hier_block'
+    make: "power_calc_prepper_ff(\n    bp_decimantion=${ bp_decimantion },\n    bp_gain=${\
+        \ bp_gain },\n    bp_high_cut=${ bp_high_cut },\n    bp_low_cut=${ bp_low_cut\
+        \ },\n    bp_trans=${ bp_trans },\n    in_samp_rate=${ in_samp_rate },\n \
+        \   lp_cut=${ lp_cut },\n    lp_decimantion=${ lp_decimantion },\n    lp_gain=${\
+        \ lp_gain },\n    lp_trans=${ lp_trans },\n    out_samp_rate=${ out_samp_rate\
+        \ },\n)"
+    callbacks:
+    - set_bp_decimantion(${ bp_decimantion })
+    - set_bp_gain(${ bp_gain })
+    - set_bp_high_cut(${ bp_high_cut })
+    - set_bp_low_cut(${ bp_low_cut })
+    - set_bp_trans(${ bp_trans })
+    - set_in_samp_rate(${ in_samp_rate })
+    - set_lp_cut(${ lp_cut })
+    - set_lp_decimantion(${ lp_decimantion })
+    - set_lp_gain(${ lp_gain })
+    - set_lp_trans(${ lp_trans })
+    - set_out_samp_rate(${ out_samp_rate })
+
+documentation: 'neumann
+
+    /home/gsi/Projects/pulsed_power_daq-bind/gr-digitizers/figures/power_calc_prepper_ff.py'
+grc_source: /home/gsi/Projects/pulsed_power_daq-bind/gr-digitizers/figures/power_calc_entry_point_ff.grc
+
+file_format: 1

@@ -33,7 +33,7 @@ void bind_power_calc_ff(py::module& m)
     using power_calc_ff    = gr::pulsed_power_daq::power_calc_ff;
 
 
-    py::class_<power_calc_ff,
+    py::class_<power_calc_ff, gr::sync_block, gr::block, gr::basic_block,
         std::shared_ptr<power_calc_ff>>(m, "power_calc_ff", D(power_calc_ff))
 
         .def(py::init(&power_calc_ff::make),

@@ -102,18 +102,22 @@ namespace gr {
     {
         for (int i = 0; i < noutput_items; i++)
         { 
+          float temp = 0;
+          if(!isnan(delta_phi[i])){
+              temp = delta_phi[i];
+          }
           // Phase correction
-          if (delta_phi[i] <= (M_PI_2 * -1))
+          if (temp <= (M_PI_2 * -1))
           {
-            phi_out[i] = delta_phi[i] + (M_PI * 2);
+            phi_out[i] = temp + (M_PI * 2);
           }
-          else if (delta_phi[i] >= M_PI_2)
+          else if (temp >= M_PI_2)
           {
-            phi_out[i] = delta_phi[i] - (M_PI * 2);
-          }
+            phi_out[i] = temp - (M_PI * 2);
+          } 
           else
           {
-            phi_out[i] = delta_phi[i];
+            phi_out[i] = temp;
           }
 
           // Single Pole IIR Filter
