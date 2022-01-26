@@ -57,6 +57,8 @@ find_package(Gnuradio "3.9" COMPONENTS
 
 # add_executable(ps4000a_test ps4000a_test.cc)
 add_executable(power_calc_test power_calc_test.cc)
+add_executable(power_calc_ff_test power_calc_ff_test.cc)
+
 add_executable(mains_frequency_calc_test mains_frequency_calc_test.cc)
 
 add_executable(ps4000a_plus_power_calc ps4000a_plus_power_calc.cc)
@@ -87,6 +89,21 @@ add_executable(ps4000a_plus_power_calc_plus_raw_plus_mains_plus_freq_spec_five_z
 # )
 
 target_link_libraries(power_calc_test
+	${GNURADIO_RUNTIME_LIBRARIES}
+	${GNURADIO_ANALOG_LIBRARIES}
+	${GNURADIO_BLOCKS_LIBRARIES}
+	${GNURADIO_PMT_LIBRARIES}
+    ${Boost_LIBRARIES}
+	gnuradio-digitizers_39
+	gnuradio::gnuradio-blocks
+    gnuradio::gnuradio-qtgui
+	gnuradio::gnuradio-filter
+    gnuradio::gnuradio-fft
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-zeromq
+)
+
+target_link_libraries(power_calc_ff_test
 	${GNURADIO_RUNTIME_LIBRARIES}
 	${GNURADIO_ANALOG_LIBRARIES}
 	${GNURADIO_BLOCKS_LIBRARIES}
@@ -284,6 +301,7 @@ INSTALL(TARGETS
 	ps4000a_plus_power_calc_plus_raw_two_zmq
 	ps4000a_plus_power_calc_plus_raw
 	ps4000a_plus_power_calc
+	power_calc_ff_test
 	power_calc_test
 	ps4000a_plus_mains_frequency_calc_test
 	mains_frequency_calc_test
