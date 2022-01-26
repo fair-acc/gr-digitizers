@@ -19,15 +19,6 @@
  static const char *__doc_gr_pulsed_power_daq_power_calc_ff = R"doc()doc";
 
 
- static const char *__doc_gr_pulsed_power_daq_power_calc_ff_power_calc_ff_0 = R"doc()doc";
-
-
- static const char *__doc_gr_pulsed_power_daq_power_calc_ff_power_calc_ff_1 = R"doc()doc";
-
-
  static const char *__doc_gr_pulsed_power_daq_power_calc_ff_make = R"doc()doc";
-
-
- static const char *__doc_gr_pulsed_power_daq_power_calc_ff_set_alpha = R"doc()doc";
 
   
