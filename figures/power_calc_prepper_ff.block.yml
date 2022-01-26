@@ -8,11 +8,6 @@ parameters:
     dtype: int
     default: '20'
     hide: none
--   id: bp_gain
-    label: band pass gain
-    dtype: real
-    default: '1'
-    hide: none
 -   id: bp_high_cut
     label: band pass high cutoff frequency
     dtype: real
@@ -28,35 +23,30 @@ parameters:
     dtype: real
     default: '10'
     hide: none
+-   id: current_correction_factor
+    label: Current Correction Factor
+    dtype: real
+    default: '2.5'
+    hide: none
 -   id: in_samp_rate
     label: in-coming samp rate
     dtype: real
     default: '200000'
-    hide: none
--   id: lp_cut
-    label: low pass cutoff frequency
-    dtype: real
-    default: '60'
     hide: none
 -   id: lp_decimantion
     label: low pass decimantion
     dtype: int
     default: '1'
     hide: none
--   id: lp_gain
-    label: low pass gain
-    dtype: real
-    default: '1'
-    hide: none
--   id: lp_trans
-    label: low pass transition width
-    dtype: real
-    default: '10'
-    hide: none
 -   id: out_samp_rate
     label: out-going samp rate
     dtype: real
     default: '10000'
+    hide: none
+-   id: voltage_correction_factor
+    label: Voltage Correction Factor
+    dtype: real
+    default: '100'
     hide: none
 
 inputs:
@@ -89,24 +79,22 @@ outputs:
 templates:
     imports: 'from power_calc_prepper_ff import power_calc_prepper_ff  # grc-generated
         hier_block'
-    make: "power_calc_prepper_ff(\n    bp_decimantion=${ bp_decimantion },\n    bp_gain=${\
-        \ bp_gain },\n    bp_high_cut=${ bp_high_cut },\n    bp_low_cut=${ bp_low_cut\
-        \ },\n    bp_trans=${ bp_trans },\n    in_samp_rate=${ in_samp_rate },\n \
-        \   lp_cut=${ lp_cut },\n    lp_decimantion=${ lp_decimantion },\n    lp_gain=${\
-        \ lp_gain },\n    lp_trans=${ lp_trans },\n    out_samp_rate=${ out_samp_rate\
+    make: "power_calc_prepper_ff(\n    bp_decimantion=${ bp_decimantion },\n    bp_high_cut=${\
+        \ bp_high_cut },\n    bp_low_cut=${ bp_low_cut },\n    bp_trans=${ bp_trans\
+        \ },\n    current_correction_factor=${ current_correction_factor },\n    in_samp_rate=${\
+        \ in_samp_rate },\n    lp_decimantion=${ lp_decimantion },\n    out_samp_rate=${\
+        \ out_samp_rate },\n    voltage_correction_factor=${ voltage_correction_factor\
         \ },\n)"
     callbacks:
     - set_bp_decimantion(${ bp_decimantion })
-    - set_bp_gain(${ bp_gain })
     - set_bp_high_cut(${ bp_high_cut })
     - set_bp_low_cut(${ bp_low_cut })
     - set_bp_trans(${ bp_trans })
+    - set_current_correction_factor(${ current_correction_factor })
     - set_in_samp_rate(${ in_samp_rate })
-    - set_lp_cut(${ lp_cut })
     - set_lp_decimantion(${ lp_decimantion })
-    - set_lp_gain(${ lp_gain })
-    - set_lp_trans(${ lp_trans })
     - set_out_samp_rate(${ out_samp_rate })
+    - set_voltage_correction_factor(${ voltage_correction_factor })
 
 documentation: 'neumann
 

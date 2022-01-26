@@ -23,6 +23,7 @@ options:
     sizing_mode: fixed
     thread_safe_setters: ''
     title: power_calc_prepper_ff
+    window_size: (1000,1000)
   states:
     bus_sink: false
     bus_source: false
@@ -84,7 +85,7 @@ blocks:
     beta: '6.76'
     comment: ''
     decim: bp_decimantion
-    gain: bp_gain
+    gain: '1'
     high_cutoff_freq: bp_high_cut
     interp: '1'
     low_cutoff_freq: bp_low_cut
@@ -109,7 +110,7 @@ blocks:
     beta: '6.76'
     comment: ''
     decim: bp_decimantion
-    gain: bp_gain
+    gain: '1'
     high_cutoff_freq: bp_high_cut
     interp: '1'
     low_cutoff_freq: bp_low_cut
@@ -168,7 +169,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    const: '100'
+    const: voltage_correction_factor
     maxoutbuf: '0'
     minoutbuf: '0'
     type: float
@@ -186,7 +187,7 @@ blocks:
     affinity: ''
     alias: ''
     comment: ''
-    const: '2.5'
+    const: current_correction_factor
     maxoutbuf: '0'
     minoutbuf: '0'
     type: float
@@ -339,23 +340,6 @@ blocks:
     coordinate: [8, 228.0]
     rotation: 0
     state: true
-- name: bp_gain
-  id: parameter
-  parameters:
-    alias: ''
-    comment: ''
-    hide: none
-    label: band pass gain
-    short_id: ''
-    type: eng_float
-    value: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [176, 228.0]
-    rotation: 0
-    state: true
 - name: bp_high_cut
   id: parameter
   parameters:
@@ -407,6 +391,23 @@ blocks:
     coordinate: [320, 420.0]
     rotation: 0
     state: true
+- name: current_correction_factor
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: Current Correction Factor
+    short_id: ''
+    type: eng_float
+    value: '2.5'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 420.0]
+    rotation: 0
+    state: true
 - name: in_samp_rate
   id: parameter
   parameters:
@@ -431,15 +432,15 @@ blocks:
     alias: ''
     beta: '6.76'
     comment: ''
-    cutoff_freq: lp_cut
+    cutoff_freq: '60'
     decim: lp_decimantion
-    gain: lp_gain
+    gain: '1'
     interp: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: out_samp_rate
     type: fir_filter_fff
-    width: lp_trans
+    width: '10'
     win: window.WIN_HAMMING
   states:
     bus_sink: false
@@ -455,15 +456,15 @@ blocks:
     alias: ''
     beta: '6.76'
     comment: ''
-    cutoff_freq: lp_cut
+    cutoff_freq: '60'
     decim: lp_decimantion
-    gain: lp_gain
+    gain: '1'
     interp: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: out_samp_rate
     type: fir_filter_fff
-    width: lp_trans
+    width: '10'
     win: window.WIN_HAMMING
   states:
     bus_sink: false
@@ -479,15 +480,15 @@ blocks:
     alias: ''
     beta: '6.76'
     comment: ''
-    cutoff_freq: lp_cut
+    cutoff_freq: '60'
     decim: lp_decimantion
-    gain: lp_gain
+    gain: '1'
     interp: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: out_samp_rate
     type: fir_filter_fff
-    width: lp_trans
+    width: '10'
     win: window.WIN_HAMMING
   states:
     bus_sink: false
@@ -503,38 +504,21 @@ blocks:
     alias: ''
     beta: '6.76'
     comment: ''
-    cutoff_freq: lp_cut
+    cutoff_freq: '60'
     decim: lp_decimantion
-    gain: lp_gain
+    gain: '1'
     interp: '1'
     maxoutbuf: '0'
     minoutbuf: '0'
     samp_rate: out_samp_rate
     type: fir_filter_fff
-    width: lp_trans
+    width: '10'
     win: window.WIN_HAMMING
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
     coordinate: [1616, 472.0]
-    rotation: 0
-    state: true
-- name: lp_cut
-  id: parameter
-  parameters:
-    alias: ''
-    comment: ''
-    hide: none
-    label: low pass cutoff frequency
-    short_id: ''
-    type: eng_float
-    value: '60'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [320, 532.0]
     rotation: 0
     state: true
 - name: lp_decimantion
@@ -552,40 +536,6 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [8, 532.0]
-    rotation: 0
-    state: true
-- name: lp_gain
-  id: parameter
-  parameters:
-    alias: ''
-    comment: ''
-    hide: none
-    label: low pass gain
-    short_id: ''
-    type: eng_float
-    value: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [176, 532.0]
-    rotation: 0
-    state: true
-- name: lp_trans
-  id: parameter
-  parameters:
-    alias: ''
-    comment: ''
-    hide: none
-    label: low pass transition width
-    short_id: ''
-    type: eng_float
-    value: '10'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [320, 628.0]
     rotation: 0
     state: true
 - name: out_samp_rate
@@ -733,6 +683,23 @@ blocks:
     bus_source: false
     bus_structure: null
     coordinate: [536, 300.0]
+    rotation: 0
+    state: true
+- name: voltage_correction_factor
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: Voltage Correction Factor
+    short_id: ''
+    type: eng_float
+    value: '100'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 324.0]
     rotation: 0
     state: true
 

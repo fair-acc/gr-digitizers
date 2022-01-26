@@ -19,7 +19,7 @@ namespace gr {
     class power_calc_ff_impl : public power_calc_ff
     {
       private:
-        double d_alpha, d_beta, d_avg_u, d_avg_i, d_avg_phi;
+        double d_alpha, d_beta, d_avg_u, d_avg_i, d_avg_phi, d_last_valid_phi;
 
       public:
         power_calc_ff_impl(double alpha = 0.0000001); // 100n

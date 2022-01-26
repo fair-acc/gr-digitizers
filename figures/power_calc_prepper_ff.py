@@ -24,7 +24,7 @@ import signal
 
 
 class power_calc_prepper_ff(gr.hier_block2):
-    def __init__(self, bp_decimantion=20, bp_gain=1, bp_high_cut=80, bp_low_cut=20, bp_trans=10, in_samp_rate=200000, lp_cut=60, lp_decimantion=1, lp_gain=1, lp_trans=10, out_samp_rate=10000):
+    def __init__(self, bp_decimantion=20, bp_high_cut=80, bp_low_cut=20, bp_trans=10, current_correction_factor=2.5, in_samp_rate=200000, lp_decimantion=1, out_samp_rate=10000, voltage_correction_factor=100):
         gr.hier_block2.__init__(
             self, "power_calc_prepper_ff",
                 gr.io_signature.makev(2, 2, [gr.sizeof_float*1, gr.sizeof_float*1]),
@@ -35,16 +35,14 @@ class power_calc_prepper_ff(gr.hier_block2):
         # Parameters
         ##################################################
         self.bp_decimantion = bp_decimantion
-        self.bp_gain = bp_gain
         self.bp_high_cut = bp_high_cut
         self.bp_low_cut = bp_low_cut
         self.bp_trans = bp_trans
+        self.current_correction_factor = current_correction_factor
         self.in_samp_rate = in_samp_rate
-        self.lp_cut = lp_cut
         self.lp_decimantion = lp_decimantion
-        self.lp_gain = lp_gain
-        self.lp_trans = lp_trans
         self.out_samp_rate = out_samp_rate
+        self.voltage_correction_factor = voltage_correction_factor
 
         ##################################################
         # Blocks
@@ -52,37 +50,37 @@ class power_calc_prepper_ff(gr.hier_block2):
         self.low_pass_filter_0_1_2 = filter.fir_filter_fff(
             lp_decimantion,
             firdes.low_pass(
-                lp_gain,
+                1,
                 out_samp_rate,
-                lp_cut,
-                lp_trans,
+                60,
+                10,
                 window.WIN_HAMMING,
                 6.76))
         self.low_pass_filter_0_1_1 = filter.fir_filter_fff(
             lp_decimantion,
             firdes.low_pass(
-                lp_gain,
+                1,
                 out_samp_rate,
-                lp_cut,
-                lp_trans,
+                60,
+                10,
                 window.WIN_HAMMING,
                 6.76))
         self.low_pass_filter_0_1_0 = filter.fir_filter_fff(
             lp_decimantion,
             firdes.low_pass(
-                lp_gain,
+                1,
                 out_samp_rate,
-                lp_cut,
-                lp_trans,
+                60,
+                10,
                 window.WIN_HAMMING,
                 6.76))
         self.low_pass_filter_0_1 = filter.fir_filter_fff(
             lp_decimantion,
             firdes.low_pass(
-                lp_gain,
+                1,
                 out_samp_rate,
-                lp_cut,
-                lp_trans,
+                60,
+                10,
                 window.WIN_HAMMING,
                 6.76))
         self.blocks_transcendental_0_0 = blocks.transcendental('atan', "float")
@@ -92,14 +90,14 @@ class power_calc_prepper_ff(gr.hier_block2):
         self.blocks_multiply_xx_0_1 = blocks.multiply_vff(1)
         self.blocks_multiply_xx_0_0 = blocks.multiply_vff(1)
         self.blocks_multiply_xx_0 = blocks.multiply_vff(1)
-        self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_ff(2.5)
-        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_ff(100)
+        self.blocks_multiply_const_vxx_0_0 = blocks.multiply_const_ff(current_correction_factor)
+        self.blocks_multiply_const_vxx_0 = blocks.multiply_const_ff(voltage_correction_factor)
         self.blocks_divide_xx_0_0 = blocks.divide_ff(1)
         self.blocks_divide_xx_0 = blocks.divide_ff(1)
         self.band_pass_filter_0_0 = filter.fir_filter_fff(
             bp_decimantion,
             firdes.band_pass(
-                bp_gain,
+                1,
                 in_samp_rate,
                 bp_low_cut,
                 bp_high_cut,
@@ -109,7 +107,7 @@ class power_calc_prepper_ff(gr.hier_block2):
         self.band_pass_filter_0 = filter.fir_filter_fff(
             bp_decimantion,
             firdes.band_pass(
-                bp_gain,
+                1,
                 in_samp_rate,
                 bp_low_cut,
                 bp_high_cut,
@@ -160,81 +158,50 @@ class power_calc_prepper_ff(gr.hier_block2):
     def set_bp_decimantion(self, bp_decimantion):
         self.bp_decimantion = bp_decimantion
 
-    def get_bp_gain(self):
-        return self.bp_gain
-
-    def set_bp_gain(self, bp_gain):
-        self.bp_gain = bp_gain
-        self.band_pass_filter_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
-        self.band_pass_filter_0_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
-
     def get_bp_high_cut(self):
         return self.bp_high_cut
 
     def set_bp_high_cut(self, bp_high_cut):
         self.bp_high_cut = bp_high_cut
-        self.band_pass_filter_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
-        self.band_pass_filter_0_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+        self.band_pass_filter_0_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
 
     def get_bp_low_cut(self):
         return self.bp_low_cut
 
     def set_bp_low_cut(self, bp_low_cut):
         self.bp_low_cut = bp_low_cut
-        self.band_pass_filter_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
-        self.band_pass_filter_0_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+        self.band_pass_filter_0_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
 
     def get_bp_trans(self):
         return self.bp_trans
 
     def set_bp_trans(self, bp_trans):
         self.bp_trans = bp_trans
-        self.band_pass_filter_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
-        self.band_pass_filter_0_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+        self.band_pass_filter_0_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+
+    def get_current_correction_factor(self):
+        return self.current_correction_factor
+
+    def set_current_correction_factor(self, current_correction_factor):
+        self.current_correction_factor = current_correction_factor
+        self.blocks_multiply_const_vxx_0_0.set_k(self.current_correction_factor)
 
     def get_in_samp_rate(self):
         return self.in_samp_rate
 
     def set_in_samp_rate(self, in_samp_rate):
         self.in_samp_rate = in_samp_rate
-        self.band_pass_filter_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
-        self.band_pass_filter_0_0.set_taps(firdes.band_pass(self.bp_gain, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
-
-    def get_lp_cut(self):
-        return self.lp_cut
-
-    def set_lp_cut(self, lp_cut):
-        self.lp_cut = lp_cut
-        self.low_pass_filter_0_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_0.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_2.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
+        self.band_pass_filter_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
+        self.band_pass_filter_0_0.set_taps(firdes.band_pass(1, self.in_samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
 
     def get_lp_decimantion(self):
         return self.lp_decimantion
 
     def set_lp_decimantion(self, lp_decimantion):
         self.lp_decimantion = lp_decimantion
-
-    def get_lp_gain(self):
-        return self.lp_gain
-
-    def set_lp_gain(self, lp_gain):
-        self.lp_gain = lp_gain
-        self.low_pass_filter_0_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_0.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_2.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-
-    def get_lp_trans(self):
-        return self.lp_trans
-
-    def set_lp_trans(self, lp_trans):
-        self.lp_trans = lp_trans
-        self.low_pass_filter_0_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_0.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_2.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
 
     def get_out_samp_rate(self):
         return self.out_samp_rate
@@ -243,8 +210,15 @@ class power_calc_prepper_ff(gr.hier_block2):
         self.out_samp_rate = out_samp_rate
         self.analog_sig_source_x_0_0_0.set_sampling_freq(self.out_samp_rate)
         self.analog_sig_source_x_0_1.set_sampling_freq(self.out_samp_rate)
-        self.low_pass_filter_0_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_0.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_1.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
-        self.low_pass_filter_0_1_2.set_taps(firdes.low_pass(self.lp_gain, self.out_samp_rate, self.lp_cut, self.lp_trans, window.WIN_HAMMING, 6.76))
+        self.low_pass_filter_0_1.set_taps(firdes.low_pass(1, self.out_samp_rate, 60, 10, window.WIN_HAMMING, 6.76))
+        self.low_pass_filter_0_1_0.set_taps(firdes.low_pass(1, self.out_samp_rate, 60, 10, window.WIN_HAMMING, 6.76))
+        self.low_pass_filter_0_1_1.set_taps(firdes.low_pass(1, self.out_samp_rate, 60, 10, window.WIN_HAMMING, 6.76))
+        self.low_pass_filter_0_1_2.set_taps(firdes.low_pass(1, self.out_samp_rate, 60, 10, window.WIN_HAMMING, 6.76))
+
+    def get_voltage_correction_factor(self):
+        return self.voltage_correction_factor
+
+    def set_voltage_correction_factor(self, voltage_correction_factor):
+        self.voltage_correction_factor = voltage_correction_factor
+        self.blocks_multiply_const_vxx_0.set_k(self.voltage_correction_factor)
 

@@ -103,17 +103,23 @@ namespace gr {
         for (int i = 0; i < noutput_items; i++)
         { 
           float temp = 0;
-          if(!isnan(delta_phi[i])){
-              temp = delta_phi[i];
+          if (!isnan(delta_phi[i]))
+          {
+            temp = delta_phi[i];
+            d_last_valid_phi = temp;
+          } 
+          else 
+          {
+            temp = d_last_valid_phi;
           }
           // Phase correction
           if (temp <= (M_PI_2 * -1))
           {
-            phi_out[i] = temp + (M_PI * 2);
+            phi_out[i] = temp + M_PI;
           }
           else if (temp >= M_PI_2)
           {
-            phi_out[i] = temp - (M_PI * 2);
+            phi_out[i] = temp - M_PI;
           } 
           else
           {
@@ -188,6 +194,7 @@ namespace gr {
         d_avg_u = 0; ///< RMS average for voltage
         d_avg_i = 0; ///< RMS average for current
         d_avg_phi = 0; ///< RMS | single point iir filter average
+        d_last_valid_phi = 0;
     }
 
     /**
