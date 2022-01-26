@@ -19,7 +19,7 @@
 // boost
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
-#include <boost/chrono.hpp>
+//#include <boost/chrono.hpp>
 #include <boost/lexical_cast.hpp>
 
 // Build-in

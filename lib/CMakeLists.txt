@@ -15,10 +15,10 @@ list(APPEND pulsed_power_daq_sources
     # picoscope_4000a_source_help_impl.cc
     picoscope_4000a_source_impl.cc
     picoscope_base.cc
-    power_calc_cc_impl.cc
     power_calc_ff_impl.cc
     mains_frequency_calc_impl.cc
-    )
+    qa_power_calc_cc.cc
+    power_calc_cc_impl.cc )
 
 
 set(pulsed_power_daq_sources "${pulsed_power_daq_sources}" PARENT_SCOPE)
@@ -106,6 +106,7 @@ include(GrTest)
 #include_directories()
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_pulsed_power_daq_sources
+qa_power_calc_cc.cc
 )
 # Anything we need to link to for the unit tests go here
 list(APPEND GR_TEST_TARGET_DEPS gnuradio-pulsed_power_daq)

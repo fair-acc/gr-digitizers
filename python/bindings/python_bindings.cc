@@ -22,9 +22,9 @@ namespace py = pybind11;
 /**************************************/
 // BINDING_FUNCTION_PROTOTYPES(
     void bind_picoscope_4000a_source(py::module& m);
-    void bind_power_calc_cc(py::module& m);
     void bind_power_calc_ff(py::module& m);
     void bind_mains_frequency_calc(py::module& m);
+    void bind_power_calc_cc(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -54,8 +54,8 @@ PYBIND11_MODULE(pulsed_power_daq_python, m)
     /**************************************/
     // BINDING_FUNCTION_CALLS(
     bind_picoscope_4000a_source(m);
-    bind_power_calc_cc(m);
     bind_power_calc_ff(m);
     bind_mains_frequency_calc(m);
+    bind_power_calc_cc(m);
     // ) END BINDING_FUNCTION_CALLS
 }

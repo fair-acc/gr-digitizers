@@ -31,4 +31,3 @@ GR_PYTHON_INSTALL(
 include(GrTest)
 
 set(GR_TEST_TARGET_DEPS gnuradio-pulsed_power_daq)
-GR_ADD_TEST(qa_picoscope_4000a_source ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_picoscope_4000a_source.py)
