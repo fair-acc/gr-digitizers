@@ -35,6 +35,9 @@ inputs:
 - label: Current
   dtype: float
 
+- label: DeltaPHI
+  dtype: float
+
 outputs:
 - label: P
   dtype: float
