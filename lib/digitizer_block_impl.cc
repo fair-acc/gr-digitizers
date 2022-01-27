@@ -1165,7 +1165,7 @@ namespace gr {
 
        // TODO: improve, check selected trigger on arm
        const auto aichan = convert_to_aichan_idx(d_trigger_settings.source);
-       auto output_idx = aichan * 2 - 1; // ignore error outputs
+       auto output_idx = aichan * 2; // ignore error outputs
 
        auto buffer = static_cast<float const * const>(output_items[output_idx]);
        trigger_offsets = find_analog_triggers(buffer, d_buffer_size);
