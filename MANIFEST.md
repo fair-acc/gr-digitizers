@@ -21,6 +21,13 @@ ALT:
 
 Setup
 ========
+
+Note: This setup is only tested and working on the following OS:
+
+    Ubuntu 20.04.3 LTS
+    Codename "focal"
+
+
 Run setup.sh as root to install required dependencies.
 It adds a symlink for picoscope lib and installs Visual Studio Code for development, if desired.
 
