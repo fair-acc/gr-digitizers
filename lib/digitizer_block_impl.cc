@@ -983,8 +983,6 @@ namespace gr {
          std::chrono::duration<float> remaining_poll_duration = std::chrono::high_resolution_clock::now() - poll_start;
          if(remaining_poll_duration > poll_duration) {
            sleep_time = std::chrono::duration<float>::zero();
-           GR_LOG_WARN(d_logger, "Watchdog: Poll rate is set too low (" + std::to_string(d_poll_rate) + "s) "
-                                   "Cannot ensure that the Digitizer block work method will be called within that rate.");
          }
          else {
            sleep_time = poll_duration - remaining_poll_duration;
