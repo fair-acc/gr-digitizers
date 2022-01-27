@@ -1133,31 +1133,29 @@ namespace gr {
      tag_info.actual_delay = 0.0;
 
      // Attach tags to the channel values...
+
      int output_idx = 0;
 
-     for (auto i = 0; i < d_ai_channels; i++)
-     {
+     for (auto i = 0; i < d_ai_channels; i++) {
        if (d_channel_settings[i].enabled) {
          // add channel specific status
          tag_info.status = channel_status.at(i);
 
          auto tag = make_acq_info_tag(tag_info, nitems_written(0));
          add_item_tag(output_idx, tag);
-
-         output_idx += 2;
        }
+       output_idx += 2;
      }
 
      // ...and to all digital ports
      tag_info.status = 0;
      auto tag = make_acq_info_tag(tag_info, nitems_written(0));
 
-     for (auto i = 0; i < d_ports; i++)
-     {
+     for (auto i = 0; i < d_ports; i++) {
        if (d_port_settings[i].enabled) {
            add_item_tag(output_idx, tag);
-           output_idx ++;
        }
+       output_idx ++;
      }
 
      // Software-based trigger detection
@@ -1167,13 +1165,7 @@ namespace gr {
 
        // TODO: improve, check selected trigger on arm
        const auto aichan = convert_to_aichan_idx(d_trigger_settings.source);
-       auto output_idx = 0;
-
-       for (int i = 0; i < aichan; i++) {
-         if (d_channel_settings[i].enabled) {
-           output_idx += 2;
-         }
-       }
+       auto output_idx = aichan * 2 - 1; // ignore error outputs
 
        auto buffer = static_cast<float const * const>(output_items[output_idx]);
        trigger_offsets = find_analog_triggers(buffer, d_buffer_size);
@@ -1212,15 +1204,15 @@ namespace gr {
        for (auto i = 0; i < d_ai_channels; i++) {
          if (d_channel_settings[i].enabled) {
            add_item_tag(output_idx, trigger_tag);
-           output_idx += 2;
          }
+         output_idx += 2;
        }
 
        for (auto i = 0; i < d_ports; i++) {
          if (d_port_settings[i].enabled) {
            add_item_tag(output_idx, trigger_tag);
-           output_idx++;
          }
+         output_idx++;
        }
      }
 
