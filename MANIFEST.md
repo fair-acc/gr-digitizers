@@ -32,16 +32,19 @@ optionally use
     sudo make install -j4 
 or higher numbers to compile with multiple cores.
 
+    sudo ldconfig
+
 Process after adding or heavily modifying files
 ============
+
+Cmake runs binding functions, which sometimes requires a "clean" slate.  
 
     gr_modtool bind \<BLOCKNAME\>
     cd build
     make clean
     cmake ..
     sudo make install
-
-Cmake runs binding functions, which sometimes requires a "clean" slate.  
+    sudo ldconfig
 
 
 
