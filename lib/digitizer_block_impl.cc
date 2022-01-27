@@ -1133,10 +1133,10 @@ namespace gr {
      tag_info.actual_delay = 0.0;
 
      // Attach tags to the channel values...
+
      int output_idx = 0;
 
-     for (auto i = 0; i < d_ai_channels; i++)
-     {
+     for (auto i = 0; i < d_ai_channels; i++) {
        if (d_channel_settings[i].enabled) {
          // add channel specific status
          tag_info.status = channel_status.at(i);
@@ -1151,8 +1151,7 @@ namespace gr {
      tag_info.status = 0;
      auto tag = make_acq_info_tag(tag_info, nitems_written(0));
 
-     for (auto i = 0; i < d_ports; i++)
-     {
+     for (auto i = 0; i < d_ports; i++) {
        if (d_port_settings[i].enabled) {
            add_item_tag(output_idx, tag);
        }
