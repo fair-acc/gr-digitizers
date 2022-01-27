@@ -91,7 +91,7 @@ wget -O - https://labs.picotech.com/debian/dists/picoscope/Release.gpg.key |  ap
  apt install picoscope -y
  apt install cmake -y
  apt install xterm -y
-
+ apt install libspdlog-dev
 
 #create symlink from 
 cd /usr/lib

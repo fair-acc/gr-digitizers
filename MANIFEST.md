@@ -12,9 +12,6 @@ gr_supported_version: # Put a comma separated list of supported GR versions here
 #website: <module_website> # If you have a separate project website, put it here
 #icon: <icon_url> # Put a URL to a square image here that will be used as an icon on CGRAN
 ---
-A longer, multi-line description of gr-digitizers_39.
-You may use some *basic* Markdown here.
-If left empty, it will try to find a README file instead.
 
 TODO:
 move digitizer_39:
@@ -22,34 +19,51 @@ sudo cp -r /usr/local/lib/python3/dist-packages/digitizers_39/ /usr/lib/python3/
 ALT:
 -DCMAKE_INSTALL_PREFIX="/usr/"
 
-TODO:
-find alt for ps4000a (NO symlink)
+Setup
+========
+Run setup.sh as root to install required dependencies.
+It adds a symlink for picoscope lib and installs Visual Studio Code for development, if desired.
 
-TDOD:
-FIX BOOST !!!
+    cd build
+    cmake ..
+    sudo make install
+optionally use 
 
-https://github.com/fair-acc/gr-digitizers/issues/47
+    sudo make install -j4 
+or higher numbers to compile with multiple cores.
 
-Generating: '/home/neumann/boiler_plate.py'
+Process after adding or heavily modifying files
+============
 
-Executing: /usr/bin/python3 -u /home/neumann/boiler_plate.py
+    gr_modtool bind \<BLOCKNAME\>
+    cd build
+    make clean
+    cmake ..
+    sudo make install
 
-Traceback (most recent call last):
-  File "/home/neumann/boiler_plate.py", line 35, in <module>
-    import digitizers_39
-  File "/usr/lib/python3/dist-packages/digitizers_39/__init__.py", line 18, in <module>
-    from .digitizers_39_python import *
-ImportError: /usr/local/lib/x86_64-linux-gnu/libgnuradio-digitizers_39.so.1.0.0: undefined symbol: _ZN5boost6chrono12steady_clock3nowEv
+Cmake runs binding functions, which sometimes requires a "clean" slate.  
 
 
 
 How to manually bind your C++ Code to python/gnuradio
 =====================================================
 
-create a new module and block using gr_modtool.
-Inthe following \<BLOCKNAME\> refers to the name of the block you are adding. 
+In simple cases 
 
-The following files need to be edited/added:
+    gr_modtool bind <BLOCKNAME>
+should do all the work for you. But in some cases (probably relating to a few std-lib expressions) the underlying pybind11 lib throws errors and doesn't properly bind. This section explains, what you need to do in this case.
+
+In the following \<BLOCKNAME\> refers to the name of the block you are adding, \<MODULENAME\> is the module which contains the block. 
+
+Create a new module and block using gr_modtool.
+
+    gr_modtool newmod <MODULENAME>
+    cd <MODULENAME>
+    gr_modtool add <BLOCKNAME>
+See https://wiki.gnuradio.org/index.php/OutOfTreeModules for further information.
+
+
+For manual binding these following files need to be edited/added:
 
 * _python/bindings/\<BLOCKNAME\>\_python.cc_
 
@@ -60,6 +74,44 @@ The following files need to be edited/added:
 * _include/\<BLOCKNAME\>\_source.h_
 
 
+
+In _grc/\<MODULENAME\>\_\<BLOCKNAME\>.block.yml:_
+---------------  
+
+Add required functions as "callbacks". These usually are setter functions for parameters.
+
+    templates:
+        imports: import pulsed_power_daq
+        make: "<MODULENAME>.<BLOCKNAME>(${paramter_1}, True)"
+        callbacks:
+        - FUNCTION_NAME(${parameter_1}, ${parameter_2})
+
+
+In _lib/\<BLOCKNAME\>\_impl.h and *.cc:_
+---------------  
+  
+If you work with callback functions, you need to explicitly add inherited functions to your header file.
+For Example if your \<BLOCKNAME\>.h inherits from \<PARENTBLOCK\>, which then defines 
+
+    virtual void foo() = 0;
+
+and declares *foo()* in it's .cc file. 
+Gnuradio does not seem to find those functions, if you don't explicitly call those parent functions within the inherited block.
+In this example:
+
+    void <BLOCKNAME>::foo(){
+      <PARENTBLOCK>::foo();
+    }
+
+
+
+In _include/\<BLOCKNAME\>.h:_
+---------------  
+
+Explicitly add inhereted virtual functions. 
+In above case, simply defining *foo()*  in your \<BLOCKNAME\>_impl.h and *.cc does not suffice. You need to add *foo() * to \<BLOCKNAME\>.h as well for gnuradio to find it.
+
+    virtual void foo() = 0;
 
 In _python/bindings/\<BLOCKNAME\>\_python.cc:_
 ----------------------------------------
@@ -84,30 +136,6 @@ Add your functions similar to make as:
 
     .def("FUNCTION_NAME", &<BLOCKNAME>::FUNCTION_NAME, py::arg("parameter_1"), py::arg("parameter_2"))
 
-for further information further:
+for further information:
 https://wiki.gnuradio.org/index.php/GNU_Radio_3.9_OOT_Module_Porting_Guide#CMakeLists.txt_changes_to_fix_OOT_module_testing
 
-
-In _lib/\<BLOCKNAME\>\_impl.h and *.cc:_
----------------  
-  
-Explicitly implement inhereted functions required. Call parents' equivalents within.
-**TODO:** how to better describe this
-
-In _grc/\<MODULENAME\>\_\<BLOCKNAME\>.block.yml:_
----------------  
-
-Add required functions as "callbacks":
-
-    templates:
-        imports: import pulsed_power_daq
-        make: "<MODULENAME>.<BLOCKNAME>(${paramter_1}, True)"
-        callbacks:
-        - FUNCTION_NAME(${parameter_1}, ${parameter_2})
-
-
-In _include/\<BLOCKNAME\>\_source.h:_
----------------  
-
-Explicitly add inhereted virtual functions.  
-**TODO:** how to better describe this
