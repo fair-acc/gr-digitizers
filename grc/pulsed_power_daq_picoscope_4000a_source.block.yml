@@ -11,15 +11,18 @@ parameters:
     label: Serial Number
     dtype: string
     default: EW413/152
+
 -   id: samp_rate
     label: Sample Rate (Hz)
     dtype: float
     default: samp_rate
+
 -   id: acquisition_mode
     label: Acquisition Mode
     dtype: string
-    default: Rapid Block
+    default: Streaming
     options: [Rapid Block, Streaming]
+
 -   id: trigger_once
     label: Trigger Once
     dtype: bool
@@ -35,17 +38,17 @@ parameters:
 -   id: buff_size
     label: Buffer Size
     dtype: int
-    default: '8192'
+    default: '204800'
     
 -   id: nr_buffers
     label: Nr. Buffers
     dtype: int
-    default: '100'
+    default: '64'
     
 -   id: driver_buff_size
     label: Overview Buffer Size
     dtype: int
-    default: '100000'
+    default: '102400'
     
 -   id: poll_rate
     label: Poll Rate (s)
@@ -55,12 +58,12 @@ parameters:
 -   id: pre_samples
     label: Pre-trigger Samples
     dtype: int
-    default: '1000'
+    default: '500000'
     
 -   id: post_samples
     label: Post-trigger Samples
     dtype: int
-    default: '9000'
+    default: '10000'
     
 -   id: downsampling_mode
     label: Downsampling Mode
@@ -71,8 +74,9 @@ parameters:
 -   id: downsampling_factor
     label: Downsampling Factor
     dtype: int
-    default: '16'
-    
+    default: '1'
+
+# Channel A
 -   id: enable_ai_a
     label: Channel A
     category: Analog Config
@@ -81,6 +85,7 @@ parameters:
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
+
 -   id: range_ai_a
     label: Range A
     category: Analog Config
@@ -91,12 +96,14 @@ parameters:
     option_labels: [10 mV, 20 mV, 50 mV, 100 mV, 200 mV, 500 mV, 1 V, 2 V, 5 V, 10
             V, 20 V, 50 V, 100 V, 200 V]
     hide: ${ ('part' if enable_ai_a else 'all') }
+
 -   id: offset_ai_a
     label: Range Offset A (V)
     category: Analog Config
     dtype: float
     default: '0.0'
     hide: ${ ('part' if enable_ai_a else 'all') }
+
 -   id: coupling_ai_a
     label: Coupling A
     category: Analog Config
@@ -105,6 +112,9 @@ parameters:
     options: ['0', '1']
     option_labels: [DC_1M, AC_1M]
     hide: ${ ('part' if enable_ai_a else 'all') }
+
+
+# Channel B
 -   id: enable_ai_b
     label: Channel B
     category: Analog Config
@@ -113,6 +123,7 @@ parameters:
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
+
 -   id: range_ai_b
     label: Range B
     category: Analog Config
@@ -123,12 +134,14 @@ parameters:
     option_labels: [10 mV, 20 mV, 50 mV, 100 mV, 200 mV, 500 mV, 1 V, 2 V, 5 V, 10
             V, 20 V, 50 V, 100 V, 200 V]
     hide: ${ ('part' if enable_ai_b else 'all') }
+
 -   id: offset_ai_b
     label: Range Offset B (V)
     category: Analog Config
     dtype: float
     default: '0.0'
     hide: ${ ('part' if enable_ai_b else 'all') }
+
 -   id: coupling_ai_b
     label: Coupling B
     category: Analog Config
@@ -137,14 +150,17 @@ parameters:
     options: ['0', '1']
     option_labels: [DC_1M, AC_1M]
     hide: ${ ('part' if enable_ai_b else 'all') }
+
+# Channel OTHER
 -   id: enable_ai_c
     label: Channel C
     category: Analog Config
     dtype: bool
-    default: 'True'
+    default: 'False'
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
+
 -   id: range_ai_c
     label: Range C
     category: Analog Config
@@ -155,12 +171,14 @@ parameters:
     option_labels: [10 mV, 20 mV, 50 mV, 100 mV, 200 mV, 500 mV, 1 V, 2 V, 5 V, 10
             V, 20 V, 50 V, 100 V, 200 V]
     hide: ${ ('part' if enable_ai_c else 'all') }
+
 -   id: offset_ai_c
     label: Range Offset C (V)
     category: Analog Config
     dtype: float
     default: '5.0'
     hide: ${ ('part' if enable_ai_c else 'all') }
+
 -   id: coupling_ai_c
     label: Coupling C
     category: Analog Config
@@ -169,14 +187,17 @@ parameters:
     options: ['0', '1']
     option_labels: [DC_1M, AC_1M]
     hide: ${ ('part' if enable_ai_c else 'all') }
+
+#  
 -   id: enable_ai_d
     label: Channel D
     category: Analog Config
     dtype: bool
-    default: 'True'
+    default: 'False'
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
+
 -   id: range_ai_d
     label: Range D
     category: Analog Config
@@ -205,7 +226,7 @@ parameters:
     label: Channel E
     category: Analog Config
     dtype: bool
-    default: 'True'
+    default: 'False'
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
@@ -237,7 +258,7 @@ parameters:
     label: Channel F
     category: Analog Config
     dtype: bool
-    default: 'True'
+    default: 'False'
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
@@ -269,7 +290,7 @@ parameters:
     label: Channel G
     category: Analog Config
     dtype: bool
-    default: 'True'
+    default: 'False'
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
@@ -301,7 +322,7 @@ parameters:
     label: Channel H
     category: Analog Config
     dtype: bool
-    default: 'True'
+    default: 'False'
     options: ['True', 'False']
     option_labels: [Enable, Disable]
     hide: part
@@ -436,32 +457,33 @@ outputs:
 templates:
     imports: import pulsed_power_daq
     make: "pulsed_power_daq.picoscope_4000a_source(${serial_number}, True)"
-    #\n\
-#        \nif ${acquisition_mode} == 'Streaming':\n    self.${id}.set_buffer_size(${buff_size})\n\
-#        \    self.${id}.set_nr_buffers(${nr_buffers})\n    self.${id}.set_driver_buffer_size(${driver_buff_size})\n\
-#        \    self.${id}.set_streaming(${poll_rate})\nelse:\n    self.${id}.set_samples(${pre_samples},\
-#        \ ${post_samples})    "
-#self.${id}.set_rapid_block(${nr_waveforms})\n    "
     callbacks:
-    - set_trigger_once(${trigger_once})
-    - set_samp_rate(${samp_rate})
-    - set_downsampling(${downsampling_mode}, ${downsampling_factor})
-    - set_aichan_trigger(${trigger_source}, ${trigger_direction}, ${trigger_threshold})
-    - set_aichan_a(${enable_ai_a}, ${range_ai_a}, ${coupling_ai_a}, ${offset_ai_a})
-    - set_aichan_b(${enable_ai_b}, ${range_ai_b}, ${coupling_ai_b}, ${offset_ai_b})
-    - set_aichan_c(${enable_ai_c}, ${range_ai_c}, ${coupling_ai_c}, ${offset_ai_c})
-    - set_aichan_d(${enable_ai_d}, ${range_ai_d}, ${coupling_ai_d}, ${offset_ai_d})
-    - set_aichan_e(${enable_ai_e}, ${range_ai_e}, ${coupling_ai_e}, ${offset_ai_e})
-    - set_aichan_f(${enable_ai_f}, ${range_ai_f}, ${coupling_ai_f}, ${offset_ai_f})
-    - set_aichan_g(${enable_ai_g}, ${range_ai_g}, ${coupling_ai_g}, ${offset_ai_g})
-    - set_aichan_h(${enable_ai_h}, ${range_ai_h}, ${coupling_ai_h}, ${offset_ai_h})
-    - set_rapid_block(${nr_waveforms})
-    - set_nr_buffers(${nr_buffers})
-    - set_samples(${pre_samples}, ${post_samples})
-    - set_streaming(${poll_rate})
-    - set_driver_buffer_size(${driver_buff_size})
 
-#cpp_templates:
-#    includes: ['#include <pulsed_power_daq/picoscope_4000a_source.h>']
+    - set_aichan_a("A", true, 5.0, 1)
+    - set_aichan_b("B", true, 1.0, 1)
+   
+    - set_samp_rate(${samp_rate})
+    - set_samples(${pre_samples}, ${post_samples})
+    
+    - set_nr_buffers(${nr_buffers})
+    - set_driver_buffer_size(${driver_buff_size})
+    - set_streaming(${poll_rate})
+
+    # - set_trigger_once(${trigger_once})
+    # - set_downsampling(${downsampling_mode}, ${downsampling_factor})
+    # - set_aichan_trigger(${trigger_source}, ${trigger_direction}, ${trigger_threshold})
+    # - set_aichan_a(${enable_ai_a}, ${range_ai_a}, ${coupling_ai_a}, ${offset_ai_a})
+    # - set_aichan_b(${enable_ai_b}, ${range_ai_b}, ${coupling_ai_b}, ${offset_ai_b})
+    # - set_aichan_c(${enable_ai_c}, ${range_ai_c}, ${coupling_ai_c}, ${offset_ai_c})
+    # - set_aichan_d(${enable_ai_d}, ${range_ai_d}, ${coupling_ai_d}, ${offset_ai_d})
+    # - set_aichan_e(${enable_ai_e}, ${range_ai_e}, ${coupling_ai_e}, ${offset_ai_e})
+    # - set_aichan_f(${enable_ai_f}, ${range_ai_f}, ${coupling_ai_f}, ${offset_ai_f})
+    # - set_aichan_g(${enable_ai_g}, ${range_ai_g}, ${coupling_ai_g}, ${offset_ai_g})
+    # - set_aichan_h(${enable_ai_h}, ${range_ai_h}, ${coupling_ai_h}, ${offset_ai_h})
+    # - set_rapid_block(${nr_waveforms})
+    # - set_nr_buffers(${nr_buffers})
+
+    # - set_streaming(${poll_rate})
+    # - set_driver_buffer_size(${driver_buff_size})
 
 file_format: 1

@@ -42,10 +42,10 @@ void bind_power_calc_ff(py::module& m)
         )
     
 
-        .def("set_alpha",&power_calc_ff::set_alpha,       
-            py::arg("alpha"),
-            D(power_calc_cc,set_alpha)
-        )
+        // .def("set_alpha",&power_calc_ff::set_alpha,       
+        //     py::arg("alpha"),
+        //     D(power_calc_cc,set_alpha)
+        // )
 
         ;
 

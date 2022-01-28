@@ -33,6 +33,12 @@ void bind_picoscope_4000a_source(py::module& m)
 {
 
     using picoscope_4000a_source    = gr::pulsed_power_daq::picoscope_4000a_source;
+    // TODO: https://stackoverflow.com/questions/47893832/pybind11-global-level-enum
+    py::enum_<coupling_t>(m, "coupling_t")
+        .value("DC_1M", DC_1M)
+        .value("AC_1M", AC_1M)
+        .value("DC_50R", DC_50R)
+        .export_values();
 
 
     py::class_<picoscope_4000a_source,
@@ -52,7 +58,7 @@ void bind_picoscope_4000a_source(py::module& m)
         .def("set_samp_rate", &picoscope_4000a_source::set_samp_rate, py::arg("samp_rate"))
         .def("set_downsampling", &picoscope_4000a_source::set_downsampling, py::arg("downsampling_mode"), py::arg("downsampling_factor"))
         .def("set_aichan_trigger", &picoscope_4000a_source::set_aichan_trigger, py::arg("id"), py::arg("direction"), py::arg("threshold"))
-        //.def("set_aichan", &picoscope_4000a_source::set_aichan, py::arg("id"), py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
+        .def("set_aichan", &picoscope_4000a_source::set_aichan, py::arg("id"), py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
         
         .def("set_aichan_a", &picoscope_4000a_source::set_aichan_a, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
         .def("set_aichan_b", &picoscope_4000a_source::set_aichan_b, py::arg("enabled"), py::arg("range"), py::arg("coupling"), py::arg("range_offset"))
