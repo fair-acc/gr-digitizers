@@ -40,9 +40,12 @@ void bind_power_calc_ff(py::module& m)
            py::arg("alpha") =  0.0000001,
            D(power_calc_ff,make)
         )
-        
+    
 
-
+        .def("set_alpha",&power_calc_ff::set_alpha,       
+            py::arg("alpha"),
+            D(power_calc_cc,set_alpha)
+        )
 
         ;
 

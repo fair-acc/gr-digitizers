@@ -41,6 +41,16 @@ or higher numbers to compile with multiple cores.
 
     sudo ldconfig
 
+Run custom python binds
+========
+
+In order to run the bound python code you'll have to export the correct python dist to PythonPath:
+
+    export PYTHONPATH=/usr/local/lib/python3/dist-packages:$PYTHONPATH
+    gnuradio-companion
+
+Noto: Otherwise you'll receive a "Module not found" exception.
+
 Process after adding or heavily modifying files
 ============
 
@@ -148,4 +158,3 @@ Add your functions similar to make as:
 
 for further information:
 https://wiki.gnuradio.org/index.php/GNU_Radio_3.9_OOT_Module_Porting_Guide#CMakeLists.txt_changes_to_fix_OOT_module_testing
-
