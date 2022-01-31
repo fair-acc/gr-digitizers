@@ -34,10 +34,10 @@ void bind_picoscope_4000a_source(py::module& m)
 
     using picoscope_4000a_source    = gr::pulsed_power_daq::picoscope_4000a_source;
     // TODO: https://stackoverflow.com/questions/47893832/pybind11-global-level-enum
-    py::enum_<coupling_t>(m, "coupling_t")
-        .value("DC_1M", DC_1M)
-        .value("AC_1M", AC_1M)
-        .value("DC_50R", DC_50R)
+    py::enum_<gr::pulsed_power_daq::coupling_t>(m, "coupling_t")
+        .value("DC_1M", gr::pulsed_power_daq::DC_50R)
+        .value("AC_1M", gr::pulsed_power_daq::AC_1M)
+        .value("DC_50R", gr::pulsed_power_daq::DC_50R)
         .export_values();
 
 
@@ -52,7 +52,6 @@ void bind_picoscope_4000a_source(py::module& m)
            py::arg("auto_arm"),
            D(picoscope_4000a_source,make)
         )
-        
 
         .def("set_trigger_once", &picoscope_4000a_source::set_trigger_once, py::arg("trigger_once"))
         .def("set_samp_rate", &picoscope_4000a_source::set_samp_rate, py::arg("samp_rate"))
