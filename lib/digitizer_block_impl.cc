@@ -700,9 +700,19 @@ namespace gr {
        }
      } catch (const std::exception& ex) {
        d_configure_exception_message = ex.what();
+       GR_LOG_ERROR(d_logger, d_configure_exception_message );
+
+       // No matter if true or false is returned here, gnuradio will continue to run the block, so we stop in manually
+       // Re-throwing the exception would result in the binary getting stuck
+       this->stop();
        return false;
+
      } catch (...) {
+
        d_configure_exception_message = "Unknown Exception received in digitizer_block_impl::start";
+       GR_LOG_ERROR(d_logger, d_configure_exception_message );
+
+       this->stop();
        return false;
      }
 
