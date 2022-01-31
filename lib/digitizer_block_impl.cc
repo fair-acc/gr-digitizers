@@ -980,12 +980,12 @@ namespace gr {
          }
 
          // Substract the time each iteration itself took in order to get closer to the desired poll duration
-         std::chrono::duration<float> remaining_poll_duration = std::chrono::high_resolution_clock::now() - poll_start;
-         if(remaining_poll_duration > poll_duration) {
+         std::chrono::duration<float> elapsed_poll_duration = std::chrono::high_resolution_clock::now() - poll_start;
+         if(elapsed_poll_duration > poll_duration) {
            sleep_time = std::chrono::duration<float>::zero();
          }
          else {
-           sleep_time = poll_duration - remaining_poll_duration;
+           sleep_time = poll_duration - elapsed_poll_duration;
          }
          std::this_thread::sleep_for(sleep_time);
        }
