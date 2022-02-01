@@ -15,10 +15,64 @@
  */
 
 
- 
+
  static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source = R"doc()doc";
 
 
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_picoscope_4000a_source_0 = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_picoscope_4000a_source_1 = R"doc()doc";
+
+
  static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_make = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_trigger_once = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_samp_rate = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_downsampling = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_trigger = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_a = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_b = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_c = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_d = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_e = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_f = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_g = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_aichan_h = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_samples = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_rapid_block = R"doc()doc";
+
+ 
+
 
   
