@@ -421,5 +421,52 @@ ps6000_get_error_message(PICO_STATUS status)
         + ps6000_status_to_string_verbose(status));
 }
 
+typedef enum enBOOL{FALSE,TRUE} BOOL;
+
+typedef enum {
+    MODEL_NONE = 0,
+    MODEL_PS6402  = 0x6402, //Bandwidth: 350MHz, Memory: 32MS, AWG
+    MODEL_PS6402A = 0xA402, //Bandwidth: 250MHz, Memory: 128MS, FG
+    MODEL_PS6402B = 0xB402, //Bandwidth: 250MHz, Memory: 256MS, AWG
+    MODEL_PS6402C = 0xC402, //Bandwidth: 350MHz, Memory: 256MS, AWG
+    MODEL_PS6402D = 0xD402, //Bandwidth: 350MHz, Memory: 512MS, AWG
+    MODEL_PS6403  = 0x6403, //Bandwidth: 350MHz, Memory: 1GS, AWG
+    MODEL_PS6403A = 0xA403, //Bandwidth: 350MHz, Memory: 256MS, FG
+    MODEL_PS6403B = 0xB403, //Bandwidth: 350MHz, Memory: 512MS, AWG
+    MODEL_PS6403C = 0xC403, //Bandwidth: 350MHz, Memory: 512MS, AWG
+    MODEL_PS6403D = 0xD403, //Bandwidth: 350MHz, Memory: 1GS, AWG
+    MODEL_PS6404  = 0x6404, //Bandwidth: 500MHz, Memory: 1GS, AWG
+    MODEL_PS6404A = 0xA404, //Bandwidth: 500MHz, Memory: 512MS, FG
+    MODEL_PS6404B = 0xB404, //Bandwidth: 500MHz, Memory: 1GS, AWG
+    MODEL_PS6404C = 0xC404, //Bandwidth: 350MHz, Memory: 1GS, AWG
+    MODEL_PS6404D = 0xD404, //Bandwidth: 350MHz, Memory: 2GS, AWG
+    MODEL_PS6407  = 0x6407, //Bandwidth: 1GHz,   Memory: 2GS, AWG
+
+} MODEL_TYPE;
+
+typedef struct
+{
+    int16_t DCcoupled;
+    int16_t range;
+    int16_t enabled;
+}CHANNEL_SETTINGS;
+
+typedef struct
+{
+    int16_t handle;
+    MODEL_TYPE              model;
+    int8_t                  modelString[8];
+    int8_t                  serial[10];
+    int16_t                 complete;
+    int16_t                 openStatus;
+    int16_t                 openProgress;
+    PS6000_RANGE            firstRange;
+    PS6000_RANGE            lastRange;
+    int16_t                 channelCount;
+    BOOL                    AWG;
+    CHANNEL_SETTINGS        channelSettings [PS6000_MAX_CHANNELS];
+    int32_t                 awgBufferSize;
+}UNIT;
+
 
 #endif /* LIB_PS_6000_DEFS_H_ */

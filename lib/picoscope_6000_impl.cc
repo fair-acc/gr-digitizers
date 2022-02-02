@@ -442,11 +442,24 @@ namespace gr {
       // Required to force sequence execution of open unit calls...
       boost::mutex::scoped_lock init_guard(g_init_mutex);
 
-      while(status != PICO_NOT_FOUND) {
-          status = ps6000OpenUnit(&(temp_handles[devCount]),NULL);
-          if(status == PICO_OK || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT)
-              devCount++;
-      }
+      std::cout << "debugging" << std::endl;
+        do
+        {
+            temp_handles[devCount] = 0;
+            status = ps6000OpenUnit(&(temp_handles[devCount]),NULL);
+            if(status == PICO_OK || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT)
+            {
+                devCount++;
+            }
+
+        } while(status != PICO_NOT_FOUND);
+
+//      while(status != PICO_NOT_FOUND) {
+//          memset(&(temp_handles[devCount]),0,sizeof (int16_t));
+//          status = ps6000OpenUnit(&(temp_handles[devCount]),NULL);
+//          if(status == PICO_OK || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT)
+//              devCount++;
+//      }
 
       if (devCount == 0) {
           GR_LOG_ERROR(d_logger, "No ps6000 device found");
