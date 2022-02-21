@@ -70,7 +70,16 @@
  static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_samples = R"doc()doc";
 
 
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_nr_buffers = R"doc()doc";
+
+
  static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_rapid_block = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_streaming = R"doc()doc";
+
+
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_driver_buffer_size = R"doc()doc";
 
  
 

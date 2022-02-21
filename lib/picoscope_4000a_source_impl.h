@@ -141,8 +141,12 @@ namespace gr {
         void set_aichan_h(bool enabled, double range, coupling_t coupling, double range_offset = 0);
         
         void set_rapid_block(int nr_waveforms);
+
+        void set_nr_buffers(int nr_buffers);
       
+        void set_streaming(double poll_rate=0.001);
         
+        void set_driver_buffer_size(int driver_buffer_size);
         // uint32_t convert_frequency_to_ps4000a_timebase(double desired_freq, double &actual_freq);
 
         // // Where all the action really happens

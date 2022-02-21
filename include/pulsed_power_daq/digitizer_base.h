@@ -49,12 +49,12 @@ namespace gr {
      * \brief Specifies a trigger mechanism
      * \ingroup pulsed_power_daq
      */
-    enum PULSED_POWER_DAQ_API downsampling_mode_t
+    enum PULSED_POWER_DAQ_API trigger_direction_t
     {
-      DOWNSAMPLING_MODE_NONE        = 0,
-      DOWNSAMPLING_MODE_MIN_MAX_AGG = 1,
-      DOWNSAMPLING_MODE_DECIMATE    = 2,
-      DOWNSAMPLING_MODE_AVERAGE     = 3,
+      TRIGGER_DIRECTION_RISING,
+      TRIGGER_DIRECTION_FALLING,
+      TRIGGER_DIRECTION_LOW,
+      TRIGGER_DIRECTION_HIGH
     };
 
     /*!
@@ -63,10 +63,10 @@ namespace gr {
      */
     enum PULSED_POWER_DAQ_API downsampling_mode_t
     {
-      DOWNSAMPLING_MODE_NONE,
-      DOWNSAMPLING_MODE_MIN_MAX_AGG,
-      DOWNSAMPLING_MODE_DECIMATE,
-      DOWNSAMPLING_MODE_AVERAGE,
+      DOWNSAMPLING_MODE_NONE        = 0,
+      DOWNSAMPLING_MODE_MIN_MAX_AGG = 1,
+      DOWNSAMPLING_MODE_DECIMATE    = 2,
+      DOWNSAMPLING_MODE_AVERAGE     = 3,
     };
 
     /*!

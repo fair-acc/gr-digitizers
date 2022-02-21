@@ -65,7 +65,10 @@ namespace gr {
         virtual void set_aichan_trigger(const std::string &id, trigger_direction_t direction, double threshold) = 0;
         virtual void set_samples(int pre_samples, int post_samples) = 0;
         virtual void set_rapid_block(int nr_waveforms) = 0;
-      
+
+        virtual void set_nr_buffers(int nr_buffers) = 0;
+        virtual void set_streaming(double poll_rate=0.001) = 0;
+        virtual void set_driver_buffer_size(int driver_buffer_size) = 0;
     };
 
   } // namespace pulsed_power_daq

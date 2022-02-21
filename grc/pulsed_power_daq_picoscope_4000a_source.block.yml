@@ -68,8 +68,8 @@ parameters:
 -   id: downsampling_mode
     label: Downsampling Mode
     dtype: enum
-    default: '"DOWNSAMPLING_MODE_NONE"'
-    options: ['"DOWNSAMPLING_MODE_NONE"', '"DOWNSAMPLING_MODE_MIN_MAX_AGG"', '"DOWNSAMPLING_MODE_DECIMATE"', '"DOWNSAMPLING_MODE_AVERAGE"']
+    default: '0'
+    options: ['0', '1', '2', '3']
     option_labels: [None, Min Max, Decimate, Average]
 
 -   id: downsampling_factor
@@ -470,11 +470,13 @@ templates:
         \ ${enable_ai_g}, ${range_ai_g}, ${coupling_ai_g}, ${offset_ai_g})\nself.${id}.set_aichan_h(\
         \ ${enable_ai_h}, ${range_ai_h}, ${coupling_ai_h}, ${offset_ai_h})\n\nif ${trigger_source}\
         \ != 'None':\n    self.${id}.set_aichan_trigger(${trigger_source}, ${trigger_direction},\
-        \ ${trigger_threshold})\n\nif ${acquisition_mode} == 'Streaming':\n    self.${id}.set_buffer_size(${buff_size})\n\
+        \ ${trigger_threshold})\n\nif ${acquisition_mode} == 'Streaming':\n\
         \    self.${id}.set_nr_buffers(${nr_buffers})\n    self.${id}.set_driver_buffer_size(${driver_buff_size})\n\
         \    self.${id}.set_streaming(${poll_rate})\nelse:\n    self.${id}.set_samples(${pre_samples},\
         \ ${post_samples})\n    self.${id}.set_rapid_block(${nr_waveforms})\n    "
+        #be careful in this entire make sequence. It gets translated directly into python code. Indentation is important
 
+    #self.${id}.set_buffer_size(${buff_size})\n
     callbacks:
 
     # - set_aichan_a("A", true, 5.0, 1)

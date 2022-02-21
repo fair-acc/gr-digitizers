@@ -714,7 +714,6 @@ namespace gr {
     }
 
 
-    //TODO: verify this works
     //quick hack to make these functions visible for gnuradio/pybind11
     void picoscope_4000a_source_impl::set_trigger_once(bool trigger_once)
     {
@@ -755,7 +754,21 @@ namespace gr {
       digitizer_source::set_rapid_block(nr_waveforms);
     }
       
+    void picoscope_4000a_source_impl::set_nr_buffers(int nr_buffers)
+    {
+      digitizer_source::set_nr_buffers(nr_buffers);
+    }
 
+    void picoscope_4000a_source_impl::set_streaming(double poll_rate)
+    {
+        digitizer_source::set_streaming(poll_rate);
+    }
+
+
+    void picoscope_4000a_source_impl::set_driver_buffer_size(int driver_buffer_size)
+    {
+      digitizer_source::set_driver_buffer_size(driver_buffer_size);
+    }
 //TODO: verify
 //ugly workaround to avoid gnuradio's confusion
     void picoscope_4000a_source_impl::set_aichan_a(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("A",enabled, range, coupling, range_offset);}
