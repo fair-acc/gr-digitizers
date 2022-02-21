@@ -42,6 +42,15 @@ void bind_picoscope_4000a_source(py::module& m)
 
     py::implicitly_convertible<int, gr::pulsed_power_daq::coupling_t>();
 
+    py::enum_<gr::pulsed_power_daq::downsampling_mode_t>(m, "downsampling_mode_t")
+        .value("DOWNSAMPLING_MODE_NONE",        gr::pulsed_power_daq::DOWNSAMPLING_MODE_NONE)         //0          
+        .value("DOWNSAMPLING_MODE_MIN_MAX_AGG", gr::pulsed_power_daq::DOWNSAMPLING_MODE_MIN_MAX_AGG)  //1      
+        .value("DOWNSAMPLING_MODE_DECIMATE",    gr::pulsed_power_daq::DOWNSAMPLING_MODE_DECIMATE)     //2  
+        .value("DOWNSAMPLING_MODE_AVERAGE",     gr::pulsed_power_daq::DOWNSAMPLING_MODE_AVERAGE)      //3  
+        .export_values();
+
+    py::implicitly_convertible<int, gr::pulsed_power_daq::downsampling_mode_t>();
+
     py::class_<picoscope_4000a_source,
         gr::sync_block,
         gr::block,

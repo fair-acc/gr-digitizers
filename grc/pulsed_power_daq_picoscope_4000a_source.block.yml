@@ -67,10 +67,11 @@ parameters:
     
 -   id: downsampling_mode
     label: Downsampling Mode
-    dtype: int
-    default: '0'
-    options: ['0', '1', '2', '3']
+    dtype: enum
+    default: '"DOWNSAMPLING_MODE_NONE"'
+    options: ['"DOWNSAMPLING_MODE_NONE"', '"DOWNSAMPLING_MODE_MIN_MAX_AGG"', '"DOWNSAMPLING_MODE_DECIMATE"', '"DOWNSAMPLING_MODE_AVERAGE"']
     option_labels: [None, Min Max, Decimate, Average]
+
 -   id: downsampling_factor
     label: Downsampling Factor
     dtype: int
@@ -456,7 +457,24 @@ outputs:
 
 templates:
     imports: import pulsed_power_daq
-    make: "pulsed_power_daq.picoscope_4000a_source(${serial_number}, True)"
+
+    make: "pulsed_power_daq.picoscope_4000a_source(${serial_number}, True)\nself.${id}.set_trigger_once(${trigger_once})\n\
+        self.${id}.set_samp_rate(${samp_rate})\nself.${id}.set_downsampling(${downsampling_mode},\
+        \ ${downsampling_factor})\nself.${id}.set_aichan_a(${enable_ai_a}, ${range_ai_a},\
+        \ ${coupling_ai_a}, ${offset_ai_a})\nself.${id}.set_aichan_b(${enable_ai_b},\
+        \ ${range_ai_b}, ${coupling_ai_b}, ${offset_ai_b})\nself.${id}.set_aichan_c(\
+        \ ${enable_ai_c}, ${range_ai_c}, ${coupling_ai_c}, ${offset_ai_c})\nself.${id}.set_aichan_d(\
+        \ ${enable_ai_d}, ${range_ai_d}, ${coupling_ai_d}, ${offset_ai_d})\nself.${id}.set_aichan_e(\
+        \ ${enable_ai_e}, ${range_ai_e}, ${coupling_ai_e}, ${offset_ai_e})\nself.${id}.set_aichan_f(\
+        \ ${enable_ai_f}, ${range_ai_f}, ${coupling_ai_f}, ${offset_ai_f})\nself.${id}.set_aichan_g(\
+        \ ${enable_ai_g}, ${range_ai_g}, ${coupling_ai_g}, ${offset_ai_g})\nself.${id}.set_aichan_h(\
+        \ ${enable_ai_h}, ${range_ai_h}, ${coupling_ai_h}, ${offset_ai_h})\n\nif ${trigger_source}\
+        \ != 'None':\n    self.${id}.set_aichan_trigger(${trigger_source}, ${trigger_direction},\
+        \ ${trigger_threshold})\n\nif ${acquisition_mode} == 'Streaming':\n    self.${id}.set_buffer_size(${buff_size})\n\
+        \    self.${id}.set_nr_buffers(${nr_buffers})\n    self.${id}.set_driver_buffer_size(${driver_buff_size})\n\
+        \    self.${id}.set_streaming(${poll_rate})\nelse:\n    self.${id}.set_samples(${pre_samples},\
+        \ ${post_samples})\n    self.${id}.set_rapid_block(${nr_waveforms})\n    "
+
     callbacks:
 
     # - set_aichan_a("A", true, 5.0, 1)
