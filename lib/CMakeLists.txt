@@ -106,6 +106,7 @@ include(GrTest)
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_pulsed_power_daq_sources
 qa_power_calc_cc.cc
+qa_picoscope_4000a_source.cc
 )
 # Anything we need to link to for the unit tests go here
 list(APPEND GR_TEST_TARGET_DEPS gnuradio-pulsed_power_daq)

@@ -158,3 +158,14 @@ Add your functions similar to make as:
 
 for further information:
 https://wiki.gnuradio.org/index.php/GNU_Radio_3.9_OOT_Module_Porting_Guide#CMakeLists.txt_changes_to_fix_OOT_module_testing
+
+
+
+
+How to add c++ unit tests
+=====================================================
+
+In *libs* folder create a qa file. Include your file to be tested as *#include "file"* and *#include <boost/test/unit_test.hpp>* .
+You can put your test cases in suites for better compartmentalization. Each test is surrounded by *BOOST_AUTO_TEST_CASE(test_name);* and *BOOST_AUTO_TEST_SUITE_END();*
+
+Then add your qa file to *lib/CMakeLists.txt* under *list(APPEND test_project_sources ... )*
