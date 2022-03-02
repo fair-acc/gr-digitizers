@@ -20,4 +20,6 @@ except ModuleNotFoundError:
     pass
 
 # import any pure python here
+from .power_calc_ff_prepper import power_calc_ff_prepper
+
 #

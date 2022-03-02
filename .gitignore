@@ -259,3 +259,5 @@ $RECYCLE.BIN/
 
 *.h5
 python/bindings/failed_conversions.txt
+figures/power_calc_prepper_ff.block.yml
+figures/power_calc_prepper_ff.py

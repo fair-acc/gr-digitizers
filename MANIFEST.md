@@ -56,7 +56,7 @@ Process after adding or heavily modifying files
 
 Cmake runs binding functions, which sometimes requires a "clean" slate.  
 
-    gr_modtool bind \<BLOCKNAME\>
+    gr_modtool bind <BLOCKNAME>
     cd build
     make clean
     cmake ..

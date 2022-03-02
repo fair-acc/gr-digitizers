@@ -22,7 +22,7 @@ add_subdirectory(bindings)
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    DESTINATION ${GR_PYTHON_DIR}/pulsed_power_daq
+    power_calc_ff_prepper.py DESTINATION ${GR_PYTHON_DIR}/pulsed_power_daq
 )
 
 ########################################################################
@@ -31,3 +31,4 @@ GR_PYTHON_INSTALL(
 include(GrTest)
 
 set(GR_TEST_TARGET_DEPS gnuradio-pulsed_power_daq)
+GR_ADD_TEST(qa_power_calc_ff_prepper ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_power_calc_ff_prepper.py)
