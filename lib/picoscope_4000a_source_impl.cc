@@ -512,7 +512,30 @@ namespace gr {
                   0,               // segment index
                   (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
                   this);
+            if (status == 343)
+            {
+              auto ec = driver_configure();
+              if (ec) {
+                add_error_code(ec);
+                std::ostringstream message;
+                message << "Exception in " << __FILE__ << ":" << __LINE__ << ": configure failed. ErrorCode: " << ec;
+                throw std::runtime_error(message.str());
+              } else{ 
+                
+                status = ps4000aRunBlock(d_handle,
+                  d_pre_samples,   // pre-triggersamples
+                  d_post_samples,  // post-trigger samples
+                  timebase,        // timebase
+                  NULL,            // time indispossed
+                  0,               // segment index
+                  (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
+                  this);
+              } 
+            }
+            
+
           if(status != PICO_OK) {
+            
             GR_LOG_ERROR(d_logger, "ps4000aRunBlock: " + ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
           }
