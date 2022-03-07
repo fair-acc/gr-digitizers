@@ -504,7 +504,10 @@ namespace gr {
       if(d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
           uint32_t timebase =  convert_frequency_to_ps4000a_timebase(d_samp_rate, d_actual_samp_rate);
 
-          auto status = ps4000aRunBlock(d_handle,
+          PICO_STATUS status;
+          do
+          {
+            status = ps4000aRunBlock(d_handle,
                   d_pre_samples,   // pre-triggersamples
                   d_post_samples,  // post-trigger samples
                   timebase,        // timebase
@@ -512,27 +515,9 @@ namespace gr {
                   0,               // segment index
                   (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
                   this);
-            if (status == 343)
-            {
-              auto ec = driver_configure();
-              if (ec) {
-                add_error_code(ec);
-                std::ostringstream message;
-                message << "Exception in " << __FILE__ << ":" << __LINE__ << ": configure failed. ErrorCode: " << ec;
-                throw std::runtime_error(message.str());
-              } else{ 
-                
-                status = ps4000aRunBlock(d_handle,
-                  d_pre_samples,   // pre-triggersamples
-                  d_post_samples,  // post-trigger samples
-                  timebase,        // timebase
-                  NULL,            // time indispossed
-                  0,               // segment index
-                  (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
-                  this);
-              } 
-            }
-            
+                  //run until error is not happening anymore
+                  //concurrent threads might throw, so rather wait for it
+          } while (status == 343);
 
           if(status != PICO_OK) {
             
