@@ -82,6 +82,7 @@
  static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_driver_buffer_size = R"doc()doc";
 
  
+ static const char *__doc_gr_pulsed_power_daq_picoscope_4000a_source_set_buffer_size = R"doc()doc";
 
 
   

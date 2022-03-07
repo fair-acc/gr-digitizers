@@ -83,6 +83,7 @@ void bind_picoscope_4000a_source(py::module& m)
         .def("set_driver_buffer_size", &picoscope_4000a_source::set_driver_buffer_size, py::arg("driver_buffer_size"), D(picoscope_4000a_source, set_driver_buffer_size))
         .def("set_rapid_block", &picoscope_4000a_source::set_rapid_block, py::arg("nr_waveforms"), D(picoscope_4000a_source, set_rapid_block))
         .def("set_samples", &picoscope_4000a_source::set_samples, py::arg("pre_samples"), py::arg("post_samples"), D(picoscope_4000a_source, set_samples))
+        .def("set_buffer_size", &picoscope_4000a_source::set_buffer_size, py::arg("set_buffer_size"), py::arg("buffer_size"), D(picoscope_4000a_source, set_buffer_size))
         
         ;
 
