@@ -1,0 +1,772 @@
+options:
+  parameters:
+    author: gsi
+    catch_exceptions: 'True'
+    category: '[my_Blocks]'
+    cmake_opt: ''
+    comment: ''
+    copyright: ''
+    description: ''
+    gen_cmake: 'On'
+    gen_linking: dynamic
+    generate_options: hb
+    hier_block_src_path: '.:'
+    id: prep_new_testing
+    max_nouts: '0'
+    output_language: python
+    placement: (0,0)
+    qt_qss_theme: ''
+    realtime_scheduling: ''
+    run: 'True'
+    run_command: '{python} -u {filename}'
+    run_options: prompt
+    sizing_mode: fixed
+    thread_safe_setters: ''
+    title: prepper testing
+    window_size: (1000,1000)
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 8]
+    rotation: 0
+    state: enabled
+
+blocks:
+- name: analog_sig_source_x_0
+  id: analog_sig_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    amp: '1'
+    comment: ''
+    freq: '55'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    phase: '0'
+    samp_rate: out_samp_rate
+    type: float
+    waveform: analog.GR_SIN_WAVE
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1016, 388.0]
+    rotation: 0
+    state: true
+- name: analog_sig_source_x_0_0
+  id: analog_sig_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    amp: '1'
+    comment: ''
+    freq: '55'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    phase: '0'
+    samp_rate: out_samp_rate
+    type: float
+    waveform: analog.GR_COS_WAVE
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1056, 612.0]
+    rotation: 0
+    state: true
+- name: band_pass_filter_0
+  id: band_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: ''
+    decim: bp_decimation
+    gain: bp_gain
+    high_cutoff_freq: bp_high_cut
+    interp: bp_decimation
+    low_cutoff_freq: bp_low_cut
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: in_samp_rate
+    type: fir_filter_fff
+    width: bp_trans
+    win: window.WIN_HANN
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 292.0]
+    rotation: 0
+    state: true
+- name: band_pass_filter_0_0
+  id: band_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: ''
+    decim: bp_decimation
+    gain: bp_gain
+    high_cutoff_freq: bp_high_cut
+    interp: '1'
+    low_cutoff_freq: bp_low_cut
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: in_samp_rate
+    type: fir_filter_fff
+    width: bp_trans
+    win: window.WIN_HANN
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 460.0]
+    rotation: 0
+    state: true
+- name: blocks_divide_xx_1
+  id: blocks_divide_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1744, 336.0]
+    rotation: 0
+    state: true
+- name: blocks_divide_xx_1_0
+  id: blocks_divide_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1744, 624.0]
+    rotation: 0
+    state: true
+- name: blocks_multiply_const_vxx_0
+  id: blocks_multiply_const_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    const: '100'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [640, 348.0]
+    rotation: 0
+    state: true
+- name: blocks_multiply_const_vxx_0_0
+  id: blocks_multiply_const_vxx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    const: '2.5'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [640, 516.0]
+    rotation: 0
+    state: true
+- name: blocks_multiply_xx_0
+  id: blocks_multiply_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1328, 360.0]
+    rotation: 0
+    state: true
+- name: blocks_multiply_xx_0_0
+  id: blocks_multiply_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1328, 600.0]
+    rotation: 0
+    state: true
+- name: blocks_multiply_xx_0_1
+  id: blocks_multiply_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1328, 432.0]
+    rotation: 0
+    state: true
+- name: blocks_multiply_xx_0_2
+  id: blocks_multiply_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1328, 528.0]
+    rotation: 0
+    state: true
+- name: blocks_sub_xx_0
+  id: blocks_sub_xx
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [2160, 488.0]
+    rotation: 0
+    state: true
+- name: blocks_transcendental_0
+  id: blocks_transcendental
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: atan
+    type: float
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1904, 372.0]
+    rotation: 0
+    state: true
+- name: blocks_transcendental_0_0
+  id: blocks_transcendental
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    name: atan
+    type: float
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1904, 636.0]
+    rotation: 0
+    state: true
+- name: bp_decimation
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: band pass decimation
+    short_id: ''
+    type: intx
+    value: '20'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 220.0]
+    rotation: 0
+    state: true
+- name: bp_gain
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: band pass gain
+    short_id: ''
+    type: eng_float
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [176, 220.0]
+    rotation: 0
+    state: true
+- name: bp_high_cut
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: band pass high cutoff frequency
+    short_id: ''
+    type: eng_float
+    value: '80'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [176, 316.0]
+    rotation: 0
+    state: true
+- name: bp_low_cut
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: band pass low cutoff frequency
+    short_id: ''
+    type: eng_float
+    value: '20'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 316.0]
+    rotation: 0
+    state: true
+- name: bp_trans
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: band pass transition width
+    short_id: ''
+    type: eng_float
+    value: '10'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 412.0]
+    rotation: 0
+    state: true
+- name: in_samp_rate
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: incoming sample rate
+    short_id: ''
+    type: eng_float
+    value: '200000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 124.0]
+    rotation: 0
+    state: true
+- name: low_pass_filter_0
+  id: low_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: ''
+    cutoff_freq: lp_cut
+    decim: lp_decimation
+    gain: lp_gain
+    interp: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: out_samp_rate
+    type: fir_filter_fff
+    width: lp_trans
+    win: window.WIN_HAMMING
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1504, 228.0]
+    rotation: 0
+    state: true
+- name: low_pass_filter_0_0
+  id: low_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: ''
+    cutoff_freq: lp_cut
+    decim: lp_decimation
+    gain: lp_gain
+    interp: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: out_samp_rate
+    type: fir_filter_fff
+    width: lp_trans
+    win: window.WIN_HAMMING
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1504, 660.0]
+    rotation: 0
+    state: true
+- name: low_pass_filter_0_1
+  id: low_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: ''
+    cutoff_freq: lp_cut
+    decim: lp_decimation
+    gain: lp_gain
+    interp: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: out_samp_rate
+    type: fir_filter_fff
+    width: lp_trans
+    win: window.WIN_HAMMING
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1504, 372.0]
+    rotation: 0
+    state: true
+- name: low_pass_filter_0_2
+  id: low_pass_filter
+  parameters:
+    affinity: ''
+    alias: ''
+    beta: '6.76'
+    comment: ''
+    cutoff_freq: lp_cut
+    decim: lp_decimation
+    gain: lp_gain
+    interp: '1'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    samp_rate: out_samp_rate
+    type: fir_filter_fff
+    width: lp_trans
+    win: window.WIN_HAMMING
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [1504, 516.0]
+    rotation: 0
+    state: true
+- name: lp_cut
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: low pass cutoff frequency
+    short_id: ''
+    type: eng_float
+    value: '60'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [144, 516.0]
+    rotation: 0
+    state: true
+- name: lp_decimation
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: low pass decimation
+    short_id: ''
+    type: intx
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [176, 412.0]
+    rotation: 0
+    state: true
+- name: lp_gain
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: low pass gain
+    short_id: ''
+    type: eng_float
+    value: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 516.0]
+    rotation: 0
+    state: true
+- name: lp_trans
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: low pass transition width
+    short_id: ''
+    type: eng_float
+    value: '10'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [8, 620.0]
+    rotation: 0
+    state: true
+- name: out_samp_rate
+  id: parameter
+  parameters:
+    alias: ''
+    comment: ''
+    hide: none
+    label: outgoing sample rate
+    short_id: ''
+    type: eng_float
+    value: '10000'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [176, 124.0]
+    rotation: 0
+    state: true
+- name: pad_sink_0
+  id: pad_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    label: Raw voltage
+    num_streams: '1'
+    optional: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 196.0]
+    rotation: 0
+    state: true
+- name: pad_sink_1
+  id: pad_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    label: Raw current
+    num_streams: '1'
+    optional: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 668.0]
+    rotation: 0
+    state: true
+- name: pad_sink_2
+  id: pad_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    label: Band Pass Voltage
+    num_streams: '1'
+    optional: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 244.0]
+    rotation: 180
+    state: true
+- name: pad_sink_2_0
+  id: pad_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    label: Band pass current
+    num_streams: '1'
+    optional: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [840, 620.0]
+    rotation: 180
+    state: true
+- name: pad_sink_3
+  id: pad_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    label: Delta phase PHI
+    num_streams: '1'
+    optional: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [2312, 500.0]
+    rotation: 0
+    state: true
+- name: pad_source_0
+  id: pad_source
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    label: Voltage
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_streams: '1'
+    optional: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [464, 348.0]
+    rotation: 0
+    state: true
+- name: pad_source_0_0
+  id: pad_source
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    label: Current
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_streams: '1'
+    optional: 'False'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [464, 516.0]
+    rotation: 0
+    state: true
+
+connections:
+- [analog_sig_source_x_0, '0', blocks_multiply_xx_0, '1']
+- [analog_sig_source_x_0, '0', blocks_multiply_xx_0_2, '1']
+- [analog_sig_source_x_0_0, '0', blocks_multiply_xx_0_0, '1']
+- [analog_sig_source_x_0_0, '0', blocks_multiply_xx_0_1, '1']
+- [band_pass_filter_0, '0', blocks_multiply_xx_0, '0']
+- [band_pass_filter_0, '0', blocks_multiply_xx_0_1, '0']
+- [band_pass_filter_0, '0', pad_sink_2, '0']
+- [band_pass_filter_0_0, '0', blocks_multiply_xx_0_0, '0']
+- [band_pass_filter_0_0, '0', blocks_multiply_xx_0_2, '0']
+- [band_pass_filter_0_0, '0', pad_sink_2_0, '0']
+- [blocks_divide_xx_1, '0', blocks_transcendental_0, '0']
+- [blocks_divide_xx_1_0, '0', blocks_transcendental_0_0, '0']
+- [blocks_multiply_const_vxx_0, '0', band_pass_filter_0, '0']
+- [blocks_multiply_const_vxx_0, '0', pad_sink_0, '0']
+- [blocks_multiply_const_vxx_0_0, '0', band_pass_filter_0_0, '0']
+- [blocks_multiply_const_vxx_0_0, '0', pad_sink_1, '0']
+- [blocks_multiply_xx_0, '0', low_pass_filter_0, '0']
+- [blocks_multiply_xx_0_0, '0', low_pass_filter_0_0, '0']
+- [blocks_multiply_xx_0_1, '0', low_pass_filter_0_1, '0']
+- [blocks_multiply_xx_0_2, '0', low_pass_filter_0_2, '0']
+- [blocks_sub_xx_0, '0', pad_sink_3, '0']
+- [blocks_transcendental_0, '0', blocks_sub_xx_0, '0']
+- [blocks_transcendental_0_0, '0', blocks_sub_xx_0, '1']
+- [low_pass_filter_0, '0', blocks_divide_xx_1, '0']
+- [low_pass_filter_0_0, '0', blocks_divide_xx_1_0, '1']
+- [low_pass_filter_0_1, '0', blocks_divide_xx_1, '1']
+- [low_pass_filter_0_2, '0', blocks_divide_xx_1_0, '0']
+- [pad_source_0, '0', blocks_multiply_const_vxx_0, '0']
+- [pad_source_0_0, '0', blocks_multiply_const_vxx_0_0, '0']
+
+metadata:
+  file_format: 1
