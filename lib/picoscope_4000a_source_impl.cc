@@ -501,13 +501,11 @@ namespace gr {
     std::error_code
     picoscope_4000a_source_impl::driver_arm()
     {
+      
       if(d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
           uint32_t timebase =  convert_frequency_to_ps4000a_timebase(d_samp_rate, d_actual_samp_rate);
 
-          PICO_STATUS status;
-          do
-          {
-            status = ps4000aRunBlock(d_handle,
+           auto status = ps4000aRunBlock(d_handle,
                   d_pre_samples,   // pre-triggersamples
                   d_post_samples,  // post-trigger samples
                   timebase,        // timebase
@@ -515,9 +513,6 @@ namespace gr {
                   0,               // segment index
                   (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
                   this);
-                  //run until error is not happening anymore
-                  //concurrent threads might throw, so rather wait for it
-          } while (status == 343);
 
           if(status != PICO_OK) {
             
@@ -530,8 +525,9 @@ namespace gr {
 
         ps4000a_unit_interval_t unit_int = convert_frequency_to_ps4000a_time_units_and_interval(
                 d_samp_rate, d_actual_samp_rate);
-
-        auto status = ps4000aRunStreaming(d_handle,
+        
+        
+            auto status = ps4000aRunStreaming(d_handle,
             &(unit_int.interval), // sample interval
             unit_int.unit,        // time unit of sample interval
             0,                    // pre-triggersamples (unused)
