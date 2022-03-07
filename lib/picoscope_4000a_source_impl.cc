@@ -526,21 +526,22 @@ namespace gr {
         ps4000a_unit_interval_t unit_int = convert_frequency_to_ps4000a_time_units_and_interval(
                 d_samp_rate, d_actual_samp_rate);
         
+           auto status = ps4000aRunStreaming(d_handle,
+                          &(unit_int.interval), // sample interval
+                          unit_int.unit,        // time unit of sample interval
+                          0,                    // pre-triggersamples (unused)
+                          d_driver_buffer_size,
+                          false,
+                          d_downsampling_factor,
+                          convert_to_ps4000a_ratio_mode(d_downsampling_mode),
+                          d_driver_buffer_size);
         
-            auto status = ps4000aRunStreaming(d_handle,
-            &(unit_int.interval), // sample interval
-            unit_int.unit,        // time unit of sample interval
-            0,                    // pre-triggersamples (unused)
-            d_driver_buffer_size,
-            false,
-            d_downsampling_factor,
-            convert_to_ps4000a_ratio_mode(d_downsampling_mode),
-            d_driver_buffer_size);
+            
 
-        if(status != PICO_OK) {
-          GR_LOG_ERROR(d_logger, "ps4000aRunStreaming: " + ps4000a_get_error_message(status));
-          return make_pico_4000a_error_code(status);
-        }
+        // if(status != PICO_OK) {
+        //   GR_LOG_ERROR(d_logger, "ps4000aRunStreaming: " + ps4000a_get_error_message(status));
+        //   return make_pico_4000a_error_code(status);
+        // }
       }
 
       return std::error_code{};
@@ -713,6 +714,10 @@ namespace gr {
             (ps4000aStreamingReady)invoke_streaming_callback, &d_streaming_callback);
       if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
         return std::error_code {};
+      }
+      if(status != PICO_OK) {
+          GR_LOG_ERROR(d_logger, "ps4000aRunStreaming: " + ps4000a_get_error_message(status));
+          return make_pico_4000a_error_code(status);
       }
       return make_pico_4000a_error_code(status);
     }
