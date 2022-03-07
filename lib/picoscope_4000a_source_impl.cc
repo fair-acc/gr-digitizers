@@ -778,6 +778,11 @@ namespace gr {
     {
       digitizer_source::set_driver_buffer_size(driver_buffer_size);
     }
+
+    void picoscope_4000a_source_impl::set_buffer_size(int buffer_size)
+    {
+      digitizer_source::set_buffer_size(buffer_size);
+    }
 //TODO: verify
 //ugly workaround to avoid gnuradio's confusion
     void picoscope_4000a_source_impl::set_aichan_a(bool enabled, double range, coupling_t coupling, double range_offset){digitizer_source::set_aichan("A",enabled, range, coupling, range_offset);}

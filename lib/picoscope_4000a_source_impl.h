@@ -147,6 +147,8 @@ namespace gr {
         void set_streaming(double poll_rate=0.001);
         
         void set_driver_buffer_size(int driver_buffer_size);
+
+        void set_buffer_size(int buffer_size);
         // uint32_t convert_frequency_to_ps4000a_timebase(double desired_freq, double &actual_freq);
 
         // // Where all the action really happens

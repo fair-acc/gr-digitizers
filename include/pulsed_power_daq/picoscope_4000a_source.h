@@ -69,6 +69,7 @@ namespace gr {
         virtual void set_nr_buffers(int nr_buffers) = 0;
         virtual void set_streaming(double poll_rate=0.001) = 0;
         virtual void set_driver_buffer_size(int driver_buffer_size) = 0;
+        virtual void set_buffer_size(int buffer_size) = 0;
     };
 
   } // namespace pulsed_power_daq
