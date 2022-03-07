@@ -472,7 +472,7 @@ templates:
         \ != 'None':\n    self.${id}.set_aichan_trigger(${trigger_source}, ${trigger_direction},\
         \ ${trigger_threshold})\n\nif ${acquisition_mode} == 'Streaming':\n\
         \    self.${id}.set_nr_buffers(${nr_buffers})\n    self.${id}.set_driver_buffer_size(${driver_buff_size})\n\
-        \    self.${id}.set_streaming(${poll_rate})\nelse:\n    self.${id}.set_buffer_size(${buff_size})\n\
+        \    self.${id}.set_streaming(${poll_rate})\n    self.${id}.set_buffer_size(${buff_size})\nelse:\n\
         \    self.${id}.set_rapid_block(${nr_waveforms})\n    "
         #be careful in this entire make sequence. It gets translated directly into python code. Indentation is important
 
