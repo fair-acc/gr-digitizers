@@ -1,6 +1,6 @@
 options:
   parameters:
-    author: p01900
+    author: gsi
     catch_exceptions: 'True'
     category: '[GRC Hier Blocks]'
     cmake_opt: ''
@@ -11,7 +11,7 @@ options:
     gen_linking: dynamic
     generate_options: qt_gui
     hier_block_src_path: '.:'
-    id: test_PS_20220303
+    id: signal_source_to_prepper_to_power_calc_to_sink
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -45,69 +45,98 @@ blocks:
     coordinate: [184, 12]
     rotation: 0
     state: enabled
-- name: pulsed_power_daq_picoscope_4000a_source_0
-  id: pulsed_power_daq_picoscope_4000a_source
+- name: analog_sig_source_x_0
+  id: analog_sig_source_x
   parameters:
-    acquisition_mode: Rapid Block
     affinity: ''
     alias: ''
-    buff_size: '204800'
+    amp: '5'
     comment: ''
-    coupling_ai_a: '1'
-    coupling_ai_b: '1'
-    coupling_ai_c: '0'
-    coupling_ai_d: '0'
-    coupling_ai_e: '0'
-    coupling_ai_f: '0'
-    coupling_ai_g: '0'
-    coupling_ai_h: '0'
-    downsampling_factor: '1'
-    downsampling_mode: '0'
-    driver_buff_size: '102400'
-    enable_ai_a: 'True'
-    enable_ai_b: 'True'
-    enable_ai_c: 'False'
-    enable_ai_d: 'False'
-    enable_ai_e: 'False'
-    enable_ai_f: 'False'
-    enable_ai_g: 'False'
-    enable_ai_h: 'False'
+    freq: '50'
     maxoutbuf: '0'
     minoutbuf: '0'
-    nr_buffers: '64'
-    nr_waveforms: '5'
-    offset_ai_a: '0.0'
-    offset_ai_b: '0.0'
-    offset_ai_c: '5.0'
-    offset_ai_d: '0.0'
-    offset_ai_e: '0.0'
-    offset_ai_f: '0.0'
-    offset_ai_g: '5.0'
-    offset_ai_h: '0.0'
-    poll_rate: '0.0005'
-    post_samples: '10000'
-    pre_samples: '500000'
-    range_ai_a: '5'
-    range_ai_b: '1'
-    range_ai_c: '5.0'
-    range_ai_d: '5.0'
-    range_ai_e: '5'
-    range_ai_f: '5'
-    range_ai_g: '5.0'
-    range_ai_h: '5.0'
+    offset: '0'
+    phase: '0'
     samp_rate: samp_rate
-    serial_number: ''
-    trigger_direction: '0'
-    trigger_once: 'False'
-    trigger_source: None
-    trigger_threshold: '2.5'
+    type: float
+    waveform: analog.GR_COS_WAVE
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [416, 72.0]
+    coordinate: [216, 164.0]
     rotation: 0
-    state: enabled
+    state: true
+- name: analog_sig_source_x_0_0
+  id: analog_sig_source_x
+  parameters:
+    affinity: ''
+    alias: ''
+    amp: '2'
+    comment: ''
+    freq: '50'
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    offset: '0'
+    phase: '0.5'
+    samp_rate: samp_rate
+    type: float
+    waveform: analog.GR_COS_WAVE
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [192, 292.0]
+    rotation: 0
+    state: true
+- name: blocks_null_sink_0
+  id: blocks_null_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    bus_structure_sink: '[[0,],]'
+    comment: ''
+    num_inputs: '2'
+    type: float
+    vlen: '1'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [944, 328.0]
+    rotation: 0
+    state: true
+- name: pulsed_power_daq_power_calc_ff_0
+  id: pulsed_power_daq_power_calc_ff
+  parameters:
+    affinity: ''
+    alias: ''
+    alpha: '0.0001'
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [944, 192.0]
+    rotation: 0
+    state: true
+- name: pulsed_power_daq_power_calc_ff_prepper_0
+  id: pulsed_power_daq_power_calc_ff_prepper
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [528, 208.0]
+    rotation: 0
+    state: true
 - name: qtgui_time_sink_x_0
   id: qtgui_time_sink_x
   parameters:
@@ -136,15 +165,15 @@ blocks:
     color8: dark red
     color9: dark green
     comment: ''
-    ctrlpanel: 'False'
+    ctrlpanel: 'True'
     entags: 'True'
     grid: 'False'
     gui_hint: ''
-    label1: Signal 1
+    label1: P
     label10: Signal 10
-    label2: Signal 2
-    label3: Signal 3
-    label4: Signal 4
+    label2: Q
+    label3: S
+    label4: PHI
     label5: Signal 5
     label6: Signal 6
     label7: Signal 7
@@ -162,7 +191,7 @@ blocks:
     marker8: '-1'
     marker9: '-1'
     name: '""'
-    nconnections: '10'
+    nconnections: '4'
     size: '1024'
     srate: samp_rate
     stemplot: 'False'
@@ -202,7 +231,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [888, 72.0]
+    coordinate: [1144, 192.0]
     rotation: 0
     state: true
 - name: qtgui_time_sink_x_0_0
@@ -233,16 +262,16 @@ blocks:
     color8: dark red
     color9: dark green
     comment: ''
-    ctrlpanel: 'False'
+    ctrlpanel: 'True'
     entags: 'True'
     grid: 'False'
     gui_hint: ''
-    label1: Signal 1
+    label1: Phi
     label10: Signal 10
-    label2: Signal 2
-    label3: Signal 3
-    label4: Signal 4
-    label5: Signal 5
+    label2: band pass current
+    label3: band pass voltage
+    label4: raw current
+    label5: raw voltage
     label6: Signal 6
     label7: Signal 7
     label8: Signal 8
@@ -259,7 +288,7 @@ blocks:
     marker8: '-1'
     marker9: '-1'
     name: '""'
-    nconnections: '6'
+    nconnections: '5'
     size: '1024'
     srate: samp_rate
     stemplot: 'False'
@@ -299,27 +328,30 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [888, 392.0]
+    coordinate: [944, 400.0]
     rotation: 0
     state: true
 
 connections:
-- [pulsed_power_daq_picoscope_4000a_source_0, '0', qtgui_time_sink_x_0, '0']
-- [pulsed_power_daq_picoscope_4000a_source_0, '1', qtgui_time_sink_x_0, '1']
-- [pulsed_power_daq_picoscope_4000a_source_0, '10', qtgui_time_sink_x_0_0, '0']
-- [pulsed_power_daq_picoscope_4000a_source_0, '11', qtgui_time_sink_x_0_0, '1']
-- [pulsed_power_daq_picoscope_4000a_source_0, '12', qtgui_time_sink_x_0_0, '2']
-- [pulsed_power_daq_picoscope_4000a_source_0, '13', qtgui_time_sink_x_0_0, '3']
-- [pulsed_power_daq_picoscope_4000a_source_0, '14', qtgui_time_sink_x_0_0, '4']
-- [pulsed_power_daq_picoscope_4000a_source_0, '15', qtgui_time_sink_x_0_0, '5']
-- [pulsed_power_daq_picoscope_4000a_source_0, '2', qtgui_time_sink_x_0, '2']
-- [pulsed_power_daq_picoscope_4000a_source_0, '3', qtgui_time_sink_x_0, '3']
-- [pulsed_power_daq_picoscope_4000a_source_0, '4', qtgui_time_sink_x_0, '4']
-- [pulsed_power_daq_picoscope_4000a_source_0, '5', qtgui_time_sink_x_0, '5']
-- [pulsed_power_daq_picoscope_4000a_source_0, '6', qtgui_time_sink_x_0, '6']
-- [pulsed_power_daq_picoscope_4000a_source_0, '7', qtgui_time_sink_x_0, '7']
-- [pulsed_power_daq_picoscope_4000a_source_0, '8', qtgui_time_sink_x_0, '8']
-- [pulsed_power_daq_picoscope_4000a_source_0, '9', qtgui_time_sink_x_0, '9']
+- [analog_sig_source_x_0, '0', pulsed_power_daq_power_calc_ff_prepper_0, '0']
+- [analog_sig_source_x_0_0, '0', pulsed_power_daq_power_calc_ff_prepper_0, '1']
+- [pulsed_power_daq_power_calc_ff_0, '0', qtgui_time_sink_x_0, '0']
+- [pulsed_power_daq_power_calc_ff_0, '1', qtgui_time_sink_x_0, '1']
+- [pulsed_power_daq_power_calc_ff_0, '2', qtgui_time_sink_x_0, '2']
+- [pulsed_power_daq_power_calc_ff_0, '3', qtgui_time_sink_x_0, '3']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '0', pulsed_power_daq_power_calc_ff_0,
+  '2']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '0', qtgui_time_sink_x_0_0, '0']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '1', pulsed_power_daq_power_calc_ff_0,
+  '1']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '1', qtgui_time_sink_x_0_0, '1']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '2', pulsed_power_daq_power_calc_ff_0,
+  '0']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '2', qtgui_time_sink_x_0_0, '2']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '3', blocks_null_sink_0, '0']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '3', qtgui_time_sink_x_0_0, '3']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '4', blocks_null_sink_0, '1']
+- [pulsed_power_daq_power_calc_ff_prepper_0, '4', qtgui_time_sink_x_0_0, '4']
 
 metadata:
   file_format: 1
