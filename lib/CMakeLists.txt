@@ -101,15 +101,25 @@ message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
 ########################################################################
 include(GrTest)
 
+#if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage")
+#    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
+#    set(CMAKE_LD_FLAGS ${CMAKE_CXX_FLAGS} "-fprofile-arcs -ftest-coverage")
+#    message("building for debug, enabling coverage")
+#endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+
+
 # If your unit tests require special include paths, add them here
 #include_directories()
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_pulsed_power_daq_sources
-qa_power_calc_cc.cc
+#qa_power_calc_cc.cc
+qa_power_calc_ff.cc
 qa_picoscope_4000a_source.cc
 )
 # Anything we need to link to for the unit tests go here
 list(APPEND GR_TEST_TARGET_DEPS gnuradio-pulsed_power_daq)
+
 
 if(NOT test_pulsed_power_daq_sources)
     MESSAGE(STATUS "No C++ unit tests... skipping")
@@ -120,4 +130,7 @@ foreach(qa_file ${test_pulsed_power_daq_sources})
     GR_ADD_CPP_TEST("pulsed_power_daq_${qa_file}"
         ${CMAKE_CURRENT_SOURCE_DIR}/${qa_file}
     )
+    set(CTEST_COVERAGE_COMMAND ${CTEST_COVERAGE_COMMAND}   ${CMAKE_CURRENT_SOURCE_DIR}/pulsed_power_daq_${qa_file}_test.sh)
 endforeach(qa_file)
+
+#message(${CTEST_COVERAGE_COMMAND})

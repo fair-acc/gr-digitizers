@@ -99,20 +99,20 @@ class qa_power_calc_ff_prepper(gr_unittest.TestCase):
         result_vector_p   = self.blocks_vector_sink_p.data()
         result_vector_s   = self.blocks_vector_sink_s.data()
         result_vector_phi = self.blocks_vector_sink_phi.data()
-        expected_value_p = self.Fill_List(  samples_to_test - discarded_Samples, 0)
-        expected_value_q = self.Fill_List(  samples_to_test - discarded_Samples, 0)
-        expected_value_s = self.Fill_List(  samples_to_test - discarded_Samples, 0)
-        expected_value_phi = self.Fill_List(samples_to_test - discarded_Samples, 1)
+        expected_value_p   = self.Fill_List(samples_to_test - discarded_Samples, 0)
+        expected_value_q   = self.Fill_List(samples_to_test - discarded_Samples, 0)
+        expected_value_s   = self.Fill_List(samples_to_test - discarded_Samples, 0)
+        expected_value_phi = self.Fill_List(samples_to_test - discarded_Samples, 0)
         
         temp_q   = result_vector_p[discarded_Samples:samples_to_test]
         temp_p   = result_vector_q[discarded_Samples:samples_to_test]
         temp_s   = result_vector_s[discarded_Samples:samples_to_test]
         temp_phi = result_vector_phi[discarded_Samples:samples_to_test]
-        length_temp_q = len(temp_q)
-        length_q = len(expected_value_q)
-        self.assertFloatTuplesAlmostEqual(temp_q,   expected_value_p, 1)
-        self.assertFloatTuplesAlmostEqual(temp_p,   expected_value_q, 1)
-        self.assertFloatTuplesAlmostEqual(temp_s,   expected_value_s, 1)
+        #length_temp_q = len(temp_q)
+        #length_q = len(expected_value_q)
+        self.assertFloatTuplesAlmostEqual(temp_q,   expected_value_p,   1)
+        self.assertFloatTuplesAlmostEqual(temp_p,   expected_value_q,   1)
+        self.assertFloatTuplesAlmostEqual(temp_s,   expected_value_s,   1)
         self.assertFloatTuplesAlmostEqual(temp_phi, expected_value_phi, 1)
     
         

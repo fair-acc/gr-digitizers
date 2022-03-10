@@ -11,7 +11,9 @@
 ########################################################################
 cmake_minimum_required(VERSION 3.8)
 project(gr-pulsed_power_daq CXX C)
-enable_testing()
+include(CTest)
+#enable_testing()
+
 
 # Install to PyBOMBS target prefix if defined
 if(DEFINED ENV{PYBOMBS_PREFIX})

@@ -34,6 +34,7 @@ import signal
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
+from gnuradio import zeromq
 import pulsed_power_daq
 
 
@@ -81,11 +82,12 @@ class signal_source_to_prepper_to_power_calc_to_sink(gr.top_block, Qt.QWidget):
         ##################################################
         # Blocks
         ##################################################
+        self.zeromq_pub_sink_0 = zeromq.pub_sink(gr.sizeof_float, 1, 'tcp://10.0.0.2:5001', 100, False, -1, '')
         self.qtgui_time_sink_x_0_0 = qtgui.time_sink_f(
             1024, #size
             samp_rate, #samp_rate
             "", #name
-            5, #number of inputs
+            9, #number of inputs
             None # parent
         )
         self.qtgui_time_sink_x_0_0.set_update_time(0.10)
@@ -116,7 +118,7 @@ class signal_source_to_prepper_to_power_calc_to_sink(gr.top_block, Qt.QWidget):
             -1, -1, -1, -1, -1]
 
 
-        for i in range(5):
+        for i in range(9):
             if len(labels[i]) == 0:
                 self.qtgui_time_sink_x_0_0.set_line_label(i, "Data {0}".format(i))
             else:
@@ -129,54 +131,6 @@ class signal_source_to_prepper_to_power_calc_to_sink(gr.top_block, Qt.QWidget):
 
         self._qtgui_time_sink_x_0_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_time_sink_x_0_0_win)
-        self.qtgui_time_sink_x_0 = qtgui.time_sink_f(
-            1024, #size
-            samp_rate, #samp_rate
-            "", #name
-            4, #number of inputs
-            None # parent
-        )
-        self.qtgui_time_sink_x_0.set_update_time(0.10)
-        self.qtgui_time_sink_x_0.set_y_axis(-1, 1)
-
-        self.qtgui_time_sink_x_0.set_y_label('Amplitude', "")
-
-        self.qtgui_time_sink_x_0.enable_tags(True)
-        self.qtgui_time_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, 0, "")
-        self.qtgui_time_sink_x_0.enable_autoscale(False)
-        self.qtgui_time_sink_x_0.enable_grid(False)
-        self.qtgui_time_sink_x_0.enable_axis_labels(True)
-        self.qtgui_time_sink_x_0.enable_control_panel(True)
-        self.qtgui_time_sink_x_0.enable_stem_plot(False)
-
-
-        labels = ['P', 'Q', 'S', 'PHI', 'Signal 5',
-            'Signal 6', 'Signal 7', 'Signal 8', 'Signal 9', 'Signal 10']
-        widths = [1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1]
-        colors = ['blue', 'red', 'green', 'black', 'cyan',
-            'magenta', 'yellow', 'dark red', 'dark green', 'dark blue']
-        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
-            1.0, 1.0, 1.0, 1.0, 1.0]
-        styles = [1, 1, 1, 1, 1,
-            1, 1, 1, 1, 1]
-        markers = [-1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1]
-
-
-        for i in range(4):
-            if len(labels[i]) == 0:
-                self.qtgui_time_sink_x_0.set_line_label(i, "Data {0}".format(i))
-            else:
-                self.qtgui_time_sink_x_0.set_line_label(i, labels[i])
-            self.qtgui_time_sink_x_0.set_line_width(i, widths[i])
-            self.qtgui_time_sink_x_0.set_line_color(i, colors[i])
-            self.qtgui_time_sink_x_0.set_line_style(i, styles[i])
-            self.qtgui_time_sink_x_0.set_line_marker(i, markers[i])
-            self.qtgui_time_sink_x_0.set_line_alpha(i, alphas[i])
-
-        self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
-        self.top_layout.addWidget(self._qtgui_time_sink_x_0_win)
         self.pulsed_power_daq_power_calc_ff_prepper_0 = pulsed_power_daq.power_calc_ff_prepper()
         self.pulsed_power_daq_power_calc_ff_0 = pulsed_power_daq.power_calc_ff(0.0001)
         self.blocks_null_sink_0 = blocks.null_sink(gr.sizeof_float*1)
@@ -189,20 +143,21 @@ class signal_source_to_prepper_to_power_calc_to_sink(gr.top_block, Qt.QWidget):
         ##################################################
         self.connect((self.analog_sig_source_x_0, 0), (self.pulsed_power_daq_power_calc_ff_prepper_0, 0))
         self.connect((self.analog_sig_source_x_0_0, 0), (self.pulsed_power_daq_power_calc_ff_prepper_0, 1))
-        self.connect((self.pulsed_power_daq_power_calc_ff_0, 2), (self.qtgui_time_sink_x_0, 2))
-        self.connect((self.pulsed_power_daq_power_calc_ff_0, 0), (self.qtgui_time_sink_x_0, 0))
-        self.connect((self.pulsed_power_daq_power_calc_ff_0, 3), (self.qtgui_time_sink_x_0, 3))
-        self.connect((self.pulsed_power_daq_power_calc_ff_0, 1), (self.qtgui_time_sink_x_0, 1))
+        self.connect((self.pulsed_power_daq_power_calc_ff_0, 2), (self.qtgui_time_sink_x_0_0, 7))
+        self.connect((self.pulsed_power_daq_power_calc_ff_0, 0), (self.qtgui_time_sink_x_0_0, 5))
+        self.connect((self.pulsed_power_daq_power_calc_ff_0, 3), (self.qtgui_time_sink_x_0_0, 8))
+        self.connect((self.pulsed_power_daq_power_calc_ff_0, 1), (self.qtgui_time_sink_x_0_0, 6))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 3), (self.blocks_null_sink_0, 0))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 4), (self.blocks_null_sink_0, 1))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 2), (self.pulsed_power_daq_power_calc_ff_0, 0))
-        self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 1), (self.pulsed_power_daq_power_calc_ff_0, 1))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 0), (self.pulsed_power_daq_power_calc_ff_0, 2))
+        self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 1), (self.pulsed_power_daq_power_calc_ff_0, 1))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 3), (self.qtgui_time_sink_x_0_0, 3))
-        self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 1), (self.qtgui_time_sink_x_0_0, 1))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 4), (self.qtgui_time_sink_x_0_0, 4))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 2), (self.qtgui_time_sink_x_0_0, 2))
         self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 0), (self.qtgui_time_sink_x_0_0, 0))
+        self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 1), (self.qtgui_time_sink_x_0_0, 1))
+        self.connect((self.pulsed_power_daq_power_calc_ff_prepper_0, 4), (self.zeromq_pub_sink_0, 0))
 
 
     def closeEvent(self, event):
@@ -220,7 +175,6 @@ class signal_source_to_prepper_to_power_calc_to_sink(gr.top_block, Qt.QWidget):
         self.samp_rate = samp_rate
         self.analog_sig_source_x_0.set_sampling_freq(self.samp_rate)
         self.analog_sig_source_x_0_0.set_sampling_freq(self.samp_rate)
-        self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
         self.qtgui_time_sink_x_0_0.set_samp_rate(self.samp_rate)
 
 
