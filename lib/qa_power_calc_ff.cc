@@ -155,6 +155,7 @@ BOOST_AUTO_TEST_CASE(test_power_calc_ff_Calc_rms)
                 avg_rms_i = ((1-alpha)*avg_rms_i + alpha*curValue*curValue);
         }
 }
+//TODO: test phi phase correction
 BOOST_AUTO_TEST_SUITE_END();
     } /* namespace pulsed_power_daq */
 } /* namespace gr */

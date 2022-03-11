@@ -101,12 +101,6 @@ message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
 ########################################################################
 include(GrTest)
 
-#if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-#    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-g -O0 -Wall -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage")
-#    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-g -O0 -Wall -W -fprofile-arcs -ftest-coverage")
-#    set(CMAKE_LD_FLAGS ${CMAKE_CXX_FLAGS} "-fprofile-arcs -ftest-coverage")
-#    message("building for debug, enabling coverage")
-#endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 
 # If your unit tests require special include paths, add them here
@@ -115,7 +109,7 @@ include(GrTest)
 list(APPEND test_pulsed_power_daq_sources
 #qa_power_calc_cc.cc
 qa_power_calc_ff.cc
-qa_picoscope_4000a_source.cc
+#qa_picoscope_4000a_source.cc
 )
 # Anything we need to link to for the unit tests go here
 list(APPEND GR_TEST_TARGET_DEPS gnuradio-pulsed_power_daq)
@@ -126,11 +120,36 @@ if(NOT test_pulsed_power_daq_sources)
     return()
 endif(NOT test_pulsed_power_daq_sources)
 
-foreach(qa_file ${test_pulsed_power_daq_sources})
-    GR_ADD_CPP_TEST("pulsed_power_daq_${qa_file}"
-        ${CMAKE_CURRENT_SOURCE_DIR}/${qa_file}
-    )
-    set(CTEST_COVERAGE_COMMAND ${CTEST_COVERAGE_COMMAND}   ${CMAKE_CURRENT_SOURCE_DIR}/pulsed_power_daq_${qa_file}_test.sh)
-endforeach(qa_file)
 
-#message(${CTEST_COVERAGE_COMMAND})
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    foreach(qa_file ${test_pulsed_power_daq_sources})
+        string(LENGTH ${qa_file} qa_file_length)
+        math(EXPR truncated_filename_length "${qa_file_length} - 6")
+        string(SUBSTRING ${qa_file} 3 ${truncated_filename_length} truncated_qa_file)
+        set(target_to_build "test_${truncated_qa_file}")
+        add_executable(${target_to_build} ${CMAKE_CURRENT_SOURCE_DIR}/qa_power_calc_ff.cc)
+        
+        message("created target: ${target_to_build} ")
+        target_link_libraries(
+            ${target_to_build}
+            ${GR_TEST_TARGET_DEPS}
+            Boost::unit_test_framework
+        )
+        add_dependencies(${target_to_build}  ${GR_TEST_TARGET_DEPS} Boost::unit_test_framework)
+        set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O0")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+        set_target_properties(${target_to_build} 
+            PROPERTIES COMPILE_DEFINITIONS "BOOST_TEST_DYN_LINK;BOOST_TEST_MAIN"
+        )
+        setup_target_for_coverage_gcovr_html(NAME "test_${truncated_qa_file}_coverage" 
+                                            EXECUTABLE ${target_to_build}  ctest
+                                            DEPENDENCIES ${target_to_build}  ${GR_TEST_TARGET_DEPS}
+        )
+        add_test(NAME "testing_${truncated_qa_file}"
+                COMMAND ${target_to_build} 
+        )
+        
+    endforeach(qa_file)
+    append_coverage_compiler_flags()
+
+endif(CMAKE_BUILD_TYPE STREQUAL "Debug")

@@ -12,7 +12,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(gr-pulsed_power_daq CXX C)
 include(CTest)
-#enable_testing()
 
 
 # Install to PyBOMBS target prefix if defined
@@ -28,8 +27,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING "")
 
+
 # Make sure our local CMake Modules path comes first
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    include(CodeCoverage)
+endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 # Set the version information here
 set(VERSION_MAJOR 1)
