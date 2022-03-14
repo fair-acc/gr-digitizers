@@ -80,9 +80,9 @@ ENDIF()
 ########################################################################
 # Install directories
 ########################################################################
-find_package(Gnuradio "3.9" REQUIRED)
+set(GR_REQUIRED_COMPONENTS RUNTIME ANALOG BLOCKS)
+find_package(Gnuradio "3.9" REQUIRED COMPONENTS RUNTIME ANALOG BLOCKS)
 include(GrVersion)
-
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-Wl,--no-as-needed")
 include(GrPlatform) #define LIB_SUFFIX
 

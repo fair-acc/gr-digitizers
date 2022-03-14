@@ -109,6 +109,7 @@ include(GrTest)
 list(APPEND test_pulsed_power_daq_sources
 #qa_power_calc_cc.cc
 qa_power_calc_ff.cc
+qa_mains_frequency_calc.cc
 #qa_picoscope_4000a_source.cc
 )
 # Anything we need to link to for the unit tests go here
@@ -121,21 +122,33 @@ if(NOT test_pulsed_power_daq_sources)
 endif(NOT test_pulsed_power_daq_sources)
 
 
+message("deps: ${GR_TEST_TARGET_DEPS}")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    #include(GrPlatform)
+    find_package(gnuradio-blocks PATHS ${GR_PREFIX}/lib64/cmake/gnuradio/)
+    find_package(gnuradio-analog PATHS ${GR_PREFIX}/lib64/cmake/gnuradio/)
+    link_directories(
+	    ${Boost_LIBRARY_DIRS}
+	    ${GNURADIO_RUNTIME_LIBRARY_DIRS}
+	)
     foreach(qa_file ${test_pulsed_power_daq_sources})
         string(LENGTH ${qa_file} qa_file_length)
         math(EXPR truncated_filename_length "${qa_file_length} - 6")
         string(SUBSTRING ${qa_file} 3 ${truncated_filename_length} truncated_qa_file)
         set(target_to_build "test_${truncated_qa_file}")
-        add_executable(${target_to_build} ${CMAKE_CURRENT_SOURCE_DIR}/qa_power_calc_ff.cc)
+        add_executable(${target_to_build} ${CMAKE_CURRENT_SOURCE_DIR}/${qa_file})
         
         message("created target: ${target_to_build} ")
         target_link_libraries(
             ${target_to_build}
             ${GR_TEST_TARGET_DEPS}
             Boost::unit_test_framework
+            #${GNURADIO_ALL_LIBRARIES}
+            gnuradio-runtime
+            gnuradio-blocks
+            gnuradio-analog
         )
-        add_dependencies(${target_to_build}  ${GR_TEST_TARGET_DEPS} Boost::unit_test_framework)
+        add_dependencies(${target_to_build}  ${GR_TEST_TARGET_DEPS} Boost::unit_test_framework ${GNURADIO_ALL_LIBRARIES})
         set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -O0")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
         set_target_properties(${target_to_build} 
@@ -145,7 +158,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
                                             EXECUTABLE ${target_to_build}  ctest
                                             DEPENDENCIES ${target_to_build}  ${GR_TEST_TARGET_DEPS}
         )
-        add_test(NAME "testing_${truncated_qa_file}"
+        add_test(NAME "ctest_${truncated_qa_file}"
                 COMMAND ${target_to_build} 
         )
         

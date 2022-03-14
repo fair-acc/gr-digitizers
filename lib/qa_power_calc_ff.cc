@@ -16,7 +16,7 @@ namespace pulsed_power_daq {
 BOOST_AUTO_TEST_SUITE(power_calc_ff_testing);
 
 bool isSimilar(float first, float second, float decimals){
-        float difference = 1/decimals;
+        float difference = 1/(decimals*10);
         return abs(first-second) < difference;
 }
 
