@@ -183,10 +183,11 @@ using output_type = float;
       {
         return true;
       }
-      if (no_high > d_expected_sample_rate * seconds)
+      else if (no_high > d_expected_sample_rate * seconds)
       {
         return true;
       }
+      return false;
     }
 
     /**
