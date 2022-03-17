@@ -46,7 +46,7 @@ using output_type = float;
               no_low(0), 
               no_high(0),
               current_half_frequency(0),
-              average_frequency(50.0),   
+              average_frequency(50.0),
               d_alpha(0.007)
     {
       reset_no_low();
@@ -82,18 +82,49 @@ using output_type = float;
       average_frequency = d_alpha * current_half_frequency + (1 - d_alpha)  * average_frequency;
     }
 
+    bool mains_frequency_calc_impl::isAboveThresholdDuringUpperPeriod(float sample)
+    {
+      return sample >= d_hi && d_last_state;
+    }
+
+    bool mains_frequency_calc_impl::isBelowThresholdDuringUpperPeriod(float sample)
+    {
+      return sample >= d_lo &&  sample < d_hi && d_last_state;
+    }
+
+
+    bool mains_frequency_calc_impl::hasCrossedThresholdForUpperPeriod(float sample)
+    {
+      return sample >= d_hi && !d_last_state;
+    }
+
+    bool mains_frequency_calc_impl::hasCrossedThresholdForLowerPeriod(float sample)
+    {
+      return sample < d_lo && d_last_state;
+    }
+
+    bool mains_frequency_calc_impl::isBelowThresholdDuringLowerPeriod(float sample)
+    {
+      return sample < d_lo && !d_last_state;
+    }
+
+    bool mains_frequency_calc_impl::isAboveThresholdDuringLowerPeriod(float sample)
+    {
+      return sample >= d_lo &&  sample < d_hi && !d_last_state;
+    }
+
     /**
      * @brief Detects the flanks in order to messure the lenght of the upcoming period, calculating the previous period if if the flank falls or rises
      * 
      * @param mains_frequency_out The average mains frequency value buffer
      * @param samples_in The incoming samples of the signal which is observed
-     * @param noutput_items The samples currently available for cumputation
+     * @param noutput_items The samples currently available for computation
      */
     void mains_frequency_calc_impl::detect_mains_frequency_over_half_period(float* mains_frequency_out, const float* samples_in, int noutput_items)
     {
       for (int i = 0; i < noutput_items; i++)
       {
-        if ((float)(samples_in[i]) > d_hi && !d_last_state) 
+        if (hasCrossedThresholdForUpperPeriod(samples_in[i])) 
         {
           calc_frequency_per_halfed_period(no_low);
 
@@ -104,15 +135,15 @@ using output_type = float;
           d_last_state = true;
           no_high++;
         } 
-        else if ((float)(samples_in[i]) > d_hi && d_last_state) 
+        else if (isAboveThresholdDuringUpperPeriod(samples_in[i])) 
         {
           no_high++;
         } 
-        else if ((float)(samples_in[i]) > d_lo &&  (float)(samples_in[i]) < d_hi && d_last_state) 
+        else if (isBelowThresholdDuringUpperPeriod(samples_in[i])) 
         {  
           no_high++;
         }
-        else if ((float)(samples_in[i]) < d_lo && d_last_state)
+        else if (hasCrossedThresholdForLowerPeriod(samples_in[i]))
         {
           calc_frequency_per_halfed_period(no_high);
 
@@ -123,11 +154,11 @@ using output_type = float;
           d_last_state = false;
           no_low++;
         }
-        else if ((float)(samples_in[i]) < d_lo && !d_last_state)
+        else if (isBelowThresholdDuringLowerPeriod(samples_in[i]))
         {
           no_low++;
         }
-        else if ((float)(samples_in[i]) > d_lo &&  (float)(samples_in[i]) < d_hi && !d_last_state)
+        else if (isAboveThresholdDuringLowerPeriod(samples_in[i]))
         {
           no_low++;
         }
@@ -135,8 +166,26 @@ using output_type = float;
         {
           std::cerr << "ERROR: No matching condition!" << "\n";
         }
-
+        if (thresholdNotCrossedForGivenSeconds(5))
+        {
+          reset_no_low();
+          reset_no_high();
+          std::cerr << "ERROR: Too many samples without threshold crossed." << "\n";
+        }
+        
         mains_frequency_out[i] = average_frequency;
+      }
+    }
+    
+    bool mains_frequency_calc_impl::thresholdNotCrossedForGivenSeconds(int seconds)
+    {
+      if (no_low > d_expected_sample_rate * seconds)
+      {
+        return true;
+      }
+      if (no_high > d_expected_sample_rate * seconds)
+      {
+        return true;
       }
     }
 

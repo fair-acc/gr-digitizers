@@ -15,9 +15,9 @@ namespace gr {
 namespace pulsed_power_daq {
 
 /*!
- * \brief <+description of block+>
+ * \brief Calculates Frequency of main from signal. 
  * \ingroup pulsed_power_daq
- *
+ * \details Expects sine wave.
  */
 class PULSED_POWER_DAQ_API mains_frequency_calc : virtual public gr::sync_block
 {
@@ -26,12 +26,15 @@ public:
 
     /*!
      * \brief Return a shared_ptr to a new instance of
-     * pulsed_power_daq::mains_frequency_calc.
+     * pulsed_power_daq::mains_frequency_calc. blubb
      *
-     * To avoid accidental use of raw pointers, pulsed_power_daq::mains_frequency_calc's
-     * constructor is in a private implementation
-     * class. pulsed_power_daq::mains_frequency_calc::make is the public interface for
-     * creating new instances.
+     * \param expected_sample_rate This Block needs to know the sample rate to accurately calculate the signal's frequency.
+     * \param low_threshold Low Threshold at which to start counting the half period. 
+     * Ideally mirrored with high_threshold at zero. 
+     * Needs to be smaller than the expected amplitude.
+     * \param high_threshold High Threshold at which to start counting the other half period. 
+     * Ideally mirrored with low_threshold at zero.
+     * Needs to be smaller than the expected amplitude.
      */
     static sptr make(float expected_sample_rate, float low_threshold, float high_threshold);
 };

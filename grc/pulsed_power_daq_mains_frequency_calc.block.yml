@@ -52,6 +52,11 @@ outputs:
 #  vlen: ...
 #  optional: ...
 
+documentation: |-
+    This block calculates mains frequency. 
+    For computation the expected sample rate needs to match the input sample rate.
+    Thresholds are the measure points for half periods. They need to fall within the input's amplitude.
+
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.
 file_format: 1

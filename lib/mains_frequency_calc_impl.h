@@ -30,6 +30,16 @@ public:
       void reset_no_low();
       void reset_no_high();
 
+
+      
+      bool thresholdNotCrossedForGivenSeconds(int seconds);
+      bool isAboveThresholdDuringUpperPeriod(float sample);
+      bool isBelowThresholdDuringUpperPeriod(float sample);
+      bool hasCrossedThresholdForUpperPeriod(float sample);
+      bool hasCrossedThresholdForLowerPeriod(float sample);
+      bool isBelowThresholdDuringLowerPeriod(float sample);
+      bool isAboveThresholdDuringLowerPeriod(float sample);
+
       // Where all the action really happens
       int work(
               int noutput_items,
