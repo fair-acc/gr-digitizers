@@ -52,4 +52,9 @@ outputs:
   dtype: float
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.
+
+documentation: |-
+    This block calculates Apparent, Active and Reactive power and phase shift. Adapted to work with picoscope 4000a.
+    To properly use, add power calc prepper as inputs for this block.
+
 file_format: 1

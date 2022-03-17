@@ -50,4 +50,9 @@ outputs:
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.
+
+documentation: |-
+    Deprecated, use power_calc_ff instead.
+    This block calculates Apparent, Active and Reactive power and phase shift. Adapted to work with picoscope 4000a.
+
 file_format: 1

@@ -15,7 +15,7 @@ namespace gr {
 namespace pulsed_power_daq {
 
 /*!
- * \brief <+description of block+>
+ * documentation in yaml file
  * \ingroup pulsed_power_daq
  *
  */

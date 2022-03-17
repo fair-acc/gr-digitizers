@@ -14,7 +14,7 @@
 /* BINDTOOL_GEN_AUTOMATIC(0)                                                       */
 /* BINDTOOL_USE_PYGCCXML(0)                                                        */
 /* BINDTOOL_HEADER_FILE(power_calc_ff.h)                                        */
-/* BINDTOOL_HEADER_FILE_HASH(2eac4d78269c08227659eedf5ca48333)                     */
+/* BINDTOOL_HEADER_FILE_HASH(c1b05ee0a768300fc364dc0639a72a91)                     */
 /***********************************************************************************/
 
 #include <pybind11/complex.h>
@@ -30,22 +30,26 @@ namespace py = pybind11;
 void bind_power_calc_ff(py::module& m)
 {
 
-    using power_calc_ff    = gr::pulsed_power_daq::power_calc_ff;
+    using power_calc_ff    = ::gr::pulsed_power_daq::power_calc_ff;
 
 
     py::class_<power_calc_ff, gr::sync_block, gr::block, gr::basic_block,
         std::shared_ptr<power_calc_ff>>(m, "power_calc_ff", D(power_calc_ff))
 
         .def(py::init(&power_calc_ff::make),
-           py::arg("alpha") =  0.0000001,
+           py::arg("alpha") = 9.9999999999999995E-8,
            D(power_calc_ff,make)
         )
-    
+        
 
-        // .def("set_alpha",&power_calc_ff::set_alpha,       
-        //     py::arg("alpha"),
-        //     D(power_calc_cc,set_alpha)
-        // )
+
+
+
+        
+        .def("set_alpha",&power_calc_ff::set_alpha,       
+            py::arg("alpha"),
+            D(power_calc_ff,set_alpha)
+        )
 
         ;
 

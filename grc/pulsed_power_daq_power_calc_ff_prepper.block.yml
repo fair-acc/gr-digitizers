@@ -55,4 +55,9 @@ outputs:
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.
+
+documentation: |-
+    This block prepares data for power calc block. Use in conjunction with power calc advised. Adapted to work with picoscope 4000a.
+    It will multiply input current signal by 100 and input voltage by 2.5, since these are the expected ranges from picoscope.
+
 file_format: 1
