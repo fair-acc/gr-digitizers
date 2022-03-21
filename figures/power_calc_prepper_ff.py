@@ -6,7 +6,7 @@
 # GNU Radio Python Flow Graph
 # Title: power_calc_prepper_ff
 # Author: neumann
-# GNU Radio version: 3.10.0.0
+# GNU Radio version: 3.10.1.1
 
 from gnuradio import analog
 from gnuradio import blocks
@@ -24,7 +24,7 @@ import signal
 
 
 class power_calc_prepper_ff(gr.hier_block2):
-    def __init__(self, bp_decimantion=20, bp_high_cut=80, bp_low_cut=20, bp_trans=10, current_correction_factor=2.5, in_samp_rate=200000, lp_decimantion=1, out_samp_rate=10000, voltage_correction_factor=100):
+    def __init__(self, bp_decimantion=20, bp_high_cut=80, bp_low_cut=20, bp_trans=10, current_correction_factor=2.5, in_samp_rate=2000000, lp_decimantion=1, out_samp_rate=100000, voltage_correction_factor=100):
         gr.hier_block2.__init__(
             self, "power_calc_prepper_ff",
                 gr.io_signature.makev(2, 2, [gr.sizeof_float*1, gr.sizeof_float*1]),
@@ -47,6 +47,16 @@ class power_calc_prepper_ff(gr.hier_block2):
         ##################################################
         # Blocks
         ##################################################
+        self.rational_resampler_xxx_0_0 = filter.rational_resampler_fff(
+                interpolation=1,
+                decimation=bp_decimantion,
+                taps=[],
+                fractional_bw=0)
+        self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
+                interpolation=1,
+                decimation=bp_decimantion,
+                taps=[],
+                fractional_bw=0)
         self.low_pass_filter_0_1_2 = filter.fir_filter_fff(
             lp_decimantion,
             firdes.low_pass(
@@ -134,9 +144,9 @@ class power_calc_prepper_ff(gr.hier_block2):
         self.connect((self.blocks_divide_xx_0, 0), (self.blocks_transcendental_0, 0))
         self.connect((self.blocks_divide_xx_0_0, 0), (self.blocks_transcendental_0_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.band_pass_filter_0_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_0, 0), (self, 4))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.rational_resampler_xxx_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0_0, 0), (self.band_pass_filter_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_0_0, 0), (self, 3))
+        self.connect((self.blocks_multiply_const_vxx_0_0, 0), (self.rational_resampler_xxx_0_0, 0))
         self.connect((self.blocks_multiply_xx_0, 0), (self.low_pass_filter_0_1, 0))
         self.connect((self.blocks_multiply_xx_0_0, 0), (self.low_pass_filter_0_1_0, 0))
         self.connect((self.blocks_multiply_xx_0_1, 0), (self.low_pass_filter_0_1_1, 0))
@@ -150,6 +160,8 @@ class power_calc_prepper_ff(gr.hier_block2):
         self.connect((self.low_pass_filter_0_1_2, 0), (self.blocks_divide_xx_0_0, 0))
         self.connect((self, 0), (self.blocks_multiply_const_vxx_0_0, 0))
         self.connect((self, 1), (self.blocks_multiply_const_vxx_0, 0))
+        self.connect((self.rational_resampler_xxx_0, 0), (self, 4))
+        self.connect((self.rational_resampler_xxx_0_0, 0), (self, 3))
 
 
     def get_bp_decimantion(self):

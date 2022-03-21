@@ -31,7 +31,7 @@ parameters:
 -   id: in_samp_rate
     label: in-coming samp rate
     dtype: real
-    default: '200000'
+    default: '2000000'
     hide: none
 -   id: lp_decimantion
     label: low pass decimantion
@@ -41,7 +41,7 @@ parameters:
 -   id: out_samp_rate
     label: out-going samp rate
     dtype: real
-    default: '10000'
+    default: '100000'
     hide: none
 -   id: voltage_correction_factor
     label: Voltage Correction Factor
@@ -98,7 +98,7 @@ templates:
 
 documentation: 'neumann
 
-    /home/gsi/Projects/pulsed_power_daq-bind/gr-digitizers/figures/power_calc_prepper_ff.py'
-grc_source: /home/gsi/Projects/pulsed_power_daq-bind/gr-digitizers/figures/power_calc_entry_point_ff.grc
+    /home/gsi/Projects/gr-digitizers/figures/power_calc_prepper_ff.py'
+grc_source: /home/gsi/Projects/gr-digitizers/figures/power_calc_entry_point_ff.grc
 
 file_format: 1

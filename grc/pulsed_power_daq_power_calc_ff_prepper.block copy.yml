@@ -2,13 +2,6 @@ id: pulsed_power_daq_power_calc_ff_prepper
 label: power_calc_ff_prepper
 category: '[pulsed_power_daq]'
 
-templates:
-    imports: import pulsed_power_daq
-    make: "pulsed_power_daq.power_calc_ff_prepper(\n    bp_decimation=${ bp_decimation }, samp_rate=${ samp_rate })"
-
-    callbacks:
-    - set_bp_decimation(${ bp_decimation })
-    - set_samp_rate(${ samp_rate })
 
 #  Make one 'parameters' list entry for every parameter you want settable from the GUI.
 #     Keys include:
@@ -18,15 +11,13 @@ templates:
 #     * default
 parameters:
 - id: bp_decimation
-  label: bandpass decimation
-  dtype: int
-  default: 20
-  hide: none
+ label: Bandpassfilter's decimation
+ dtype: float
+ default: 20
 - id: samp_rate
-  label: Input Sample Rate
-  dtype: int
-  default: 2000000
-  hide: none
+ label: Input Sample Rate
+ dtype: float
+ default: 2000000
 #- id: ...
 #  label: ...
 #  dtype: ...
@@ -59,6 +50,15 @@ outputs:
   dtype: float
 - label: Raw Voltage
   dtype: float
+
+templates:
+    imports: import pulsed_power_daq
+    make: "pulsed_power_daq.power_calc_ff_prepper(\n    bp_decimation=${ bp_decimation }, samp_rate=${ samp_rate })"
+
+    callbacks:
+    - set_bp_decimation(${ bp_decimation })
+    - set_samp_rate(${ samp_rate })
+
 #  domain: ...
 #  vlen: ...
 #  optional: ...
@@ -69,7 +69,5 @@ outputs:
 documentation: |-
     This block prepares data for power calc block. Use in conjunction with power calc advised. Adapted to work with picoscope 4000a.
     It will multiply input current signal by 100 and input voltage by 2.5, since these are the expected ranges from picoscope.
-    parameters:
-      bandpass decimation: factor by which sample rate will be cut for output sample rate. Output sample rate will be input_sample_rate/decimation
 
 file_format: 1

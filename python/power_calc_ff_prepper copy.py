@@ -24,6 +24,9 @@ import signal
 
 
 class power_calc_ff_prepper(gr.hier_block2):
+    """This block prepares data for power calc block. Use in conjunction with power calc advised. Adapted to work with picoscope 4000a.
+    It will multiply input current signal by 100 and input voltage by 2.5, since these are the expected ranges from picoscope.
+    """
     def __init__(self, bp_decimation = 20, samp_rate = 2000000):
         gr.hier_block2.__init__(
             self, "power_calc_ff_prepper",
@@ -34,36 +37,28 @@ class power_calc_ff_prepper(gr.hier_block2):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 200000
+        self.out_samp_rate = 0
+        self.samp_rate = samp_rate
         self.lp_trans = lp_trans = 10
         self.lp_gain = lp_gain = 1
         self.lp_decimation = lp_decimation = 1
-        self.lp_cut = lp_cut = 60
+        self.lp_trans = lp_trans = 60
         self.bp_trans = bp_trans = 10
         self.bp_low_cut = bp_low_cut = 20
         self.bp_high_cut = bp_high_cut = 80
         self.bp_gain = bp_gain = 1
-        self.bp_decimation = bp_decimation = 20
-        self.out_samp_rate = out_samp_rate = samp_rate/bp_decimation
+        self.bp_decimation = bp_decimation
+        self.out_samp_rate = samp_rate/bp_decimation
+        self.lp_cut = lp_cut = 60
 
         ##################################################
         # Blocks
         ##################################################
-        self.rational_resampler_xxx_0_0 = filter.rational_resampler_fff(
-                interpolation=1,
-                decimation=bp_decimation,
-                taps=[],
-                fractional_bw=0)
-        self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
-                interpolation=1,
-                decimation=bp_decimation,
-                taps=[],
-                fractional_bw=0)
         self.low_pass_filter_0_1_2 = filter.fir_filter_fff(
             lp_decimation,
             firdes.low_pass(
                 lp_gain,
-                out_samp_rate,
+                self.out_samp_rate,
                 lp_cut,
                 lp_trans,
                 window.WIN_HAMMING,
@@ -72,7 +67,7 @@ class power_calc_ff_prepper(gr.hier_block2):
             lp_decimation,
             firdes.low_pass(
                 lp_gain,
-                out_samp_rate,
+                self.out_samp_rate,
                 lp_cut,
                 lp_trans,
                 window.WIN_HAMMING,
@@ -81,7 +76,7 @@ class power_calc_ff_prepper(gr.hier_block2):
             lp_decimation,
             firdes.low_pass(
                 lp_gain,
-                out_samp_rate,
+                self.out_samp_rate,
                 lp_cut,
                 lp_trans,
                 window.WIN_HAMMING,
@@ -90,7 +85,7 @@ class power_calc_ff_prepper(gr.hier_block2):
             lp_decimation,
             firdes.low_pass(
                 lp_gain,
-                out_samp_rate,
+                self.out_samp_rate,
                 lp_cut,
                 lp_trans,
                 window.WIN_HAMMING,
@@ -126,8 +121,8 @@ class power_calc_ff_prepper(gr.hier_block2):
                 bp_trans,
                 window.WIN_HANN,
                 6.76))
-        self.analog_sig_source_x_0_1 = analog.sig_source_f(out_samp_rate, analog.GR_SIN_WAVE, 55, 1, 0, 0)
-        self.analog_sig_source_x_0_0_0 = analog.sig_source_f(out_samp_rate, analog.GR_COS_WAVE, 55, 1, 0, 0)
+        self.analog_sig_source_x_0_1 = analog.sig_source_f(self.out_samp_rate, analog.GR_SIN_WAVE, 55, 1, 0, 0)
+        self.analog_sig_source_x_0_0_0 = analog.sig_source_f(self.out_samp_rate, analog.GR_COS_WAVE, 55, 1, 0, 0)
 
 
         ##################################################
@@ -146,9 +141,9 @@ class power_calc_ff_prepper(gr.hier_block2):
         self.connect((self.blocks_divide_xx_0, 0), (self.blocks_transcendental_0, 0))
         self.connect((self.blocks_divide_xx_0_0, 0), (self.blocks_transcendental_0_0, 0))
         self.connect((self.blocks_multiply_const_vxx_0, 0), (self.band_pass_filter_0_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_0, 0), (self.rational_resampler_xxx_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0, 0), (self, 4))
         self.connect((self.blocks_multiply_const_vxx_0_0, 0), (self.band_pass_filter_0, 0))
-        self.connect((self.blocks_multiply_const_vxx_0_0, 0), (self.rational_resampler_xxx_0_0, 0))
+        self.connect((self.blocks_multiply_const_vxx_0_0, 0), (self, 3))
         self.connect((self.blocks_multiply_xx_0, 0), (self.low_pass_filter_0_1, 0))
         self.connect((self.blocks_multiply_xx_0_0, 0), (self.low_pass_filter_0_1_0, 0))
         self.connect((self.blocks_multiply_xx_0_1, 0), (self.low_pass_filter_0_1_1, 0))
@@ -162,8 +157,6 @@ class power_calc_ff_prepper(gr.hier_block2):
         self.connect((self.low_pass_filter_0_1_2, 0), (self.blocks_divide_xx_0_0, 0))
         self.connect((self, 0), (self.blocks_multiply_const_vxx_0_0, 0))
         self.connect((self, 1), (self.blocks_multiply_const_vxx_0, 0))
-        self.connect((self.rational_resampler_xxx_0, 0), (self, 4))
-        self.connect((self.rational_resampler_xxx_0_0, 0), (self, 3))
 
 
     def get_samp_rate(self):
@@ -174,7 +167,7 @@ class power_calc_ff_prepper(gr.hier_block2):
         self.band_pass_filter_0.set_taps(firdes.band_pass(self.bp_gain, self.samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
         self.band_pass_filter_0_0.set_taps(firdes.band_pass(self.bp_gain, self.samp_rate, self.bp_low_cut, self.bp_high_cut, self.bp_trans, window.WIN_HANN, 6.76))
         self.set_out_samp_rate(self, samp_rate/self.bp_decimation)
-        
+
     def get_out_samp_rate(self):
         return self.out_samp_rate
 
