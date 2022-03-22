@@ -88,7 +88,7 @@ class qa_power_calc_ff_prepper(gr_unittest.TestCase):
         dst = blocks.vector_sink_f()
         self.analog_sig_source_current.set_offset(0.5)
         
-        seconds_to_discard = 1
+        seconds_to_discard = 5
         discarded_Samples = self.samp_rate * seconds_to_discard
         
         seconds_to_test = 2
