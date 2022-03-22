@@ -56,5 +56,7 @@ outputs:
 documentation: |-
     This block calculates Apparent, Active and Reactive power and phase shift. Adapted to work with picoscope 4000a.
     To properly use, add power calc prepper as inputs for this block.
+    Argument alpha denotes how fast new information is taken into account. 
+        Lower values will make it slower to react, but ignore small irregularities in input data
 
 file_format: 1
