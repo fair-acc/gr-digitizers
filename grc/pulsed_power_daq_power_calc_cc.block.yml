@@ -52,7 +52,7 @@ outputs:
 #  and should usually not be changed.
 
 documentation: |-
-    Deprecated, use power_calc_ff instead.
-    This block calculates Apparent, Active and Reactive power and phase shift. Adapted to work with picoscope 4000a.
+    "Can't be used effectively since gnuradio's complex band pass filter does not calculate its output values correctly, use power_calc_ff instead.
+    This block calculates Apparent, Active and Reactive power and phase shift. Adapted to work with picoscope 4000a."
 
 file_format: 1
