@@ -169,3 +169,16 @@ In *libs* folder create a qa file. Include your file to be tested as *#include "
 You can put your test cases in suites for better compartmentalization. Each test is surrounded by *BOOST_AUTO_TEST_CASE(test_name);* and *BOOST_AUTO_TEST_SUITE_END();*
 
 Then add your qa file to *lib/CMakeLists.txt* under *list(APPEND test_project_sources ... )*
+
+How to do coverage testing
+=====================================================
+
+Execute cmake with Debug flag:
+
+    cmake ../ -DCMAKE_BUILD_TYPE=Debug
+
+*make* and then execute
+
+    ctest -D Experimental Coverage
+
+This will create the responding gcov files to check for coverage.
