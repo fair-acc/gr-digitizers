@@ -32,3 +32,4 @@ include(GrTest)
 
 set(GR_TEST_TARGET_DEPS gnuradio-pulsed_power_daq)
 GR_ADD_TEST(qa_power_calc_ff_prepper ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_power_calc_ff_prepper.py)
+GR_ADD_TEST(qa_power_calc_mul_ph_ff ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_power_calc_mul_ph_ff.py)

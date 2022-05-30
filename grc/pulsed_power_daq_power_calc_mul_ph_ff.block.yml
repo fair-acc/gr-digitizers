@@ -1,0 +1,109 @@
+id: pulsed_power_daq_power_calc_mul_ph_ff
+label: power_calc_mul_ph_ff
+category: '[pulsed_power_daq]'
+
+templates:
+  imports: import pulsed_power_daq
+  make: pulsed_power_daq.power_calc_mul_ph_ff(${alpha})
+
+#  Make one 'parameters' list entry for every parameter you want settable from the GUI.
+#     Keys include:
+#     * id (makes the value accessible as keyname, e.g. in the make entry)
+#     * label (label shown in the GUI)
+#     * dtype (e.g. int, float, complex, byte, short, xxx_vector, ...)
+#     * default
+parameters:
+- id: alpha
+  label: Alpha
+  dtype: real
+  default: '0.0001'
+#- id: ...
+#  label: ...
+#  dtype: ...
+
+#  Make one 'inputs' list entry per input and one 'outputs' list entry per output.
+#  Keys include:
+#      * label (an identifier for the GUI)
+#      * domain (optional - stream or message. Default is stream)
+#      * dtype (e.g. int, float, complex, byte, short, xxx_vector, ...)
+#      * vlen (optional - data stream vector length. Default is 1)
+#      * optional (optional - set to 1 for optional inputs. Default is 0)
+inputs:
+- label: Voltage_1
+  dtype: float
+
+- label: Current_1
+  dtype: float
+
+- label: DeltaPHI_1
+  dtype: float
+
+- label: Voltage_2
+  dtype: float
+
+- label: Current_2
+  dtype: float
+
+- label: DeltaPHI_2
+  dtype: float
+
+- label: Voltage_3
+  dtype: float
+
+- label: Current_3
+  dtype: float
+
+- label: DeltaPHI_3
+  dtype: float
+
+outputs:
+- label: P_1
+  dtype: float
+
+- label: Q_1
+  dtype: float
+
+- label: S_1
+  dtype: float
+
+- label: Phi_1
+  dtype: float
+
+- label: P_2
+  dtype: float
+
+- label: Q_2
+  dtype: float
+
+- label: S_2
+  dtype: float
+
+- label: Phi_2
+  dtype: float
+
+- label: P_3
+  dtype: float
+
+- label: Q_3
+  dtype: float
+
+- label: S_3
+  dtype: float
+
+- label: Phi_3
+  dtype: float
+
+- label: P_acc
+  dtype: float
+
+- label: Q_acc
+  dtype: float
+
+- label: S_acc
+  dtype: float
+
+
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1

@@ -25,6 +25,7 @@ namespace py = pybind11;
     void bind_power_calc_ff(py::module& m);
     void bind_mains_frequency_calc(py::module& m);
     void bind_power_calc_cc(py::module& m);
+    void bind_power_calc_mul_ph_ff(py::module& m);
 // ) END BINDING_FUNCTION_PROTOTYPES
 
 
@@ -57,5 +58,6 @@ PYBIND11_MODULE(pulsed_power_daq_python, m)
     bind_power_calc_ff(m);
     bind_mains_frequency_calc(m);
     bind_power_calc_cc(m);
+    bind_power_calc_mul_ph_ff(m);
     // ) END BINDING_FUNCTION_CALLS
 }
