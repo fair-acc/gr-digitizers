@@ -45,7 +45,7 @@ namespace gr {
     }
 
     /**
-     * @brief Generates a timestamp (per routine) of milliseconds since New York 1970 UTC and splits them into to floats | convert back uint64_t int64 = ((long long) out[0] << 32) | out[1];
+     * @brief Generates a timestamp (per routine) of milliseconds since New York 1970 UTC and splits them into two floats | convert back uint64_t int64 = ((long long) out[0] << 32) | out[1];
      * 
      * @param out The pointer containing 2 values, the first 4 byte (high) and the last 4 byte (low) | out[0]=>high; out[1]=>low
      */
@@ -103,11 +103,11 @@ namespace gr {
         for (int i = 0; i < noutput_items; i++)
         { 
           float temp = 0;
-          if (!isnan(delta_phi[i]))
+          if (!isnan(delta_phi[i]) && delta_phi[i] >= 0 && delta_phi[i] <= 2 * M_PI) //check for valid value range -> always > 0?
           {
             temp = delta_phi[i];
             d_last_valid_phi = temp;
-          } 
+          }
           else 
           {
             temp = d_last_valid_phi;
@@ -176,7 +176,7 @@ namespace gr {
      */
     void power_calc_ff_impl::calc_apparent_power(float* out, float* voltage, float* current, int noutput_items)
     {
-        for (int i = 0; i < noutput_items; i++) 
+        for (int i = 0; i < noutput_items; i++)
         {
           out[i] = (float)(voltage[i] * current[i]);
         }
