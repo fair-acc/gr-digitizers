@@ -47,4 +47,4 @@ $ cat ~/.gnuradio/config.conf
 local_blocks_path=/path/to/gr-digitizer/install/location/share/gnuradio/grc/blocks
 ```
 
-Check [this directory](examples) for wide range of examples.
+Check [this directory](examples) for a wide range of examples.
