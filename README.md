@@ -14,8 +14,6 @@ which needs to be installed into the /opt/picoscope directory.
 
 Download and install PicoScope drivers from here: [https://www.picotech.com/downloads/linux](https://www.picotech.com/downloads/linux).
 
-In order to build the gr-digitizers module please follow the following steps:
-
 ```shell
 $ mkdir gr-digitizers/build
 $ cd gr-digitizers/build
