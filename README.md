@@ -1,5 +1,13 @@
 
-# Building
+# gr-digitizers
+
+`gr-digitizers` is a collection of gnuradio blocks for signal processing.
+
+- It supports the usage of some [picotech](https://www.picotech.com/) soft oscilloscope devices as signal source.
+- In order to allign the data in time, gnuradio tags are used which are send together with the data.
+- Each data signal as well has a corresponding [rms](https://en.wikipedia.org/wiki/Root_mean_square)-error signal which is passed down the flowgraph together with the data.
+
+## Building and install
 
 In a nutshell we have three main dependencies:
  - [GNU Radio](https://www.gnuradio.org/) (boost, fftw, and some other libraries are required via dependency tree)
@@ -9,8 +17,6 @@ In a nutshell we have three main dependencies:
 GNU Radio and ROOT could be compiled/linked statically and required libraries could be in principle copied
 and deployed together with the test deploy unit. The only problem is PicoScope library (well libraries)
 which needs to be installed into the /opt/picoscope directory.
-
-# Building and install
 
 Download and install PicoScope drivers from here: [https://www.picotech.com/downloads/linux](https://www.picotech.com/downloads/linux).
 
@@ -37,7 +43,7 @@ $ lib/test-digitizers --enable-ps3000a-tests
 
 Note, HW related tests cannot be run in parallel.
 
-# Usage
+## Usage
 
 If you installed into a folder different from `/opt/gnuradio`, you will need to add the location of the new blocks into your `~/.gnuradio/config.conf`
 
