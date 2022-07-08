@@ -26,7 +26,7 @@ Afterwards, you can build `gr-digitizers` like this:
 $ mkdir gr-digitizers/build
 $ cd gr-digitizers/build
 $ cmake .. -DENABLE_GR_LOG=1 \
-           -DENABLE_STATIC_LIBS=ONN
+           -DENABLE_STATIC_LIBS=ON
 $ make
 $ ./lib/test_digitizers_test.sh # runs unit tests
 $ make install
