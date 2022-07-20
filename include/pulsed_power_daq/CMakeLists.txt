@@ -26,5 +26,6 @@ install(FILES
     power_calc_ff.h
     mains_frequency_calc.h
     power_calc_cc.h
-    power_calc_mul_ph_ff.h DESTINATION include/pulsed_power_daq
+    power_calc_mul_ph_ff.h
+    opencmw_sink.h DESTINATION include/pulsed_power_daq
 )

@@ -18,7 +18,8 @@ list(APPEND pulsed_power_daq_sources
     power_calc_ff_impl.cc
     mains_frequency_calc_impl.cc
     power_calc_cc_impl.cc
-    power_calc_mul_ph_ff_impl.cc )
+    power_calc_mul_ph_ff_impl.cc
+    opencmw_sink_impl.cc )
 
 
 set(pulsed_power_daq_sources "${pulsed_power_daq_sources}" PARENT_SCOPE)
@@ -71,6 +72,21 @@ include(GrMiscUtils)
 GR_LIBRARY_FOO(gnuradio-pulsed_power_daq)
 
 ########################################################################
+# add opencmw
+########################################################################
+include(FetchContent)
+
+FetchContent_Declare(
+        opencmw-cpp
+        GIT_REPOSITORY https://github.com/fair-acc/opencmw-cpp.git
+        GIT_TAG main # todo: use proper release once available
+)
+
+set(ENABLE_TESTING OFF)
+FetchContent_MakeAvailable(opencmw-cpp)
+target_link_libraries(gnuradio-pulsed_power_daq majordomo)
+
+########################################################################
 # add picoscope
 ########################################################################
 #set(PS4000A_EXPORT_NAME ps4000aTargets)
@@ -102,12 +118,13 @@ message(STATUS "Building for version: ${VERSION} / ${LIBVER}")
 ########################################################################
 include(GrTest)
 
-
+find_package(Boost)
 
 # If your unit tests require special include paths, add them here
 #include_directories()
 # List all files that contain Boost.UTF unit tests here
 list(APPEND test_pulsed_power_daq_sources
+qa_opencmw_sink.cc
 qa_power_calc_mul_ph_ff.cc
 qa_power_calc_ff.cc
 qa_mains_frequency_calc.cc
