@@ -298,7 +298,7 @@ namespace gr {
     };
 
     int16_t
-    convert_voltage_to_ps6000_raw_logic_value(double voltage, float channel_range)
+    convert_voltage_to_ps6000_raw_adc_count(double voltage, float channel_range)
     {
       if (fabs(voltage) > double (fabs(channel_range))) {
           std::ostringstream message;
@@ -534,28 +534,10 @@ namespace gr {
       if (d_trigger_settings.is_enabled()
              && d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK)
       {
-        float channel_range;
-        if (d_trigger_settings.source == "A")
-            channel_range = d_channel_settings[0].range;
-        else if (d_trigger_settings.source == "B")
-            channel_range = d_channel_settings[1].range;
-        else if (d_trigger_settings.source == "C")
-            channel_range = d_channel_settings[2].range;
-        else if (d_trigger_settings.source == "D")
-            channel_range = d_channel_settings[3].range;
-        else if (d_trigger_settings.source == "AUX")
-            channel_range = 1.; // AUX can only be used for triggering, has a fixed Range of +/-1V according to Programmers guideline
-        else {
-            std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Invalid Channel Name: " << d_trigger_settings.source;
-            GR_LOG_ERROR(d_logger, message.str());
-            return make_pico_6000_error_code(status);
-        }
-
         status = ps6000SetSimpleTrigger(d_handle,
               true,  // enable
               convert_to_ps6000_channel(d_trigger_settings.source),
-              convert_voltage_to_ps6000_raw_logic_value(d_trigger_settings.threshold, channel_range),
+              convert_voltage_to_ps6000_raw_adc_count(d_trigger_settings.threshold, get_aichan_range(d_trigger_settings.source)),
               convert_to_ps6000_threshold_direction(d_trigger_settings.direction),
               0,     // delay
              -1);    // auto trigger
