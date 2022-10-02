@@ -14,8 +14,8 @@
 #include "qa_signal_averager.h"
 #include <digitizers/signal_averager.h>
 #include <digitizers/tags.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 
 namespace gr {
   namespace digitizers {

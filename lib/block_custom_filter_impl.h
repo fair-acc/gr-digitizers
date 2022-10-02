@@ -13,8 +13,7 @@
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/filter/single_pole_iir_filter_ff.h>
 #include <gnuradio/filter/fft_filter_fff.h>
-#include <gnuradio/filter/fir_filter_fff.h>
-#include <gnuradio/filter/fir_filter.h>
+#include <gnuradio/filter/fir_filter_blk.h>
 #include <gnuradio/filter/fft_filter.h>
 #include <gnuradio/filter/iir_filter_ffd.h>
 
@@ -81,7 +80,7 @@ namespace gr {
   {
    private:
     // Nothing to declare in this block.
-    boost::shared_ptr<gr::filter::fir_filter_fff> d_fir_filter;
+    gr::filter::fir_filter_fff::sptr d_fir_filter;
     double d_samp_rate;
    public:
     block_custom_filter_fir_bp(int decimation,
@@ -125,7 +124,7 @@ namespace gr {
   {
    private:
     // Nothing to declare in this block.
-    boost::shared_ptr<gr::filter::fir_filter_fff> d_fir_filter;
+    gr::filter::fir_filter_fff::sptr d_fir_filter;
     double d_samp_rate;
    public:
     block_custom_filter_fir_custom(int decimation,
@@ -167,7 +166,7 @@ namespace gr {
     {
      private:
       // Nothing to declare in this block.
-      boost::shared_ptr<gr::filter::fft_filter_fff> d_fft_filter;
+      gr::filter::fft_filter_fff::sptr d_fft_filter;
       double d_samp_rate;
      public:
       block_custom_filter_fir_fft(int decimation,
@@ -211,8 +210,8 @@ namespace gr {
   {
    private:
     // Nothing to declare in this block.
-    boost::shared_ptr<gr::filter::single_pole_iir_filter_ff> d_iir_filter1, d_iir_filter2;
-    boost::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
+    std::shared_ptr<gr::filter::single_pole_iir_filter_ff> d_iir_filter1, d_iir_filter2;
+    std::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
     double d_samp_rate;
     double d_up_freq;
 
@@ -258,8 +257,8 @@ namespace gr {
     {
      private:
       // Nothing to declare in this block.
-      boost::shared_ptr<gr::filter::iir_filter_ffd> d_iir_filter;
-      boost::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
+      std::shared_ptr<gr::filter::iir_filter_ffd> d_iir_filter;
+      std::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
       double d_low_freq;
       double d_samp_rate;
 
@@ -306,8 +305,8 @@ namespace gr {
     {
      private:
       // Nothing to declare in this block.
-    boost::shared_ptr<gr::filter::iir_filter_ffd> d_iir_filter;
-    boost::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
+    std::shared_ptr<gr::filter::iir_filter_ffd> d_iir_filter;
+    std::shared_ptr<gr::blocks::keep_one_in_n> d_keep_one;
     double d_low_freq;
     double d_samp_rate;
      public:

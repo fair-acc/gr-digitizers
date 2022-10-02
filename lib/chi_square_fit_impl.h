@@ -37,7 +37,7 @@ namespace gr {
       // used by the work function
       TF1 d_func;
       double d_chi_error; // snapshot
-      boost::shared_ptr<TGraphErrors> d_samps;
+      std::shared_ptr<TGraphErrors> d_samps;
       std::vector<float> d_xvals;
 
       boost::mutex d_mutex;

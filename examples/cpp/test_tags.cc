@@ -5,7 +5,7 @@
  */
 
 #include <gnuradio/top_block.h>
-#include <gnuradio/blocks/vector_source_f.h>
+#include <gnuradio/blocks/vector_source.h>
 #include <gnuradio/blocks/tag_debug.h>
 
 #include <iostream>

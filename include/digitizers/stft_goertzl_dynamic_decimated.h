@@ -27,7 +27,7 @@ namespace gr {
     class DIGITIZERS_API stft_goertzl_dynamic_decimated : virtual public gr::hier_block2
     {
      public:
-      typedef boost::shared_ptr<stft_goertzl_dynamic_decimated> sptr;
+      typedef std::shared_ptr<stft_goertzl_dynamic_decimated> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::stft_goertzl_dynamic.

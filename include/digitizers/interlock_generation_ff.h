@@ -41,7 +41,7 @@ namespace gr {
     class DIGITIZERS_API interlock_generation_ff : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<interlock_generation_ff> sptr;
+      typedef std::shared_ptr<interlock_generation_ff> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::stft_goertzl_dynamic.

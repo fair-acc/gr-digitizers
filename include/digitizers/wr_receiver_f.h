@@ -25,7 +25,7 @@ namespace gr {
     class DIGITIZERS_API wr_receiver_f : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<wr_receiver_f> sptr;
+      typedef std::shared_ptr<wr_receiver_f> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::wr_receiver_f.

@@ -30,7 +30,7 @@ namespace gr {
     class DIGITIZERS_API block_custom_filter : virtual public gr::hier_block2
     {
      public:
-      typedef boost::shared_ptr<block_custom_filter> sptr;
+      typedef std::shared_ptr<block_custom_filter> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of testBlocks::block_custom_filter.

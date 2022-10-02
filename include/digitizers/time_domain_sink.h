@@ -38,7 +38,7 @@ namespace gr {
     class DIGITIZERS_API time_domain_sink : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<time_domain_sink> sptr;
+      typedef std::shared_ptr<time_domain_sink> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::time_domain_sink.

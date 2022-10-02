@@ -71,7 +71,7 @@ namespace gr {
 
      private:
 
-      using data_chunk_sptr = boost::shared_ptr<data_chunk_t>;
+      using data_chunk_sptr = std::shared_ptr<data_chunk_t>;
 
       // To avoid manual memory management
       std::vector<data_chunk_sptr> d_chunks;
@@ -124,7 +124,7 @@ namespace gr {
 
         // Make individual chunks (or buffers)
         for (size_t i = 0; i < d_nr_chunks; i++) {
-          auto sptr = boost::make_shared<data_chunk_t>(d_chunk_size_bytes);
+          auto sptr = std::make_shared<data_chunk_t>(d_chunk_size_bytes);
           d_chunks.push_back(sptr);
           d_free_data_chunks.push(sptr.get());
         }

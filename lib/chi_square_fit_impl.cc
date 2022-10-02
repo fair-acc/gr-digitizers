@@ -211,7 +211,7 @@ namespace gr {
       char *valid = (char *) output_items[3];
 
       assert((int)d_xvals.size() == d_vec_len);
-      d_samps = boost::make_shared<TGraphErrors>(d_vec_len, d_xvals.data(), in);
+      d_samps = std::make_shared<TGraphErrors>(d_vec_len, d_xvals.data(), in);
 
       // Note a copy of the function object is made
       auto func = d_func;

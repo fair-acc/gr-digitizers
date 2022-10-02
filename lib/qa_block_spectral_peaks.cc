@@ -12,8 +12,8 @@
 #include <cppunit/TestAssert.h>
 #include "qa_block_spectral_peaks.h"
 #include <digitizers/block_spectral_peaks.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include "utils.h"
 
 namespace gr {

@@ -112,7 +112,7 @@ namespace gr {
      double samp_rate)
     {
       auto filter_design = gr::filter::firdes::low_pass(1, samp_rate,
-        up_freq, tr_width, gr::filter::firdes::win_type::WIN_HAMMING);
+        up_freq, tr_width, gr::fft::window::win_type::WIN_HAMMING);
       d_fir_filter->set_taps(filter_design);
     }
 

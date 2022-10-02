@@ -24,7 +24,7 @@ namespace gr {
     class DIGITIZERS_API picoscope_4000a : virtual public digitizer_block
     {
      public:
-      typedef boost::shared_ptr<picoscope_4000a> sptr;
+      typedef std::shared_ptr<picoscope_4000a> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::picoscope_4000a.

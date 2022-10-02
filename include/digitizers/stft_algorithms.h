@@ -36,7 +36,7 @@ namespace gr {
     class DIGITIZERS_API stft_algorithms : virtual public gr::hier_block2
     {
      public:
-      typedef boost::shared_ptr<stft_algorithms> sptr;
+      typedef std::shared_ptr<stft_algorithms> sptr;
 
       /*!
        * \brief Make stft block instance

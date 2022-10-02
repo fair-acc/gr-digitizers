@@ -36,7 +36,7 @@ namespace gr {
     class DIGITIZERS_API stft_goertzl_dynamic : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<stft_goertzl_dynamic> sptr;
+      typedef std::shared_ptr<stft_goertzl_dynamic> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::stft_goertzl_dynamic.

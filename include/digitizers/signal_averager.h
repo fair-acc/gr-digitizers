@@ -30,7 +30,7 @@ namespace gr {
     class DIGITIZERS_API signal_averager : virtual public gr::sync_decimator
     {
      public:
-      typedef boost::shared_ptr<signal_averager> sptr;
+      typedef std::shared_ptr<signal_averager> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::signal_averager.

@@ -12,8 +12,8 @@
 #include "utils.h"
 #include <system_error>
 
-#include <ps6000Api.h>
-#include <PicoStatus.h>
+#include <libps6000/ps6000Api.h>
+#include <libps6000/PicoStatus.h>
 
 namespace gr {
   namespace digitizers {

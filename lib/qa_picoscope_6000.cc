@@ -16,8 +16,8 @@
 
 #include <gnuradio/top_block.h>
 #include <gnuradio/blocks/null_sink.h>
-#include <gnuradio/blocks/vector_sink_f.h>
-#include <gnuradio/blocks/vector_sink_b.h>
+#include <gnuradio/blocks/vector_sink.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <gnuradio/blocks/null_sink.h>
 #include <gnuradio/blocks/tag_debug.h>
 #include "utils.h"

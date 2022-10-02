@@ -56,7 +56,7 @@ namespace gr {
     class DIGITIZERS_API stream_to_vector_overlay_ff : virtual public gr::block
     {
      public:
-      typedef boost::shared_ptr<stream_to_vector_overlay_ff> sptr;
+      typedef std::shared_ptr<stream_to_vector_overlay_ff> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::stream_to_vector_overlay_ff.

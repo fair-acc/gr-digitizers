@@ -73,7 +73,7 @@ namespace gr {
       element.put<int64_t>("edgeDetect.<xmlattr>.samplesSinceLastTimingEvent", edge_detect.samples_since_last_timing_event);
 
       std::stringstream iostr;
-      boost::property_tree::xml_writer_settings<char> settings;
+      boost::property_tree::xml_writer_settings<std::string> settings;
       boost::property_tree::xml_parser::write_xml_element(iostr,
               boost::property_tree::ptree::key_type(), element, -1, settings);
       return iostr.str();

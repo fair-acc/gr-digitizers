@@ -11,6 +11,7 @@
 #include <digitizers/edge_trigger_receiver_f.h>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/scoped_ptr.hpp>
 #include <boost/asio/ip/address_v4.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <digitizers/edge_trigger_utils.h>

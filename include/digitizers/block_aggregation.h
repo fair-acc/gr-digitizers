@@ -28,7 +28,7 @@ namespace gr {
     class DIGITIZERS_API block_aggregation : virtual public gr::hier_block2
     {
      public:
-      typedef boost::shared_ptr<block_aggregation> sptr;
+      typedef std::shared_ptr<block_aggregation> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::block_aggregation.
@@ -90,7 +90,7 @@ namespace gr {
         double low_cutoff_freq,     // Hz center of transition band
         double high_cutoff_freq,    // Hz center of transition band
         double transition_width,    // Hz width of transition band
-        gr::filter::firdes::win_type,
+        fft::window::win_type,
         double beta = 6.76) = 0;        // used only with Kaiser
     };
 

@@ -25,7 +25,7 @@ namespace gr {
     class DIGITIZERS_API aggregation_helper : virtual public gr::block
     {
      public:
-      typedef boost::shared_ptr<aggregation_helper> sptr;
+      typedef std::shared_ptr<aggregation_helper> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::aggregation_helper.

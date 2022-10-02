@@ -37,13 +37,13 @@ link_directories(
 add_executable(test_tags test_tags.cc)
 
 target_link_libraries(test_tags
-	${GNURADIO_RUNTIME_LIBRARIES}
-	${GNURADIO_ANALOG_LIBRARIES}
-	${GNURADIO_BLOCKS_LIBRARIES}
-	${GNURADIO_PMT_LIBRARIES}
+    gnuradio::gnuradio-runtime
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-blocks
+    gnuradio::gnuradio-pmt
     ${Boost_LIBRARIES}
-	gnuradio-digitizers
-#	asan
+    gnuradio-digitizers
+#    asan
 )
 
 INSTALL(TARGETS
@@ -55,13 +55,12 @@ INSTALL(TARGETS
 add_executable(ps3000a_test ps3000a_test.cc)
 
 target_link_libraries(ps3000a_test
-	${GNURADIO_RUNTIME_LIBRARIES}
-	${GNURADIO_ANALOG_LIBRARIES}
-	${GNURADIO_BLOCKS_LIBRARIES}
-	${GNURADIO_PMT_LIBRARIES}
+    gnuradio::gnuradio-analog
+    gnuradio::gnuradio-blocks
+    gnuradio::gnuradio-pmt
     ${Boost_LIBRARIES}
-	gnuradio-digitizers
-#	asan
+    gnuradio-digitizers
+#    asan
 )
 
 INSTALL(TARGETS
@@ -74,8 +73,8 @@ add_executable(edge_trigger_cli edge_trigger_cli.cc)
 
 target_link_libraries(edge_trigger_cli
     ${Boost_LIBRARIES}
-	gnuradio-digitizers
-#	asan
+    gnuradio-digitizers
+#    asan
 )
 
 INSTALL(TARGETS

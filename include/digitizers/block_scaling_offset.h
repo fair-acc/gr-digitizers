@@ -26,7 +26,7 @@ namespace gr {
     class DIGITIZERS_API block_scaling_offset : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<block_scaling_offset> sptr;
+      typedef std::shared_ptr<block_scaling_offset> sptr;
 
       /*!
        * \brief Create a scaling and offset block.

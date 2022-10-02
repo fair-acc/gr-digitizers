@@ -12,8 +12,8 @@
 #include <gnuradio/blocks/complex_to_magphase.h>
 #include <gnuradio/blocks/delay.h>
 #include <gnuradio/filter/hilbert_fc.h>
-#include <gnuradio/filter/fir_filter_ccf.h>
-#include <gnuradio/blocks/multiply_const_ff.h>
+#include <gnuradio/filter/fir_filter_blk.h>
+#include <gnuradio/blocks/multiply_const.h>
 #include "digitizers/amplitude_and_phase_helper.h"
 
 namespace gr {
@@ -27,7 +27,7 @@ namespace gr {
       filter::hilbert_fc::sptr d_hil_sig;
       filter::hilbert_fc::sptr  d_hil_ref;
       amplitude_and_phase_helper::sptr  d_help;
-      filter::fir_filter_ccf::sptr  d_low_pass;
+      filter::fir_filter_ccf::sptr d_low_pass;
      public:
       block_amplitude_and_phase_impl(double samp_rate,
         double delay,

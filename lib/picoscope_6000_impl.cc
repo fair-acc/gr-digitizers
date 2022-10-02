@@ -139,7 +139,9 @@ namespace gr {
         {
             std::ostringstream message;
             message << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
+#ifdef PORT_DISABLED // TODO can't access d_logger from free function
             GR_LOG_ERROR(d_logger, message);
+#endif
             throw std::runtime_error(message.str());
         }
     }
@@ -304,7 +306,9 @@ namespace gr {
           std::ostringstream message;
           message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Voltage '" << voltage <<
                   "' exceed maximum channel range (+/-" << channel_range << "V)";
+#ifdef PORT_DISABLED // TODO can't access d_logger from free function
           GR_LOG_ERROR(d_logger, message.str());
+#endif
       }
 
       return (int16_t) ((voltage / channel_range) * (double)PS6000_MAX_VALUE);
@@ -484,10 +488,11 @@ namespace gr {
               }
           }
 
-          if(found)
+          if (found) {
               GR_LOG_INFO(d_logger, "Serials match, scope '" + d_serial_number + "' found.");
-          else
+          } else {
               GR_LOG_ERROR(d_logger, "No matching serial found for scope '" + d_serial_number + "'");
+          }
       }
 
       // maximum value is used for conversion to volts

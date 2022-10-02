@@ -11,8 +11,8 @@
 #include <cppunit/TestAssert.h>
 #include "qa_stft_algorithms.h"
 #include "digitizers/stft_algorithms.h"
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 
 
 namespace gr {

@@ -127,7 +127,9 @@ namespace gr {
         {
             std::ostringstream message;
             message << "Critical Error in " << __FILE__ << ":" << __LINE__ << ": Desired and actual frequency do not match. desired: " << desired_freq << " actual: " << actual_freq <<  std::endl ;
+#ifdef PORT_DISABLED // TODO can't access d_logger from free function
             GR_LOG_ERROR(d_logger, message);
+#endif
             throw std::runtime_error(message.str());
         }
     }

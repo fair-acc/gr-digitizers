@@ -28,7 +28,7 @@ namespace gr {
     class DIGITIZERS_API demux_ff : virtual public gr::block
     {
      public:
-      typedef boost::shared_ptr<demux_ff> sptr;
+      typedef std::shared_ptr<demux_ff> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::demux_ff.

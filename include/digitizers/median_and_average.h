@@ -26,7 +26,7 @@ namespace gr {
     class DIGITIZERS_API median_and_average : virtual public gr::block
     {
      public:
-      typedef boost::shared_ptr<median_and_average> sptr;
+      typedef std::shared_ptr<median_and_average> sptr;
 
       /*!
        * \brief Creates a block that filters the input signal.

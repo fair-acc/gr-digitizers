@@ -39,7 +39,7 @@ namespace gr {
     class DIGITIZERS_API cascade_sink : virtual public gr::hier_block2
     {
      public:
-      typedef boost::shared_ptr<cascade_sink> sptr;
+      typedef std::shared_ptr<cascade_sink> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::cascade_sink.

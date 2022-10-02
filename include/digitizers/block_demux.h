@@ -24,7 +24,7 @@ namespace gr {
     class DIGITIZERS_API block_demux : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<block_demux> sptr;
+      typedef std::shared_ptr<block_demux> sptr;
 
       /*!
        * \brief Creates the demux block, where only one bit is kept.

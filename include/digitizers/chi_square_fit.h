@@ -28,7 +28,7 @@ namespace gr {
     class DIGITIZERS_API chi_square_fit : virtual public gr::block
     {
      public:
-      typedef boost::shared_ptr<chi_square_fit> sptr;
+      typedef std::shared_ptr<chi_square_fit> sptr;
 
       /*!
        * \brief Create a chi square fitting block.

@@ -58,7 +58,7 @@ namespace gr {
     class DIGITIZERS_API freq_sink_f : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<freq_sink_f> sptr;
+      typedef std::shared_ptr<freq_sink_f> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::freq_sink_f.

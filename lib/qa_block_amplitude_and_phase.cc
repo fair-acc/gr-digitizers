@@ -11,8 +11,8 @@
 #include "qa_block_amplitude_and_phase.h"
 #include <digitizers/block_amplitude_and_phase.h>
 #include <digitizers/block_complex_to_mag_deg.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 
 #include <math.h>
 

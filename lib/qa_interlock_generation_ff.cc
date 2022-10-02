@@ -12,8 +12,8 @@
 #include <cppunit/TestAssert.h>
 #include "qa_interlock_generation_ff.h"
 #include <digitizers/interlock_generation_ff.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <digitizers/tags.h>
 
 namespace gr {

@@ -10,8 +10,8 @@
 #include <cppunit/TestAssert.h>
 #include "qa_chi_square_fit.h"
 #include <digitizers/chi_square_fit.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <gnuradio/blocks/vector_to_stream.h>
 #include <gnuradio/blocks/null_sink.h>
 

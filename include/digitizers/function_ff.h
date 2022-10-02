@@ -35,7 +35,7 @@ namespace gr {
     class DIGITIZERS_API function_ff : virtual public gr::sync_decimator
     {
      public:
-      typedef boost::shared_ptr<function_ff> sptr;
+      typedef std::shared_ptr<function_ff> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::function_ff.

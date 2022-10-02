@@ -94,7 +94,7 @@ namespace gr {
       if(streaming_sinks_enabled)
       {
           if(samp_rate != (samp_rate_to_ten_kilo * 10000.0))
-            GR_LOG_ALERT(logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
+            GR_LOG_ALERT(d_logger, "SAMPLE RATE NOT DIVISIBLE BY 1000! OUTPUTS NOT EXACT: 10k, 1k, 100, 10, 1 Hz!");
 
           // create sinks -- FESA will see updates @10Hz at most.
           //                                  signal-name,           unit name, sample rate, sink mode                ,dataPackageSize
@@ -245,9 +245,9 @@ namespace gr {
           unsigned pre_trigger_window = samp_rate_factor * pre_trigger_window_raw;
           unsigned post_trigger_window = samp_rate_factor * post_trigger_window_raw;
           if (post_trigger_window_raw > 0 && post_trigger_window < 1)
-            GR_LOG_ALERT(logger, "Samp_rate to low or post_trigger_window to small ... less than 1 sample for :Triggered@10kHz Sink");
+            GR_LOG_ALERT(d_logger, "Samp_rate to low or post_trigger_window to small ... less than 1 sample for :Triggered@10kHz Sink");
           if (pre_trigger_window_raw > 0 && pre_trigger_window < 1)
-            GR_LOG_ALERT(logger, "Samp_rate to low or pre_trigger_window to small ... less than 1 sample for :Triggered@10kHz Sink");
+            GR_LOG_ALERT(d_logger, "Samp_rate to low or pre_trigger_window to small ... less than 1 sample for :Triggered@10kHz Sink");
           d_snk10000_triggered = time_domain_sink::make(signal_name+":Triggered@10kHz",  unit_name, 10000.0, TIME_SINK_MODE_TRIGGERED, pre_trigger_window, post_trigger_window);
           d_demux_10000 = demux_ff::make(post_trigger_window, pre_trigger_window);
           // first 10 kHz block to 10 kHz demux

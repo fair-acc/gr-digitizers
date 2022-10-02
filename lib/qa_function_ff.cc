@@ -10,8 +10,8 @@
 #include "qa_function_ff.h"
 #include <digitizers/function_ff.h>
 #include <digitizers/tags.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <gnuradio/top_block.h>
 #include "qa_common.h"
 

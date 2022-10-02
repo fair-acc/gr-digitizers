@@ -26,7 +26,7 @@ namespace gr {
     class DIGITIZERS_API block_amplitude_and_phase : virtual public gr::hier_block2
     {
      public:
-      typedef boost::shared_ptr<block_amplitude_and_phase> sptr;
+      typedef std::shared_ptr<block_amplitude_and_phase> sptr;
 
       /*!
        * \brief Creates an amplitude phase and frequency estimator.

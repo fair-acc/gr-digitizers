@@ -31,7 +31,7 @@ namespace gr {
     class DIGITIZERS_API simulation_source : virtual public digitizer_block
     {
      public:
-      typedef boost::shared_ptr<simulation_source> sptr;
+      typedef std::shared_ptr<simulation_source> sptr;
 
       /*!
        * \brief Creates a simulator device. Before start method is called (or graphs is started)

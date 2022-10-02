@@ -33,7 +33,7 @@ namespace gr {
     class DIGITIZERS_API freq_estimator : virtual public gr::block
     {
      public:
-      typedef boost::shared_ptr<freq_estimator> sptr;
+      typedef std::shared_ptr<freq_estimator> sptr;
 
       /*!
        * \brief Create new instance

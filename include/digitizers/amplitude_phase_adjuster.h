@@ -22,7 +22,7 @@ namespace gr {
     class DIGITIZERS_API amplitude_phase_adjuster : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<amplitude_phase_adjuster> sptr;
+      typedef std::shared_ptr<amplitude_phase_adjuster> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::amplitude_phase_adjuster.

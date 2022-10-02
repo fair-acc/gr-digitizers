@@ -11,8 +11,8 @@
 #include <digitizers/stream_to_vector_overlay_ff.h>
 #include <gnuradio/blocks/vector_to_stream.h>
 #include <gnuradio/blocks/stream_to_vector.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/fft/fft_vfc.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/fft/fft_v.h>
 #include <gnuradio/fft/goertzel_fc.h>
 #include <gnuradio/blocks/vector_to_stream.h>
 #include <gnuradio/blocks/keep_m_in_n.h>
@@ -28,10 +28,10 @@ namespace gr {
     {
     private:
 
-      filter::firdes::win_type d_wintype;
+      fft::window::win_type d_wintype;
       stream_to_vector_overlay_ff::sptr d_str2vec;
       blocks::complex_to_magphase::sptr d_com2magphase;
-      fft::fft_vfc::sptr d_fft;
+      fft::fft_v<float, true>::sptr d_fft;
       blocks::vector_to_stream::sptr d_vec2str;
       blocks::keep_m_in_n::sptr d_keep_m;
       blocks::stream_to_vector::sptr d_half_str2vec;
@@ -44,7 +44,7 @@ namespace gr {
       fft_impl(double samp_rate,
           double delta_t,
           int window_size,
-          filter::firdes::win_type wintype,
+          fft::window::win_type wintype,
           double fq_low,
           double fq_hi,
           int nbins);

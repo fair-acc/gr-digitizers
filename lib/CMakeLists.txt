@@ -88,17 +88,19 @@ endif(NOT digitizers_sources)
 
 add_library(gnuradio-digitizers SHARED ${digitizers_sources})
 target_link_libraries(gnuradio-digitizers 
-	${Boost_LIBRARIES} 
-	${GNURADIO_ALL_LIBRARIES} 
-	ps3000a
-	ps4000a
-	ps6000
-	# ROOT's cmake does not work correctly on some platforms, if you want
-	# to link against libs that are really needed uncomment the following two lines:
-	#/usr/lib64/root/libMathCore.so
-	#/usr/lib64/root/libGraf.so
-	${ROOT_LIBRARIES}
-	)
+    Boost::chrono
+    gnuradio::gnuradio-fft
+    gnuradio::gnuradio-filter
+    gnuradio::gnuradio-runtime
+    ps3000a
+    ps4000a
+    ps6000
+    # ROOT's cmake does not work correctly on some platforms, if you want
+    # to link against libs that are really needed uncomment the following two lines:
+    #/usr/lib64/root/libMathCore.so
+    #/usr/lib64/root/libGraf.so
+    ${ROOT_LIBRARIES}
+)
 set_target_properties(gnuradio-digitizers PROPERTIES DEFINE_SYMBOL "gnuradio_digitizers_EXPORTS")
 
 if(APPLE)
@@ -110,9 +112,6 @@ endif(APPLE)
 
 if(ENABLE_STATIC_LIBS)
   add_library(gnuradio-digitizers_static STATIC ${digitizers_sources})
-
-  add_dependencies(gnuradio-digitizers_static
-    digitizers_generated_includes)
 
   if(NOT WIN32)
     set_target_properties(gnuradio-digitizers_static
@@ -174,9 +173,12 @@ add_executable(test-digitizers ${test_digitizers_sources})
 
 target_link_libraries(
   test-digitizers
-  ${GNURADIO_RUNTIME_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${CPPUNIT_LIBRARIES}
+  gnuradio::gnuradio-blocks
+  gnuradio::gnuradio-fft
+  gnuradio::gnuradio-filter
+  gnuradio::gnuradio-runtime
+  Boost::chrono
+  cppunit
   gnuradio-digitizers
 )
 

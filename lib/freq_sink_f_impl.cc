@@ -51,7 +51,7 @@ namespace gr {
     {
       // initialize buffers
       for (unsigned i = 0; i < nbuffers; i++) {
-        auto ptr = boost::make_shared<freq_domain_buffer_t>(nmeasurements, nbins);
+        auto ptr = std::make_shared<freq_domain_buffer_t>(nmeasurements, nbins);
         d_measurement_buffer.return_free_buffer(ptr);
       }
 

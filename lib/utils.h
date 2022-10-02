@@ -9,6 +9,7 @@
 #define INCLUDED_DIGITIZERS_UTILS_H
 
 #include <queue>
+#include <boost/call_traits.hpp>
 #include <boost/thread/pthread/mutex.hpp>
 #include <boost/thread/pthread/condition_variable.hpp>
 #include <chrono>
@@ -362,7 +363,7 @@ namespace gr {
   {
   public:
 
-   using data_chunk_sptr = boost::shared_ptr<T>;
+   using data_chunk_sptr = std::shared_ptr<T>;
 
    measurement_buffer_t(std::size_t num_buffers)
     : d_free_data_chunks(num_buffers),

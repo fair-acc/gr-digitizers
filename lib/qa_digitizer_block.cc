@@ -9,8 +9,7 @@
 #include "qa_digitizer_block.h"
 #include <digitizers/tags.h>
 #include <gnuradio/top_block.h>
-#include <gnuradio/blocks/vector_sink_f.h>
-#include <gnuradio/blocks/vector_sink_b.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <gnuradio/blocks/throttle.h>
 #include <digitizers/simulation_source.h>
 #include <thread>

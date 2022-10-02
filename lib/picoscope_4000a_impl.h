@@ -12,7 +12,7 @@
 #include "utils.h"
 #include <system_error>
 
-#include <ps4000aApi.h>
+#include <libps4000a/ps4000aApi.h>
 #include <PicoStatus.h>
 
 namespace gr {

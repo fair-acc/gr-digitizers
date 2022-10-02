@@ -11,7 +11,6 @@
 #include <digitizers/edge_trigger_utils.h>
 #include <digitizers/tags.h>
 
-#include <gnuradio/blocks/pdu.h>
 #include <vector>
 #include <string>
 #include <sstream>
@@ -80,7 +79,7 @@ namespace gr {
       acq_info_t d_acq_info;
 
       boost::asio::io_service d_io_service;
-      std::vector<boost::shared_ptr<udp_sender>> d_receivers;
+      std::vector<std::shared_ptr<udp_sender>> d_receivers;
 
       boost::circular_buffer<wr_event_t> d_wr_events;
       boost::circular_buffer<uint64_t> d_triggers;       // offsets

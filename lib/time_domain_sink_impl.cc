@@ -43,7 +43,7 @@ namespace gr {
             // To simplify data copy in chunks
             set_output_multiple(multiple);
         }
-        catch (std::exception ex)
+        catch (const std::exception &ex)
         {
             std::ostringstream message;
             message << "Exception in:" << __FILE__ << ":" << __LINE__ << " Channel: " << d_metadata.name << " Error: " << ex.what();

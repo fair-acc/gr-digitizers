@@ -9,8 +9,8 @@
 #include <digitizers/tags.h>
 #include <gnuradio/attributes.h>
 #include <cppunit/TestAssert.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include "qa_decimate_and_adjust_timebase.h"
 #include <digitizers/decimate_and_adjust_timebase.h>
 

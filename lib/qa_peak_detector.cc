@@ -12,8 +12,8 @@
 #include <cppunit/TestAssert.h>
 #include "qa_peak_detector.h"
 #include <digitizers/peak_detector.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <digitizers/median_and_average.h>
 
 #include <thread>

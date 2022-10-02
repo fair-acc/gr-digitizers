@@ -67,7 +67,7 @@ namespace gr {
     class DIGITIZERS_API block_spectral_peaks : virtual public gr::hier_block2
     {
      public:
-      typedef boost::shared_ptr<block_spectral_peaks> sptr;
+      typedef std::shared_ptr<block_spectral_peaks> sptr;
 
       /*!
        * \brief Creates a hier block that attaches tags to spectral peaks

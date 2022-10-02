@@ -66,7 +66,7 @@ namespace gr {
         std::vector<std::string> parts;
         boost::algorithm::split(parts, host, [] (char c) { return c == ':'; });
 
-        auto new_client = boost::make_shared<udp_sender>(d_io_service, parts.at(0), parts.at(1));
+        auto new_client = std::make_shared<udp_sender>(d_io_service, parts.at(0), parts.at(1));
         d_receivers.push_back(new_client);
 
         GR_LOG_DEBUG(d_logger, "edge_trigger_ff::registered host: '" + new_client->host_and_port() + "'");

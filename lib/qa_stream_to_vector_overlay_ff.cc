@@ -11,8 +11,8 @@
 #include <cppunit/TestAssert.h>
 #include "qa_stream_to_vector_overlay_ff.h"
 #include <digitizers/stream_to_vector_overlay_ff.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 
 
 namespace gr {

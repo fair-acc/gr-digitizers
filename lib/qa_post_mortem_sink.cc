@@ -9,8 +9,8 @@
 #include <cppunit/TestAssert.h>
 #include <digitizers/post_mortem_sink.h>
 #include <gnuradio/top_block.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <gnuradio/blocks/tag_debug.h>
 #include "utils.h"
 #include "qa_common.h"

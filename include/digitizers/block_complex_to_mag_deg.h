@@ -23,7 +23,7 @@ namespace gr {
     class DIGITIZERS_API block_complex_to_mag_deg : virtual public gr::sync_block
     {
      public:
-      typedef boost::shared_ptr<block_complex_to_mag_deg> sptr;
+      typedef std::shared_ptr<block_complex_to_mag_deg> sptr;
 
       /*!
        * \brief Return a shared_ptr to a new instance of digitizers::block_complex_to_mag_deg.

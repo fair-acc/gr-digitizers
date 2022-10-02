@@ -5,12 +5,12 @@
 ########################################################################
 # Project setup
 ########################################################################
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.8)
 project(gr-digitizers CXX C)
 enable_testing()
 
 if(UNIX)
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 endif()
 
 
@@ -38,23 +38,7 @@ set(VERSION_INFO_API_COMPAT    1)
 set(VERSION_INFO_MINOR_VERSION 4)
 set(VERSION_INFO_MAINT_VERSION 0)
 
-
-# Set cmake policies.
-# This will suppress developer warnings during the cmake process that can occur
-# if a newer cmake version than the minimum is used.
-
-if(POLICY CMP0026)
-    cmake_policy(SET CMP0026 OLD)
-endif()
-if(POLICY CMP0043)
-    cmake_policy(SET CMP0043 OLD)
-endif()
-if(POLICY CMP0045)
-    cmake_policy(SET CMP0045 OLD)
-endif()
-if(POLICY CMP0046)
-    cmake_policy(SET CMP0046 OLD)
-endif()
+cmake_policy(SET CMP0011 NEW)
 
 ########################################################################
 # Compiler specific setup
@@ -109,26 +93,53 @@ find_package(ROOT REQUIRED COMPONENTS MathCore Graf)
 
 
 ########################################################################
+# Find picoscope
+########################################################################
+
+option(PICOSCOPE_INCLUDE_DIR "Location of picoscope header files" "/usr/include/picoscope")
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps3000a/ps3000aApi.h)
+  message(SEND_ERROR "Can't find ps3000aApi.h in ${PICOSCOPE_INCLUDE_DIR}/libps3000a")
+endif()
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps4000a/ps4000aApi.h)
+  message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}/libps4000a")
+endif()
+if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/libps6000/ps6000Api.h)
+  message(SEND_ERROR "Can't find ps6000Api.h in ${PICOSCOPE_INCLUDE_DIR}/libps6000")
+endif()
+
+find_package(Gnuradio "3.10" REQUIRED COMPONENTS analog blocks filter fft pmt runtime)
+
+########################################################################
+# Minimum Version Requirements
+########################################################################
+
+include(GrMinReq)
+
+########################################################################
+# Compiler settings
+########################################################################
+
+include(GrCompilerSettings)
+
+########################################################################
 # Install directories
 ########################################################################
+include(GrVersion)
+
 include(GrPlatform) #define LIB_SUFFIX
-set(GR_RUNTIME_DIR      bin)
-set(GR_LIBRARY_DIR      lib${LIB_SUFFIX})
-set(GR_INCLUDE_DIR      include/digitizers)
-set(GR_DATA_DIR         share)
+
+include(GrPython) # TODO not new template, but without this, Python::Module is not defined
+
+if(NOT CMAKE_MODULES_DIR)
+  set(CMAKE_MODULES_DIR lib${LIB_SUFFIX}/cmake)
+endif(NOT CMAKE_MODULES_DIR)
+
+set(GR_INCLUDE_DIR      include/gnuradio/tutorial)
+set(GR_CMAKE_DIR        ${CMAKE_MODULES_DIR}/gnuradio-tutorial)
 set(GR_PKG_DATA_DIR     ${GR_DATA_DIR}/${CMAKE_PROJECT_NAME})
-set(GR_DOC_DIR          ${GR_DATA_DIR}/doc)
 set(GR_PKG_DOC_DIR      ${GR_DOC_DIR}/${CMAKE_PROJECT_NAME})
-set(GR_CONF_DIR         etc)
 set(GR_PKG_CONF_DIR     ${GR_CONF_DIR}/${CMAKE_PROJECT_NAME}/conf.d)
-set(GR_LIBEXEC_DIR      libexec)
 set(GR_PKG_LIBEXEC_DIR  ${GR_LIBEXEC_DIR}/${CMAKE_PROJECT_NAME})
-set(GRC_BLOCKS_DIR      ${GR_PKG_DATA_DIR}/grc/blocks)
-set(ROOT_DIR            $ENV{ROOTSYS})
-
-set(PICOSCOPE_INCLUDE_DIR   /usr/include/picoscope)
-set(GR_DIGITIZERS_EXAMPLES_DIR      ${GR_PKG_DATA_DIR}/examples)
-
 
 ########################################################################
 # On Apple only, set install name and use rpath correctly, if not already set
@@ -150,38 +161,12 @@ if(APPLE)
     endif(NOT CMAKE_BUILD_WITH_INSTALL_RPATH)
 endif(APPLE)
 
+
 ########################################################################
 # Find gnuradio build dependencies
 ########################################################################
-find_package(CppUnit)
 find_package(Doxygen)
-
-# Search for GNU Radio and its components and versions. Add any
-# components required to the list of GR_REQUIRED_COMPONENTS (in all
-# caps such as FILTER or FFT) and change the version to the minimum
-# API compatible version required.
-set(GR_REQUIRED_COMPONENTS RUNTIME BLOCKS PMT FILTER)
-find_package(Gnuradio "3.7.2" REQUIRED)
-list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
-include(GrVersion)
-
-if(NOT CPPUNIT_FOUND)
-    message(FATAL_ERROR "CppUnit required to compile digitizers")
-endif()
-
-if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps3000aApi.h)
-  message(SEND_ERROR "Can't find ps3000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
-endif()
-if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps4000aApi.h)
-  message(SEND_ERROR "Can't find ps4000aApi.h in ${PICOSCOPE_INCLUDE_DIR}")
-endif()
-if(NOT EXISTS ${PICOSCOPE_INCLUDE_DIR}/ps6000Api.h)
-  message(SEND_ERROR "Can't find ps6000Api.h in ${PICOSCOPE_INCLUDE_DIR}")
-endif()
-include(GrMiscUtils)
-
-# Handle gr_log enable/disable
-GR_LOGGING()
+find_package(SNDFILE REQUIRED)
 
 ########################################################################
 # Setup doxygen option
@@ -204,6 +189,11 @@ include_directories(
     ${CPPUNIT_INCLUDE_DIRS}
     ${GNURADIO_ALL_INCLUDE_DIRS}
     ${PICOSCOPE_INCLUDE_DIR}
+    # HACK: the psxxxx{a}Api.h files include PicoStatus.h etc. without prefix, assuming that one
+    # only uses one specific driver (e.g. 6000A) and adds the subdir (e.g. include/libps6000a)
+    # to the include path. We use three, use Pico*.h from libps6000a. This works as long they
+    # are actually identical.
+    ${PICOSCOPE_INCLUDE_DIR}/libps6000a
     ${ROOT_INCLUDE_DIR}
 )
 
@@ -236,8 +226,14 @@ add_custom_target(uninstall
 add_subdirectory(include/digitizers)
 add_subdirectory(lib)
 add_subdirectory(swig)
-add_subdirectory(python)
-add_subdirectory(grc)
+# NOTE: manually update below to use GRC to generate C++ flowgraphs w/o python
+if(ENABLE_PYTHON)
+  message(STATUS "PYTHON and GRC components are enabled")
+  add_subdirectory(python)
+  add_subdirectory(grc)
+else(ENABLE_PYTHON)
+  message(STATUS "PYTHON and GRC components are disabled")
+endif(ENABLE_PYTHON)
 add_subdirectory(apps)
 add_subdirectory(docs)
 add_subdirectory(examples/cpp)

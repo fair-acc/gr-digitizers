@@ -179,7 +179,8 @@ namespace gr {
             if( d_not_found_stamp_utc == 0)
                 d_not_found_stamp_utc = get_timestamp_nano_utc();
 
-            if( d_not_found_stamp_utc != 0 && abs( get_timestamp_nano_utc() - d_not_found_stamp_utc ) > d_max_buffer_time_ns )
+            // TODO(PORT) check that this is is correct (was: abs of unsigned (!) uint64_t)
+            if( d_not_found_stamp_utc != 0 && std::abs( static_cast<int64_t>(get_timestamp_nano_utc()) - static_cast<int64_t>(d_not_found_stamp_utc)) > d_max_buffer_time_ns )
             {
                 d_not_found_stamp_utc = 0; //reset stamp
                 GR_LOG_ERROR(d_logger, name() + ": No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time())+ "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted." );

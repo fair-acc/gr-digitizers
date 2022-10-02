@@ -13,7 +13,7 @@
 namespace gr {
   namespace digitizers {
 
-    typedef boost::function<void(int32_t, uint32_t, int16_t)> streaming_callback_function_t;
+    using streaming_callback_function_t = std::function<void(int32_t, uint32_t, int16_t)>;
 
     static void
     invoke_streaming_callback(int16_t handle, int32_t noOfSamples, uint32_t startIndex, int16_t overflow,

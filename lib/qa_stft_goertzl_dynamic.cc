@@ -10,8 +10,8 @@
 #include <cppunit/TestAssert.h>
 #include "qa_stft_goertzl_dynamic.h"
 #include <digitizers/stft_goertzl_dynamic.h>
-#include <gnuradio/blocks/vector_source_f.h>
-#include <gnuradio/blocks/vector_sink_f.h>
+#include <gnuradio/blocks/vector_source.h>
+#include <gnuradio/blocks/vector_sink.h>
 #include <digitizers/tags.h>
 
 namespace gr {

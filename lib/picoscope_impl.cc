@@ -12,6 +12,10 @@
 #include <digitizers/status.h>
 #include <volk/volk.h>
 
+#include <numeric>
+
+using namespace std::placeholders;
+
 namespace gr {
   namespace digitizers {
 
@@ -26,7 +30,7 @@ namespace gr {
         d_max_value(max_raw_analog_value),
         d_vertical_precision(vertical_precision),
         d_ranges(),
-        d_streaming_callback(boost::bind(&picoscope_impl::streaming_callback, this, _1, _2, _3)),
+        d_streaming_callback(std::bind(&picoscope_impl::streaming_callback, this, _1, _2, _3)),
         d_buffers(max_ai_channels),
         d_buffers_min(max_ai_channels),
         d_port_buffers(max_di_ports),
@@ -34,9 +38,8 @@ namespace gr {
         d_tmp_buffer_size(0),
         d_lost_count(0)
     {
-      for (auto i = 0; i < max_ai_channels; i++) {
-        d_channel_ids.emplace_back("" + static_cast<char>('A' + i));
-      }
+      d_channel_ids.resize(max_ai_channels);
+      std::iota(d_channel_ids.begin(), d_channel_ids.end(), 'A');
     }
 
     picoscope_impl::~picoscope_impl()

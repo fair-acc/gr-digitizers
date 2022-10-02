@@ -11,6 +11,7 @@
 #include <gnuradio/io_signature.h>
 #include "stft_algorithms_impl.h"
 #include <gnuradio/block.h>
+#include <gnuradio/fft/fft.h>
 
 namespace gr {
   namespace digitizers {
@@ -21,7 +22,7 @@ namespace gr {
       switch(alg_id) {
       case FFT:
         return gnuradio::get_initial_sptr
-            (new fft_impl(samp_rate, delta_t, window_size, static_cast<filter::firdes::win_type>(wintype),fq_low, fq_hi, nbins));
+            (new fft_impl(samp_rate, delta_t, window_size, static_cast<fft::window::win_type>(wintype),fq_low, fq_hi, nbins));
         break;
       case GOERTZEL:
         return gnuradio::get_initial_sptr
@@ -34,7 +35,7 @@ namespace gr {
       default:
         std::cout<<"STFT alg_id must be either 0-FFT, 1-Goertzel, 2-DFT!\nis:"<<alg_id<<" -> Defaulting to FFT!\n";
         return gnuradio::get_initial_sptr
-            (new fft_impl(samp_rate, delta_t, window_size, static_cast<filter::firdes::win_type>(wintype),fq_low, fq_hi, nbins));
+            (new fft_impl(samp_rate, delta_t, window_size, static_cast<fft::window::win_type>(wintype),fq_low, fq_hi, nbins));
         break;
       }
     }
@@ -43,7 +44,7 @@ namespace gr {
     fft_impl::fft_impl(double samp_rate,
         double delta_t,
         int window_size,
-        filter::firdes::win_type wintype,
+        fft::window::win_type wintype,
         double fq_low,
         double fq_hi,
         int nbins)
@@ -70,8 +71,7 @@ namespace gr {
       }
       d_str2vec = stream_to_vector_overlay_ff::make(d_window_size * 2, samp_rate, delta_t);
       d_com2magphase = blocks::complex_to_magphase::make(d_window_size);
-      d_fft = fft::fft_vfc::make(d_window_size * 2,
-        true,
+      d_fft = fft::fft_v<float, true>::make(d_window_size * 2,
         filter::firdes::window(d_wintype, d_window_size * 2,
         6.76));
       d_vec2str = blocks::vector_to_stream::make(sizeof(gr_complex),
@@ -107,7 +107,7 @@ namespace gr {
     void
     fft_impl::set_window_type(int wintype)
     {
-      d_wintype = static_cast<filter::firdes::win_type>(wintype);
+      d_wintype = static_cast<fft::window::win_type>(wintype);
       d_fft->set_window(filter::firdes::window(d_wintype, d_window_size * 2, 6.76));
     }
 

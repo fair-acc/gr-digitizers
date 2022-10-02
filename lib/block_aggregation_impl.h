@@ -13,7 +13,7 @@
 #include <digitizers/signal_averager.h>
 #include <digitizers/decimate_and_adjust_timebase.h>
 #include <gnuradio/blocks/delay.h>
-#include <gnuradio/blocks/multiply_ff.h>
+#include <gnuradio/blocks/multiply.h>
 #include "digitizers/status.h"
 
 namespace gr {
@@ -68,7 +68,7 @@ namespace gr {
           double low_cutoff_freq,
           double high_cutoff_freq,
           double transition_width,
-          gr::filter::firdes::win_type,
+          gr::fft::window::win_type,
           double beta) override;
 
       void update_out_delay(int delay);

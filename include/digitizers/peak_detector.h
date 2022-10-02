@@ -30,7 +30,7 @@ namespace gr {
     class DIGITIZERS_API peak_detector : virtual public gr::block
     {
      public:
-      typedef boost::shared_ptr<peak_detector> sptr;
+      typedef std::shared_ptr<peak_detector> sptr;
 
       /*!
        * \brief Creates a peak detector block with the given parameters.

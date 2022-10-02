@@ -139,7 +139,7 @@ namespace gr {
         double low_cutoff_freq,
         double high_cutoff_freq,
         double transition_width,
-        gr::filter::firdes::win_type win_type,
+        fft::window::win_type win_type,
         double beta = 6.76)
     {
       if(!d_averaging) {
