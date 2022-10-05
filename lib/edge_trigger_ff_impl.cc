@@ -11,8 +11,6 @@
 #include <gnuradio/io_signature.h>
 #include "edge_trigger_ff_impl.h"
 #include <boost/algorithm/string/split.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/smart_ptr/make_shared.hpp>
 #include <boost/tokenizer.hpp>
 
 #include "utils.h"

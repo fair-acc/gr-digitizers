@@ -10,7 +10,6 @@
 
 #include <gnuradio/io_signature.h>
 #include "freq_sink_f_impl.h"
-#include <boost/make_shared.hpp>
 
 namespace gr {
   namespace digitizers {

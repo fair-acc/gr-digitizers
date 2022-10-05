@@ -11,7 +11,6 @@
 #include <gnuradio/io_signature.h>
 #include "chi_square_fit_impl.h"
 #include <boost/tokenizer.hpp>
-#include <boost/make_shared.hpp>
 #include <stdexcept>
 
 namespace gr {
