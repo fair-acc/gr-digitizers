@@ -6,23 +6,28 @@
 
 #include "qa_time_domain_sink.h"
 
-#include <cppunit/TestAssert.h>
+#include <digitizers/enums.h>
 #include <digitizers/time_domain_sink.h>
 #include <digitizers/status.h>
-#include <gnuradio/top_block.h>
+
+#include <gnuradio/flowgraph.h>
 #include <gnuradio/blocks/vector_source.h>
-#include <gnuradio/blocks/tag_debug.h>
 
 #include "utils.h"
 #include "qa_common.h"
+
+
+#include <cppunit/CompilerOutputter.h>
+#include <cppunit/TestAssert.h>
+#include <cppunit/TextTestRunner.h>
+#include <cppunit/XmlOutputter.h>
 
 #include <boost/thread.hpp>
 #include <boost/chrono.hpp>
 
 #include <functional>
 
-namespace gr {
-  namespace digitizers {
+namespace gr::digitizers {
 
     static std::vector<float>
     get_test_data(size_t size, float gain=1)
@@ -121,9 +126,9 @@ namespace gr {
     void
     qa_time_domain_sink::stream_basics()
     {
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, 2048);
-        CPPUNIT_ASSERT_EQUAL(size_t{2048}, sink->get_output_package_size());
-        CPPUNIT_ASSERT_EQUAL(1000.0f, sink->get_sample_rate());
+        auto sink = time_domain_sink<float>::make({"test", "unit", 1000.0, time_sink_mode_t::TIME_SINK_MODE_STREAMING, 2048});
+        CPPUNIT_ASSERT_EQUAL(size_t{2048}, sink->output_package_size());
+        CPPUNIT_ASSERT_EQUAL(1000.0f, sink->samp_rate());
     }
 
     /*
@@ -132,20 +137,22 @@ namespace gr {
     void
     qa_time_domain_sink::stream_values_no_tags()
     {
-        auto top = gr::make_top_block("test");
+        auto top = gr::flowgraph::make("test");
 
         // test data
         size_t chunk_size = 124;
         auto data = get_test_data(chunk_size);
         Test test(chunk_size);
 
-        auto source = gr::blocks::vector_source_f::make(data);
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, chunk_size);
+        auto source = gr::blocks::vector_source_f::make({.data = data });
+        auto sink = time_domain_sink<float>::make({"test", "unit", 1000.0, time_sink_mode_t::TIME_SINK_MODE_STREAMING, chunk_size});
 
         // connect data and error and run
         top->connect(source, 0, sink, 0);
         top->connect(source, 0, sink, 1);
+#ifdef PORT_DISABLED
         sink->set_callback(copy_data_callback, &test);
+#endif
         top->run();
 
         CPPUNIT_ASSERT_EQUAL(chunk_size, test.values_size_);
@@ -159,23 +166,25 @@ namespace gr {
     void
     qa_time_domain_sink::stream_values()
     {
-        auto top = gr::make_top_block("test");
+        auto top = gr::flowgraph::make("test");
 
         // test data
         size_t chunk_size = 124;
         Test test(chunk_size);
         auto data = get_test_data(chunk_size);
-        auto source = gr::blocks::vector_source_f::make(data);
+        auto source = gr::blocks::vector_source_f::make({.data = data});
 
         auto data_errs = get_test_data(chunk_size, 0.01);
-        auto source_errs = gr::blocks::vector_source_f::make(data_errs);
+        auto source_errs = gr::blocks::vector_source_f::make({.data = data_errs});
 
-        auto sink = time_domain_sink::make("test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, chunk_size);
+        auto sink = time_domain_sink<float>::make({"test", "unit", 1000.0, time_sink_mode_t::TIME_SINK_MODE_STREAMING, chunk_size});
 
         // connect and run
         top->connect(source, 0, sink, 0);
         top->connect(source_errs, 0, sink, 1);
+#ifdef PORT_DISABLED
         sink->set_callback(copy_data_callback, &test);
+#endif
         top->run();
 
         CPPUNIT_ASSERT_EQUAL(chunk_size, test.values_size_);
@@ -191,14 +200,14 @@ namespace gr {
     void
     qa_time_domain_sink::stream_no_callback()
     {
-        auto top = gr::make_top_block("test");
+        auto top = gr::flowgraph::make("test");
 
         size_t data_size = 20;
 
         auto data = get_test_data(data_size);
-        auto source = gr::blocks::vector_source_f::make(data);
+        auto source = gr::blocks::vector_source_f::make({.data = data});
 
-        auto sink = time_domain_sink::make("no_callback_test", "unit", 1000.0, TIME_SINK_MODE_STREAMING, data_size);
+        auto sink = time_domain_sink<float>::make({"no_callback_test", "unit", 1000.0, time_sink_mode_t::TIME_SINK_MODE_STREAMING, data_size});
 
         // connect data and error and run
         top->connect(source, 0, sink, 0);
@@ -227,7 +236,7 @@ namespace gr {
     void
     qa_time_domain_sink::stream_acq_info_tag()
     {
-        auto top = gr::make_top_block("test acq_info");
+        auto top = gr::flowgraph::make("test");
 
         size_t data_size = 300;
         int number_of_chunks = 3;
@@ -244,11 +253,11 @@ namespace gr {
                 make_test_acq_info_tag(250  * timebase_ns, timebase, 0.1, 1<<3, 250)
         };
 
-        auto source = gr::blocks::vector_source_f::make(data, false, 1, tags);
-        auto sink = gr::digitizers::time_domain_sink::make("test", "unit", 1.0f/timebase, TIME_SINK_MODE_STREAMING,  data_size/number_of_chunks);
-
+        auto source = gr::blocks::vector_source_f::make({.data = data, .tags = tags});
+        auto sink = gr::digitizers::time_domain_sink<float>::make({"test", "unit", 1.0f/timebase, time_sink_mode_t::TIME_SINK_MODE_STREAMING, data_size/number_of_chunks});
+#ifdef PORT_DISABLED
         sink->set_callback(copy_data_callback, &test);
-
+#endif
         // connect data and error and run
         top->connect(source, 0, sink, 0);
         top->connect(source, 0, sink, 1);
@@ -262,7 +271,18 @@ namespace gr {
             CPPUNIT_ASSERT_EQUAL(size_t(1),tags_on_call.size()); // one tag per chunk is expected
         }
     }
+} /* namespace gr::digitizers */
 
-  } /* namespace digitizers */
-} /* namespace gr */
+int
+main (int, char **)
+{
+  CppUnit::TextTestRunner runner;
+  runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
+                           &runner.result(),
+                           std::cerr));
+  runner.addTest(gr::digitizers::qa_time_domain_sink::suite());
+
+  bool was_successful = runner.run("", false);
+  return was_successful ? 0 : 1;
+}
 

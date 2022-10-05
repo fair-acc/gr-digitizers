@@ -65,6 +65,8 @@ volk_dep = dependency('volk', version : '>=2.2')
 fmt_dep = dependency('fmt', method: 'cmake', modules: ['fmt::fmt'])
 pmtf_dep = dependency('pmtf', version : '>= 0.0.2')
 gnuradio_gr_dep = dependency('gnuradio-runtime')
+boost_dep = dependency('boost')
+cppunit_dep = dependency('cppunit')
 
 if GR_ENABLE_PYTHON
 run_command('python3', join_paths(SCRIPTS_DIR,'gen_meson.py'), 

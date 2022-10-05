@@ -9,7 +9,8 @@
 #define INCLUDED_DIGITIZERS_TAGS_H
 
 #include <digitizers/api.h>
-#include <gnuradio/tags.h>
+#include <gnuradio/tag.h>
+#include <pmtf/base.hpp>
 #include <cassert>
 
 namespace gr {
@@ -67,39 +68,29 @@ namespace gr {
     inline gr::tag_t
     make_acq_info_tag(const acq_info_t &acq_info, uint64_t offset)
     {
-      gr::tag_t tag;
-      tag.key = pmt::intern(acq_info_tag_name);
-      tag.value =  pmt::make_tuple(
-              pmt::from_uint64(static_cast<uint64_t>(acq_info.timestamp)),
-              pmt::from_double(acq_info.timebase),
-              pmt::from_double(acq_info.user_delay),
-              pmt::from_double(acq_info.actual_delay),
-              pmt::from_long(static_cast<long>(acq_info.status))
-              );
-      tag.offset = offset;
-      return tag;
+      return {offset, {{acq_info_tag_name, std::vector<pmtf::pmt>{static_cast<uint64_t>(acq_info.timestamp), static_cast<double>(acq_info.timebase), static_cast<double>(acq_info.user_delay), static_cast<double>(acq_info.actual_delay), static_cast<long>(acq_info.status)}}}};
     }
 
     inline acq_info_t
     decode_acq_info_tag(const gr::tag_t &tag)
     {
-      assert(pmt::symbol_to_string(tag.key) == acq_info_tag_name);
+      const auto tag_value = tag[acq_info_tag_name];
+      const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
 
-      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 5)
+      if (tag_vector.size() != 5)
       {
           std::ostringstream message;
           message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid acq_info tag format";
           throw std::runtime_error(message.str());
       }
 
-      acq_info_t acq_info;
-      auto tag_tuple = pmt::to_tuple(tag.value);
-      acq_info.timestamp = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 0)));
-      acq_info.timebase = pmt::to_double(tuple_ref(tag_tuple, 1));
-      acq_info.user_delay = pmt::to_double(tuple_ref(tag_tuple, 2));
-      acq_info.actual_delay = pmt::to_double(tuple_ref(tag_tuple, 3));
-      acq_info.status = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 4)));
-      return acq_info;
+      return {
+        .timestamp = static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[0])),
+        .timebase = pmtf::get_as<double>(tag_vector[1]),
+        .user_delay = pmtf::get_as<double>(tag_vector[2]),
+        .actual_delay = pmtf::get_as<double>(tag_vector[3]),
+        .status = static_cast<uint32_t>(pmtf::get_as<long>(tag_vector[4]))
+      };
     }
 
     // ################################################################################################################
@@ -116,65 +107,43 @@ namespace gr {
     inline gr::tag_t
     make_trigger_tag(trigger_t &trigger_tag_data, uint64_t offset)
     {
-        gr::tag_t tag;
-        tag.key = pmt::intern(trigger_tag_name);
-        tag.value =  pmt::make_tuple(
-                pmt::from_long(static_cast<long>(trigger_tag_data.downsampling_factor)),
-                pmt::from_uint64(static_cast<uint64_t>(trigger_tag_data.timestamp)),
-                pmt::from_long(static_cast<long>(trigger_tag_data.status))
-                );
-        tag.offset = offset;
-        return tag;
+      const auto value = std::vector<pmtf::pmt>{static_cast<long>(trigger_tag_data.downsampling_factor), static_cast<uint64_t>(trigger_tag_data.timestamp), static_cast<long>(trigger_tag_data.status)};
+      return {offset, {{trigger_tag_name, value}}};
     }
 
     inline gr::tag_t
     make_trigger_tag(uint32_t downsampling_factor, int64_t timestamp, uint64_t offset, uint32_t status)
     {
-        gr::tag_t tag;
-        tag.key = pmt::intern(trigger_tag_name);
-        tag.value =  pmt::make_tuple(
-                pmt::from_long(static_cast<long>(downsampling_factor)),
-                pmt::from_uint64(static_cast<uint64_t>(timestamp)),
-                pmt::from_long(static_cast<long>(status))
-                );
-        tag.offset = offset;
-        return tag;
+      const auto value = std::vector<pmtf::pmt>{static_cast<long>(downsampling_factor), static_cast<uint64_t>(timestamp), static_cast<long>(status)};
+      return {offset, {{trigger_tag_name, value}}};
     }
 
     // e.g. used for streaming
     inline gr::tag_t
     make_trigger_tag(uint64_t offset)
     {
-        gr::tag_t tag;
-        tag.key = pmt::intern(trigger_tag_name);
-        tag.value =  pmt::make_tuple(
-                pmt::from_long(static_cast<long>(0)),
-                pmt::from_uint64(static_cast<uint64_t>(0)),
-                pmt::from_long(static_cast<long>(0))
-                );
-        tag.offset = offset;
-        return tag;
+      const auto value = std::vector<pmtf::pmt>{static_cast<long>(0), static_cast<uint64_t>(0), static_cast<long>(0)};
+      return {offset, {{trigger_tag_name, value}}};
     }
 
     inline trigger_t
     decode_trigger_tag(const gr::tag_t &tag)
     {
-      assert(pmt::symbol_to_string(tag.key) == trigger_tag_name);
+      const auto tag_value = tag[trigger_tag_name];
+      const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
 
-      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 3)
+      if (tag_vector.size() != 3)
       {
           std::ostringstream message;
           message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid trigger tag format";
           throw std::runtime_error(message.str());
       }
 
-      trigger_t trigger_tag;
-      auto tag_tuple = pmt::to_tuple(tag.value);
-      trigger_tag.downsampling_factor = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 0)));
-      trigger_tag.timestamp = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 1)));
-      trigger_tag.status = static_cast<uint32_t>(pmt::to_long(tuple_ref(tag_tuple, 2)));
-
-      return trigger_tag;
+      return {
+        .downsampling_factor = static_cast<uint32_t>(pmtf::get_as<long>(tag_vector[0])),
+        .timestamp = static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[1])),
+        .status = static_cast<uint32_t>(pmtf::get_as<long>(tag_vector[2]))
+      };
     }
 
     // ################################################################################################################
@@ -188,10 +157,7 @@ namespace gr {
     inline gr::tag_t
     make_timebase_info_tag(double timebase)
     {
-      gr::tag_t tag;
-      tag.key = pmt::intern(timebase_info_tag_name);
-      tag.value = pmt::from_double(timebase);
-      return tag;
+      return {0, {{timebase_info_tag_name, timebase}}};
     }
 
     /*!
@@ -200,8 +166,7 @@ namespace gr {
     inline double
     decode_timebase_info_tag(const gr::tag_t &tag)
     {
-      assert(pmt::symbol_to_string(tag.key) == timebase_info_tag_name);
-      return pmt::to_double(tag.value);
+      return pmtf::get_as<double>(tag[timebase_info_tag_name]);
     }
 
     // ################################################################################################################
@@ -230,15 +195,8 @@ namespace gr {
     inline gr::tag_t
     make_wr_event_tag(const wr_event_t &event, uint64_t offset)
     {
-      gr::tag_t tag;
-      tag.key = pmt::intern(wr_event_tag_name);
-      tag.value =  pmt::make_tuple(
-              pmt::string_to_symbol(event.event_id),
-              pmt::from_uint64(static_cast<uint64_t>(event.wr_trigger_stamp)),
-              pmt::from_uint64(static_cast<uint64_t>(event.wr_trigger_stamp_utc))
-              );
-      tag.offset = offset;
-      return tag;
+      const auto value = std::vector<pmtf::pmt>{event.event_id, static_cast<uint64_t>(event.wr_trigger_stamp), static_cast<uint64_t>(event.wr_trigger_stamp_utc)};
+      return {offset, {{wr_event_tag_name, value}}};
     }
 
     /*!
@@ -247,23 +205,21 @@ namespace gr {
     inline wr_event_t
     decode_wr_event_tag(const gr::tag_t &tag)
     {
-      assert(pmt::symbol_to_string(tag.key) == wr_event_tag_name);
+      const auto tag_value = tag[wr_event_tag_name];
+      const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
 
-      if (!pmt::is_tuple(tag.value) || pmt::length(tag.value) != 3)
+      if (tag_vector.size() != 3)
       {
           std::ostringstream message;
           message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid wr_event tag format";
           throw std::runtime_error(message.str());
       }
 
-      wr_event_t event;
-
-      auto tag_tuple = pmt::to_tuple(tag.value);
-      event.event_id = pmt::symbol_to_string(tuple_ref(tag_tuple, 0));
-      event.wr_trigger_stamp = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 1)));
-      event.wr_trigger_stamp_utc = static_cast<int64_t>(pmt::to_uint64(tuple_ref(tag_tuple, 2)));
-
-      return event;
+      return {
+        .event_id = pmtf::get_as<std::string>(tag_vector[0]),
+        .wr_trigger_stamp = static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[1])),
+        .wr_trigger_stamp_utc = static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[2]))
+      };
     }
 
     // ################################################################################################################

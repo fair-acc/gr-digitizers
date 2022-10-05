@@ -8,7 +8,7 @@
 #ifndef INCLUDED_DIGITIZERS_EDGE_TRIGGER_UTILS_H
 #define INCLUDED_DIGITIZERS_EDGE_TRIGGER_UTILS_H
 
-#include <gnuradio/tags.h>
+#include <gnuradio/tag.h>
 #include <digitizers/api.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>

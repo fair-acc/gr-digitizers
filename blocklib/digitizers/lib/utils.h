@@ -15,8 +15,7 @@
 #include <chrono>
 #include <system_error>
 #include <boost/circular_buffer.hpp>
-#include <pmt/pmt.h>
-#include <gnuradio/tags.h>
+#include <gnuradio/tag.h>
 #include <iostream>
 #include <iomanip>
 #include <math.h>
@@ -206,22 +205,17 @@ namespace gr {
     inline gr::tag_t
     make_peak_info_tag(double frequency, double stdev)
     {
-      gr::tag_t tag;
-      tag.key = pmt::intern("peak_info");
-      tag.value = pmt::make_tuple(
-          pmt::from_double(frequency),
-          pmt::from_double(stdev));
-      return tag;
+      return {0, {{"peak_info", std::vector<pmtf::pmt>(frequency, stdev)}}};
     }
 
     inline void
     decode_peak_info_tag(const gr::tag_t &tag, double &frequency, double &stdev)
     {
-      assert(pmt::symbol_to_string(tag.key) == "peak_info");
-
-      auto values = pmt::to_tuple(tag.value);
-      frequency = pmt::to_double(tuple_ref(values, 0));
-      stdev = pmt::to_double(tuple_ref(values, 1));
+      const auto tag_value = tag["peak_info"];
+      const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
+      assert(tag_vector.size() == 2);
+      frequency = pmtf::get_as<double>(tag_vector[0]);
+      stdev = pmtf::get_as<double>(tag_vector[1]);
     }
 
     static const double fwhm2stdev = 0.5/sqrt(2*log(2));

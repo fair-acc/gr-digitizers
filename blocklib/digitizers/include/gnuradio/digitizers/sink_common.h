@@ -9,7 +9,7 @@
 #define INCLUDED_DIGITIZERS_SINK_COMMON_H
 
 #include <digitizers/api.h>
-#include <gnuradio/tags.h>
+#include <gnuradio/tag.h>
 #include <cstdint>
 #include <string>
 

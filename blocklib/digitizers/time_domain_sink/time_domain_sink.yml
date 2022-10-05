@@ -2,45 +2,55 @@ module: digitizers
 block: time_domain_sink
 label: time_domain_sink
 blocktype: sync_block
-
+includes:
+  - gnuradio/digitizers/enums.h
 typekeys:
   - id: T
     type: class
-    options: 
+    options:
         - cf32
         - rf32
         - ri32
         - ri16
         - ri8
-
-# Example Parameters
 parameters:
--   id: k
-    label: Constant
-    dtype: typekeys/T
+-   id: signal_name
+    label: Signal Name
+    dtype: string
     settable: true
--   id: vlen
-    label: Vec. Length
+-   id: signal_unit
+    label: Signal Unit
+    dtype: string
+    settable: true
+-   id: samp_rate
+    label: Sample rate
+    dtype: float
+    settable: true
+-   id: acquisition_type
+    label: Mode
+    dtype: enums/time_sink_mode_t
+    is_enum: true
+    settable: true
+-   id: output_package_size
+    label: Output Package Size
     dtype: size
-    settable: false
-    default: 1
+    settable: true
 
-# Example Ports
 ports:
 -   domain: stream
-    id: in
+    id: in_values
     direction: input
     type: typekeys/T
-    shape: parameters/vlen
-
 -   domain: stream
-    id: out
+    id: in_errors
+    direction: input
+    type: typekeys/T
+-   domain: stream
+    id: values
     direction: output
     type: typekeys/T
-    shape: parameters/vlen
 
 implementations:
 -   id: cpu
-# -   id: cuda
 
 file_format: 1
