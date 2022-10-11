@@ -1,0 +1,44 @@
+module: digitizers
+block: block_scaling_offset
+label: block_scaling_offset
+blocktype: sync_block
+
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: scale
+    label: Scale
+    dtype: rf64
+    settable: true
+-   id: offset
+    label: Offset
+    dtype: rf64
+    settable: true
+
+# Example Ports
+ports:
+-   domain: stream
+    id: in_sig
+    direction: input
+    type: typekeys/T
+-   domain: stream
+    id: in_err
+    direction: input
+    type: typekeys/T
+-   domain: stream
+    id: out_sig
+    direction: output
+    type: typekeys/T
+-   domain: stream
+    id: out_err
+    direction: output
+    type: typekeys/T
+
+implementations:
+-   id: cpu
+
+file_format: 1

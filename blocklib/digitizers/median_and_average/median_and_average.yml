@@ -13,15 +13,12 @@ parameters:
 -   id: vec_len
     label: Vector Length
     dtype: size
-    settable: true
 -   id: n_med
     label: Median Filter Window Size
     dtype: size
-    settable: true
 -   id: n_lp
     label: Averaging Filter Window Size
     dtype: size
-    settable: true
 
 ports:
 -   domain: stream
