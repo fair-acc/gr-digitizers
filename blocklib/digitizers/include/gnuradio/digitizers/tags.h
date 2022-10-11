@@ -8,7 +8,7 @@
 #ifndef INCLUDED_DIGITIZERS_TAGS_H
 #define INCLUDED_DIGITIZERS_TAGS_H
 
-#include <digitizers/api.h>
+#include <gnuradio/digitizers/api.h>
 #include <gnuradio/tag.h>
 #include <pmtf/base.hpp>
 #include <cassert>

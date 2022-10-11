@@ -1,0 +1,54 @@
+module: digitizers
+block: peak_detector
+label: peak_detector
+blocktype: sync_block
+
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: samp_rate
+    label: Sample Rate
+    dtype: double
+-   id: vec_len
+    label: Vector Length
+    dtype: size
+-   id: proximity
+    label: Proximity
+    dtype: int
+
+ports:
+-   domain: stream
+    id: actual
+    direction: input
+    type: typekeys/T
+    shape: parameters/vec_len
+-   domain: stream
+    id: filtered
+    direction: input
+    type: typekeys/T
+    shape: parameters/vec_len
+-   domain: stream
+    id: low_freq
+    direction: input
+    type: typekeys/T
+-   domain: stream
+    id: up_freq
+    direction: input
+    type: typekeys/T
+-   domain: stream
+    id: max_sig
+    direction: output
+    type: typekeys/T
+-   domain: stream
+    id: width_sig
+    direction: output
+    type: typekeys/T
+
+implementations:
+-   id: cpu
+
+file_format: 1

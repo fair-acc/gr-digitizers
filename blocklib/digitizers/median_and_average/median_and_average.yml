@@ -1,0 +1,42 @@
+module: digitizers
+block: median_and_average
+label: median_and_average
+blocktype: sync_block
+
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: vec_len
+    label: Vector Length
+    dtype: size
+    settable: true
+-   id: n_med
+    label: Median Filter Window Size
+    dtype: size
+    settable: true
+-   id: n_lp
+    label: Averaging Filter Window Size
+    dtype: size
+    settable: true
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: typekeys/T
+    shape: parameters/vec_len
+
+-   domain: stream
+    id: out
+    direction: output
+    type: typekeys/T
+    shape: parameters/vec_len
+
+implementations:
+-   id: cpu
+
+file_format: 1

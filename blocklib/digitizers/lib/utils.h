@@ -21,7 +21,7 @@
 #include <math.h>
 #include <queue>
 #include <list>
-#include <digitizers/tags.h>
+#include <gnuradio/digitizers/tags.h>
 
 namespace gr {
   namespace digitizers {

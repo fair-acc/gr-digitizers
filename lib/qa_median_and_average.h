@@ -4,7 +4,6 @@
  * You may use, distribute and modify this code under the terms of the GPL v.3  license.
  */
 
-
 #ifndef _QA_MEDIAN_AND_AVERAGE_H_
 #define _QA_MEDIAN_AND_AVERAGE_H_
 
@@ -12,21 +11,19 @@
 #include <cppunit/TestCase.h>
 
 namespace gr {
-  namespace digitizers {
+namespace digitizers {
 
-    class qa_median_and_average : public CppUnit::TestCase
-    {
-    public:
-      CPPUNIT_TEST_SUITE(qa_median_and_average);
-      CPPUNIT_TEST(basic_median_and_average);
-      CPPUNIT_TEST_SUITE_END();
+class qa_median_and_average : public CppUnit::TestCase {
+public:
+    CPPUNIT_TEST_SUITE(qa_median_and_average);
+    CPPUNIT_TEST(basic_median_and_average);
+    CPPUNIT_TEST_SUITE_END();
 
-    private:
-      void basic_median_and_average();
-    };
+private:
+    void basic_median_and_average();
+};
 
-  } /* namespace digitizers */
-} /* namespace gr */
+}
+} // namespace gr::digitizers
 
 #endif /* _QA_MEDIAN_AND_AVERAGE_H_ */
-
