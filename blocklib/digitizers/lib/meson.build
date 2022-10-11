@@ -27,7 +27,7 @@ gnuradio_blocklib_digitizers_lib = library('gnuradio-blocklib-digitizers',
     install : true,
     link_language: 'cpp',
     dependencies : digitizers_deps,
-    link_args : ['-lgnuradio-runtime'],
+    link_args : ['-lgnuradio-runtime', '-lgnuradio-kernel-fft', '-lgnuradio-kernel-math'],
     cpp_args : block_cpp_args)
 
 gnuradio_blocklib_digitizers_dep = declare_dependency(include_directories : ['../include/gnuradio', '../include', '../lib'], # TODO see above for ../lib
