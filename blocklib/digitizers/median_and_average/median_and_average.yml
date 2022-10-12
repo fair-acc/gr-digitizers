@@ -1,7 +1,7 @@
 module: digitizers
 block: median_and_average
 label: median_and_average
-blocktype: sync_block
+blocktype: block
 
 typekeys:
   - id: T
