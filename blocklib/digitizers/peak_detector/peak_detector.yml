@@ -1,7 +1,7 @@
 module: digitizers
 block: peak_detector
 label: peak_detector
-blocktype: sync_block
+blocktype: block
 
 typekeys:
   - id: T
