@@ -1,0 +1,41 @@
+module: digitizers
+block: freq_estimator
+label: freq_estimator
+blocktype: block
+
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: samp_rate
+    label: Sample Rate
+    dtype: rf32
+-   id: signal_window_size
+    label: Signal Window Size
+    dtype: size
+-   id: averager_window_size
+    label: Averager Window Size
+    dtype: size
+-   id: decim
+    label: Decimation Factor
+    dtype: ri32
+    settable: true
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: typekeys/T
+
+-   domain: stream
+    id: out
+    direction: output
+    type: typekeys/T
+
+implementations:
+-   id: cpu
+
+file_format: 1
