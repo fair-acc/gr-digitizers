@@ -47,11 +47,13 @@ template<class T>
 work_return_t median_and_average_cpu<T>::work(work_io &wio) {
     static_assert(std::is_same<T, float>());
 
-    assert(wio.inputs()[0].n_items > 0);
-    assert(wio.outputs()[0].n_items > 0);
+    if (wio.inputs()[0].n_items == 0) {
+        return work_return_t::INSUFFICIENT_INPUT_ITEMS;
+    }
 
-    assert(wio.inputs()[0].n_items == 1);
-    assert(wio.outputs()[0].n_items == 1);
+    if (wio.outputs()[0].n_items == 0) {
+        return work_return_t::INSUFFICIENT_OUTPUT_ITEMS;
+    }
 
     const auto in      = wio.inputs()[0].items<T>();
     auto       out     = wio.outputs()[0].items<T>();
