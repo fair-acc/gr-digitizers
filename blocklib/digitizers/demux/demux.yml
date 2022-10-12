@@ -1,0 +1,36 @@
+module: digitizers
+block: demux
+label: demux
+blocktype: block
+
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: post_trigger_window
+    label: Post-Trigger Window
+    dtype: size
+-   id: pre_trigger_window
+    label: Pre-Trigger Window
+    dtype: size
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    multiplicity: '1-2'
+    type: typekeys/T
+
+-   domain: stream
+    id: out
+    direction: output
+    multiplicity: '1-2'
+    type: typekeys/T
+
+implementations:
+-   id: cpu
+
+file_format: 1

@@ -8,6 +8,9 @@ linklibs = ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks']
 qa_block_scaling_offset = executable('qa_block_scaling_offset', 'qa_block_scaling_offset.cc',
                                      dependencies: testdeps,
                                      link_args: linklibs)
+qa_demux = executable('qa_demux', 'qa_demux.cc',
+                      dependencies: testdeps,
+                      link_args: linklibs)
 qa_freq_estimator = executable('qa_freq_estimator', 'qa_freq_estimator.cc',
                                dependencies: testdeps,
                                link_args: linklibs)
@@ -28,6 +31,7 @@ qa_time_domain_sink = executable('qa_time_domain_sink', 'qa_time_domain_sink.cc'
                                  link_args: linklibs)
 
 test('Block Scaling Offset', qa_block_scaling_offset)
+#test('Demux', qa_demux) #TODO (port) reenable (currently hangs)
 test('Frequency Estimator', qa_freq_estimator)
 test('Interlock Generation', qa_interlock_generation)
 test('Median and Average', qa_median_and_average)
