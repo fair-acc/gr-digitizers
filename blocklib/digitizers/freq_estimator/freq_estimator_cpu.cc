@@ -21,9 +21,7 @@ work_return_t freq_estimator_cpu<T>::work(work_io &wio) {
     auto       out   = wio.outputs()[0].items<float>();
 
     float      new_sig_avg;
-#ifdef PORT_DISABLED // TODO(PORT) port tag usage
-    const auto samp0_count = wio.inputs()[0].nitems_read();
-#endif
+
     const auto samp_rate = pmtf::get_as<float>(*this->param_samp_rate);
     const auto decim     = pmtf::get_as<int>(*this->param_decim);
 
@@ -56,16 +54,14 @@ work_return_t freq_estimator_cpu<T>::work(work_io &wio) {
         }
     }
 
-#ifdef PORT_DISABLED // TODO(PORT) port tag usage
     // add tags with corrected offset to the output stream
-    std::vector<gr::tag_t> tags;
-    get_tags_in_range(tags, 0, samp0_count, samp0_count + n_in);
+    auto tags = wio.inputs()[0].tags_in_window(0, n_in);
     for (auto &tag : tags) {
-        if (d_decim != 0)
-            tag.offset = uint64_t(tag.offset / d_decim);
-        add_item_tag(0, tag);
+        if (decim != 0) {
+            tag.set_offset(tag.offset() / decim);
+        }
+        wio.outputs()[0].add_tag(tag);
     }
-#endif
 
     wio.consume_each(n_in);
     wio.produce_each(n_out);

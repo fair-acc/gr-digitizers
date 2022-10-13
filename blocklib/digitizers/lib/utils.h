@@ -7,19 +7,23 @@
 #ifndef INCLUDED_DIGITIZERS_UTILS_H
 #define INCLUDED_DIGITIZERS_UTILS_H
 
+#include <gnuradio/digitizers/tags.h>
+#include <gnuradio/tag.h>
+
 #include <boost/call_traits.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/thread/pthread/condition_variable.hpp>
 #include <boost/thread/pthread/mutex.hpp>
+
+#include <algorithm>
 #include <chrono>
-#include <gnuradio/digitizers/tags.h>
-#include <gnuradio/tag.h>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <list>
-#include <math.h>
-#include <system_error>
 #include <queue>
+#include <system_error>
+#include <vector>
 
 namespace gr {
 namespace digitizers {
@@ -32,6 +36,15 @@ inline uint64_t get_timestamp_nano_utc() {
 
 inline uint64_t get_timestamp_milli_utc() {
     return uint64_t(get_timestamp_nano_utc() / 1000000);
+}
+
+inline std::vector<tag_t> filter_tags(std::vector<tag_t> &&tags, const std::string &key) {
+    auto has_not_key = [&key](const auto &tag) {
+        return tag[key] == pmtf::null_pmt;
+    };
+
+    std::erase_if(tags, has_not_key);
+    return tags;
 }
 
 /*!

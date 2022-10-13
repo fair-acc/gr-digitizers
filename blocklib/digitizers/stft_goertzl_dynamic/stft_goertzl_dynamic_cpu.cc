@@ -10,9 +10,7 @@ template<class T>
 stft_goertzl_dynamic_cpu<T>::stft_goertzl_dynamic_cpu(const typename stft_goertzl_dynamic<T>::block_args &args)
     : INHERITED_CONSTRUCTORS(T)
     , d_window_function(kernel::fft::window::build(kernel::fft::window::window_t::HANN, args.winsize, 1.0)) {
-#ifdef PORT_DISABLED
-    set_tag_propagation_policy(TPP_DONT);
-#endif
+    this->set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
 template<class T>
@@ -130,14 +128,12 @@ work_return_t stft_goertzl_dynamic_cpu<T>::work(work_io &wio) {
         fqs[i] = freq;
     }
 
-#ifdef PORT_DISABLED // TODO(PORT) port tag usage
-    std::vector<tag_t> tags;
-    get_tags_in_range(tags, 0, nitems_read(0), nitems_read(0) + 1);
-    for (auto tag : tags) {
-        tag.offset = nitems_written(0);
-        add_item_tag(0, tag);
+    auto tags = wio.inputs()[0].tags_in_window(0, 1);
+
+    for (auto &tag : tags) {
+        tag.set_offset(wio.outputs()[0].nitems_written());
+        wio.outputs()[0].add_tag(tag);
     }
-#endif
 
     wio.produce_each(1);
 
