@@ -40,7 +40,7 @@ inline uint64_t get_timestamp_milli_utc() {
 
 inline std::vector<tag_t> filter_tags(std::vector<tag_t> &&tags, const std::string &key) {
     auto has_not_key = [&key](const auto &tag) {
-        return tag[key] == pmtf::null_pmt;
+        return tag.map().count(key) == 0;
     };
 
     std::erase_if(tags, has_not_key);

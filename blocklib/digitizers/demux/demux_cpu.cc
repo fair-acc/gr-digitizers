@@ -5,16 +5,26 @@ namespace gr::digitizers {
 
 template<class T>
 demux_cpu<T>::demux_cpu(const typename demux<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T)
-    , d_my_history(args.pre_trigger_window + args.post_trigger_window) {
-#ifdef PORT_DISABLED // check how/if to port this
+    : INHERITED_CONSTRUCTORS(T) {
+#ifdef PORT_DISABLED // check how/if to port this (d_my_history = args.pre_trigger_window + args.post_trigger_window)
     // actual history size is in fact N - 1
     set_history(d_my_history + 1);
 #endif
-    // allows us to send a complete data chunk down the stream
-    block::set_output_multiple(args.pre_trigger_window + args.post_trigger_window);
+    // TODO(PORT) I tried to replace the built-in history by checking the data available and return
+    // INSUFFICIENT_INPUT_ITEMS until enough data is there (without consuming), but that doesn't seems enough to
+    // let the runtime give us enough data eventually.
+    // Consumed data can be overwritten (ringbuffer), so I'm not sure how to implement this without copying the data
+    // into our own buffer.
 
-    block::set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+    // allows us to send a complete data chunk down the stream
+    this->set_output_multiple(args.pre_trigger_window + args.post_trigger_window);
+    this->set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+}
+
+template<class T>
+bool demux_cpu<T>::start() {
+    d_state = extractor_state::WaitTrigger;
+    return true;
 }
 
 template<class T>
@@ -43,13 +53,12 @@ work_return_t demux_cpu<T>::work(work_io &wio) {
                 // GR_LOG_DEBUG(d_logger, "demux detected trigger at offset: " + std::to_string(d_last_trigger_offset));
 
                 // store as well aqc info tags for that trigger
-                std::vector<gr::tag_t> info_tags;
-#ifdef PORT_DISABLED // TODO(PORT) tag handling
-                get_tags_in_range(info_tags, 0, trigger_tag.offset - pre_trigger_window, trigger_tag.offset + post_trigger_window, pmt::string_to_symbol(acq_info_tag_name));
-#endif
+                const auto offs      = static_cast<int64_t>(trigger_tag.offset()) - samp0_count;
+                const auto info_tags = filter_tags(wio.inputs()[0].tags_in_window(offs - pre_trigger_window, offs + post_trigger_window), acq_info_tag_name);
+
                 for (const auto &info_tag : info_tags) {
                     int64_t rel_offset = info_tag.offset() - trigger_tag.offset();
-                    d_acq_info_tags.push_back(std::make_pair(decode_acq_info_tag(info_tag), rel_offset));
+                    d_acq_info_tags.push_back({ decode_acq_info_tag(info_tag), rel_offset });
                 }
                 break; // found a trigger
                        // TODO: Instead of breaking here, we should make to report a warning/error if a trigger got skipped (e.g. if triggers are too tight together)
@@ -103,15 +112,16 @@ work_return_t demux_cpu<T>::work(work_io &wio) {
         }
 
         retval = samples_2_copy;
-#ifdef PORT_DISABLED // TODO(PORT) tag handling
+
         // add trigger tag
-        add_item_tag(0, make_trigger_tag(d_trigger_tag_data, wio.outputs()[0].nitems_written() + pre_trigger_window));
+        auto tag = make_trigger_tag(d_trigger_tag_data, wio.outputs()[0].nitems_written() + pre_trigger_window);
+        wio.outputs()[0].add_tag(tag);
 
         for (auto &info_tag : d_acq_info_tags) {
             int64_t rel_offset = info_tag.second;
-            add_item_tag(0, make_acq_info_tag(info_tag.first, wio.outputs()[0].nitems_written() + pre_trigger_window + rel_offset));
+            auto    tag        = make_acq_info_tag(info_tag.first, wio.outputs()[0].nitems_written() + pre_trigger_window + rel_offset);
+            wio.outputs()[0].add_tag(tag);
         }
-#endif
 
         d_acq_info_tags.clear();
 

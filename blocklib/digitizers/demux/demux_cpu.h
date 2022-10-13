@@ -11,6 +11,7 @@ class demux_cpu : public demux<T> {
 public:
     demux_cpu(const typename demux<T>::block_args &args);
 
+    bool          start() override;
     work_return_t work(work_io &wio) override;
 
 private:

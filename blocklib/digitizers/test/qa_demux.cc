@@ -60,9 +60,9 @@ make_test_flowgraph(const std::vector<float> &values,
     extractor_test_flowgraph_t flowgraph;
 
     flowgraph.fg         = gr::flowgraph::make("test");
-    flowgraph.value_src  = gr::blocks::vector_source_f::make({ values, false, 1, tags });
-    flowgraph.error_src  = gr::blocks::vector_source_f::make({ errors });
-    flowgraph.extractor  = gr::digitizers::demux_ff::make({ post_trigger_window, pre_trigger_window });
+    flowgraph.value_src  = gr::blocks::vector_source_f::make({ .data = values, .tags = tags });
+    flowgraph.error_src  = gr::blocks::vector_source_f::make({ .data = errors });
+    flowgraph.extractor  = gr::digitizers::demux<float>::make({ post_trigger_window, pre_trigger_window });
     flowgraph.value_sink = gr::blocks::vector_sink_f::make({});
     flowgraph.error_sink = gr::blocks::vector_sink_f::make({});
     // flowgraph.tag_debug = gr::blocks::tag_debug::make(sizeof(float), "neki");
@@ -137,16 +137,16 @@ void qa_demux::test_single_trigger() {
             errors.begin() + trigger_offset + post_trigger_samples - 1,
             actual_errors.begin());
 
-#ifdef PORT_DISABLED // TODO(PORT) tags
     auto out_tags = flowgraph.tags();
     CPPUNIT_ASSERT_EQUAL(2, (int) out_tags.size());
 
-    CPPUNIT_ASSERT_EQUAL(out_tags[0]., pmt::get_string_to_symbol(trigger_tag_name));
+    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples }, out_tags[0].offset());
 
-    CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(acq_info_tag_name));
+    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().begin()->first, std::string(acq_info_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples + 2000 }, out_tags[1].offset());
-#endif
 }
 
 void qa_demux::test_multi_trigger() {
@@ -211,28 +211,32 @@ void qa_demux::test_multi_trigger() {
             errors.begin() + trigger3_offset + post_trigger_samples - 1,
             actual_errors.begin() + 2 * trigger_samples);
 
-#ifdef PORT_DISABLED // TODO(PORT) tags
     auto out_tags = flowgraph.tags();
     CPPUNIT_ASSERT_EQUAL(6, (int) out_tags.size());
-    CPPUNIT_ASSERT_EQUAL(out_tags[0].key, pmt::string_to_symbol(trigger_tag_name));
 
-    CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples }, out_tags[0].offset);
+    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string(trigger_tag_name));
+    CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples }, out_tags[0].offset());
 
-    CPPUNIT_ASSERT_EQUAL(out_tags[1].key, pmt::string_to_symbol(acq_info_tag_name));
-    CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples + 10 }, out_tags[1].offset);
+    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().begin()->first, std::string(acq_info_tag_name));
+    CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples + 10 }, out_tags[1].offset());
 
-    CPPUNIT_ASSERT_EQUAL(out_tags[2].key, pmt::string_to_symbol(acq_info_tag_name));
-    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples + pre_trigger_samples - 50 }, out_tags[2].offset);
+    CPPUNIT_ASSERT_EQUAL(out_tags[2].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[2].map().begin()->first, std::string(acq_info_tag_name));
+    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples + pre_trigger_samples - 50 }, out_tags[2].offset());
 
-    CPPUNIT_ASSERT_EQUAL(out_tags[3].key, pmt::string_to_symbol(trigger_tag_name));
-    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples + pre_trigger_samples }, out_tags[3].offset);
+    CPPUNIT_ASSERT_EQUAL(out_tags[3].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[3].map().begin()->first, std::string(trigger_tag_name));
+    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples + pre_trigger_samples }, out_tags[3].offset());
 
-    CPPUNIT_ASSERT_EQUAL(out_tags[4].key, pmt::string_to_symbol(trigger_tag_name));
-    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples * 2 + pre_trigger_samples }, out_tags[4].offset);
+    CPPUNIT_ASSERT_EQUAL(out_tags[4].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[4].map().begin()->first, std::string(trigger_tag_name));
+    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples * 2 + pre_trigger_samples }, out_tags[4].offset());
 
-    CPPUNIT_ASSERT_EQUAL(out_tags[5].key, pmt::string_to_symbol(acq_info_tag_name));
-    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples * 2 + pre_trigger_samples + 199 }, out_tags[5].offset);
-#endif
+    CPPUNIT_ASSERT_EQUAL(out_tags[5].map().size(), std::size_t{ 1 });
+    CPPUNIT_ASSERT_EQUAL(out_tags[5].map().begin()->first, std::string(acq_info_tag_name));
+    CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples * 2 + pre_trigger_samples + 199 }, out_tags[5].offset());
 }
 
 void qa_demux::test_to_few_post_trigger_samples() {
