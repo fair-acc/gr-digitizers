@@ -30,9 +30,9 @@ work_return_t interlock_generation_cpu<T>::work(work_io &wio) {
 
     for (std::size_t i = 0; i < noutput_items; i++) {
         // Get acq_info tags in range
-        const auto tags = filter_tags(wio.inputs()[0].tags_in_window(i, i +1), acq_info_tag_name);
+        const auto tags      = filter_tags(wio.inputs()[0].tags_in_window(i, i + 1), acq_info_tag_name);
 
-        bool interlock = false;
+        bool       interlock = false;
 
         if (max[i] < max_max) {
             if (in[i] >= max[i]) {

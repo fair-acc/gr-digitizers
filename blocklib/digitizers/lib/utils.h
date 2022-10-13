@@ -21,9 +21,9 @@
 #include <iomanip>
 #include <iostream>
 #include <list>
-#include <queue>
 #include <system_error>
 #include <vector>
+#include <queue>
 
 namespace gr {
 namespace digitizers {
