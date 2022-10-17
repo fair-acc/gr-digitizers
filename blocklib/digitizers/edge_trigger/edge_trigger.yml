@@ -1,0 +1,54 @@
+module: digitizers
+block: edge_trigger
+label: edge_trigger
+blocktype: block
+
+typekeys:
+  - id: T
+    type: class
+    options: 
+        - rf32
+
+parameters:
+-   id: samp_rate
+    label: Sample Rate
+    dtype: rf32
+-   id: lo
+    label: Lo
+    dtype: typekeys/T
+-   id: hi
+    label: Hi
+    dtype: typekeys/T
+-   id: initial_state
+    label: Initial State
+    dtype: typekeys/T
+-   id: send_udp
+    label: Send UDP
+    dtype: bool
+    settable: true
+-   id: host_list
+    label: Host List
+    dtype: string
+    #container: vector // TODO(PORT) this breaks in the generated edge_trigger.cc
+-   id: send_up_on_raising_edge
+    label: Send UDP on Raising Edge
+    dtype: bool
+-   id: timeout
+    label: Timeout
+    dtype: rf32
+    
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: typekeys/T
+
+-   domain: stream
+    id: out
+    direction: output
+    type: typekeys/T
+
+implementations:
+-   id: cpu
+
+file_format: 1

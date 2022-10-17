@@ -39,6 +39,7 @@ inline uint64_t get_timestamp_milli_utc() {
 }
 
 inline std::vector<tag_t> filter_tags(std::vector<tag_t> &&tags, const std::string &key) {
+    // TODO(port) check if we can use ranges here instead of modifying the container
     auto has_not_key = [&key](const auto &tag) {
         return tag.map().count(key) == 0;
     };
