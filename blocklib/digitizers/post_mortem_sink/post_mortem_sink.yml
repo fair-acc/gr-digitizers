@@ -1,0 +1,64 @@
+module: digitizers
+block: post_mortem_sink
+label: post_mortem_sink
+blocktype: sync_block
+includes:
+  - gnuradio/digitizers/sink_common.h
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: name
+    label: Name
+    dtype: string
+-   id: unit
+    label: Unit
+    dtype: string
+-   id: sample_rate
+    label: Sample Rate
+    dtype: rf32
+    gettable: true
+-   id: buffer_size
+    label: Buffer Size
+    dtype: size
+    gettable: true
+
+callbacks:
+    - id: get_metadata # TODO(PORT) do we really need this getter, can't we just make name and unit gettable?
+      return: signal_metadata_t
+      const: true
+    - id: freeze_buffer
+      return: void
+    - id: get_post_mortem_data
+      return: post_mortem_data_t
+      args:
+      - id: items_to_read
+        dtype: size
+
+ports:
+-   domain: stream
+    id: in_data
+    direction: input
+    type: typekeys/T
+-   domain: stream
+    id: in_errors
+    direction: input
+    type: typekeys/T
+    optional: true # TODO(PORT) really optional? io_signature says 2..2, checks for second input
+-   domain: stream
+    id: out_data
+    direction: output
+    type: typekeys/T
+-   domain: stream
+    id: out_errors
+    direction: output
+    type: typekeys/T
+    optional: true
+
+implementations:
+-   id: cpu
+
+file_format: 1

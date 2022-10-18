@@ -1,19 +1,12 @@
-/* -*- c++ -*- */
-/* Copyright (C) 2018 GSI Darmstadt, Germany - All Rights Reserved
- * co-developed with: Cosylab, Ljubljana, Slovenia and CERN, Geneva, Switzerland
- * You may use, distribute and modify this code under the terms of the GPL v.3  license.
- */
-
 #ifndef INCLUDED_DIGITIZERS_SINK_COMMON_H
 #define INCLUDED_DIGITIZERS_SINK_COMMON_H
 
 #include <cstdint>
-#include <digitizers/api.h>
+#include <gnuradio/digitizers/api.h>
 #include <gnuradio/tag.h>
 #include <string>
 
-namespace gr {
-namespace digitizers {
+namespace gr::digitizers {
 
 /*!
  * \brief Holds static information about the signal.
@@ -51,6 +44,12 @@ struct DIGITIZERS_API measurement_info_t {
     uint64_t samples_lost; // samples lost since last readout
 };
 
+struct DIGITIZERS_API post_mortem_data_t {
+    std::vector<float> values;
+    std::vector<float> errors;
+    measurement_info_t info;
+};
+
 /*!
  * \brief Holding information about the timestamp (trigger or acquisition) when the callback
  * is called.
@@ -77,7 +76,6 @@ typedef void (*cb_copy_data_t)(const float *values,
         std::vector<gr::tag_t>             &tags,
         void                               *userdata);
 
-}
 } // namespace gr::digitizers
 
 #endif /* INCLUDED_DIGITIZERS_SINK_COMMON_H */

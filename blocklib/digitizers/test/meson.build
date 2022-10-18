@@ -26,6 +26,9 @@ qa_median_and_average = executable('qa_median_and_average', 'qa_median_and_avera
 qa_peak_detector = executable('qa_peak_detector', 'qa_peak_detector.cc',
                               dependencies: testdeps,
                               link_args: linklibs)
+qa_post_mortem_sink = executable('qa_post_mortem_sink', 'qa_post_mortem_sink.cc',
+                                 dependencies: testdeps,
+                                 link_args: linklibs)
 qa_stft_goertzl_dynamic = executable('qa_stft_goertzl_dynamic', 'qa_stft_goertzl_dynamic.cc',
                                      dependencies: testdeps,
                                      link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-kernel-math'])
@@ -39,6 +42,7 @@ test('Edge Trigger', qa_edge_trigger)
 test('Frequency Estimator', qa_freq_estimator)
 test('Interlock Generation', qa_interlock_generation)
 test('Median and Average', qa_median_and_average)
-test('STFT Goertzel Dynamic', qa_stft_goertzl_dynamic)
 test('Peak Detector', qa_peak_detector)
+test('Post Mortem Sink', qa_post_mortem_sink)
+test('STFT Goertzel Dynamic', qa_stft_goertzl_dynamic)
 #test('Time Domain Sink', qa_time_domain_sink)
