@@ -35,6 +35,9 @@ qa_stft_goertzl_dynamic = executable('qa_stft_goertzl_dynamic', 'qa_stft_goertzl
 qa_time_domain_sink = executable('qa_time_domain_sink', 'qa_time_domain_sink.cc',
                                  dependencies: testdeps,
                                  link_args: linklibs)
+qa_wr_receiver = executable('qa_wr_receiver', 'qa_wr_receiver.cc',
+                            dependencies: testdeps,
+                            link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-blocklib-math'])
 
 test('Block Scaling Offset', qa_block_scaling_offset)
 #test('Demux', qa_demux) #TODO (port) reenable (currently hangs)
@@ -46,3 +49,4 @@ test('Peak Detector', qa_peak_detector)
 test('Post Mortem Sink', qa_post_mortem_sink)
 test('STFT Goertzel Dynamic', qa_stft_goertzl_dynamic)
 #test('Time Domain Sink', qa_time_domain_sink)
+test('WR Receiver', qa_wr_receiver)
