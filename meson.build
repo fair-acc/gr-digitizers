@@ -65,7 +65,7 @@ volk_dep = dependency('volk', version : '>=2.2')
 fmt_dep = dependency('fmt', method: 'cmake', modules: ['fmt::fmt'])
 pmtf_dep = dependency('pmtf', version : '>= 0.0.2')
 gnuradio_gr_dep = dependency('gnuradio-runtime')
-boost_dep = dependency('boost')
+boost_dep = dependency('boost', modules: ['chrono', 'thread']) # TODO(PORT) add all used modules/port away from them
 cppunit_dep = dependency('cppunit')
 
 if GR_ENABLE_PYTHON

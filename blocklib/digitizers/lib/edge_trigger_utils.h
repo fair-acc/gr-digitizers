@@ -3,7 +3,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-#include <digitizers/api.h>
+#include <gnuradio/digitizers/api.h>
 #include <gnuradio/tag.h>
 #include <string>
 
