@@ -1,0 +1,72 @@
+module: digitizers
+block: freq_sink
+label: freq_sink
+blocktype: sync_block
+
+includes:
+  - gnuradio/digitizers/enums.h
+  - gnuradio/digitizers/sink_common.h
+  - gnuradio/digitizers/spectra_measurement_t.h
+
+typekeys:
+-   id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: name
+    label: Signal Name
+    dtype: string
+-   id: sample_rate
+    label: Sample Rate
+    dtype: rf32
+    gettable: true
+-   id: nbins
+    label: Number of Bins
+    dtype: size
+    gettable: true
+-   id: nmeasurements
+    label: Number of Measurements
+    dtype: size
+    gettable: true
+-   id: nbuffers
+    label: Number of Buffers
+    dtype: size
+-   id: mode
+    label: Sink Mode
+    dtype: enums/freq_sink_mode_t
+    is_enum: true
+    gettable: true
+
+callbacks:
+    - id: get_metadata # TODO(PORT) do we really need this getter, can't we just make name and unit gettable?
+      return: signal_metadata_t
+      const: true
+    - id: get_measurements
+      return: spectra_measurement_t
+      args:
+      - id: items_to_read
+        dtype: size
+
+ports:
+-   domain: stream
+    id: magnitude
+    direction: input
+    type: typekeys/T
+    shape: parameters/nbins
+-   domain: stream
+    id: phase
+    direction: input
+    type: typekeys/T
+    shape: parameters/nbins
+-   domain: stream
+    id: freqs
+    direction: input
+    type: typekeys/T
+    shape: parameters/nbins
+
+implementations:
+-   id: cpu
+
+file_format: 1
