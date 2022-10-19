@@ -1,0 +1,90 @@
+module: digitizers
+block: chi_square_fit
+label: chi_square_fit
+blocktype: block
+
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: in_vec_size
+    label: Input Vector Size
+    dtype: size
+-   id: func
+    label: Function to Fit
+    dtype: string
+    settable: true
+-   id: lim_up
+    label: Upper Limit of Samples
+    dtype: rf64
+    settable: true
+-   id: lim_dn
+    label: Lower Limit of Samples
+    dtype: rf64
+    settable: true
+-   id: n_params
+    label: Number of Parameters
+    dtype: size
+-   id: par_name
+    label: Parameter Naming Convention
+    dtype: string
+#    container: vector # // TODO(PORT) this leads to a compiler error in generated code
+-   id: par_init
+    label: Initial Parameter Values
+    dtype: rf64
+    container: vector
+-   id: par_err
+    label: Initial Parameter Error Estimates
+    dtype: rf64
+    container: vector
+-   id: par_fit
+    label: Parameter adjustability
+    dtype: ri8
+    container: vector
+    settable: true
+-   id: par_lim_up
+    label: Hypercube Sector (Upper Limit)
+    dtype: rf64
+    container: vector
+    settable: true
+-   id: par_lim_dn
+    label: Hypercube Sector (Lower Limit)
+    dtype: rf64
+    container: vector
+    settable: true
+-   id: max_chi_square_error
+    label: Allowable chi square error
+    dtype: rf64
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: typekeys/T
+    shape: parameters/in_vec_size
+-   domain: stream
+    id: params
+    direction: output
+    type: typekeys/T
+    shape: parameters/n_params
+-   domain: stream
+    id: errs
+    direction: output
+    type: typekeys/T
+    shape: parameters/n_params
+-   domain: stream
+    id: chi_sq
+    direction: output
+    type: typekeys/T
+-   domain: stream
+    id: valid
+    direction: output
+    type: ri8
+
+implementations:
+-   id: cpu
+
+file_format: 1

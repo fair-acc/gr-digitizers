@@ -11,6 +11,9 @@ qa_block_demux = executable('qa_block_demux', 'qa_block_demux.cc',
 qa_block_scaling_offset = executable('qa_block_scaling_offset', 'qa_block_scaling_offset.cc',
                                      dependencies: testdeps,
                                      link_args: linklibs)
+qa_chi_square_fit = executable('qa_chi_square_fit', 'qa_chi_square_fit.cc',
+                               dependencies: testdeps,
+                               link_args: linklibs)
 qa_demux = executable('qa_demux', 'qa_demux.cc',
                       dependencies: testdeps,
                       link_args: linklibs)
@@ -50,6 +53,7 @@ qa_wr_receiver = executable('qa_wr_receiver', 'qa_wr_receiver.cc',
 
 test('Block Demux', qa_block_demux)
 test('Block Scaling Offset', qa_block_scaling_offset)
+test('Chi Square Fit', qa_chi_square_fit)
 #test('Demux', qa_demux) #TODO (port) reenable (currently hangs)
 test('Edge Trigger', qa_edge_trigger)
 test('Frequency Estimator', qa_freq_estimator)

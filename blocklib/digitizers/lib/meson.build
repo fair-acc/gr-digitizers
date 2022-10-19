@@ -1,5 +1,5 @@
 digitizers_sources += []
-digitizers_deps += [gnuradio_gr_dep, volk_dep, fmt_dep, boost_dep, pmtf_dep, python3_embed_dep, json_dep]
+digitizers_deps += [gnuradio_gr_dep, volk_dep, fmt_dep, boost_dep, pmtf_dep, python3_embed_dep, json_dep, root_dep]
 
 block_cpp_args = ['-DHAVE_CPU']
 

@@ -68,6 +68,9 @@ gnuradio_gr_dep = dependency('gnuradio-runtime')
 boost_dep = dependency('boost', modules: ['chrono', 'thread']) # TODO(PORT) add all used modules/port away from them
 cppunit_dep = dependency('cppunit')
 
+libroot_prefix = get_option('libroot_prefix')
+root_dep = dependency('ROOT', method : 'cmake', components : ['MathCore', 'Graf'], modules : ['ROOT::Graf', 'ROOT::MathCore'], cmake_module_path : libroot_prefix + '/cmake')
+
 if GR_ENABLE_PYTHON
 run_command('python3', join_paths(SCRIPTS_DIR,'gen_meson.py'), 
   join_paths(meson.project_source_root(),'blocklib'), '--enable_python', check: true)
