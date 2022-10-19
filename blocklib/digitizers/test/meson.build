@@ -5,6 +5,9 @@
 testdeps = [cppunit_dep, gnuradio_blocklib_digitizers_dep]
 linklibs = ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks']
 
+qa_block_demux = executable('qa_block_demux', 'qa_block_demux.cc',
+                            dependencies: testdeps,
+                            link_args: linklibs)
 qa_block_scaling_offset = executable('qa_block_scaling_offset', 'qa_block_scaling_offset.cc',
                                      dependencies: testdeps,
                                      link_args: linklibs)
@@ -42,6 +45,7 @@ qa_wr_receiver = executable('qa_wr_receiver', 'qa_wr_receiver.cc',
                             dependencies: testdeps,
                             link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-blocklib-math'])
 
+test('Block Demux', qa_block_demux)
 test('Block Scaling Offset', qa_block_scaling_offset)
 #test('Demux', qa_demux) #TODO (port) reenable (currently hangs)
 test('Edge Trigger', qa_edge_trigger)
