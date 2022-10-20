@@ -47,6 +47,9 @@ qa_stream_to_vector_overlay = executable('qa_stream_to_vector_overlay', 'qa_stre
 qa_time_domain_sink = executable('qa_time_domain_sink', 'qa_time_domain_sink.cc',
                                  dependencies: testdeps,
                                  link_args: linklibs)
+qa_time_realignment = executable('qa_time_realignment', 'qa_time_realignment.cc',
+                                 dependencies: testdeps,
+                                 link_args: linklibs)
 qa_wr_receiver = executable('qa_wr_receiver', 'qa_wr_receiver.cc',
                             dependencies: testdeps,
                             link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-blocklib-math'])
@@ -65,4 +68,5 @@ test('Post Mortem Sink', qa_post_mortem_sink)
 test('STFT Goertzel Dynamic', qa_stft_goertzl_dynamic)
 test('Stream to Vector Overlay', qa_stream_to_vector_overlay)
 #test('Time Domain Sink', qa_time_domain_sink)
+test('Time Realignment', qa_time_realignment)
 test('WR Receiver', qa_wr_receiver)

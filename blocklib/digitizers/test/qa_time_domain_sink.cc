@@ -1,10 +1,6 @@
-/* -*- c++ -*- */
-/* Copyright (C) 2018 GSI Darmstadt, Germany - All Rights Reserved
- * co-developed with: Cosylab, Ljubljana, Slovenia and CERN, Geneva, Switzerland
- * You may use, distribute and modify this code under the terms of the GPL v.3  license.
- */
-
 #include "qa_time_domain_sink.h"
+#include "qa_common.h"
+#include "utils.h"
 
 #include <digitizers/enums.h>
 #include <digitizers/status.h>
@@ -13,16 +9,10 @@
 #include <gnuradio/blocks/vector_source.h>
 #include <gnuradio/flowgraph.h>
 
-#include "qa_common.h"
-#include "utils.h"
-
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/TestAssert.h>
 #include <cppunit/TextTestRunner.h>
 #include <cppunit/XmlOutputter.h>
-
-#include <boost/chrono.hpp>
-#include <boost/thread.hpp>
 
 #include <functional>
 

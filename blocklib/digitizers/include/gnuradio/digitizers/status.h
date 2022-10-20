@@ -7,10 +7,9 @@
 #ifndef INCLUDED_DIGITIZERS_STATUS_H
 #define INCLUDED_DIGITIZERS_STATUS_H
 
-#include <digitizers/api.h>
+#include <gnuradio/digitizers/api.h>
 
-namespace gr {
-namespace digitizers {
+namespace gr::digitizers {
 
 /*!
  * \brief Channel-related status flags (bit-enum).
@@ -42,7 +41,6 @@ enum DIGITIZERS_API algorithm_id_t {
     AVERAGE
 };
 
-}
 } // namespace gr::digitizers
 
 #endif /* INCLUDED_DIGITIZERS_STATUS_H */

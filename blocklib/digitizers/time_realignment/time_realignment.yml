@@ -1,0 +1,66 @@
+module: digitizers
+block: time_realignment
+label: time_realignment
+blocktype: block
+
+typekeys:
+  - id: T
+    type: class
+    options:
+        - rf32
+
+parameters:
+-   id: id
+    label: Id
+    dtype: string
+-   id: user_delay
+    label: User Delay
+    dtype: rf32
+    settable: true
+    default: 0
+-   id: triggerstamp_matching_tolerance
+    label: Triggerstamp Matching Tolerance
+    dtype: rf32
+    settable: true
+    default: 0.03
+-   id: max_buffer_time
+    label: Max. Buffer Time
+    dtype: rf32
+    settable: true
+    default: 0.3
+
+callbacks:
+    - id: add_timing_event
+      return: bool
+      args:
+      - id: event_id
+        dtype: string
+      - id: wr_trigger_stamp
+        dtype: ri64
+      - id: wr_trigger_stamp_utc
+        dtype: ri64
+
+ports:
+# TODO(port) give these more telling names
+-   domain: stream
+    id: in
+    direction: input
+    type: typekeys/T
+    multiplicity: '2'
+
+-   domain: stream
+    id: in2
+    direction: input
+    type: typekeys/T
+    optional: true
+
+-   domain: stream
+    id: out
+    direction: output
+    type: typekeys/T
+    multiplicity: '2'
+
+implementations:
+-   id: cpu
+
+file_format: 1
