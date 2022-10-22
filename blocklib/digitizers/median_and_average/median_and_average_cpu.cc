@@ -3,9 +3,8 @@
 
 namespace gr::digitizers {
 
-template<class T>
-median_and_average_cpu<T>::median_and_average_cpu(const typename median_and_average<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+median_and_average_cpu::median_and_average_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
 }
 
 int compare_floats(const void *a, const void *b) {
@@ -43,10 +42,7 @@ float average(const float *buffer, int size) {
     return sum / (float) size;
 }
 
-template<class T>
-work_return_t median_and_average_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
-
+work_return_t median_and_average_cpu::work(work_io &wio) {
     if (wio.inputs()[0].n_items == 0) {
         return work_return_t::INSUFFICIENT_INPUT_ITEMS;
     }
@@ -55,8 +51,8 @@ work_return_t median_and_average_cpu<T>::work(work_io &wio) {
         return work_return_t::INSUFFICIENT_OUTPUT_ITEMS;
     }
 
-    const auto in      = wio.inputs()[0].items<T>();
-    auto       out     = wio.outputs()[0].items<T>();
+    const auto in      = wio.inputs()[0].items<float>();
+    auto       out     = wio.outputs()[0].items<float>();
 
     const auto med_len = static_cast<int>(pmtf::get_as<std::size_t>(*this->param_n_med));
     const auto avg_len = static_cast<int>(pmtf::get_as<std::size_t>(*this->param_n_lp));

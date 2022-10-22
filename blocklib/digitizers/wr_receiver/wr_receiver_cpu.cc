@@ -5,13 +5,11 @@
 
 namespace gr::digitizers {
 
-template<class T>
-wr_receiver_cpu<T>::wr_receiver_cpu(const typename wr_receiver<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+wr_receiver_cpu::wr_receiver_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
 }
 
-template<class T>
-work_return_t wr_receiver_cpu<T>::work(work_io &wio) {
+work_return_t wr_receiver_cpu::work(work_io &wio) {
     const auto noutput_items = wio.outputs()[0].n_items;
 
     // Zero the output
@@ -28,8 +26,7 @@ work_return_t wr_receiver_cpu<T>::work(work_io &wio) {
     return work_return_t::OK;
 }
 
-template<class T>
-bool wr_receiver_cpu<T>::add_timing_event(std::string event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) {
+bool wr_receiver_cpu::add_timing_event(std::string event_id, int64_t wr_trigger_stamp, int64_t wr_trigger_stamp_utc) {
     d_event_queue.push({ .event_id = std::move(event_id),
             .wr_trigger_stamp      = wr_trigger_stamp,
             .wr_trigger_stamp_utc  = wr_trigger_stamp_utc });
@@ -37,10 +34,9 @@ bool wr_receiver_cpu<T>::add_timing_event(std::string event_id, int64_t wr_trigg
     return true;
 }
 
-// TODO this was ::start(), but then the queue gets cleared asynchronously when running the flowgraph, which
+// TODO(PORT) this was ::start(), but then the queue gets cleared asynchronously when running the flowgraph, which
 // made this hard to test. Assuming that subsequent starts are preceded by a stop()
-template<class T>
-bool wr_receiver_cpu<T>::stop() {
+bool wr_receiver_cpu::stop() {
     d_event_queue.clear();
     return true;
 }

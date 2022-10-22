@@ -27,14 +27,14 @@ struct sim_wr_event_t {
     int64_t     wr_trigger_stamp_utc;
 };
 struct realignment_test_flowgraph_t {
-    gr::flowgraph::sptr                           fg;
-    gr::blocks::vector_source_f::sptr             value_src;
-    gr::blocks::vector_source_f::sptr             error_src;
-    gr::digitizers::time_realignment<float>::sptr realign;
-    gr::blocks::vector_sink_f::sptr               value_sink;
-    gr::blocks::vector_sink_f::sptr               error_sink;
-    std::vector<float>                            values;
-    std::vector<float>                            errors;
+    gr::flowgraph::sptr                    fg;
+    gr::blocks::vector_source_f::sptr      value_src;
+    gr::blocks::vector_source_f::sptr      error_src;
+    gr::digitizers::time_realignment::sptr realign;
+    gr::blocks::vector_sink_f::sptr        value_sink;
+    gr::blocks::vector_sink_f::sptr        error_sink;
+    std::vector<float>                     values;
+    std::vector<float>                     errors;
 
     realignment_test_flowgraph_t(float user_delay, float triggerstamp_matching_tolerance, float buffer_time, const std::vector<tag_t> &tags, const std::vector<sim_wr_event_t> &wr_events, size_t data_size = 33333) {
         values    = make_test_data(data_size);
@@ -43,7 +43,7 @@ struct realignment_test_flowgraph_t {
         fg        = gr::flowgraph::make("test");
         value_src = gr::blocks::vector_source_f::make({ values, false, 1, tags });
         error_src = gr::blocks::vector_source_f::make({ errors });
-        realign   = gr::digitizers::time_realignment<float>::make({ "id", user_delay, triggerstamp_matching_tolerance, buffer_time });
+        realign   = gr::digitizers::time_realignment::make({ "id", user_delay, triggerstamp_matching_tolerance, buffer_time });
         for (auto event : wr_events)
             realign->add_timing_event(event.event_id, event.wr_trigger_stamp, event.wr_trigger_stamp_utc);
 

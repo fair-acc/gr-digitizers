@@ -3,12 +3,6 @@ block: peak_detector
 label: peak_detector
 blocktype: block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: samp_rate
     label: Sample Rate
@@ -24,29 +18,29 @@ ports:
 -   domain: stream
     id: actual
     direction: input
-    type: typekeys/T
+    type: rf32
     shape: parameters/vec_len
 -   domain: stream
     id: filtered
     direction: input
-    type: typekeys/T
+    type: rf32
     shape: parameters/vec_len
 -   domain: stream
     id: low_freq
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: up_freq
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: max_sig
     direction: output
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: width_sig
     direction: output
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

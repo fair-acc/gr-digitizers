@@ -3,12 +3,6 @@ block: block_scaling_offset
 label: block_scaling_offset
 blocktype: sync_block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: scale
     label: Scale
@@ -24,19 +18,19 @@ ports:
 -   domain: stream
     id: in_sig
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: in_err
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: out_sig
     direction: output
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: out_err
     direction: output
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

@@ -30,8 +30,8 @@ void qa_peak_detector::basic_peak_find() {
     auto               fup      = blocks::vector_source_f::make({ std::vector<float>{ 40 } });
     auto               max      = blocks::vector_sink_f::make({ 1 });
     auto               stdev    = blocks::vector_sink_f::make({ 1 });
-    auto               detect   = digitizers::peak_detector<float>::make({ 100.0, vec_size, /* 5, 8,*/ 4 });
-    auto               flt      = digitizers::median_and_average<float>::make({ vec_size, 3, 2 });
+    auto               detect   = digitizers::peak_detector::make({ 100.0, vec_size, /* 5, 8,*/ 4 });
+    auto               flt      = digitizers::median_and_average::make({ vec_size, 3, 2 });
 
     fg->connect(src, 0, detect, 0);
     fg->connect(src, 0, flt, 0);

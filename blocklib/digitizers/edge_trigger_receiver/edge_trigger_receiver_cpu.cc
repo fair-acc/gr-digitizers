@@ -3,9 +3,8 @@
 
 namespace gr::digitizers {
 
-template<class T>
-edge_trigger_receiver_cpu<T>::edge_trigger_receiver_cpu(const typename edge_trigger_receiver<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+edge_trigger_receiver_cpu::edge_trigger_receiver_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
     udp::resolver           resolver(d_io_service);
     udp::resolver::query    query(udp::v4(), args.host, std::to_string(args.port));
     udp::resolver::iterator iter     = resolver.resolve(query);
@@ -13,8 +12,7 @@ edge_trigger_receiver_cpu<T>::edge_trigger_receiver_cpu(const typename edge_trig
     d_udp_receive                    = std::make_unique<udp_receiver>(d_io_service, endpoint);
 }
 
-template<class T>
-work_return_t edge_trigger_receiver_cpu<T>::work(work_io &wio) {
+work_return_t edge_trigger_receiver_cpu::work(work_io &wio) {
     const auto  noutput_items = wio.outputs()[0].n_items;
     auto        out           = wio.outputs()[0].items<float>();
 

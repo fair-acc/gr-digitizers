@@ -3,37 +3,31 @@ block: interlock_generation
 label: interlock_generation
 blocktype: sync_block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: max_min
     label: Lower bound of min boundary
-    dtype: typekeys/T
+    dtype: rf32
 -   id: max_max
     label: Upper bound of max boundary
-    dtype: typekeys/T
+    dtype: rf32
 
 ports:
 -   domain: stream
     id: in
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: in_min
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: in_max
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: out
     direction: output
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

@@ -6,10 +6,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class demux_cpu : public demux<T> {
+class demux_cpu : public demux {
 public:
-    demux_cpu(const typename demux<T>::block_args &args);
+    explicit demux_cpu(const block_args &args);
 
     bool          start() override;
     work_return_t work(work_io &wio) override;

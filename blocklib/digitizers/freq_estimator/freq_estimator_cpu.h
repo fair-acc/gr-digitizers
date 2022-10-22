@@ -5,10 +5,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class freq_estimator_cpu : public freq_estimator<T> {
+class freq_estimator_cpu : public freq_estimator {
 public:
-    freq_estimator_cpu(const typename freq_estimator<T>::block_args &args);
+    explicit freq_estimator_cpu(const block_args &args);
 
     work_return_t work(work_io &wio) override;
 

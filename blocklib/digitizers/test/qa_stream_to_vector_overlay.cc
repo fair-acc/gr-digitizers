@@ -20,7 +20,7 @@ void test_different_params(std::size_t size, double delta) {
     }
 
     auto src = blocks::vector_source_f::make({ vec });
-    auto blk = stream_to_vector_overlay_ff::make({ size, 1, delta });
+    auto blk = stream_to_vector_overlay::make({ size, 1, delta });
     auto snk = blocks::vector_sink_f::make({ size });
 
     auto fg  = gr::flowgraph::make("single_input_test");

@@ -1,17 +1,13 @@
 #include "block_scaling_offset_cpu.h"
 #include "block_scaling_offset_cpu_gen.h"
 
-namespace gr {
-namespace digitizers {
+namespace gr::digitizers {
 
-template<class T>
-block_scaling_offset_cpu<T>::block_scaling_offset_cpu(const typename block_scaling_offset<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+block_scaling_offset_cpu::block_scaling_offset_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
 }
 
-template<class T>
-work_return_t block_scaling_offset_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
+work_return_t block_scaling_offset_cpu::work(work_io &wio) {
     const auto in_sig        = wio.inputs()[0].items<float>();
     const auto in_err        = wio.inputs()[0].items<float>();
     auto       out_sig       = wio.outputs()[0].items<float>();
@@ -31,5 +27,4 @@ work_return_t block_scaling_offset_cpu<T>::work(work_io &wio) {
     return work_return_t::OK;
 }
 
-}
 } // namespace gr::digitizers

@@ -71,10 +71,9 @@ public:
     }
 };
 
-template<class T>
-class edge_trigger_receiver_cpu : public edge_trigger_receiver<T> {
+class edge_trigger_receiver_cpu : public edge_trigger_receiver {
 public:
-    edge_trigger_receiver_cpu(const typename edge_trigger_receiver<T>::block_args &args);
+    explicit edge_trigger_receiver_cpu(const block_args &args);
 
     work_return_t work(work_io &wio) override;
 

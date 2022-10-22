@@ -6,10 +6,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class stream_to_vector_overlay_cpu : public stream_to_vector_overlay<T> {
+class stream_to_vector_overlay_cpu : public stream_to_vector_overlay {
 public:
-    stream_to_vector_overlay_cpu(const typename stream_to_vector_overlay<T>::block_args &args);
+    explicit stream_to_vector_overlay_cpu(const block_args &args);
 
     bool          start() override;
 

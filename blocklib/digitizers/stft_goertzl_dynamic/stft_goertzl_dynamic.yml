@@ -3,12 +3,6 @@ block: stft_goertzl_dynamic
 label: stft_goertzl_dynamic
 blocktype: sync_block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: samp_rate
     label: Sample Rate
@@ -27,30 +21,30 @@ ports:
 -   domain: stream
     id: in
     direction: input
-    type: typekeys/T
+    type: rf32
     shape: parameters/winsize
 -   domain: stream
     id: f_min
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: f_max
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: mag
     direction: output
-    type: typekeys/T
+    type: rf32
     shape: parameters/nbins
 -   domain: stream
     id: phs
     direction: output
-    type: typekeys/T
+    type: rf32
     shape: parameters/nbins
 -   domain: stream
     id: fqs
     direction: output
-    type: typekeys/T
+    type: rf32
     shape: parameters/nbins
 
 implementations:

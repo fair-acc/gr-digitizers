@@ -31,7 +31,7 @@ void qa_wr_receiver::test() {
 
     // vector source is used to limit the data (flowgraph stops after data size samples is generated)
     auto vector_source = gr::blocks::vector_source_f::make({ expected_data });
-    auto wr_source     = gr::digitizers::wr_receiver_f::make({});
+    auto wr_source     = gr::digitizers::wr_receiver::make({});
     auto adder         = gr::math::add_ff::make({});
     auto vector_sink   = gr::blocks::vector_sink_f::make({});
 

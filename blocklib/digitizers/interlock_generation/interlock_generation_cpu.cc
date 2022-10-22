@@ -4,21 +4,17 @@
 
 namespace gr::digitizers {
 
-template<class T>
-interlock_generation_cpu<T>::interlock_generation_cpu(const typename interlock_generation<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+interlock_generation_cpu::interlock_generation_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
 }
 
-template<class T>
-bool interlock_generation_cpu<T>::start() {
+bool interlock_generation_cpu::start() {
     d_acq_info           = acq_info_t{};
     d_acq_info.timestamp = -1;
-    return interlock_generation<T>::start();
+    return interlock_generation::start();
 }
 
-template<class T>
-work_return_t interlock_generation_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
+work_return_t interlock_generation_cpu::work(work_io &wio) {
     const auto in            = wio.inputs()[0].items<float>();
     const auto min           = wio.inputs()[1].items<float>();
     const auto max           = wio.inputs()[2].items<float>();

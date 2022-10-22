@@ -39,7 +39,7 @@ void qa_stft_goertzl_dynamic::basic_test() {
     auto snk0 = blocks::vector_sink_f::make({ nbins });
     auto snk1 = blocks::vector_sink_f::make({ nbins });
     auto snk2 = blocks::vector_sink_f::make({ nbins });
-    auto stft = stft_goertzl_dynamic<float>::make({ samp_rate, win_size, nbins });
+    auto stft = stft_goertzl_dynamic::make({ samp_rate, win_size, nbins });
 
     fg->connect(src, 0, stft, 0);
     fg->connect(min, 0, stft, 1);

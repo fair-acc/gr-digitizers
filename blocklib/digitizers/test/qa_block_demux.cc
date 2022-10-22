@@ -17,7 +17,7 @@ namespace gr::digitizers {
 void qa_block_demux::passes_only_desired() {
     std::vector<unsigned char> vals  = { 0, 1, 2, 3, 4, 5, 6, 7 };
     auto                       fg    = gr::flowgraph::make("basic_connection");
-    auto                       demux = digitizers::block_demux<float>::make({ 0 });
+    auto                       demux = digitizers::block_demux::make({ 0 });
     auto                       src   = gr::blocks::vector_source_b::make({ vals });
     auto                       snk   = gr::blocks::vector_sink_f::make({ 1 });
 

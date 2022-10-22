@@ -41,7 +41,7 @@ void qa_interlock_generation::interlock_generation_test() {
     auto min  = blocks::vector_source_f::make({ min_v });
     auto max  = blocks::vector_source_f::make({ max_v });
 
-    auto i_lk = interlock_generation<float>::make({ -100, 100 });
+    auto i_lk = interlock_generation::make({ -100, 100 });
 
 #ifdef PORT_DISABLED // TODO(PORT) port callback
     i_lk->set_callback(&interlock, nullptr);

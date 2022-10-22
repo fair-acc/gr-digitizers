@@ -24,7 +24,7 @@ void qa_freq_estimator::basic_frequency_estimation() {
         sig.insert(sig.end(), cycle.begin(), cycle.end());
     }
     auto sine = gr::blocks::vector_source_f::make({ sig });
-    auto freq = digitizers::freq_estimator<float>::make({ 36000, sig_avg_window, freq_avg_window, 1 });
+    auto freq = digitizers::freq_estimator::make({ 36000, sig_avg_window, freq_avg_window, 1 });
     auto sink = blocks::vector_sink_f::make({ 1 });
 
     fg->connect(sine, 0, freq, 0);

@@ -81,22 +81,18 @@ static float computeInterpolatedFWHM(const float *data, const int data_length, c
 
 namespace gr::digitizers {
 
-template<class T>
-peak_detector_cpu<T>::peak_detector_cpu(const typename peak_detector<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+peak_detector_cpu::peak_detector_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
 }
 
-template<class T>
-work_return_t peak_detector_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
+work_return_t peak_detector_cpu::work(work_io &wio) {
+    const auto actual        = wio.inputs()[0].items<float>();
+    const auto filtered      = wio.inputs()[1].items<float>();
+    const auto low_freq      = wio.inputs()[2].items<float>();
+    const auto up_freq       = wio.inputs()[3].items<float>();
 
-    const auto actual        = wio.inputs()[0].items<T>();
-    const auto filtered      = wio.inputs()[1].items<T>();
-    const auto low_freq      = wio.inputs()[2].items<T>();
-    const auto up_freq       = wio.inputs()[3].items<T>();
-
-    auto       max_sig       = wio.outputs()[0].items<T>();
-    auto       width_sig     = wio.outputs()[1].items<T>();
+    auto       max_sig       = wio.outputs()[0].items<float>();
+    auto       width_sig     = wio.outputs()[1].items<float>();
 
     const auto noutput_items = wio.outputs()[0].n_items;
 

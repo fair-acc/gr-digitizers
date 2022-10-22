@@ -8,10 +8,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class post_mortem_sink_cpu : public post_mortem_sink<T> {
+class post_mortem_sink_cpu : public post_mortem_sink {
 public:
-    post_mortem_sink_cpu(const typename post_mortem_sink<T>::block_args &args);
+    explicit post_mortem_sink_cpu(const block_args &args);
 
     work_return_t      work(work_io &wio) override;
 

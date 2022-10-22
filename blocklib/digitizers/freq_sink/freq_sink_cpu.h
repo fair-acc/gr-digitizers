@@ -6,10 +6,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class freq_sink_cpu : public freq_sink<T> {
+class freq_sink_cpu : public freq_sink {
 public:
-    freq_sink_cpu(const typename freq_sink<T>::block_args &args);
+    explicit freq_sink_cpu(const block_args &args);
 
     work_return_t         work(work_io &wio) override;
 

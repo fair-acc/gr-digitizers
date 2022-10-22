@@ -3,6 +3,9 @@ block: chi_square_fit
 label: chi_square_fit
 blocktype: block
 
+# TODO(PORT) Removing this template parameter leads to errors in the generated code
+# for the vector<dtype> parameters below: The getters are correctly declared with
+# vector<dtype> return value, but the impl uses simply dtype. (to be reported)
 typekeys:
   - id: T
     type: class

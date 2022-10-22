@@ -3,12 +3,6 @@ block: time_realignment
 label: time_realignment
 blocktype: block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: id
     label: Id
@@ -45,19 +39,19 @@ ports:
 -   domain: stream
     id: in
     direction: input
-    type: typekeys/T
+    type: rf32
     multiplicity: '2'
 
 -   domain: stream
     id: in2
     direction: input
-    type: typekeys/T
+    type: rf32
     optional: true
 
 -   domain: stream
     id: out
     direction: output
-    type: typekeys/T
+    type: rf32
     multiplicity: '2'
 
 implementations:

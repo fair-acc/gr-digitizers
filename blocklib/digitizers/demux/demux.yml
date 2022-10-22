@@ -3,12 +3,6 @@ block: demux
 label: demux
 blocktype: block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: post_trigger_window
     label: Post-Trigger Window
@@ -21,21 +15,21 @@ ports:
 -   domain: stream
     id: in0
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: in1
     direction: input
     optional: true
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: out0
     direction: output
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: out1
     direction: output
     optional: true
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

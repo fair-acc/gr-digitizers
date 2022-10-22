@@ -6,10 +6,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class time_realignment_cpu : public time_realignment<T> {
+class time_realignment_cpu : public time_realignment {
 public:
-    time_realignment_cpu(const typename time_realignment<T>::block_args &args);
+    explicit time_realignment_cpu(const block_args &args);
 
     work_return_t work(work_io &wio) override;
 

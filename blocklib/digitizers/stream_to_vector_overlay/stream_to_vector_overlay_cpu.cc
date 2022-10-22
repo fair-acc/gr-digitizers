@@ -5,22 +5,19 @@
 
 namespace gr::digitizers {
 
-template<class T>
-stream_to_vector_overlay_cpu<T>::stream_to_vector_overlay_cpu(const typename stream_to_vector_overlay<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+stream_to_vector_overlay_cpu::stream_to_vector_overlay_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
     d_acq_info.timestamp = -1;
 
-    this->set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+    set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
-template<class T>
-bool stream_to_vector_overlay_cpu<T>::start() {
+bool stream_to_vector_overlay_cpu::start() {
     d_acq_info.timestamp = -1;
     return true;
 }
 
-template<class T>
-work_return_t stream_to_vector_overlay_cpu<T>::work(work_io &wio) {
+work_return_t stream_to_vector_overlay_cpu::work(work_io &wio) {
     const auto in        = wio.inputs()[0].items<float>();
     auto       out       = wio.outputs()[0].items<float>();
 
@@ -59,8 +56,7 @@ work_return_t stream_to_vector_overlay_cpu<T>::work(work_io &wio) {
     }
 }
 
-template<class T>
-void stream_to_vector_overlay_cpu<T>::save_tags(work_io &wio, std::size_t count) {
+void stream_to_vector_overlay_cpu::save_tags(work_io &wio, std::size_t count) {
     const auto this_tags = filter_tags(wio.inputs()[0].tags_in_window(0, count), acq_info_tag_name);
     if (!this_tags.empty()) {
         d_acq_info   = decode_acq_info_tag(this_tags.back());
@@ -68,8 +64,7 @@ void stream_to_vector_overlay_cpu<T>::save_tags(work_io &wio, std::size_t count)
     }
 }
 
-template<class T>
-void stream_to_vector_overlay_cpu<T>::push_tags(work_io &wio, double samp_rate) {
+void stream_to_vector_overlay_cpu::push_tags(work_io &wio, double samp_rate) {
     // fix offset.
     if (d_acq_info.timestamp != -1) {
         d_acq_info.timestamp += (wio.inputs()[0].nitems_read() - d_tag_offset) * samp_rate;

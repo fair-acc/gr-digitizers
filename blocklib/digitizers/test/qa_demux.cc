@@ -21,12 +21,12 @@
 namespace gr::digitizers {
 
 struct extractor_test_flowgraph_t {
-    gr::flowgraph::sptr                fg;
-    gr::blocks::vector_source_f::sptr  value_src;
-    gr::blocks::vector_source_f::sptr  error_src;
-    gr::digitizers::demux<float>::sptr extractor;
-    gr::blocks::vector_sink_f::sptr    value_sink;
-    gr::blocks::vector_sink_f::sptr    error_sink;
+    gr::flowgraph::sptr               fg;
+    gr::blocks::vector_source_f::sptr value_src;
+    gr::blocks::vector_source_f::sptr error_src;
+    gr::digitizers::demux::sptr       extractor;
+    gr::blocks::vector_sink_f::sptr   value_sink;
+    gr::blocks::vector_sink_f::sptr   error_sink;
 #ifdef PORT_DISABLED // TODO(PORT) tags
     gr::blocks::tag_debug::sptr tag_debug;
 #endif
@@ -62,7 +62,7 @@ make_test_flowgraph(const std::vector<float> &values,
     flowgraph.fg         = gr::flowgraph::make("test");
     flowgraph.value_src  = gr::blocks::vector_source_f::make({ .data = values, .tags = tags });
     flowgraph.error_src  = gr::blocks::vector_source_f::make({ .data = errors });
-    flowgraph.extractor  = gr::digitizers::demux<float>::make({ post_trigger_window, pre_trigger_window });
+    flowgraph.extractor  = gr::digitizers::demux::make({ post_trigger_window, pre_trigger_window });
     flowgraph.value_sink = gr::blocks::vector_sink_f::make({});
     flowgraph.error_sink = gr::blocks::vector_sink_f::make({});
     // flowgraph.tag_debug = gr::blocks::tag_debug::make(sizeof(float), "neki");

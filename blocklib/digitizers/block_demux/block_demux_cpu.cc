@@ -3,13 +3,11 @@
 
 namespace gr::digitizers {
 
-template<class T>
-block_demux_cpu<T>::block_demux_cpu(const typename block_demux<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+block_demux_cpu::block_demux_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
 }
 
-template<class T>
-work_return_t block_demux_cpu<T>::work(work_io &wio) {
+work_return_t block_demux_cpu::work(work_io &wio) {
     const auto in            = wio.inputs()[0].items<char>();
     auto       out           = wio.outputs()[0].items<float>();
     const auto noutput_items = wio.outputs()[0].n_items;

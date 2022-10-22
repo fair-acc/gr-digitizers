@@ -3,12 +3,6 @@ block: edge_trigger_receiver
 label: edge_trigger_receiver
 blocktype: sync_block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: host
     label: Host
@@ -21,7 +15,7 @@ ports:
 -   domain: stream
     id: out
     direction: output
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

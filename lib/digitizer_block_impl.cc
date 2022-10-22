@@ -704,7 +704,7 @@ namespace gr {
 
        // No matter if true or false is returned here, gnuradio will continue to run the block, so we stop in manually
        // Re-throwing the exception would result in the binary getting stuck
-       this->stop();
+       stop();
        return false;
 
      } catch (...) {
@@ -712,7 +712,7 @@ namespace gr {
        d_configure_exception_message = "Unknown Exception received in digitizer_block_impl::start";
        GR_LOG_ERROR(d_logger, d_configure_exception_message );
 
-       this->stop();
+       stop();
        return false;
      }
 

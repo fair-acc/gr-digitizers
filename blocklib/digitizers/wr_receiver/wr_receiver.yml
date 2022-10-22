@@ -3,12 +3,6 @@ block: wr_receiver
 label: wr_receiver
 blocktype: sync_block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 callbacks:
     - id: add_timing_event
       return: bool
@@ -24,7 +18,7 @@ ports:
 -   domain: stream
     id: out
     direction: output
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

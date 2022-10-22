@@ -6,10 +6,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class wr_receiver_cpu : public wr_receiver<T> {
+class wr_receiver_cpu : public wr_receiver {
 public:
-    wr_receiver_cpu(const typename wr_receiver<T>::block_args &args);
+    explicit wr_receiver_cpu(const block_args &args);
 
     work_return_t work(work_io &wio) override;
 

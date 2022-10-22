@@ -1,9 +1,3 @@
-/* -*- c++ -*- */
-/* Copyright (C) 2018 GSI Darmstadt, Germany - All Rights Reserved
- * co-developed with: Cosylab, Ljubljana, Slovenia and CERN, Geneva, Switzerland
- * You may use, distribute and modify this code under the terms of the GPL v.3  license.
- */
-
 #include "qa_block_scaling_offset.h"
 
 #include <gnuradio/attributes.h>
@@ -35,7 +29,7 @@ void qa_block_scaling_offset::scale_and_offset() {
     auto src1 = blocks::vector_source_f::make({ data });
     auto snk0 = blocks::vector_sink_f::make({ 1 });
     auto snk1 = blocks::vector_sink_f::make({ 1 });
-    auto bso  = block_scaling_offset<float>::make({ scale, offset });
+    auto bso  = block_scaling_offset::make({ scale, offset });
 
     fg->connect(src0, 0, bso, 0);
     fg->connect(bso, 0, snk0, 0);

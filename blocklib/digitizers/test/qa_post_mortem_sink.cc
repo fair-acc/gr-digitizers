@@ -20,7 +20,7 @@
 namespace gr::digitizers {
 
 void qa_post_mortem_sink::basics() {
-    auto sink     = post_mortem_sink<float>::make({ "test", "unit", 1234.0f, 2048 });
+    auto sink     = post_mortem_sink::make({ "test", "unit", 1234.0f, 2048 });
 
     auto metadata = sink->get_metadata();
     CPPUNIT_ASSERT_EQUAL(std::string("test"), metadata.name);
@@ -68,7 +68,7 @@ void               qa_post_mortem_sink::buffer_not_full() {
                   auto        data      = make_test_data(data_size);
 
                   auto        source    = gr::blocks::vector_source_f::make({ data });
-                  auto        pm        = post_mortem_sink<float>::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
+                  auto        pm        = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
                   auto        sink      = gr::blocks::vector_sink_f::make({});
                   auto        sink_errs = gr::blocks::vector_sink_f::make({});
 
@@ -102,7 +102,7 @@ void qa_post_mortem_sink::buffer_full() {
 
     auto        source      = gr::blocks::vector_source_f::make({ data });
     auto        source_errs = gr::blocks::vector_source_f::make({ data_errs });
-    auto        pm          = post_mortem_sink<float>::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size });
+    auto        pm          = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size });
     auto        sink        = gr::blocks::vector_sink_f::make({});
     auto        sink_errs   = gr::blocks::vector_sink_f::make({});
 
@@ -137,7 +137,7 @@ void qa_post_mortem_sink::buffer_overflow() {
 
     auto        source      = gr::blocks::vector_source_f::make({ data });
     auto        source_errs = gr::blocks::vector_source_f::make({ data_errs });
-    auto        pm          = post_mortem_sink<float>::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size - 1 });
+    auto        pm          = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size - 1 });
     auto        sink        = gr::blocks::vector_sink_f::make({});
     auto        sink_errs   = gr::blocks::vector_sink_f::make({});
 
@@ -186,7 +186,7 @@ void qa_post_mortem_sink::acq_info() {
 
     auto source      = gr::blocks::vector_source_f::make({ .data = data, .tags = tags });
     auto source_errs = gr::blocks::vector_source_f::make({ data_errs });
-    auto pm          = post_mortem_sink<float>::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
+    auto pm          = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
     auto sink        = gr::blocks::vector_sink_f::make({});
     auto sink_errs   = gr::blocks::vector_sink_f::make({});
 

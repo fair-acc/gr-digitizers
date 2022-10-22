@@ -6,19 +6,15 @@
 
 namespace gr::digitizers {
 
-template<class T>
-post_mortem_sink_cpu<T>::post_mortem_sink_cpu(const typename post_mortem_sink<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T)
+post_mortem_sink_cpu::post_mortem_sink_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS
     , d_buffer_values(args.buffer_size)
     , d_buffer_errors(args.buffer_size)
     , d_acq_info{ .timestamp = -1 }
     , d_metadata{ .unit = args.unit, .name = args.name } {
 }
 
-template<class T>
-work_return_t post_mortem_sink_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
-
+work_return_t post_mortem_sink_cpu::work(work_io &wio) {
     std::scoped_lock lock{ d_mutex };
 
     auto             ninput_items   = wio.inputs()[0].n_items;
@@ -78,23 +74,18 @@ work_return_t post_mortem_sink_cpu<T>::work(work_io &wio) {
     return work_return_t::OK;
 }
 
-template<class T>
-signal_metadata_t post_mortem_sink_cpu<T>::get_metadata() const {
+signal_metadata_t post_mortem_sink_cpu::get_metadata() const {
     // TODO(PORT) do we really need this? why not make name/unit gettable? (and remove the lock)
     std::scoped_lock lock{ d_mutex };
     return d_metadata;
 }
 
-template<class T>
-void post_mortem_sink_cpu<T>::freeze_buffer() {
+void post_mortem_sink_cpu::freeze_buffer() {
     std::scoped_lock lock{ d_mutex };
     d_frozen = true;
 }
 
-template<class T>
-post_mortem_data_t post_mortem_sink_cpu<T>::get_post_mortem_data(std::size_t nr_items_to_read) {
-    static_assert(std::is_same<T, float>());
-
+post_mortem_data_t post_mortem_sink_cpu::get_post_mortem_data(std::size_t nr_items_to_read) {
     post_mortem_data_t ret;
 
     std::scoped_lock   lock(d_mutex);

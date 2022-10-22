@@ -3,12 +3,6 @@ block: block_demux
 label: block_demux
 blocktype: sync_block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: bit_to_keep
     label: Bit to Keep
@@ -23,7 +17,7 @@ ports:
 -   domain: stream
     id: out
     direction: output
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

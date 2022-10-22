@@ -3,9 +3,8 @@
 
 namespace gr::digitizers {
 
-template<class T>
-demux_cpu<T>::demux_cpu(const typename demux<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T) {
+demux_cpu::demux_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS {
 #ifdef PORT_DISABLED // check how/if to port this (d_my_history = args.pre_trigger_window + args.post_trigger_window)
     // actual history size is in fact N - 1
     set_history(d_my_history + 1);
@@ -17,20 +16,16 @@ demux_cpu<T>::demux_cpu(const typename demux<T>::block_args &args)
     // into our own buffer.
 
     // allows us to send a complete data chunk down the stream
-    this->set_output_multiple(args.pre_trigger_window + args.post_trigger_window);
-    this->set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+    set_output_multiple(args.pre_trigger_window + args.post_trigger_window);
+    set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
-template<class T>
-bool demux_cpu<T>::start() {
+bool demux_cpu::start() {
     d_state = extractor_state::WaitTrigger;
     return true;
 }
 
-template<class T>
-work_return_t demux_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
-
+work_return_t demux_cpu::work(work_io &wio) {
     int        retval              = 0;
     const auto samp0_count         = wio.inputs()[0].nitems_read();
 

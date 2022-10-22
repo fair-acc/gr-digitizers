@@ -5,10 +5,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class interlock_generation_cpu : public interlock_generation<T> {
+class interlock_generation_cpu : public interlock_generation {
 public:
-    interlock_generation_cpu(const typename interlock_generation<T>::block_args &args);
+    explicit interlock_generation_cpu(const block_args &args);
 
     bool          start() override;
 

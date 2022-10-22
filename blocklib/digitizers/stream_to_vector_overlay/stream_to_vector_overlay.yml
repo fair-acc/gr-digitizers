@@ -3,12 +3,6 @@ block: stream_to_vector_overlay
 label: stream_to_vector_overlay
 blocktype: block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: vec_size
     label: Output Vector Size
@@ -24,11 +18,11 @@ ports:
 -   domain: stream
     id: in
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: out
     direction: output
-    type: typekeys/T
+    type: rf32
     shape: parameters/vec_size
 
 implementations:

@@ -3,12 +3,6 @@ block: freq_estimator
 label: freq_estimator
 blocktype: block
 
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: samp_rate
     label: Sample Rate
@@ -28,12 +22,12 @@ ports:
 -   domain: stream
     id: in
     direction: input
-    type: typekeys/T
+    type: rf32
 
 -   domain: stream
     id: out
     direction: output
-    type: typekeys/T
+    type: rf32
 
 implementations:
 -   id: cpu

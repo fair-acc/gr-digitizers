@@ -8,12 +8,6 @@ includes:
   - gnuradio/digitizers/sink_common.h
   - gnuradio/digitizers/spectra_measurement_t.h
 
-typekeys:
--   id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: name
     label: Signal Name
@@ -53,17 +47,17 @@ ports:
 -   domain: stream
     id: magnitude
     direction: input
-    type: typekeys/T
+    type: rf32
     shape: parameters/nbins
 -   domain: stream
     id: phase
     direction: input
-    type: typekeys/T
+    type: rf32
     shape: parameters/nbins
 -   domain: stream
     id: freqs
     direction: input
-    type: typekeys/T
+    type: rf32
     shape: parameters/nbins
 
 implementations:

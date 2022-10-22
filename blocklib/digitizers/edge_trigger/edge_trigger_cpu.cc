@@ -14,9 +14,8 @@ namespace gr::digitizers {
 static constexpr size_t CIRC_BUFFER_SIZE      = 1024;
 static constexpr size_t EDGE_CIRC_BUFFER_SIZE = 4096;
 
-template<class T>
-edge_trigger_cpu<T>::edge_trigger_cpu(const typename edge_trigger<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T)
+edge_trigger_cpu::edge_trigger_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS
     , d_actual_state(args.initial_state >= args.hi)
     , d_wr_events(CIRC_BUFFER_SIZE)
     , d_triggers(CIRC_BUFFER_SIZE)
@@ -41,11 +40,10 @@ edge_trigger_cpu<T>::edge_trigger_cpu(const typename edge_trigger<T>::block_args
 #endif
     }
 
-    this->set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+    set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
-template<class T>
-bool edge_trigger_cpu<T>::start() {
+bool edge_trigger_cpu::start() {
     d_wr_events.clear();
     d_triggers.clear();
     d_detected_edges.clear();
@@ -53,9 +51,7 @@ bool edge_trigger_cpu<T>::start() {
     return true;
 }
 
-template<class T>
-work_return_t edge_trigger_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
+work_return_t edge_trigger_cpu::work(work_io &wio) {
     const auto in                       = wio.inputs()[0].items<float>();
 
     const auto noutput_items            = wio.outputs()[0].n_items;

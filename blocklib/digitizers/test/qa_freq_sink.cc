@@ -26,12 +26,12 @@ struct freq_test_flowgraph_t {
 #ifdef PORT_DISALBED
     gr::blocks::tag_debug::sptr tag_debug
 #endif
-            gr::digitizers::freq_sink<float>::sptr sink;
-    std::vector<float>                             freq;
-    std::vector<float>                             magnitude;
-    std::vector<float>                             phase;
+            gr::digitizers::freq_sink::sptr sink;
+    std::vector<float>                      freq;
+    std::vector<float>                      magnitude;
+    std::vector<float>                      phase;
 
-    freq_test_flowgraph_t(freq_sink<float>::sptr freq_sink_,
+    freq_test_flowgraph_t(freq_sink::sptr freq_sink_,
             const std::vector<tag_t> &tags, std::size_t vlen, std::size_t nvectors) {
         auto nsamples = nvectors * vlen;
 
@@ -72,7 +72,7 @@ static const float SAMP_RATE_1KHZ = 1000.0;
 
 void               qa_freq_sink::test_metadata() {
                   std::string name = "My Name";
-                  auto        sink = freq_sink<float>::make({ name, SAMP_RATE_1KHZ, 128, 1, 100, freq_sink_mode_t::FREQ_SINK_MODE_STREAMING });
+                  auto        sink = freq_sink::make({ name, SAMP_RATE_1KHZ, 128, 1, 100, freq_sink_mode_t::FREQ_SINK_MODE_STREAMING });
 
                   CPPUNIT_ASSERT_EQUAL(freq_sink_mode_t::FREQ_SINK_MODE_STREAMING, sink->mode());
                   CPPUNIT_ASSERT_EQUAL(size_t{ 128 }, sink->nbins());
@@ -88,7 +88,7 @@ void qa_freq_sink::test_sink_no_tags() {
     std::size_t           nbins         = 4096;
     std::size_t           nmeasurements = 10;
     auto                  samples       = nbins * nmeasurements;
-    auto                  sink          = freq_sink<float>::make({ "test", SAMP_RATE_1KHZ, nbins,
+    auto                  sink          = freq_sink::make({ "test", SAMP_RATE_1KHZ, nbins,
                                       nmeasurements, 2, freq_sink_mode_t::FREQ_SINK_MODE_STREAMING });
 
     freq_test_flowgraph_t fg(sink, std::vector<tag_t>{}, nbins, nmeasurements);
@@ -123,7 +123,7 @@ void qa_freq_sink::test_sink_tags() {
     std::size_t nbins         = 4096;
     std::size_t nmeasurements = 8;
     auto        samples       = nbins * nmeasurements;
-    auto        sink          = freq_sink<float>::make({ "test", SAMP_RATE_1KHZ, nbins, nmeasurements, 2, freq_sink_mode_t::FREQ_SINK_MODE_STREAMING });
+    auto        sink          = freq_sink::make({ "test", SAMP_RATE_1KHZ, nbins, nmeasurements, 2, freq_sink_mode_t::FREQ_SINK_MODE_STREAMING });
 
     acq_info_t  info{};
     info.timestamp = 987654321;
@@ -173,7 +173,7 @@ void qa_freq_sink::test_sink_callback() {
     std::size_t nbins         = 4096;
     std::size_t nmeasurements = 10;
     auto        samples       = nbins * nmeasurements;
-    auto        sink          = freq_sink<float>::make({ "test", SAMP_RATE_1KHZ, nbins, nmeasurements / 2, 2, freq_sink_mode_t::FREQ_SINK_MODE_STREAMING });
+    auto        sink          = freq_sink::make({ "test", SAMP_RATE_1KHZ, nbins, nmeasurements / 2, 2, freq_sink_mode_t::FREQ_SINK_MODE_STREAMING });
 
     // expect user callback to be called twice
     std::atomic<unsigned short> counter{};

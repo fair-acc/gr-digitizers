@@ -26,7 +26,7 @@ void qa_median_and_average::basic_median_and_average() {
     std::size_t        vec_size = data.size();
     auto               src      = blocks::vector_source_f::make({ data, false, vec_size });
     auto               snk      = blocks::vector_sink_f::make({ vec_size });
-    auto               flt      = digitizers::median_and_average<float>::make({ vec_size, 3, 2 });
+    auto               flt      = digitizers::median_and_average::make({ vec_size, 3, 2 });
 
     fg->connect(src, 0, flt, 0);
     fg->connect(flt, 0, snk, 0);

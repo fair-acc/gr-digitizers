@@ -3,18 +3,14 @@
 
 namespace gr::digitizers {
 
-template<class T>
-freq_estimator_cpu<T>::freq_estimator_cpu(const typename freq_estimator<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T)
+freq_estimator_cpu::freq_estimator_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS
     , d_sig_avg(args.signal_window_size)
     , d_freq_avg(args.averager_window_size)
     , d_counter(args.decim) {
 }
 
-template<class T>
-work_return_t freq_estimator_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
-
+work_return_t freq_estimator_cpu::work(work_io &wio) {
     const int  n_in  = wio.inputs()[0].n_items;
     int        n_out = 0;
     const auto in    = wio.inputs()[0].items<float>();

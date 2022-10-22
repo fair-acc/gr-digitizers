@@ -6,15 +6,13 @@
 
 namespace gr::digitizers {
 
-template<class T>
-stft_goertzl_dynamic_cpu<T>::stft_goertzl_dynamic_cpu(const typename stft_goertzl_dynamic<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T)
+stft_goertzl_dynamic_cpu::stft_goertzl_dynamic_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS
     , d_window_function(kernel::fft::window::build(kernel::fft::window::window_t::HANN, args.winsize, 1.0)) {
-    this->set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+    set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
-template<class T>
-void stft_goertzl_dynamic_cpu<T>::goertzel(const float *data, const long data_len, float Ts, float frequency, int filter_size, float &real, float &imag) {
+void stft_goertzl_dynamic_cpu::goertzel(const float *data, const long data_len, float Ts, float frequency, int filter_size, float &real, float &imag) {
     // https://github.com/NaleRaphael/goertzel-ffrequency/blob/master/src/dsp.c
     float    k; // Related to frequency bins
     float    omega;
@@ -51,8 +49,7 @@ void stft_goertzl_dynamic_cpu<T>::goertzel(const float *data, const long data_le
     imag = (q2 * sine) / sf;
 }
 
-template<class T>
-void stft_goertzl_dynamic_cpu<T>::dft(const float *data, const long data_len, float Ts, float frequency, float &real, float &imag) {
+void stft_goertzl_dynamic_cpu::dft(const float *data, const long data_len, float Ts, float frequency, float &real, float &imag) {
     // legacy implementation - mathematically most correct, but numerically expensive due to sine and cosine computations
     real         = 0.0;
     imag         = 0.0;
@@ -66,9 +63,7 @@ void stft_goertzl_dynamic_cpu<T>::dft(const float *data, const long data_len, fl
     imag /= 0.5 * data_len;
 }
 
-template<class T>
-work_return_t stft_goertzl_dynamic_cpu<T>::work(work_io &wio) {
-    static_assert(std::is_same<T, float>());
+work_return_t stft_goertzl_dynamic_cpu::work(work_io &wio) {
     const auto in          = wio.inputs()[0].items<float>();
     const auto f_min       = wio.inputs()[1].items<float>();
     const auto f_max       = wio.inputs()[2].items<float>();

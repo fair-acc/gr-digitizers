@@ -4,10 +4,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class stft_goertzl_dynamic_cpu : public stft_goertzl_dynamic<T> {
+class stft_goertzl_dynamic_cpu : public stft_goertzl_dynamic {
 public:
-    stft_goertzl_dynamic_cpu(const typename stft_goertzl_dynamic<T>::block_args &args);
+    explicit stft_goertzl_dynamic_cpu(const block_args &args);
 
     work_return_t work(work_io &wio) override;
 

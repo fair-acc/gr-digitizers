@@ -3,9 +3,8 @@
 
 namespace gr::digitizers {
 
-template<class T>
-freq_sink_cpu<T>::freq_sink_cpu(const typename freq_sink<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T)
+freq_sink_cpu::freq_sink_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS
     , d_metadata{ .name = args.name }
     , d_measurement_buffer(args.nbuffers) {
     // initialize buffers
@@ -14,11 +13,10 @@ freq_sink_cpu<T>::freq_sink_cpu(const typename freq_sink<T>::block_args &args)
         d_measurement_buffer.return_free_buffer(ptr);
     }
 
-    this->set_output_multiple(args.nmeasurements);
+    set_output_multiple(args.nmeasurements);
 }
 
-template<class T>
-work_return_t freq_sink_cpu<T>::work(work_io &wio) {
+work_return_t freq_sink_cpu::work(work_io &wio) {
     const auto magnitude     = wio.inputs()[0].items<float>();
     const auto phase         = wio.inputs()[1].items<float>();
     const auto freqs         = wio.inputs()[2].items<float>();
@@ -95,14 +93,12 @@ work_return_t freq_sink_cpu<T>::work(work_io &wio) {
     return work_return_t::OK;
 }
 
-template<class T>
-signal_metadata_t freq_sink_cpu<T>::get_metadata() const {
+signal_metadata_t freq_sink_cpu::get_metadata() const {
     // TODO(PORT) do we really need this? why not make name/unit gettable?
     return d_metadata;
 }
 
-template<class T>
-spectra_measurement_t freq_sink_cpu<T>::get_measurements(std::size_t nr_measurements) {
+spectra_measurement_t freq_sink_cpu::get_measurements(std::size_t nr_measurements) {
     spectra_measurement_t ret;
 
     auto                  buffer = d_measurement_buffer.get_measurement();
@@ -140,8 +136,7 @@ spectra_measurement_t freq_sink_cpu<T>::get_measurements(std::size_t nr_measurem
     return ret;
 }
 
-template<class T>
-acq_info_t freq_sink_cpu<T>::calculate_acq_info_for_vector(uint64_t offset) const {
+acq_info_t freq_sink_cpu::calculate_acq_info_for_vector(uint64_t offset) const {
     acq_info_t result{};
     result.timestamp = -1;
 
