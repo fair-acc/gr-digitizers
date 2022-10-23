@@ -7,15 +7,13 @@ parameters:
 -   id: samp_rate
     label: Sample Rate
     dtype: rf64
-    settable: false
+    settable: true
 -   id: winsize
     label: Window Size
     dtype: size
-    settable: false
 -   id: nbins
     label: Number of Bins
     dtype: size
-    settable: false
 
 ports:
 -   domain: stream

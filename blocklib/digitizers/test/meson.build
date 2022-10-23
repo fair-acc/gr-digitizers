@@ -41,6 +41,9 @@ qa_post_mortem_sink = executable('qa_post_mortem_sink', 'qa_post_mortem_sink.cc'
 qa_stft_goertzl_dynamic = executable('qa_stft_goertzl_dynamic', 'qa_stft_goertzl_dynamic.cc',
                                      dependencies: testdeps,
                                      link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-kernel-math'])
+qa_stft_goertzl_dynamic_decimated = executable('qa_stft_goertzl_dynamic_decimated', 'qa_stft_goertzl_dynamic_decimated.cc',
+                                               dependencies: testdeps,
+                                               link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-kernel-math'])
 qa_stream_to_vector_overlay = executable('qa_stream_to_vector_overlay', 'qa_stream_to_vector_overlay.cc',
                                          dependencies: testdeps,
                                          link_args: linklibs)
@@ -66,6 +69,7 @@ test('Median and Average', qa_median_and_average)
 test('Peak Detector', qa_peak_detector)
 test('Post Mortem Sink', qa_post_mortem_sink)
 test('STFT Goertzel Dynamic', qa_stft_goertzl_dynamic)
+test('STFT Goertzel Dynamic_Decimated', qa_stft_goertzl_dynamic_decimated)
 test('Stream to Vector Overlay', qa_stream_to_vector_overlay)
 #test('Time Domain Sink', qa_time_domain_sink)
 test('Time Realignment', qa_time_realignment)

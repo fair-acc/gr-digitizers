@@ -1,0 +1,41 @@
+module: digitizers
+block: stft_goertzl_dynamic_decimated
+label: stft_goertzl_dynamic_decimated
+blocktype: hier_block
+
+parameters:
+-   id: samp_rate
+    label: Sample Rate
+    dtype: rf64
+    settable: true
+-   id: delta_t
+    label: Delta
+    dtype: rf64
+-   id: window_size
+    label: Size of STFT Window
+    dtype: size
+-   id: nbins
+    label: Number of Bins
+    dtype: size
+-   id: bounds_decimation
+    label: Decimation
+    dtype: ri64
+    default: 1
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+    multiplicity: '3'
+-   domain: stream
+    id: out
+    direction: output
+    type: rf32
+    multiplicity: '3'
+    shape: parameters/nbins
+
+implementations:
+-   id: cpu
+
+file_format: 1
