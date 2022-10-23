@@ -12,7 +12,7 @@ parameters:
     dtype: size
 -   id: proximity
     label: Proximity
-    dtype: int
+    dtype: size
 
 ports:
 -   domain: stream
