@@ -7,10 +7,9 @@
 
 namespace gr::digitizers {
 
-template<class T>
-class chi_square_fit_cpu : public chi_square_fit<T> {
+class chi_square_fit_cpu : public chi_square_fit {
 public:
-    chi_square_fit_cpu(const typename chi_square_fit<T>::block_args &args);
+    explicit chi_square_fit_cpu(const block_args &args);
 
     work_return_t work(work_io &wio) override;
 

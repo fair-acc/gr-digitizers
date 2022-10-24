@@ -41,7 +41,7 @@ void qa_chi_square_fit::test_chi_square_simple_fitting() {
     std::vector<double> search_limit_dn({ -1.2 * actual_gradient, -1.2 * actual_offset });
     std::vector<int8_t> fittable = { 1, 1 };
     std::string         function = "x*[0] + 1.0*[1] ";
-    auto                fitter   = digitizers::chi_square_fit<float>::make({ signal_len,
+    auto                fitter   = digitizers::chi_square_fit::make({ signal_len,
                              function,
                              static_cast<double>(signal_len),
                              1.0,

@@ -3,15 +3,6 @@ block: chi_square_fit
 label: chi_square_fit
 blocktype: block
 
-# TODO(PORT) Removing this template parameter leads to errors in the generated code
-# for the vector<dtype> parameters below: The getters are correctly declared with
-# vector<dtype> return value, but the impl uses simply dtype. (to be reported)
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
-
 parameters:
 -   id: in_vec_size
     label: Input Vector Size
@@ -66,22 +57,22 @@ ports:
 -   domain: stream
     id: in
     direction: input
-    type: typekeys/T
+    type: rf32
     shape: parameters/in_vec_size
 -   domain: stream
     id: params
     direction: output
-    type: typekeys/T
+    type: rf32
     shape: parameters/n_params
 -   domain: stream
     id: errs
     direction: output
-    type: typekeys/T
+    type: rf32
     shape: parameters/n_params
 -   domain: stream
     id: chi_sq
     direction: output
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: valid
     direction: output

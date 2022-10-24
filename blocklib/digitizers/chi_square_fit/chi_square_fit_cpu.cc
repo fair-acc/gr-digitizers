@@ -24,9 +24,8 @@ static std::vector<std::string> parse_names(std::string str) {
     return names;
 }
 
-template<class T>
-chi_square_fit_cpu<T>::chi_square_fit_cpu(const typename chi_square_fit<T>::block_args &args)
-    : INHERITED_CONSTRUCTORS(T)
+chi_square_fit_cpu::chi_square_fit_cpu(const block_args &args)
+    : INHERITED_CONSTRUCTORS
     , d_par_names(parse_names(args.par_name))
     , d_par_initial_values(args.par_init)
     , d_par_fittable(args.par_fit)
@@ -41,8 +40,7 @@ chi_square_fit_cpu<T>::chi_square_fit_cpu(const typename chi_square_fit<T>::bloc
     do_update_design();
 }
 
-template<class T>
-void chi_square_fit_cpu<T>::do_update_design() {
+void chi_square_fit_cpu::do_update_design() {
     const auto vec_len              = pmtf::get_as<std::size_t>(*this->param_in_vec_size);
     const auto function_upper_limit = pmtf::get_as<double>(*this->param_lim_up);
     const auto function_lower_limit = pmtf::get_as<double>(*this->param_lim_dn);
@@ -66,8 +64,7 @@ void chi_square_fit_cpu<T>::do_update_design() {
     d_chi_error = max_chi_square_error;
 }
 
-template<class T>
-work_return_t chi_square_fit_cpu<T>::work(work_io &wio) {
+work_return_t chi_square_fit_cpu::work(work_io &wio) {
     // check if input items is less than the minimal number of samples for a chi square fit
     if (wio.inputs()[0].n_items == 0) { // TODO(PORT) can this even happen in GR 4.0?
         return work_return_t::INSUFFICIENT_INPUT_ITEMS;
@@ -131,17 +128,16 @@ std::vector<T> get_as_vector(const pmtf::pmt &pv) {
     return r;
 }
 
-template<class T>
-void chi_square_fit_cpu<T>::on_parameter_change(param_action_sptr action) {
+void chi_square_fit_cpu::on_parameter_change(param_action_sptr action) {
     block::on_parameter_change(action);
 
     d_design_updated = true;
 
-    if (action->id() == chi_square_fit_cpu<T>::id_par_fit) {
+    if (action->id() == id_par_fit) {
         d_par_fittable = get_as_vector<int8_t>(*this->param_par_fit);
-    } else if (action->id() == chi_square_fit_cpu<T>::id_par_lim_up) {
+    } else if (action->id() == id_par_lim_up) {
         d_par_upper_limit = get_as_vector<double>(*this->param_par_lim_up);
-    } else if (action->id() == chi_square_fit_cpu<T>::id_par_lim_dn) {
+    } else if (action->id() == id_par_lim_dn) {
         d_par_lower_limit = get_as_vector<double>(*this->param_par_lim_dn);
     }
 }
