@@ -3,7 +3,7 @@
 ###################################################
 
 testdeps = [cppunit_dep, gnuradio_blocklib_digitizers_dep]
-linklibs = ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks']
+linklibs = ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-blocklib-streamops']
 
 qa_block_demux = executable('qa_block_demux', 'qa_block_demux.cc',
                             dependencies: testdeps,
@@ -20,6 +20,9 @@ qa_chi_square_fit = executable('qa_chi_square_fit', 'qa_chi_square_fit.cc',
 qa_demux = executable('qa_demux', 'qa_demux.cc',
                       dependencies: testdeps,
                       link_args: linklibs)
+qa_digitizer_block = executable('qa_digitizer_block', 'qa_digitizer_block.cc',
+                                dependencies: testdeps,
+                                link_args: linklibs)
 qa_edge_trigger = executable('qa_edge_trigger', 'qa_edge_trigger.cc',
                              dependencies: testdeps,
                              link_args: linklibs)
@@ -65,6 +68,7 @@ test('Block Scaling Offset', qa_block_scaling_offset)
 test('Block Spectral Peaks', qa_block_spectral_peaks)
 test('Chi Square Fit', qa_chi_square_fit)
 #test('Demux', qa_demux) #TODO (port) reenable (currently hangs)
+test('Digitizer Block (Simulation Source)', qa_digitizer_block)
 test('Edge Trigger', qa_edge_trigger)
 test('Frequency Estimator', qa_freq_estimator)
 test('Frequency Sink', qa_freq_sink)

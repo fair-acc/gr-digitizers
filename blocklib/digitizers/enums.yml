@@ -8,3 +8,28 @@ time_sink_mode_t:
   enumerators:
   - id: TIME_SINK_MODE_TRIGGERED
   - id: TIME_SINK_MODE_STREAMING
+
+digitizer_acquisition_mode_t:
+  enumerators:
+  - id: STREAMING
+  - id: RAPID_BLOCK
+
+downsampling_mode_t:
+  enumerators:
+  - id: NONE
+  - id: MIN_MAX_AGG
+  - id: DECIMATE
+  - id: AVERAGE
+
+coupling_t:
+  enumerators:
+  - id: DC_1M # DC, 1MOhm
+  - id: AC_1M # AC, 1 MOhm
+  - id: DC_50R # DC, 50 Ohm
+
+trigger_direction_t:
+  enumerators:
+  - id: RISING
+  - id: FALLING
+  - id: LOW
+  - id: HIGH
