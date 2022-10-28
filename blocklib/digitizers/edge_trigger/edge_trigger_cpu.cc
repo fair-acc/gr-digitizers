@@ -35,9 +35,7 @@ edge_trigger_cpu::edge_trigger_cpu(const block_args &args)
 
         auto new_client = std::make_shared<udp_sender>(d_io_service, parts.at(0), parts.at(1));
         d_receivers.push_back(new_client);
-#ifdef PORT_DISABLED // TODO(PORT) logging
-        GR_LOG_DEBUG(d_logger, "edge_trigger_ff::registered host: '" + new_client->host_and_port() + "'");
-#endif
+        d_debug_logger->debug("edge_trigger_ff::registered host: '{}'", new_client->host_and_port());
     }
 
     set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
@@ -127,10 +125,7 @@ work_return_t edge_trigger_cpu::work(work_io &wio) {
         // detect sporadic or misaligned events.
         if (d_wr_events.empty()) {
             if (samples_since_trigger > timeout_samples) {
-#ifdef PORT_DISABLED // TODO(PORT) logging
-                GR_LOG_ERROR(d_logger, "Timeout receiving WR event for trigger at offset: "
-                                               + std::to_string(trigger));
-#endif
+                d_logger->error("Timeout receiving WR event for trigger at offset: {}", trigger);
                 triggers_consumed++;
                 continue;
             }

@@ -67,9 +67,7 @@ work_return_t demux_cpu::work(work_io &wio) {
                                     - pre_trigger_window;
 
         if (relative_trigger_offset < (-static_cast<int>(d_my_history))) {
-#ifdef PORT_DISABLED // TODO(PORT) logging
-            GR_LOG_ERROR(d_logger, "Can't extract data, not enough history available");
-#endif
+            d_logger->error("Can't extract data, not enough history available");
             d_state = extractor_state::WaitTrigger;
 
             wio.consume_each(noutput_items);

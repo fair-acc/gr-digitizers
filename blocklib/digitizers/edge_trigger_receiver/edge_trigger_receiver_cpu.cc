@@ -24,9 +24,7 @@ work_return_t edge_trigger_receiver_cpu::work(work_io &wio) {
             edge_tag.set_offset(wio.outputs()[0].nitems_written());
             wio.outputs()[0].add_tag(edge_tag);
         } else {
-#ifdef PORT_DISABLED // port logging
-            GR_LOG_ERROR(d_logger, "Decoding UDP datagram failed:" + message);
-#endif
+            d_logger->error("Decoding UDP datagram failed: {}", message);
         }
     }
 

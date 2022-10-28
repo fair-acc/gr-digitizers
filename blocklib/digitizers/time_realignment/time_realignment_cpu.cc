@@ -107,9 +107,7 @@ bool time_realignment_cpu::add_timing_event(std::string event_id, int64_t wr_tri
     if (d_wr_events_write_iter == d_wr_events.end())
         d_wr_events_write_iter = d_wr_events.begin();
     if (d_wr_events_write_iter->wr_trigger_stamp == d_wr_events_read_iter->wr_trigger_stamp) {
-#ifdef PORT_DISABLED // TODO(PORT) port logging
-        GR_LOG_ERROR(d_logger, name() + ": Write Iter reached read iter ...to few trigger tags");
-#endif
+        d_logger->error("{}: Write Iter reached read iter ...to few trigger tags", name());
         return false;
     }
     return true;
@@ -134,9 +132,7 @@ bool time_realignment_cpu::fill_wr_stamp(trigger_t &trigger_tag_data) {
         // TODO(PORT) check that this is is correct (was: abs of unsigned (!) uint64_t)
         if (d_not_found_stamp_utc != 0 && std::abs(static_cast<int64_t>(get_timestamp_nano_utc()) - static_cast<int64_t>(d_not_found_stamp_utc)) > d_max_buffer_time_ns) {
             d_not_found_stamp_utc = 0; // reset stamp
-#ifdef PORT_DISABLED                   // TODO(PORT) port logging
-            GR_LOG_ERROR(d_logger, name() + ": No WR-Tag found for trigger tag after waiting " + std::to_string(get_max_buffer_time()) + "s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted.");
-#endif
+            d_logger->error("{}: No WR-Tag found for trigger tag after waiting {}s. Trigger will be forwarded without realligment. Possibly max_buffer_time needs to be adjusted.", name(), max_buffer_time());
             trigger_tag_data.status |= channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT;
             return true;
         }
@@ -149,12 +145,9 @@ bool time_realignment_cpu::fill_wr_stamp(trigger_t &trigger_tag_data) {
     while (true) {
         int64_t delta_t = abs(trigger_tag_data.timestamp - d_wr_events_read_iter->wr_trigger_stamp_utc);
         if (delta_t > d_triggerstamp_matching_tolerance_ns) {
-#ifdef PORT_DISABLED // TODO(PORT) port logging
-
-            GR_LOG_WARN(d_logger, name() + ": WR Stamps was out of matching tolerance by " + std::to_string(delta_t / 1000) + "µs. Will be ignored");
-            GR_LOG_WARN(d_logger, name() + ": trigger_tag_data.timestamp                  " + std::to_string(trigger_tag_data.timestamp / 1000000) + "ms");
-            GR_LOG_WARN(d_logger, name() + ": d_wr_events_read_iter->wr_trigger_stamp_utc " + std::to_string(d_wr_events_read_iter->wr_trigger_stamp_utc / 1000000) + "ms");
-#endif
+            d_logger->warn("{}: WR Stamps was out of matching tolerance by {}µs. Will be ignored", name(), delta_t / 1000);
+            d_logger->warn("{}: trigger_tag_data.timestamp                  {}ms", name(), trigger_tag_data.timestamp / 1000000);
+            d_logger->warn("{}: d_wr_events_read_iter->wr_trigger_stamp_utc {}ms", name(), d_wr_events_read_iter->wr_trigger_stamp_utc / 1000000);
             //                {
             //                    time_t wrStampSeconds = trigger_tag_data.timestamp / 1000000000;
             //                    struct tm * timeinfo;
