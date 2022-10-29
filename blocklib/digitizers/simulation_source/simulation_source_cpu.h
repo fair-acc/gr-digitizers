@@ -11,32 +11,45 @@
 
 namespace gr::digitizers {
 
-struct simulation_driver {
-    digitizer_acquisition_mode_t         d_acquisition_mode;
-    std::size_t                          d_buffer_size;
+class simulation_impl : public digitizer_block_impl {
+public:
     meta_range_t                         d_ranges;
     std::vector<float>                   d_ch_a_data;
     std::vector<float>                   d_ch_b_data;
     std::vector<uint8_t>                 d_port_data;
     std::function<void(std::error_code)> d_notify_data_ready_cb;
-    app_buffer_t                        *d_app_buffer = nullptr;
 
-    simulation_driver(digitizer_acquisition_mode_t acquisition_mode, std::size_t buffer_size)
-        : d_acquisition_mode(acquisition_mode)
-        , d_buffer_size(buffer_size) {
+    simulation_impl(const digitizer_args &args, logger_ptr logger)
+        : digitizer_block_impl(args, logger) {
         d_ranges.push_back(range_t(20));
     }
 
-    std::error_code initialize() {
+    std::string get_driver_version() const override {
+        return "simulation";
+    }
+
+    std::string get_hardware_version() const override {
+        return "simulation";
+    }
+
+    std::vector<std::string> get_aichan_ids() override {
+        return std::vector<std::string>{ "A", "B" };
+    }
+
+    meta_range_t get_aichan_ranges() override {
+        return d_ranges;
+    }
+
+    std::error_code driver_initialize() override {
         return {};
     }
 
-    std::error_code configure() {
+    std::error_code driver_configure() override {
         return {};
     }
 
-    std::error_code arm() {
-        if (d_acquisition_mode == digitizer_acquisition_mode_t::RAPID_BLOCK) {
+    std::error_code driver_arm() override {
+        if (d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
             // rapid block data gets available after one second
             std::async(std::launch::async, [this]() {
                 boost::this_thread::sleep_for(boost::chrono::seconds{ 1 });
@@ -47,15 +60,15 @@ struct simulation_driver {
         return std::error_code{};
     }
 
-    std::error_code disarm() {
+    std::error_code driver_disarm() override {
         return {};
     }
 
-    std::error_code close() {
+    std::error_code driver_close() override {
         return {};
     }
 
-    std::error_code poll() {
+    std::error_code driver_poll() override {
         for (size_t i = 0; i < 1000; i++) {
             if (fill_in_data_chunk() == false)
                 break;
@@ -64,11 +77,11 @@ struct simulation_driver {
         return std::error_code{};
     }
 
-    std::error_code prefetch_block(size_t length, size_t block_number) {
+    std::error_code driver_prefetch_block(size_t length, size_t block_number) override {
         return {};
     }
 
-    std::error_code get_rapid_block_data(size_t offset, size_t length, size_t waveform, work_io &wio, std::vector<uint32_t> &status) {
+    std::error_code driver_get_rapid_block_data(size_t offset, size_t length, size_t waveform, work_io &wio, std::vector<uint32_t> &status) override {
         if (offset + length > d_ch_a_data.size()) {
             std::ostringstream message;
             message << "Exception in " << __FILE__ << ":" << __LINE__ << ": cannot fetch rapid block data, out of bounds";
@@ -113,7 +126,7 @@ struct simulation_driver {
                                + (d_buffer_size);
 
         // resize and clear tmp buffer (errors are all zero)
-        auto buffer = d_app_buffer->get_free_data_chunk();
+        auto buffer = d_app_buffer.get_free_data_chunk();
         if (buffer == nullptr) {
             return false;
         }
@@ -141,7 +154,7 @@ struct simulation_driver {
         buffer->d_local_timestamp = get_timestamp_nano_utc();
         buffer->d_status          = std::vector<uint32_t>{ 0, 0 };
 
-        d_app_buffer->add_full_data_chunk(buffer);
+        d_app_buffer.add_full_data_chunk(buffer);
 
         return true;
     }
@@ -160,7 +173,7 @@ public:
     work_return_t work(work_io &wio) override;
 
 private:
-    digitizer_block_impl<simulation_driver> d_impl;
+    simulation_impl d_impl;
 };
 
 } // namespace gr::digitizers

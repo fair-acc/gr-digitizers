@@ -15,19 +15,13 @@ simulation_source_cpu::simulation_source_cpu(block_args args)
                      .trigger_once             = args.trigger_once,
                      .rapid_block_nr_captures  = args.rapid_block_nr_captures,
                      .streaming_mode_poll_rate = args.streaming_mode_poll_rate,
-                     .acquisition_mode         = args.acquisition_mode,
-                     .downsampling_mode        = args.downsampling_mode,
-                     .downsampling_factor      = args.downsampling_factor,
-                     .ai_channels              = 2,
-                     .ports                    = 1 },
-              simulation_driver(args.acquisition_mode, args.buffer_size), d_logger) {
-    auto notify = [&](const std::error_code &errc) {
-        d_impl.notify_data_ready(errc);
-    };
-
-    d_impl._driver.d_notify_data_ready_cb = notify;
-    d_impl._driver.d_app_buffer           = d_impl.app_buffer();
-
+                     // TODO(PORT) assumes that these enums (digitizer_impl header and enums.yml) are identical, find out how to share enums.yml between modules
+                     .acquisition_mode    = static_cast<acquisition_mode_t>(args.acquisition_mode),
+                     .downsampling_mode   = static_cast<downsampling_mode_t>(args.downsampling_mode),
+                     .downsampling_factor = args.downsampling_factor,
+                     .ai_channels         = 2,
+                     .ports               = 1 },
+              d_logger) {
     set_output_multiple(args.buffer_size);
 
     // Enable all channels and ports
@@ -45,9 +39,9 @@ bool simulation_source_cpu::stop() {
 }
 
 void simulation_source_cpu::set_data(std::vector<float> channel_a_data, std::vector<float> channel_b_data, std::vector<uint8_t> port_data) {
-    d_impl._driver.d_ch_a_data = std::move(channel_a_data);
-    d_impl._driver.d_ch_b_data = std::move(channel_b_data);
-    d_impl._driver.d_port_data = std::move(port_data);
+    d_impl.d_ch_a_data = std::move(channel_a_data);
+    d_impl.d_ch_b_data = std::move(channel_b_data);
+    d_impl.d_port_data = std::move(port_data);
 }
 
 work_return_t simulation_source_cpu::work(work_io &wio) {

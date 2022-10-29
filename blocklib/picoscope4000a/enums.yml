@@ -1,0 +1,14 @@
+# TODO(PORT) reuse enum types from digitizers, but trying that currently
+# leads to undefined references to the pmt(T) ctor. (can't find where they
+# are defined)
+digitizer_acquisition_mode_t:
+  enumerators:
+  - id: STREAMING
+  - id: RAPID_BLOCK
+
+digitizer_downsampling_mode_t:
+  enumerators:
+  - id: NONE
+  - id: MIN_MAX_AGG
+  - id: DECIMATE
+  - id: AVERAGE
