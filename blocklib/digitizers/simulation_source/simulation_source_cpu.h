@@ -155,12 +155,11 @@ public:
 
     bool          stop() override;
 
-    void set_data(std::vector<float> channel_a_data, std::vector<float> channel_b_data, std::vector<uint8_t> port_data) override;
+    void          set_data(std::vector<float> channel_a_data, std::vector<float> channel_b_data, std::vector<uint8_t> port_data) override;
 
     work_return_t work(work_io &wio) override;
 
 private:
-    std::shared_ptr<simulation_driver>      d_driver;
     digitizer_block_impl<simulation_driver> d_impl;
 };
 

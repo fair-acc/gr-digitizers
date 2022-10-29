@@ -402,7 +402,7 @@ public:
             return;
         }
 
-        auto ec = _driver->initialize();
+        auto ec = _driver.initialize();
         if (ec) {
             add_error_code(ec);
             std::ostringstream message;
@@ -426,7 +426,7 @@ public:
             throw std::runtime_error(message.str());
         }
 
-        auto ec = _driver->configure();
+        auto ec = _driver.configure();
         if (ec) {
             add_error_code(ec);
             std::ostringstream message;
@@ -450,7 +450,7 @@ public:
         }
 
         // arm the driver
-        auto ec = _driver->arm();
+        auto ec = _driver.arm();
         if (ec) {
             add_error_code(ec);
             std::ostringstream message;
@@ -501,7 +501,7 @@ public:
             transit_poll_thread_to_idle();
         }
 
-        auto ec = _driver->disarm();
+        auto ec = _driver.disarm();
         if (ec) {
             add_error_code(ec);
             d_logger->warn("disarm failed: {}", ec);
@@ -511,7 +511,7 @@ public:
     }
 
     void close() {
-        auto ec = _driver->close();
+        auto ec = _driver.close();
         if (ec) {
             add_error_code(ec);
             d_logger->warn("close failed: {}", ec);
@@ -616,7 +616,7 @@ public:
      * Structors
      **********************************************************************/
 
-    explicit digitizer_block_impl(const digitizer_args &args, std::shared_ptr<T> driver, gr::logger_ptr logger)
+    explicit digitizer_block_impl(const digitizer_args &args, T &&driver, gr::logger_ptr logger)
         : _driver{ std::move(driver) }
         , d_logger{ std::move(logger) }
         , d_samp_rate(args.sample_rate)
@@ -777,7 +777,7 @@ public:
             auto downsampled_samples = get_block_size_with_downsampling();
 
             // Instruct the driver to prefetch samples. Drivers might choose to ignore this call
-            auto ec = _driver->prefetch_block(samples_to_fetch, d_bstate.waveform_idx);
+            auto ec = _driver.prefetch_block(samples_to_fetch, d_bstate.waveform_idx);
             if (ec) {
                 add_error_code(ec);
                 return work_return_t::ERROR; // TODO(PORT) was -1
@@ -793,7 +793,7 @@ public:
             // We are good to read first batch of samples
             noutput_items = std::min(noutput_items, d_bstate.samples_left);
 
-            ec            = _driver->get_rapid_block_data(d_bstate.offset,
+            ec            = _driver.get_rapid_block_data(d_bstate.offset,
                                noutput_items, d_bstate.waveform_idx, wio, d_status);
             if (ec) {
                 add_error_code(ec);
@@ -838,7 +838,7 @@ public:
         } else if (d_bstate.state == rapid_block_state_t::READING_THE_REST) {
             noutput_items = std::min(noutput_items, d_bstate.samples_left);
 
-            auto ec       = _driver->get_rapid_block_data(d_bstate.offset, noutput_items,
+            auto ec       = _driver.get_rapid_block_data(d_bstate.offset, noutput_items,
                           d_bstate.waveform_idx, wio, d_status);
             if (ec) {
                 add_error_code(ec);
@@ -1199,7 +1199,7 @@ public:
             if (state == poller_state_t::RUNNING) {
                 // Start watchdog a new
                 auto poll_start = std::chrono::high_resolution_clock::now();
-                auto ec         = _driver->poll();
+                auto ec         = _driver.poll();
                 if (ec) {
                     // Only print out an error message
                     d_logger->error("poll failed with: {}", ec);
@@ -1328,8 +1328,8 @@ public:
      * Members
      *********************************************************************/
 
-    std::shared_ptr<T> _driver;
-    gr::logger_ptr     d_logger;
+    T              _driver;
+    gr::logger_ptr d_logger;
 
     // Sample rate in Hz
     double d_samp_rate;

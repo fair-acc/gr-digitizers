@@ -5,7 +5,6 @@ namespace gr::digitizers {
 
 simulation_source_cpu::simulation_source_cpu(block_args args)
     : INHERITED_CONSTRUCTORS
-    , d_driver(std::make_shared<simulation_driver>(args.acquisition_mode, args.buffer_size))
     , d_impl({ .sample_rate                    = args.sample_rate,
                      .buffer_size              = args.buffer_size,
                      .nr_buffers               = args.nr_buffers,
@@ -21,13 +20,13 @@ simulation_source_cpu::simulation_source_cpu(block_args args)
                      .downsampling_factor      = args.downsampling_factor,
                      .ai_channels              = 2,
                      .ports                    = 1 },
-              d_driver, d_logger) {
+              simulation_driver(args.acquisition_mode, args.buffer_size), d_logger) {
     auto notify = [&](const std::error_code &errc) {
         d_impl.notify_data_ready(errc);
     };
 
-    d_driver->d_notify_data_ready_cb = notify;
-    d_driver->d_app_buffer           = d_impl.app_buffer();
+    d_impl._driver.d_notify_data_ready_cb = notify;
+    d_impl._driver.d_app_buffer           = d_impl.app_buffer();
 
     set_output_multiple(args.buffer_size);
 
@@ -46,9 +45,9 @@ bool simulation_source_cpu::stop() {
 }
 
 void simulation_source_cpu::set_data(std::vector<float> channel_a_data, std::vector<float> channel_b_data, std::vector<uint8_t> port_data) {
-    d_driver->d_ch_a_data = std::move(channel_a_data);
-    d_driver->d_ch_b_data = std::move(channel_b_data);
-    d_driver->d_port_data = std::move(port_data);
+    d_impl._driver.d_ch_a_data = std::move(channel_a_data);
+    d_impl._driver.d_ch_b_data = std::move(channel_b_data);
+    d_impl._driver.d_port_data = std::move(port_data);
 }
 
 work_return_t simulation_source_cpu::work(work_io &wio) {
