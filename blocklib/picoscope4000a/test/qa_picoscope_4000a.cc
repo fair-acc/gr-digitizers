@@ -59,7 +59,7 @@ void qa_picoscope_4000a::rapid_block_basics() {
     ps->set_aichan("A", true, 5.0, coupling_t::AC_1M, 0); // TODO(PORT) remove last arg (double_range) when default values work in the code generation;
 
     auto sink    = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::null_sink::make({ sizeof(float) });
+    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
     // connect and run
     top->connect(ps, 0, sink, 0);
@@ -105,10 +105,10 @@ void qa_picoscope_4000a::rapid_block_channels() {
     auto sinkB    = blocks::vector_sink_f::make({ 1 });
     auto sinkC    = blocks::vector_sink_f::make({ 1 });
     auto sinkD    = blocks::vector_sink_f::make({ 1 });
-    auto errsinkA = blocks::null_sink::make({ sizeof(float) });
-    auto errsinkB = blocks::null_sink::make({ sizeof(float) });
-    auto errsinkC = blocks::null_sink::make({ sizeof(float) });
-    auto errsinkD = blocks::null_sink::make({ sizeof(float) });
+    auto errsinkA = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto errsinkB = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto errsinkC = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto errsinkD = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
     // connect and run
     top->connect(ps, 0, sinkA, 0);
@@ -140,7 +140,7 @@ void qa_picoscope_4000a::rapid_block_continuous() {
     ps->set_aichan("A", true, 5.0, coupling_t::AC_1M, 0); // TODO(PORT) remove last arg (double_range) when default values work in the code generation;
 
     auto sink    = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::null_sink::make({ sizeof(float) });
+    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
     // connect and run
     top->connect(ps, 0, sink, 0);
@@ -180,7 +180,7 @@ void qa_picoscope_4000a::rapid_block_downsampling_basics() {
     ps->set_aichan("A", true, 5.0, coupling_t::AC_1M, 0); // TODO(PORT) remove last arg (double_range) when default values work in the code generation;
 
     auto sink    = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::null_sink::make({ sizeof(float) });
+    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
     // connect and run
     top->connect(ps, 0, sink, 0);
@@ -319,12 +319,12 @@ void qa_picoscope_4000a::rapid_block_trigger() {
     auto sink     = blocks::vector_sink_f::make({ 1 });
     auto errsink  = blocks::vector_sink_f::make({ 1 });
 
-    auto bsink    = blocks::null_sink::make({ sizeof(float) });
-    auto csink    = blocks::null_sink::make({ sizeof(float) });
-    auto dsink    = blocks::null_sink::make({ sizeof(float) });
-    auto berrsink = blocks::null_sink::make({ sizeof(float) });
-    auto cerrsink = blocks::null_sink::make({ sizeof(float) });
-    auto derrsink = blocks::null_sink::make({ sizeof(float) });
+    auto bsink    = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto csink    = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto dsink    = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto berrsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto cerrsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto derrsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
     auto port0    = blocks::vector_sink_b::make({ 1 });
 
@@ -355,7 +355,7 @@ void qa_picoscope_4000a::streaming_basics() {
     ps->set_aichan("A", true, 5.0, coupling_t::AC_1M, 0); // TODO(PORT) remove last arg (double_range) when default values work in the code generation;
 
     auto sink    = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::null_sink::make({ sizeof(float) });
+    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
     // connect and run
     top->connect(ps, 0, sink, 0);
