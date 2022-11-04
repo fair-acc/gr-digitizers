@@ -58,8 +58,8 @@ void qa_picoscope_4000a::rapid_block_basics() {
 
     ps->set_aichan("A", true, 5.0, coupling_t::AC_1M, 0); // TODO(PORT) remove last arg (double_range) when default values work in the code generation;
 
-    auto sink    = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto sink           = blocks::vector_sink_f::make({ 1 });
+    auto errsink        = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
     auto make_null_sink = [] {
         return blocks::null_sink::make({ .itemsize = sizeof(float) });

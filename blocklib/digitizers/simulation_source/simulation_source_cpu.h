@@ -12,10 +12,10 @@ namespace gr::digitizers {
 
 class simulation_impl : public digitizer_block_impl {
 public:
-    meta_range_t                         d_ranges;
-    std::vector<float>                   d_ch_a_data;
-    std::vector<float>                   d_ch_b_data;
-    std::vector<uint8_t>                 d_port_data;
+    meta_range_t         d_ranges;
+    std::vector<float>   d_ch_a_data;
+    std::vector<float>   d_ch_b_data;
+    std::vector<uint8_t> d_port_data;
 
     simulation_impl(const digitizer_args &args, logger_ptr logger)
         : digitizer_block_impl(args, logger) {
