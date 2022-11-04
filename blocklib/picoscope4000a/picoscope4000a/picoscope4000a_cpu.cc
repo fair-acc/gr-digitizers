@@ -146,8 +146,8 @@ picoscope_4000a_impl::convert_frequency_to_ps4000a_timebase(double desired_freq,
     for (auto i = 0; i < 2; i++) {
         auto status = ps4000aGetTimebase2(d_handle, 3 + i, 1024, &time_interval_ns_34[i], &dummy, 0);
         if (status != PICO_OK) {
-            GR_LOG_NOTICE(d_logger, "timebase cannot be obtained: " + ps4000a_get_error_message(status));
-            GR_LOG_NOTICE(d_logger, "    estimated timebase will be used...");
+            d_logger->notice("timebase cannot be obtained: {}", ps4000a_get_error_message(status));
+            d_logger->notice("    estimated timebase will be used...");
 
             float time_interval_ns;
             status = ps4000aGetTimebase2(d_handle, timebase_estimate, 1024, &time_interval_ns, &dummy, 0);
@@ -388,7 +388,7 @@ picoscope_4000a_impl::driver_initialize() {
     }
 
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "open unit failed: " + ps4000a_get_error_message(status));
+        d_logger->error("open unit failed: {} ", ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
     }
 
@@ -396,7 +396,7 @@ picoscope_4000a_impl::driver_initialize() {
     status = ps4000aMaximumValue(d_handle, &d_max_value);
     if (status != PICO_OK) {
         ps4000aCloseUnit(d_handle);
-        GR_LOG_ERROR(d_logger, "ps4000aMaximumValue: " + ps4000a_get_error_message(status));
+        d_logger->error("ps4000aMaximumValue: {}", ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
     }
 
@@ -410,14 +410,14 @@ picoscope_4000a_impl::driver_configure() {
     int32_t     max_samples;
     PICO_STATUS status = ps4000aMemorySegments(d_handle, d_nr_captures, &max_samples);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aMemorySegments: " + ps4000a_get_error_message(status));
+        d_logger->error("ps4000aMemorySegments: {}", ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
     }
 
     if (d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
         status = ps4000aSetNoOfCaptures(d_handle, d_nr_captures);
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps4000aSetNoOfCaptures: " + ps4000a_get_error_message(status));
+            d_logger->error("ps4000aSetNoOfCaptures: {}", ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -432,8 +432,7 @@ picoscope_4000a_impl::driver_configure() {
         status        = ps4000aSetChannel(d_handle,
                        static_cast<PS4000A_CHANNEL>(i), enabled, coupling, static_cast<PICO_CONNECT_PROBE_RANGE>(range), offset);
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps3000aSetChannel (chan " + std::to_string(i)
-                                           + "): " + ps4000a_get_error_message(status));
+            d_logger->error("ps4000aSetChannel (chan {}): {}", i, ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -449,7 +448,7 @@ picoscope_4000a_impl::driver_configure() {
                 0,   // delay
                 -1); // auto trigger
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps4000aSetSimpleTrigger: " + ps4000a_get_error_message(status));
+            d_logger->error("ps4000aSetSimpleTrigger: {}", ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     } else {
@@ -460,7 +459,7 @@ picoscope_4000a_impl::driver_configure() {
             cond.condition = PS4000A_CONDITION_DONT_CARE;
             status         = ps4000aSetTriggerChannelConditions(d_handle, &cond, 1, PS4000A_CLEAR);
             if (status != PICO_OK) {
-                GR_LOG_ERROR(d_logger, "ps4000aSetTriggerChannelConditionsV2: " + ps4000a_get_error_message(status));
+                d_logger->error("ps4000aSetTriggerChannelConditionsV2: {}", ps4000a_get_error_message(status));
                 return make_pico_4000a_error_code(status);
             }
         }
@@ -496,7 +495,7 @@ picoscope_4000a_impl::driver_arm() {
                       (ps4000aBlockReady) rapid_block_callback_redirector_4000a,
                       this);
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps4000aRunBlock: " + ps4000a_get_error_message(status));
+            d_logger->error("ps4000aRunBlock: {}", ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     } else {
@@ -516,7 +515,7 @@ picoscope_4000a_impl::driver_arm() {
                 d_driver_buffer_size);
 
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps4000aRunStreaming: " + ps4000a_get_error_message(status));
+            d_logger->error("ps4000aRunStreaming: {}", ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -528,7 +527,7 @@ std::error_code
 picoscope_4000a_impl::driver_disarm() {
     auto status = ps4000aStop(d_handle);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aStop: " + ps4000a_get_error_message(status));
+        d_logger->error("ps4000aStop: {}", ps4000a_get_error_message(status));
     }
 
     return make_pico_4000a_error_code(status);
@@ -542,7 +541,7 @@ picoscope_4000a_impl::driver_close() {
 
     auto status = ps4000aCloseUnit(d_handle);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aCloseUnit: " + ps4000a_get_error_message(status));
+        d_logger->error("ps4000aCloseUnit: {}", ps4000a_get_error_message(status));
     }
 
     d_handle = -1;
@@ -580,8 +579,7 @@ picoscope_4000a_impl::set_buffers(size_t samples, uint32_t block_number) {
         }
 
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps4000aSetDataBuffer (chan " + std::to_string(aichan)
-                                           + "): " + ps4000a_get_error_message(status));
+            d_logger->error("ps4000aSetDataBuffer (chan {}): {}", aichan, ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -605,7 +603,7 @@ picoscope_4000a_impl::driver_prefetch_block(size_t samples, size_t block_number)
                     block_number,
                     &d_overflow);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps4000aGetValues: " + ps4000a_get_error_message(status));
+        d_logger->error("ps4000aGetValues: {}", ps4000a_get_error_message(status));
     }
 
     return make_pico_4000a_error_code(status);
