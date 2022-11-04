@@ -61,9 +61,16 @@ void qa_picoscope_4000a::rapid_block_basics() {
     auto sink    = blocks::vector_sink_f::make({ 1 });
     auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
+    auto make_null_sink = [] {
+        return blocks::null_sink::make({ .itemsize = sizeof(float) });
+    };
+
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    for (std::size_t i = 2; i < 16; ++i) { // TODO(PORT) investigate why it crashes in the GR scheduler if we don't connect all ports
+        top->connect(ps, i, make_null_sink(), 0);
+    }
     top->run();
 
     auto data = sink->data();
@@ -148,7 +155,7 @@ void qa_picoscope_4000a::rapid_block_continuous() {
 
     // We explicitly open unit because it takes quite some time
     // and we don't want to time this part
-    ps->initialize();
+    CPPUNIT_ASSERT_NO_THROW(ps->initialize());
 
     top->start();
     sleep(1);
@@ -362,7 +369,7 @@ void qa_picoscope_4000a::streaming_basics() {
     top->connect(ps, 1, errsink, 0);
 
     // Explicitly open unit because it takes quite some time
-    ps->initialize();
+    CPPUNIT_ASSERT_NO_THROW(ps->initialize());
 
     top->start();
     sleep(2);

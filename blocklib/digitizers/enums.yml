@@ -11,8 +11,8 @@ time_sink_mode_t:
 
 digitizer_acquisition_mode_t:
   enumerators:
-  - id: STREAMING
   - id: RAPID_BLOCK
+  - id: STREAMING
 
 digitizer_downsampling_mode_t:
   enumerators:

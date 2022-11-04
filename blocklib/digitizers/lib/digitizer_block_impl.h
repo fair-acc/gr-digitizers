@@ -200,13 +200,13 @@ struct DIGITIZERS_API digitizer_args {
     std::size_t         driver_buffer_size       = 100000;
     std::size_t         pre_samples              = 1000;
     std::size_t         post_samples             = 9000;
-    bool                auto_arm                 = true;
-    bool                trigger_once             = false;
+    acquisition_mode_t  acquisition_mode         = acquisition_mode_t::STREAMING;
     std::size_t         rapid_block_nr_captures  = 1;
     double              streaming_mode_poll_rate = 0.001;
-    acquisition_mode_t  acquisition_mode         = acquisition_mode_t::STREAMING;
     downsampling_mode_t downsampling_mode        = downsampling_mode_t::NONE;
     std::size_t         downsampling_factor      = 1;
+    bool                auto_arm                 = true;
+    bool                trigger_once             = false;
     std::size_t         ai_channels              = 0;
     std::size_t         ports                    = 0;
 };

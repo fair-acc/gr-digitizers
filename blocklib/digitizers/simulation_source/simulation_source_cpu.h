@@ -5,7 +5,6 @@
 #include "digitizer_block_impl.h"
 #include "range.h"
 
-#include <functional>
 #include <future>
 #include <system_error>
 
@@ -17,7 +16,6 @@ public:
     std::vector<float>                   d_ch_a_data;
     std::vector<float>                   d_ch_b_data;
     std::vector<uint8_t>                 d_port_data;
-    std::function<void(std::error_code)> d_notify_data_ready_cb;
 
     simulation_impl(const digitizer_args &args, logger_ptr logger)
         : digitizer_block_impl(args, logger) {
@@ -53,7 +51,7 @@ public:
             // rapid block data gets available after one second
             std::async(std::launch::async, [this]() {
                 boost::this_thread::sleep_for(boost::chrono::seconds{ 1 });
-                d_notify_data_ready_cb(std::error_code{});
+                notify_data_ready(std::error_code{});
             });
         }
 

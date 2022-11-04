@@ -684,22 +684,22 @@ picoscope_4000a_impl::driver_poll() {
 
 picoscope4000a_cpu::picoscope4000a_cpu(block_args args)
     : INHERITED_CONSTRUCTORS
-    , d_impl({ .sample_rate                    = args.sample_rate,
-                     .buffer_size              = args.buffer_size,
-                     .nr_buffers               = args.nr_buffers,
-                     .driver_buffer_size       = args.driver_buffer_size,
-                     .pre_samples              = args.pre_samples,
-                     .post_samples             = args.post_samples,
-                     .auto_arm                 = args.auto_arm,
-                     .trigger_once             = args.trigger_once,
+    , d_impl({ .sample_rate              = args.sample_rate,
+                     .buffer_size        = args.buffer_size,
+                     .nr_buffers         = args.nr_buffers,
+                     .driver_buffer_size = args.driver_buffer_size,
+                     .pre_samples        = args.pre_samples,
+                     .post_samples       = args.post_samples,
+                     // TODO(PORT) these enums are to be assumed identical, find out how we can share enums between blocks without linking errors
+                     .acquisition_mode         = static_cast<acquisition_mode_t>(args.acquisition_mode),
                      .rapid_block_nr_captures  = args.rapid_block_nr_captures,
                      .streaming_mode_poll_rate = args.streaming_mode_poll_rate,
-                     // TODO(PORT) these enums are to be assumed identical, find out how we can share enums between blocks without linking errors
-                     .acquisition_mode    = static_cast<acquisition_mode_t>(args.acquisition_mode),
-                     .downsampling_mode   = static_cast<downsampling_mode_t>(args.downsampling_mode),
-                     .downsampling_factor = args.downsampling_factor,
-                     .ai_channels         = PS4000A_MAX_CHANNELS,
-                     .ports               = 0 },
+                     .downsampling_mode        = static_cast<downsampling_mode_t>(args.downsampling_mode),
+                     .downsampling_factor      = args.downsampling_factor,
+                     .auto_arm                 = args.auto_arm,
+                     .trigger_once             = args.trigger_once,
+                     .ai_channels              = PS4000A_MAX_CHANNELS,
+                     .ports                    = 0 },
               args.serial_number, d_logger) {
     set_output_multiple(args.buffer_size);
 }
@@ -717,12 +717,10 @@ work_return_t picoscope4000a_cpu::work(work_io &wio) {
 }
 
 void picoscope4000a_cpu::initialize() {
-    // TODO(PORT) catch exceptions here (and returns as bool etc.?)
     d_impl.initialize();
 }
 
 void picoscope4000a_cpu::close() {
-    // TODO(PORT) catch exceptions here (and returns as bool etc.?)
     d_impl.close();
 }
 

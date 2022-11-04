@@ -5,22 +5,22 @@ namespace gr::digitizers {
 
 simulation_source_cpu::simulation_source_cpu(block_args args)
     : INHERITED_CONSTRUCTORS
-    , d_impl({ .sample_rate                    = args.sample_rate,
-                     .buffer_size              = args.buffer_size,
-                     .nr_buffers               = args.nr_buffers,
-                     .driver_buffer_size       = args.driver_buffer_size,
-                     .pre_samples              = args.pre_samples,
-                     .post_samples             = args.post_samples,
-                     .auto_arm                 = args.auto_arm,
-                     .trigger_once             = args.trigger_once,
+    , d_impl({ .sample_rate              = args.sample_rate,
+                     .buffer_size        = args.buffer_size,
+                     .nr_buffers         = args.nr_buffers,
+                     .driver_buffer_size = args.driver_buffer_size,
+                     .pre_samples        = args.pre_samples,
+                     .post_samples       = args.post_samples,
+                     // TODO(PORT) assumes that these enums (digitizer_impl header and enums.yml) are identical, find out how to share enums.yml between modules
+                     .acquisition_mode         = static_cast<acquisition_mode_t>(args.acquisition_mode),
                      .rapid_block_nr_captures  = args.rapid_block_nr_captures,
                      .streaming_mode_poll_rate = args.streaming_mode_poll_rate,
-                     // TODO(PORT) assumes that these enums (digitizer_impl header and enums.yml) are identical, find out how to share enums.yml between modules
-                     .acquisition_mode    = static_cast<acquisition_mode_t>(args.acquisition_mode),
-                     .downsampling_mode   = static_cast<downsampling_mode_t>(args.downsampling_mode),
-                     .downsampling_factor = args.downsampling_factor,
-                     .ai_channels         = 2,
-                     .ports               = 1 },
+                     .downsampling_mode        = static_cast<downsampling_mode_t>(args.downsampling_mode),
+                     .downsampling_factor      = args.downsampling_factor,
+                     .auto_arm                 = args.auto_arm,
+                     .trigger_once             = args.trigger_once,
+                     .ai_channels              = 2,
+                     .ports                    = 1 },
               d_logger) {
     set_output_multiple(args.buffer_size);
 
