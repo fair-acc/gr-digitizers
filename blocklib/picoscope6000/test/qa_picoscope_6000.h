@@ -22,8 +22,6 @@ namespace gr::picoscope6000 {
     private:
       void run_rapid_block_downsampling(digitizer_downsampling_mode_t mode);
 
-      picoscope6000::sptr createAndInitRapidBlock();
-      picoscope6000::sptr createAndInitStream();
       void setUpDevice();
       void open_close();
       void rapid_block_basics();

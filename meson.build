@@ -103,6 +103,7 @@ endif
 subdir('blocklib/digitizers')
 
 if enable_picoscope
+  subdir('blocklib/picoscope3000a')
   subdir('blocklib/picoscope4000a')
   subdir('blocklib/picoscope6000')
 endif

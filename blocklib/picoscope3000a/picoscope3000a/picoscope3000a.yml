@@ -1,10 +1,10 @@
-module: picoscope6000
-block: picoscope6000
-label: PicoScope 6000
+module: picoscope3000a
+block: picoscope3000a
+label: PicoScope 3000a
 blocktype: sync_block
 includes:
   - gnuradio/digitizers/digitizer_enums.h
-  - gnuradio/picoscope6000/enums.h
+  - gnuradio/picoscope3000a/enums.h
 
 parameters:
 -   id: serial_number
@@ -114,11 +114,15 @@ callbacks:
          dtype: rf64
 ports:
 -   domain: stream
-    id: out
+    id: channels
     direction: out
     type: rf32
     multiplicity: '8'
-    optional: true
+-   domain: stream
+    id: ports
+    direction: out
+    type: ri8
+    multiplicity: '2'
 
 implementations:
 -   id: cpu
