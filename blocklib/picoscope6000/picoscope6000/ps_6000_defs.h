@@ -1,14 +1,3 @@
-/*
- * ps_6000_defs.h
- *
- *  Created on: Feb 5, 2018
- *      Author: osboxes
- */
-
-/* Copyright (C) 2018 GSI Darmstadt, Germany - All Rights Reserved
- * co-developed with: Cosylab, Ljubljana, Slovenia and CERN, Geneva, Switzerland
- * You may use, distribute and modify this code under the terms of the GPL v.3  license.
- */
 #ifndef LIB_PS_6000_DEFS_H_
 #define LIB_PS_6000_DEFS_H_
 

@@ -1,19 +1,10 @@
-/* -*- c++ -*- */
-/* Copyright (C) 2018 GSI Darmstadt, Germany - All Rights Reserved
- * co-developed with: Cosylab, Ljubljana, Slovenia and CERN, Geneva, Switzerland
- * You may use, distribute and modify this code under the terms of the GPL v.3  license.
- */
-
-
-#ifndef _QA_PICOSCOPE_6000_H_
-#define _QA_PICOSCOPE_6000_H_
+#pragma once
 
 #include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
-#include <digitizers/picoscope_6000.h>
+#include <picoscope6000/picoscope6000.h>
 
-namespace gr {
-  namespace digitizers {
+namespace gr::picoscope6000 {
 
     class qa_picoscope_6000 : public CppUnit::TestCase
     {
@@ -29,10 +20,10 @@ namespace gr {
       CPPUNIT_TEST_SUITE_END();
 
     private:
-      void run_rapid_block_downsampling(downsampling_mode_t mode);
+      void run_rapid_block_downsampling(digitizer_downsampling_mode_t mode);
 
-      picoscope_6000::sptr createAndInitRapidBlock();
-      picoscope_6000::sptr createAndInitStream();
+      picoscope6000::sptr createAndInitRapidBlock();
+      picoscope6000::sptr createAndInitStream();
       void setUpDevice();
       void open_close();
       void rapid_block_basics();
@@ -46,8 +37,5 @@ namespace gr {
       void streaming_basics();
     };
 
-  } /* namespace digitizers */
-} /* namespace gr */
-
-#endif /* _QA_PICOSCOPE_6000_H_ */
+  } // namespace gr::picoscope6000
 
