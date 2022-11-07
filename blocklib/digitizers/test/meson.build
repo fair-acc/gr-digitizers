@@ -44,6 +44,7 @@ qa_peak_detector = executable('qa_peak_detector', 'qa_peak_detector.cc',
 qa_post_mortem_sink = executable('qa_post_mortem_sink', 'qa_post_mortem_sink.cc',
                                  dependencies: testdeps,
                                  link_args: linklibs)
+qa_signal_averager = executable('qa_signal_averager', 'qa_signal_averager.cc', dependencies: testdeps, link_args: linklibs)
 qa_stft_goertzl_dynamic = executable('qa_stft_goertzl_dynamic', 'qa_stft_goertzl_dynamic.cc',
                                      dependencies: testdeps,
                                      link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-kernel-math'])
@@ -76,6 +77,7 @@ test('Interlock Generation', qa_interlock_generation)
 test('Median and Average', qa_median_and_average)
 test('Peak Detector', qa_peak_detector)
 test('Post Mortem Sink', qa_post_mortem_sink)
+test('Signal Averager', qa_signal_averager)
 test('STFT Goertzel Dynamic', qa_stft_goertzl_dynamic)
 test('STFT Goertzel Dynamic_Decimated', qa_stft_goertzl_dynamic_decimated)
 test('Stream to Vector Overlay', qa_stream_to_vector_overlay)

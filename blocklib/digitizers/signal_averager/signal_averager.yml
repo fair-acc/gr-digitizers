@@ -1,0 +1,33 @@
+module: digitizers
+block: signal_averager
+label: signal_averager
+blocktype: block
+
+parameters:
+-   id: num_inputs
+    label: Number of Inputs
+    dtype: size
+-   id: window_size
+    label: Window Size
+    dtype: size
+-   id: sample_rate
+    label: Sample Rate
+    dtype: rf64
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+    multiplicity: parameters/num_inputs
+-   domain: stream
+    id: out
+    direction: output
+    type: rf32
+    multiplicity: parameters/num_inputs
+
+implementations:
+-   id: cpu
+# -   id: cuda
+
+file_format: 1
