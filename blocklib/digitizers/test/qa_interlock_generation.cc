@@ -12,12 +12,13 @@
 #include <cppunit/XmlOutputter.h>
 
 namespace gr::digitizers {
-#ifdef PORT_DISABLED // TODO(PORT) port callback
+
 int  count_interlock_calls = 0;
-void interlock(int64_t timebase) {
+
+void interlock(int64_t, void *) {
     count_interlock_calls++;
 }
-#endif
+
 void qa_interlock_generation::interlock_generation_test() {
     auto               fg = gr::flowgraph::make("interlock_generation_test");
 
@@ -43,9 +44,7 @@ void qa_interlock_generation::interlock_generation_test() {
 
     auto i_lk = interlock_generation::make({ -100, 100 });
 
-#ifdef PORT_DISABLED // TODO(PORT) port callback
     i_lk->set_callback(&interlock, nullptr);
-#endif
 
     auto snk = blocks::vector_sink_f::make({ 1 });
 
@@ -59,9 +58,8 @@ void qa_interlock_generation::interlock_generation_test() {
     auto interlocks = snk->data();
 
     CPPUNIT_ASSERT_EQUAL(sig_v.size(), interlocks.size());
-#ifdef PORT_DISABLED // TODO(PORT) port callback
     CPPUNIT_ASSERT_EQUAL(1, count_interlock_calls);
-#endif
+
     for (size_t i = 0; i < sig_v.size(); i++) {
         bool exp = (sig_v.at(i) < max_v.at(i) && sig_v.at(i) > min_v.at(i));
         bool act = (interlocks.at(i) == 0);

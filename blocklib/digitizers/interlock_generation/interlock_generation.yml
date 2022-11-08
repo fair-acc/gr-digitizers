@@ -11,6 +11,15 @@ parameters:
     label: Upper bound of max boundary
     dtype: rf32
 
+callbacks:
+   - id: set_callback
+     return: void
+     args:
+      - id: cb
+        dtype: std::function<void(int64_t, void*)>
+      - id: user_data
+        dtype: void*
+
 ports:
 -   domain: stream
     id: in

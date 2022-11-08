@@ -14,6 +14,12 @@ bool interlock_generation_cpu::start() {
     return interlock_generation::start();
 }
 
+void interlock_generation_cpu::set_callback(std::function<void(int64_t, void*)> cb, void *user_data)
+{
+    d_callback = cb;
+    d_user_data = user_data;
+}
+
 work_return_t interlock_generation_cpu::work(work_io &wio) {
     const auto in            = wio.inputs()[0].items<float>();
     const auto min           = wio.inputs()[1].items<float>();
@@ -47,7 +53,6 @@ work_return_t interlock_generation_cpu::work(work_io &wio) {
         if (d_interlock_issued && !interlock) {
             d_interlock_issued = false;
         } else if (!d_interlock_issued && interlock) {
-#ifdef PORT_DISABLED // TODO(PORT) port callback
             // calculate timestamp
             int64_t timestamp = -1;
 
@@ -60,7 +65,6 @@ work_return_t interlock_generation_cpu::work(work_io &wio) {
             if (d_callback) {
                 d_callback(timestamp, d_user_data);
             }
-#endif
             d_interlock_issued = true;
         }
     }
