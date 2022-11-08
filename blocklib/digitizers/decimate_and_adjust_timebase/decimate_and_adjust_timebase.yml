@@ -1,0 +1,30 @@
+module: digitizers
+block: decimate_and_adjust_timebase
+label: decimate_and_adjust_timebase
+blocktype: block
+
+parameters:
+-   id: decimation
+    label: Decimation
+    dtype: size
+-   id: delay
+    label: Delay
+    dtype: rf64
+-   id: sample_rate
+    label: Sample Rate
+    dtype: rf64
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+-   domain: stream
+    id: out
+    direction: output
+    type: rf32
+
+implementations:
+-   id: cpu
+
+file_format: 1

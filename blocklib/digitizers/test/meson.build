@@ -17,6 +17,9 @@ qa_block_spectral_peaks = executable('qa_block_spectral_peaks', 'qa_block_spectr
 qa_chi_square_fit = executable('qa_chi_square_fit', 'qa_chi_square_fit.cc',
                                dependencies: testdeps,
                                link_args: linklibs)
+qa_decimate_and_adjust_timebase = executable('qa_decimate_and_adjust_timebase', 'qa_decimate_and_adjust_timebase.cc',
+                                             dependencies: testdeps,
+                                             link_args: linklibs)
 qa_demux = executable('qa_demux', 'qa_demux.cc',
                       dependencies: testdeps,
                       link_args: linklibs)
@@ -68,6 +71,7 @@ test('Block Demux', qa_block_demux)
 test('Block Scaling Offset', qa_block_scaling_offset)
 test('Block Spectral Peaks', qa_block_spectral_peaks)
 test('Chi Square Fit', qa_chi_square_fit)
+test('Decimate and Adjust Timebase', qa_decimate_and_adjust_timebase)
 #test('Demux', qa_demux) #TODO (port) reenable (currently hangs)
 test('Digitizer Block (Simulation Source)', qa_digitizer_block)
 test('Edge Trigger', qa_edge_trigger)
