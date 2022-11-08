@@ -57,61 +57,59 @@ void qa_decimate_and_adjust_timebase::test_decimation() {
 #else
     CPPUNIT_ASSERT_EQUAL(std::size_t(4), tags_out.size());
 #endif
-        CPPUNIT_ASSERT_EQUAL(uint64_t(40/decim_factor), tags_out[0].offset());
-        CPPUNIT_ASSERT_EQUAL(uint64_t(73/decim_factor), tags_out[1].offset());
-        CPPUNIT_ASSERT_EQUAL(uint64_t(76/decim_factor), tags_out[2].offset());
+    CPPUNIT_ASSERT_EQUAL(uint64_t(40 / decim_factor), tags_out[0].offset());
+    CPPUNIT_ASSERT_EQUAL(uint64_t(73 / decim_factor), tags_out[1].offset());
+    CPPUNIT_ASSERT_EQUAL(uint64_t(76 / decim_factor), tags_out[2].offset());
 
-        acq_info_t acq_info_tag = decode_acq_info_tag(tags_out.at(2));
+    acq_info_t acq_info_tag = decode_acq_info_tag(tags_out.at(2));
 
-#ifdef PORT_DISABLED // PORT(KDAB) see above
-        CPPUNIT_ASSERT_EQUAL(uint32_t(3), acq_info_tag.status); // logical OR of all stati
+#ifdef PORT_DISABLED                                        // PORT(KDAB) see above
+    CPPUNIT_ASSERT_EQUAL(uint32_t(3), acq_info_tag.status); // logical OR of all stati
 #endif
-    }
+}
 
-    void
-    qa_decimate_and_adjust_timebase::offset_trigger_tag_test()
-    {
-      double samp_rate = 1000; // sample_to_sample distance = 1ms
-      std::size_t decim = 10;
-      std::size_t size = 1000;
-      std::vector<float> samples;
+void qa_decimate_and_adjust_timebase::offset_trigger_tag_test() {
+    double             samp_rate = 1000; // sample_to_sample distance = 1ms
+    std::size_t        decim     = 10;
+    std::size_t        size      = 1000;
+    std::vector<float> samples;
 
-      for(std::size_t i = 0; i < size; i++)
-          samples.push_back(1.);
+    for (std::size_t i = 0; i < size; i++)
+        samples.push_back(1.);
 
-      trigger_t tag0, tag1,tag2,tag3;
+    trigger_t              tag0, tag1, tag2, tag3;
 
-      std::vector<gr::tag_t> tags = {
-        make_trigger_tag(tag0,40), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So no offset is expected.
-        make_trigger_tag(tag1,41), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So a positive offset of 1 samples (= 1ms) is expected.
-        make_trigger_tag(tag2,75), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 5 samples (= 5ms) is expected.
-        make_trigger_tag(tag3,79), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 9 samples (= 9ms) is expected.
-      };
+    std::vector<gr::tag_t> tags = {
+        make_trigger_tag(tag0, 40), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So no offset is expected.
+        make_trigger_tag(tag1, 41), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So a positive offset of 1 samples (= 1ms) is expected.
+        make_trigger_tag(tag2, 75), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 5 samples (= 5ms) is expected.
+        make_trigger_tag(tag3, 79), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 9 samples (= 9ms) is expected.
+    };
 
-      auto top = gr::flowgraph::make("single_input_test");
-      auto src = blocks::vector_source_f::make({ .data = samples, .tags = tags });
-      auto avg = decimate_and_adjust_timebase::make({decim, 0.0, samp_rate});
-      auto snk = blocks::vector_sink_f::make({1});
+    auto top = gr::flowgraph::make("single_input_test");
+    auto src = blocks::vector_source_f::make({ .data = samples, .tags = tags });
+    auto avg = decimate_and_adjust_timebase::make({ decim, 0.0, samp_rate });
+    auto snk = blocks::vector_sink_f::make({ 1 });
 
-      top->connect(src, 0, avg, 0);
-      top->connect(avg, 0, snk, 0);
+    top->connect(src, 0, avg, 0);
+    top->connect(avg, 0, snk, 0);
 
-      top->run();
-      auto data = snk->data();
-      auto tags_out = snk->tags();
-      CPPUNIT_ASSERT_EQUAL(std::size_t(4), tags_out.size());
-      CPPUNIT_ASSERT_EQUAL(data.size(),size/decim);
-    }
+    top->run();
+    auto data     = snk->data();
+    auto tags_out = snk->tags();
+    CPPUNIT_ASSERT_EQUAL(std::size_t(4), tags_out.size());
+    CPPUNIT_ASSERT_EQUAL(data.size(), size / decim);
+}
 
-  } // namespace gr::digitizers
+} // namespace gr::digitizers
 
-  int main(int, char **) {
-      CppUnit::TextTestRunner runner;
-      runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-              &runner.result(),
-              std::cerr));
-      runner.addTest(gr::digitizers::qa_decimate_and_adjust_timebase::suite());
+int main(int, char **) {
+    CppUnit::TextTestRunner runner;
+    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
+            &runner.result(),
+            std::cerr));
+    runner.addTest(gr::digitizers::qa_decimate_and_adjust_timebase::suite());
 
-      bool was_successful = runner.run("", false);
-      return was_successful ? 0 : 1;
-  }
+    bool was_successful = runner.run("", false);
+    return was_successful ? 0 : 1;
+}

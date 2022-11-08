@@ -1,0 +1,41 @@
+module: digitizers
+block: function
+label: function
+blocktype: block
+
+parameters:
+-   id: decimation
+    label: Decimation
+    dtype: size
+-   id: timing
+    label: Timing Function
+    dtype: rf32
+    container: vector
+-   id: ref
+    label: Reference Function
+    dtype: rf32
+    container: vector
+-   id: min
+    label: Min Function
+    dtype: rf32
+    container: vector
+-   id: max
+    label: Max Function
+    dtype: rf32
+    container: vector
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+-   domain: stream
+    id: out
+    direction: output
+    type: rf32
+    multiplicity: '3'
+
+implementations:
+-   id: cpu
+
+file_format: 1

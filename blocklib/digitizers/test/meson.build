@@ -35,6 +35,9 @@ qa_freq_estimator = executable('qa_freq_estimator', 'qa_freq_estimator.cc',
 qa_freq_sink = executable('qa_freq_sink', 'qa_freq_sink.cc',
                           dependencies: testdeps,
                           link_args: linklibs)
+qa_function = executable('qa_function', 'qa_function.cc',
+                         dependencies: testdeps,
+                         link_args: linklibs)
 qa_interlock_generation = executable('qa_interlock_generation', 'qa_interlock_generation.cc',
                                      dependencies: testdeps,
                                      link_args: linklibs)
@@ -77,6 +80,7 @@ test('Digitizer Block (Simulation Source)', qa_digitizer_block)
 test('Edge Trigger', qa_edge_trigger)
 test('Frequency Estimator', qa_freq_estimator)
 test('Frequency Sink', qa_freq_sink)
+test('Function', qa_function)
 test('Interlock Generation', qa_interlock_generation)
 test('Median and Average', qa_median_and_average)
 test('Peak Detector', qa_peak_detector)
