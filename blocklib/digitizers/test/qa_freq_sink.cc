@@ -64,8 +64,8 @@ struct freq_test_flowgraph_t {
     }
 };
 
-static void invoke_function(const data_available_event_t *event, void *ptr) {
-    (*static_cast<std::function<void(const data_available_event_t *)> *>(ptr))(event);
+static void invoke_function(int64_t trigger_timestamp, std::string signal_name, void *ptr) {
+    (*static_cast<std::function<void(int64_t, std::string)> *>(ptr))(trigger_timestamp, std::move(signal_name));
 }
 
 static const float SAMP_RATE_1KHZ = 1000.0;
@@ -178,15 +178,13 @@ void qa_freq_sink::test_sink_callback() {
     // expect user callback to be called twice
     std::atomic<unsigned short> counter{};
     data_available_event_t      local_event{};
-    auto                        callback = new std::function<void(const data_available_event_t *)>(
-            [&counter, &local_event](const data_available_event_t *event) {
-                local_event = *event;
+    auto                        callback = std::function<void(int64_t, std::string)>(
+            [&counter, &local_event](int64_t trigger_timestamp, std::string signal_name) {
+                local_event = { .trigger_timestamp = trigger_timestamp, .signal_name = std::move(signal_name) };
                 counter++;
             });
 
-#ifdef PORT_DISABLED
-    sink->set_callback(&invoke_function, static_cast<void *>(callback));
-#endif
+    sink->set_callback(&invoke_function, &callback);
     // in order to test trigger timestamp passed to the callback
     acq_info_t info{};
     info.timestamp = 987654321;
@@ -194,10 +192,8 @@ void qa_freq_sink::test_sink_callback() {
     freq_test_flowgraph_t fg(sink, std::vector<tag_t>{ make_acq_info_tag(info, 0) }, nbins, nmeasurements);
     fg.fg->run();
 
-#ifdef PORT_DISABLED
     // test metadata provided to the callback
     CPPUNIT_ASSERT_EQUAL(std::string("test"), local_event.signal_name);
-#endif
 
     const auto measurements = sink->get_measurements(nmeasurements);
 

@@ -76,16 +76,13 @@ work_return_t freq_sink_cpu::work(work_io &wio) {
 
         d_measurement_buffer.add_measurement(measurement);
 
-#ifdef PORT_DISABLED
-        if (d_callback != nullptr) {
+        if (d_callback) {
             data_available_event_t args;
-            args.trigger_timestamp = measurement->metadata[0].trigger_timestamp != -1
-                                           ? measurement->metadata[0].trigger_timestamp
-                                           : measurement->metadata[0].timestamp;
-            args.signal_name       = d_metadata.name;
-            d_callback(&args, d_user_data);
+            const int64_t          trigger_timestamp = measurement->metadata[0].trigger_timestamp != -1
+                                                             ? measurement->metadata[0].trigger_timestamp
+                                                             : measurement->metadata[0].timestamp;
+            d_callback(trigger_timestamp, d_metadata.name, d_user_data);
         }
-#endif
     } // for each iteration (or buffer)
 
     wio.consume_each(noutput_items); // TODO(PORT) consume_each not in baseline
@@ -96,6 +93,11 @@ work_return_t freq_sink_cpu::work(work_io &wio) {
 signal_metadata_t freq_sink_cpu::get_metadata() const {
     // TODO(PORT) do we really need this? why not make name/unit gettable?
     return d_metadata;
+}
+
+void freq_sink_cpu::set_callback(std::function<void(int64_t, std::string, void *)> callback, void *user_data) {
+    d_callback  = callback;
+    d_user_data = user_data;
 }
 
 spectra_measurement_t freq_sink_cpu::get_measurements(std::size_t nr_measurements) {

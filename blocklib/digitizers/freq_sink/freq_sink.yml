@@ -42,6 +42,13 @@ callbacks:
       args:
       - id: items_to_read
         dtype: size
+    - id: set_callback
+      return: void
+      args:
+      - id: callback
+        dtype: std::function<void(int64_t, std::string, void*)>
+      - id: user_data
+        dtype: void*
 
 ports:
 -   domain: stream

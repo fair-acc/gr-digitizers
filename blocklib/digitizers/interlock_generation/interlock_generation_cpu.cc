@@ -14,9 +14,8 @@ bool interlock_generation_cpu::start() {
     return interlock_generation::start();
 }
 
-void interlock_generation_cpu::set_callback(std::function<void(int64_t, void*)> cb, void *user_data)
-{
-    d_callback = cb;
+void interlock_generation_cpu::set_callback(std::function<void(int64_t, void *)> cb, void *user_data) {
+    d_callback  = cb;
     d_user_data = user_data;
 }
 

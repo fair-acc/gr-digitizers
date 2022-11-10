@@ -4,6 +4,8 @@
 
 #include "utils.h"
 
+#include <functional>
+
 namespace gr::digitizers {
 
 class freq_sink_cpu : public freq_sink {
@@ -13,6 +15,8 @@ public:
     work_return_t         work(work_io &wio) override;
 
     signal_metadata_t     get_metadata() const override;
+    void                  set_callback(std::function<void(int64_t, std::string, void *)> callback, void *user_data);
+
     spectra_measurement_t get_measurements(std::size_t nr_of_measurements) override;
 
 private:
@@ -35,9 +39,11 @@ private:
         std::size_t nmeasurements;
     };
 
-    measurement_buffer_t<freq_domain_buffer_t> d_measurement_buffer;
-    boost::circular_buffer<acq_info_t>         d_acq_info_tags;
-    std::size_t                                d_lost_count = 0;
+    measurement_buffer_t<freq_domain_buffer_t>        d_measurement_buffer;
+    boost::circular_buffer<acq_info_t>                d_acq_info_tags;
+    std::size_t                                       d_lost_count = 0;
+    std::function<void(int64_t, std::string, void *)> d_callback;
+    void                                             *d_user_data = nullptr;
 };
 
 } // namespace gr::digitizers
