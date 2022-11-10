@@ -16,11 +16,9 @@ parameters:
 -   id: signal_name
     label: Signal Name
     dtype: string
-    settable: true
 -   id: signal_unit
     label: Signal Unit
     dtype: string
-    settable: true
 -   id: samp_rate
     label: Sample rate
     dtype: float
@@ -29,11 +27,20 @@ parameters:
     label: Mode
     dtype: enums/time_sink_mode_t
     is_enum: true
-    settable: true
+    gettable: true
 -   id: output_package_size
     label: Output Package Size
     dtype: size
-    settable: true
+    gettable: true
+
+callbacks:
+   - id: set_callback
+     return: void
+     args:
+      - id: cb
+        dtype: std::function<void(std::vector<float>, std::vector<float>, std::vector<gr::tag_t>, void*)>
+      - id: user_data
+        dtype: void*
 
 ports:
 -   domain: stream
@@ -44,10 +51,7 @@ ports:
     id: in_errors
     direction: input
     type: typekeys/T
--   domain: stream
-    id: values
-    direction: output
-    type: typekeys/T
+    optional: true
 
 implementations:
 -   id: cpu

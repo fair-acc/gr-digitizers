@@ -5,8 +5,9 @@
 #include <cppunit/TestCase.h>
 #include <digitizers/tags.h>
 
-namespace gr {
-namespace digitizers {
+#include <span>
+
+namespace gr::digitizers {
 
 class qa_time_domain_sink : public CppUnit::TestCase {
 public:
@@ -16,11 +17,7 @@ public:
 
         ~Test();
 
-        void callback(const float      *values,
-                std::size_t             values_size,
-                const float            *errors,
-                std::size_t             errors_size,
-                std::vector<gr::tag_t> &tags);
+        void callback(std::span<float> values, std::span<float> errors, std::span<gr::tag_t> tags);
 
         void
         check_errors_zero();
@@ -61,7 +58,6 @@ private:
     void stream_acq_info_tag();
 };
 
-}
 } // namespace gr::digitizers
 
 #endif /* _QA_TIME_DOMAIN_SINK_H_ */
