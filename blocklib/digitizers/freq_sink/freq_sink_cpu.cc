@@ -85,7 +85,6 @@ work_return_t freq_sink_cpu::work(work_io &wio) {
         }
     } // for each iteration (or buffer)
 
-    wio.consume_each(noutput_items); // TODO(PORT) consume_each not in baseline
     wio.produce_each(noutput_items);
     return work_return_t::OK;
 }

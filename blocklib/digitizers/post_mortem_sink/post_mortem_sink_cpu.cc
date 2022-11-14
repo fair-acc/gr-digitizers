@@ -31,7 +31,6 @@ work_return_t post_mortem_sink_cpu::work(work_io &wio) {
             memcpy(wio.outputs()[1].items<float>(), wio.inputs()[1].items<float>(), ninput_items * sizeof(float));
         }
 
-        wio.consume_each(ninput_items); // TODO(PORT) consume_each not in baseline
         wio.produce_each(ninput_items);
         d_nitems_read = wio.inputs()[0].nitems_read() + ninput_items;
 
@@ -67,7 +66,6 @@ work_return_t post_mortem_sink_cpu::work(work_io &wio) {
         d_acq_info_offset = tag.offset();
     }
 
-    wio.consume_each(ninput_items); // TODO(PORT) consume_each not in baseline
     wio.produce_each(ninput_items);
     d_nitems_read = wio.inputs()[0].nitems_read() + ninput_items;
 
