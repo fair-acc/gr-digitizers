@@ -194,15 +194,17 @@ enum class poller_state_t {
 };
 
 struct DIGITIZERS_API digitizer_args {
+    static constexpr std::size_t default_buffer_size = 8192;
+
     double              sample_rate              = 10000;
-    std::size_t         buffer_size              = 8192;
+    std::size_t         buffer_size              = default_buffer_size;
     std::size_t         nr_buffers               = 100;
     std::size_t         driver_buffer_size       = 100000;
     std::size_t         pre_samples              = 1000;
     std::size_t         post_samples             = 9000;
     acquisition_mode_t  acquisition_mode         = acquisition_mode_t::STREAMING;
     std::size_t         rapid_block_nr_captures  = 1;
-    double              streaming_mode_poll_rate = 0.001;
+    double              streaming_mode_poll_rate = 0.001; // poll rate is in seconds
     downsampling_mode_t downsampling_mode        = downsampling_mode_t::NONE;
     std::size_t         downsampling_factor      = 1;
     bool                auto_arm                 = true;
@@ -220,29 +222,9 @@ public:
     static const int   MAX_SUPPORTED_AI_CHANNELS = 16;
     static const int   MAX_SUPPORTED_PORTS       = 8;
 
-    acquisition_mode_t get_acquisition_mode();
-
-    void               set_samples(int pre_samples, int post_samples);
-
-    void               set_samp_rate(double rate);
+    acquisition_mode_t get_acquisition_mode() const;
 
     double             get_samp_rate() const;
-
-    void               set_buffer_size(int buffer_size);
-
-    void               set_nr_buffers(int buffer_size);
-
-    void               set_driver_buffer_size(int driver_buffer_size);
-
-    void               set_auto_arm(bool auto_arm);
-
-    void               set_trigger_once(bool auto_arm);
-
-    void               set_rapid_block(int nr_captures);
-
-    void               set_streaming(double poll_rate = 0.001);
-
-    void               set_downsampling(downsampling_mode_t mode, int downsample_factor);
 
     void               set_aichan(const std::string &id, bool enabled, double range, coupling_t coupling, double range_offset = 0);
 

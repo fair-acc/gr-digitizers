@@ -85,7 +85,7 @@ void qa_digitizer_block::rapid_block_basics() {
     args.acquisition_mode        = digitizer_acquisition_mode_t::RAPID_BLOCK;
     args.pre_samples             = presamples;
     args.post_samples            = samples;
-    args.buffer_size             = presamples + samples; // TODO(PORT) this was ensured by the set_samples setter before
+
     auto fg                      = make_test_flowgraph(args);
     auto source                  = fg.source;
 
@@ -114,7 +114,6 @@ void qa_digitizer_block::rapid_block_correct_tags() {
     auto args                    = default_args();
     args.pre_samples             = presamples;
     args.post_samples            = samples;
-    args.buffer_size             = presamples + samples;
     args.trigger_once            = true;
     args.rapid_block_nr_captures = 1;
     args.acquisition_mode        = digitizer_acquisition_mode_t::RAPID_BLOCK;

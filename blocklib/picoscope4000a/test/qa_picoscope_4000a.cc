@@ -48,7 +48,6 @@ void qa_picoscope_4000a::rapid_block_basics() {
     auto top = gr::flowgraph::make("basics");
 
     auto ps  = picoscope4000a::make({ .sample_rate = 10000.,
-             .buffer_size                          = 1033, // TODO(PORT) buffer_size was set explicitly before when setting pre/post samples
              .pre_samples                          = 33,
              .post_samples                         = 1000,
              .acquisition_mode                     = digitizer_acquisition_mode_t::RAPID_BLOCK,
@@ -95,7 +94,6 @@ void qa_picoscope_4000a::rapid_block_channels() {
     auto top = gr::flowgraph::make("channels");
 
     auto ps  = picoscope4000a::make({ .sample_rate = 10000.,
-             .buffer_size                          = 1050, // TODO(PORT) buffer_size was set explicitly before when setting pre/post samples
              .pre_samples                          = 50,
              .post_samples                         = 1000,
              .acquisition_mode                     = digitizer_acquisition_mode_t::RAPID_BLOCK,
@@ -174,7 +172,6 @@ void qa_picoscope_4000a::rapid_block_downsampling_basics() {
     auto top = gr::flowgraph::make("downsampling");
 
     auto ps  = picoscope4000a::make({ .sample_rate = 10000.,
-             .buffer_size                          = 1200, // TODO(PORT) pre+post, was done before by set_samples
              .pre_samples                          = 200,
              .post_samples                         = 1000,
              .acquisition_mode                     = digitizer_acquisition_mode_t::RAPID_BLOCK,
@@ -202,7 +199,6 @@ void qa_picoscope_4000a::run_rapid_block_downsampling(digitizer_downsampling_mod
     auto top = gr::flowgraph::make("channels");
 
     auto ps  = picoscope4000a::make({ .sample_rate = 10000.,
-             .buffer_size                          = 11000, // TODO(PORT) pre+post, was done in set_samples
              .pre_samples                          = 1000,
              .post_samples                         = 10000,
              .acquisition_mode                     = digitizer_acquisition_mode_t::RAPID_BLOCK,
@@ -267,7 +263,6 @@ void qa_picoscope_4000a::rapid_block_tags() {
     auto samp_rate = 10000.0;
 
     auto ps        = picoscope4000a::make({ .sample_rate = samp_rate,
-                   .buffer_size                          = 1200, // TODO(PORT) pre+post, was done in set_samples
                    .pre_samples                          = 200,
                    .post_samples                         = 1000,
                    .acquisition_mode                     = digitizer_acquisition_mode_t::RAPID_BLOCK,
@@ -311,7 +306,6 @@ void qa_picoscope_4000a::rapid_block_trigger() {
     auto samp_rate = 10000.0;
 
     auto ps        = picoscope4000a::make({ .sample_rate = samp_rate,
-                   .buffer_size                          = 1200, // TODO(PORT) pre+post, was done in set_samples
                    .pre_samples                          = 200,
                    .post_samples                         = 1000,
                    .acquisition_mode                     = digitizer_acquisition_mode_t::RAPID_BLOCK,

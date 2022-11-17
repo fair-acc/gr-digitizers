@@ -97,6 +97,39 @@ digitizer_block_impl::digitizer_block_impl(const digitizer_args &args, gr::logge
     d_ai_buffers       = std::vector<std::vector<float>>(d_ai_channels);
     d_ai_error_buffers = std::vector<std::vector<float>>(d_ai_channels);
 
+    if (d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
+        if (args.post_samples < 1) {
+            throw std::invalid_argument(fmt::format("Exception in {}:{}: post-trigger samples can't be less than one", __FILE__, __LINE__));
+        }
+        if (args.buffer_size != digitizer_args::default_buffer_size && args.buffer_size != args.pre_samples + args.post_samples) {
+            throw std::invalid_argument(fmt::format("Exception in {}:{}: Invalid buffer size for rapid block mode", __FILE__, __LINE__));
+        }
+        if (args.rapid_block_nr_captures < 1) {
+            throw std::invalid_argument(fmt::format("Exception in {}:{}: nr waveforms should be at least one: {}", __FILE__, __LINE__, args.rapid_block_nr_captures));
+        }
+        d_buffer_size = args.pre_samples + args.post_samples;
+    } else { // streaming mode
+        if (args.streaming_mode_poll_rate < 0.0) {
+            throw std::invalid_argument(fmt::format("Exception in {}:{}: poll rate can't be negative: {}", __FILE__, __LINE__, args.streaming_mode_poll_rate));
+        }
+    }
+
+    if (args.sample_rate <= 0) {
+        throw std::invalid_argument(fmt::format("Exception in {}:{}: sample rate has to be greater than zero", __FILE__, __LINE__));
+    }
+
+    if (args.nr_buffers == 0) {
+        throw std::invalid_argument(fmt::format("Exception in {}:{}: number of buffers cannot be zero", __FILE__, __LINE__));
+    }
+
+    if (args.driver_buffer_size == 0) {
+        throw std::invalid_argument(fmt::format("Exception in {}:{}: driver buffer size cannot be zero", __FILE__, __LINE__));
+    }
+
+    if (args.downsampling_mode != downsampling_mode_t::NONE && args.downsampling_factor < 2) {
+        throw std::invalid_argument(fmt::format("Exception in {}:{}: downsampling factor should be at least 2: {}", __FILE__, __LINE__, args.downsampling_factor));
+    }
+
     if (args.ports) {
         d_port_buffers = std::vector<std::vector<uint8_t>>(args.ports);
     }
@@ -224,119 +257,12 @@ digitizer_block_impl::find_digital_triggers(uint8_t const *const samples, int ns
  * Public API
  **********************************************************************/
 
-acquisition_mode_t digitizer_block_impl::get_acquisition_mode() {
+acquisition_mode_t digitizer_block_impl::get_acquisition_mode() const {
     return d_acquisition_mode;
 }
 
-void digitizer_block_impl::set_samples(int pre_samples, int post_samples) {
-    if (post_samples < 1) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": post-trigger samples can't be less than one";
-        throw std::invalid_argument(message.str());
-    }
-
-    if (pre_samples < 0) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": pre-trigger samples can't be less than zero";
-        throw std::invalid_argument(message.str());
-    }
-
-    d_post_samples = static_cast<uint32_t>(post_samples);
-    d_pre_samples  = static_cast<uint32_t>(pre_samples);
-    d_buffer_size  = d_post_samples + d_pre_samples;
-}
-
-void digitizer_block_impl::set_samp_rate(double rate) {
-    if (rate <= 0.0) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": sample rate has to be greater than zero";
-        throw std::invalid_argument(message.str());
-    }
-    d_samp_rate          = rate;
-    d_actual_samp_rate   = rate;
-    d_time_per_sample_ns = 1000000000. / d_actual_samp_rate;
-}
-
-double
-digitizer_block_impl::get_samp_rate() const {
+double digitizer_block_impl::get_samp_rate() const {
     return d_actual_samp_rate;
-}
-
-void digitizer_block_impl::set_buffer_size(int buffer_size) {
-    if (buffer_size < 0) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": buffer size can't be negative:" << buffer_size;
-        throw std::invalid_argument(message.str());
-    }
-
-    d_buffer_size = static_cast<uint32_t>(buffer_size);
-}
-
-void digitizer_block_impl::set_nr_buffers(int nr_buffers) {
-    if (nr_buffers < 1) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": number of buffers can't be a negative number:" << nr_buffers;
-        throw std::invalid_argument(message.str());
-    }
-
-    d_nr_buffers = static_cast<uint32_t>(nr_buffers);
-}
-
-void digitizer_block_impl::set_driver_buffer_size(int driver_buffer_size) {
-    if (driver_buffer_size < 1) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": driver buffer size can't be a negative number:" << driver_buffer_size;
-        throw std::invalid_argument(message.str());
-    }
-
-    d_driver_buffer_size = static_cast<uint32_t>(driver_buffer_size);
-}
-
-void digitizer_block_impl::set_auto_arm(bool auto_arm) {
-    d_auto_arm = auto_arm;
-}
-
-void digitizer_block_impl::set_trigger_once(bool once) {
-    d_trigger_once = once;
-}
-
-// Poll rate is in seconds
-void digitizer_block_impl::set_streaming(double poll_rate) {
-    if (poll_rate < 0.0) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": poll rate can't be negative:" << poll_rate;
-        throw std::invalid_argument(message.str());
-    }
-
-    d_acquisition_mode = acquisition_mode_t::STREAMING;
-    d_poll_rate        = poll_rate;
-
-    // just in case
-    d_nr_captures = 1;
-}
-
-void digitizer_block_impl::set_rapid_block(int nr_captures) {
-    if (nr_captures < 1) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": nr waveforms should be at least one" << nr_captures;
-        throw std::invalid_argument(message.str());
-    }
-
-    d_acquisition_mode = acquisition_mode_t::RAPID_BLOCK;
-    d_nr_captures      = static_cast<uint32_t>(nr_captures);
-}
-
-void digitizer_block_impl::set_downsampling(downsampling_mode_t mode, int downsample_factor) {
-    if (mode == downsampling_mode_t::NONE) {
-        downsample_factor = 1;
-    } else if (downsample_factor < 2) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": downsampling factor should be at least 2: " << downsample_factor;
-        throw std::invalid_argument(message.str());
-    }
-
-    d_downsampling_mode   = mode;
-    d_downsampling_factor = static_cast<uint32_t>(downsample_factor);
 }
 
 int digitizer_block_impl::convert_to_aichan_idx(const std::string &id) const {
