@@ -101,9 +101,6 @@ digitizer_block_impl::digitizer_block_impl(const digitizer_args &args, gr::logge
         if (args.post_samples < 1) {
             throw std::invalid_argument(fmt::format("Exception in {}:{}: post-trigger samples can't be less than one", __FILE__, __LINE__));
         }
-        if (args.buffer_size != digitizer_args::default_buffer_size && args.buffer_size != args.pre_samples + args.post_samples) {
-            throw std::invalid_argument(fmt::format("Exception in {}:{}: Invalid buffer size for rapid block mode", __FILE__, __LINE__));
-        }
         if (args.rapid_block_nr_captures < 1) {
             throw std::invalid_argument(fmt::format("Exception in {}:{}: nr waveforms should be at least one: {}", __FILE__, __LINE__, args.rapid_block_nr_captures));
         }

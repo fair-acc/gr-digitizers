@@ -194,23 +194,21 @@ enum class poller_state_t {
 };
 
 struct DIGITIZERS_API digitizer_args {
-    static constexpr std::size_t default_buffer_size      = 8192;
-
-    double                       sample_rate              = 10000;
-    std::size_t                  buffer_size              = default_buffer_size;
-    std::size_t                  nr_buffers               = 100;
-    std::size_t                  driver_buffer_size       = 100000;
-    std::size_t                  pre_samples              = 1000;
-    std::size_t                  post_samples             = 9000;
-    acquisition_mode_t           acquisition_mode         = acquisition_mode_t::STREAMING;
-    std::size_t                  rapid_block_nr_captures  = 1;
-    double                       streaming_mode_poll_rate = 0.001; // poll rate is in seconds
-    downsampling_mode_t          downsampling_mode        = downsampling_mode_t::NONE;
-    std::size_t                  downsampling_factor      = 1;
-    bool                         auto_arm                 = true;
-    bool                         trigger_once             = false;
-    std::size_t                  ai_channels              = 0;
-    std::size_t                  ports                    = 0;
+    double              sample_rate              = 10000;
+    std::size_t         buffer_size              = 8192;
+    std::size_t         nr_buffers               = 100;
+    std::size_t         driver_buffer_size       = 100000;
+    std::size_t         pre_samples              = 1000;
+    std::size_t         post_samples             = 9000;
+    acquisition_mode_t  acquisition_mode         = acquisition_mode_t::STREAMING;
+    std::size_t         rapid_block_nr_captures  = 1;
+    double              streaming_mode_poll_rate = 0.001; // poll rate is in seconds
+    downsampling_mode_t downsampling_mode        = downsampling_mode_t::NONE;
+    std::size_t         downsampling_factor      = 1;
+    bool                auto_arm                 = true;
+    bool                trigger_once             = false;
+    std::size_t         ai_channels              = 0;
+    std::size_t         ports                    = 0;
 };
 
 class DIGITIZERS_API digitizer_block_impl {
