@@ -126,9 +126,9 @@ void qa_time_realignment::default_case() {
     CPPUNIT_ASSERT_EQUAL(std::size_t{ 2 }, out_tags.size()); // wr-tags are not forwarded
 
     CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string{ trigger_tag_name });
+    CPPUNIT_ASSERT(out_tags[0].get(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(out_tags[1].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().begin()->first, std::string{ trigger_tag_name });
+    CPPUNIT_ASSERT(out_tags[1].get(trigger_tag_name));
 
     trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
     trigger_t trigger_tag_data2 = decode_trigger_tag(out_tags.at(1));
@@ -204,9 +204,9 @@ void qa_time_realignment::no_wr_events() {
     CPPUNIT_ASSERT_EQUAL(std::size_t{ 2 }, out_tags.size());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string{ trigger_tag_name });
+    CPPUNIT_ASSERT(out_tags[0].get(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(out_tags[1].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().begin()->first, std::string{ trigger_tag_name });
+    CPPUNIT_ASSERT(out_tags[1].get(trigger_tag_name));
 
     trigger_t trigger_tag_data0 = decode_trigger_tag(out_tags.at(0));
     CPPUNIT_ASSERT_EQUAL(trigger_tag_data0.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
@@ -242,7 +242,7 @@ void qa_time_realignment::out_of_tolerance_1() {
     auto out_tags = flowgraph.tags();
     CPPUNIT_ASSERT_EQUAL(std::size_t{ 1 }, out_tags.size());
     CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string{ trigger_tag_name });
+    CPPUNIT_ASSERT(out_tags[0].get(trigger_tag_name));
 
     trigger_t trigger_tag_data1 = decode_trigger_tag(out_tags.at(0));
     CPPUNIT_ASSERT_EQUAL(trigger_tag_data1.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));
@@ -287,9 +287,9 @@ void qa_time_realignment::out_of_tolerance_2() {
     CPPUNIT_ASSERT_EQUAL(std::size_t{ 2 }, out_tags.size());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string{ trigger_tag_name });
+    CPPUNIT_ASSERT(out_tags[0].get(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(out_tags[1].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().begin()->first, std::string{ trigger_tag_name });
+    CPPUNIT_ASSERT(out_tags[1].get(trigger_tag_name));
 
     trigger_t trigger_tag_data0 = decode_trigger_tag(out_tags.at(0));
     CPPUNIT_ASSERT_EQUAL(trigger_tag_data0.status, uint32_t(channel_status_t::CHANNEL_STATUS_TIMEOUT_WAITING_WR_OR_REALIGNMENT_EVENT));

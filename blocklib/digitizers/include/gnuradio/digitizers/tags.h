@@ -6,6 +6,8 @@
 #include <gnuradio/tag.h>
 #include <pmtf/base.hpp>
 
+#include <fmt/format.h>
+
 namespace gr {
 namespace digitizers {
 
@@ -64,13 +66,16 @@ make_acq_info_tag(const acq_info_t &acq_info, uint64_t offset) {
 
 inline acq_info_t
 decode_acq_info_tag(const gr::tag_t &tag) {
-    const auto tag_value  = tag[acq_info_tag_name];
-    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
+    const auto tag_value = tag.get(acq_info_tag_name);
+
+    if (!tag_value) {
+        throw std::runtime_error(fmt::format("Exception in {}:{}: tag does not contain '{}'", __FILE__, __LINE__, acq_info_tag_name));
+    }
+
+    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
 
     if (tag_vector.size() != 5) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid acq_info tag format";
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: invalid acq_info tag format", __FILE__, __LINE__));
     }
 
     return {
@@ -113,13 +118,15 @@ make_trigger_tag(uint64_t offset) {
 
 inline trigger_t
 decode_trigger_tag(const gr::tag_t &tag) {
-    const auto tag_value  = tag[trigger_tag_name];
-    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
+    const auto tag_value = tag.get(trigger_tag_name);
+    if (!tag_value) {
+        throw std::runtime_error(fmt::format("Exception in {}:{}: tag does not contain '{}'", __FILE__, __LINE__, trigger_tag_name));
+    }
+
+    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
 
     if (tag_vector.size() != 3) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid trigger tag format";
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: invalid trigger tag format", __FILE__, __LINE__));
     }
 
     return {
@@ -147,7 +154,12 @@ make_timebase_info_tag(double timebase) {
  */
 inline double
 decode_timebase_info_tag(const gr::tag_t &tag) {
-    return pmtf::get_as<double>(tag[timebase_info_tag_name]);
+    const auto tag_value = tag.get(timebase_info_tag_name);
+    if (!tag_value) {
+        throw std::runtime_error(fmt::format("Exception in {}:{}: tag does not contain '{}'", __FILE__, __LINE__, timebase_info_tag_name));
+    }
+
+    return pmtf::get_as<double>(*tag_value);
 }
 
 // ################################################################################################################
@@ -183,13 +195,16 @@ make_wr_event_tag(const wr_event_t &event, uint64_t offset) {
  */
 inline wr_event_t
 decode_wr_event_tag(const gr::tag_t &tag) {
-    const auto tag_value  = tag[wr_event_tag_name];
-    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
+    const auto tag_value = tag.get(wr_event_tag_name);
+
+    if (!tag_value) {
+        throw std::runtime_error(fmt::format("Exception in {}:{}: tag does not contain '{}'", __FILE__, __LINE__, wr_event_tag_name));
+    }
+
+    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
 
     if (tag_vector.size() != 3) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ": invalid wr_event tag format";
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: invalid wr_event tag format", __FILE__, __LINE__));
     }
 
     return {

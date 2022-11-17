@@ -1,10 +1,14 @@
 #ifndef INCLUDED_DIGITIZERS_EDGE_TRIGGER_UTILS_H
 #define INCLUDED_DIGITIZERS_EDGE_TRIGGER_UTILS_H
 
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 #include <gnuradio/digitizers/api.h>
 #include <gnuradio/tag.h>
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
+#include <fmt/format.h>
+
 #include <string>
 
 namespace gr::digitizers {
@@ -117,13 +121,16 @@ make_edge_detect_tag(edge_detect_t &edge_detect) {
 
 inline edge_detect_t
 decode_edge_detect_tag(const tag_t &tag) {
-    const auto tag_value = tag[edge_detect_tag_name];
-    const auto tag_vec   = pmtf::get_as<std::vector<pmtf::pmt>>(tag_value);
+    const auto tag_value = tag.get(edge_detect_tag_name);
+
+    if (!tag_value) {
+        throw std::runtime_error(fmt::format("Exception in {}:{}: tag does not contain '{}'", __FILE__, __LINE__, edge_detect_tag_name));
+    }
+
+    const auto tag_vec   = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
 
     if (tag_vec.empty()) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__ << ":  invalid edge detect tag format";
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: invalid edge detect tag format", __FILE__, __LINE__));
     }
 
     return {

@@ -141,11 +141,11 @@ void qa_demux::test_single_trigger() {
     CPPUNIT_ASSERT_EQUAL(2, (int) out_tags.size());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string(trigger_tag_name));
+    CPPUNIT_ASSERT(out_tags[0].get(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples }, out_tags[0].offset());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[1].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().begin()->first, std::string(acq_info_tag_name));
+    CPPUNIT_ASSERT(out_tags[1].get(acq_info_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples + 2000 }, out_tags[1].offset());
 }
 
@@ -215,27 +215,27 @@ void qa_demux::test_multi_trigger() {
     CPPUNIT_ASSERT_EQUAL(6, (int) out_tags.size());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[0].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[0].map().begin()->first, std::string(trigger_tag_name));
+    CPPUNIT_ASSERT(out_tags[0].get(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples }, out_tags[0].offset());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[1].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[1].map().begin()->first, std::string(acq_info_tag_name));
+    CPPUNIT_ASSERT(out_tags[1].get(acq_info_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ pre_trigger_samples + 10 }, out_tags[1].offset());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[2].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[2].map().begin()->first, std::string(acq_info_tag_name));
+    CPPUNIT_ASSERT(out_tags[2].get(acq_info_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples + pre_trigger_samples - 50 }, out_tags[2].offset());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[3].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[3].map().begin()->first, std::string(trigger_tag_name));
+    CPPUNIT_ASSERT(out_tags[3].get(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples + pre_trigger_samples }, out_tags[3].offset());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[4].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[4].map().begin()->first, std::string(trigger_tag_name));
+    CPPUNIT_ASSERT(out_tags[4].get(trigger_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples * 2 + pre_trigger_samples }, out_tags[4].offset());
 
     CPPUNIT_ASSERT_EQUAL(out_tags[5].map().size(), std::size_t{ 1 });
-    CPPUNIT_ASSERT_EQUAL(out_tags[5].map().begin()->first, std::string(acq_info_tag_name));
+    CPPUNIT_ASSERT(out_tags[5].get(acq_info_tag_name));
     CPPUNIT_ASSERT_EQUAL(uint64_t{ trigger_samples * 2 + pre_trigger_samples + 199 }, out_tags[5].offset());
 }
 
