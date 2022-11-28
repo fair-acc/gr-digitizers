@@ -88,6 +88,6 @@ doc:
   detail: |-
         The functions parameters will be adjusted in each iteration. The parameters of
         the function are bordered in a hypercube with size of par_lim_dn -> par_lim_up.
-        Each given parameter has a corresponding flag, weather it is constant or not.
+        Each given parameter has a corresponding flag, whether it is constant or not.
 
         The initial values of the parameter are supplied in par_init.

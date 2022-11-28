@@ -52,7 +52,7 @@ doc:
   detail: |-
         It then proceeds to filter and smoothen the actual response so the result is more stable. It finds
         a peak in the filtered response, and then finds the actual peak in the proximity of the filtered
-        peak.when the peak is found, it is posted as a result. In addition, the standard deviation is
+        peak. When the peak is found, it is posted as a result. In addition, the standard deviation is
         approximated for the peak, by means of the FWHM approximation method. The filtered response,
         found peak frequency and the calculated stdev are then posted for each batch of input values.
 

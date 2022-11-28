@@ -55,8 +55,8 @@ doc:
   detail: |-
         Both bounds are read from inputs, with the correspondent vector of samples. The vector
         of samples needs to be of length winsize. The block creates nbins different frequency
-        repsonses, that are linearly interpolated between the lower and upper bound. The
-        boundries are considered as part of the window, except in the case where there is only
+        responses, that are linearly interpolated between the lower and upper bound. The
+        boundaries are considered as part of the window, except in the case where there is only
         one bin, in which case the analysis frequency is the average of fMin and fMax,
         ie. (fMin+fMax)/2. The block returns magnitudes, phase shifts, and frequencies of the
         analysis, all of length nbins.

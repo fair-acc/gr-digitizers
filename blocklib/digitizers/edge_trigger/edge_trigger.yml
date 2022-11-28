@@ -52,7 +52,7 @@ doc:
   detail: |-
         Outputs value one or zero based on a threshold values (hi, lo), similar to GR's Threshold
         block. That is if the value of input signal exceeds the the threshold value hi, value one
-        is send down the stream and if input signal goes below low threshold value zero is send
+        is sent down the stream, and if input signal goes below low threshold value, zero is sent
         down the stream.
 
         This feature allows the users to compare actual signal and the state detected by this block.
@@ -67,7 +67,7 @@ doc:
                    |______________|
 
         In addition, whenever a FIRST rising or falling edge is detected following a trigger event
-        (determined based on the trigger tag), an UDP datagram is send to all receiving host. The
+        (determined based on the trigger tag), a UDP datagram is sent to all receiving hosts. The
         format of the datagram is shown below:
 
         \code
@@ -81,7 +81,7 @@ doc:
         \endcode
 
         In order to get precise trigger timestamp this block waits to receive a WR tag before it sends
-        an edge_detect tag down the stream or sends out an UDP datagram.
+        an edge_detect tag down the stream or sends out a UDP datagram.
 
         Note all timestamps are assumed to be integers, namely int64_t, representing number of
         nanoseconds since UNIX epoch (UTC nanoseconds).
