@@ -46,3 +46,47 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: This block receives a vector that corresponds to the frequency response of the signal, the lower frequency, and the upper frequency where a valid peak should be located.
+  detail: |-
+        It then proceeds to filter and smoothen the actual response so the result is more stable. It finds
+        a peak in the filtered response, and then finds the actual peak in the proximity of the filtered
+        peak.when the peak is found, it is posted as a result. In addition, the standard deviation is
+        approximated for the peak, by means of the FWHM approximation method. The filtered response,
+        found peak frequency and the calculated stdev are then posted for each batch of input values.
+
+        Wiring diagram:
+
+                         +-----------------+       +------------------+
+        f RESPONSE       |                 |       |                  |   FILTERED f RESPONSE
+        +============+=> |  MEDIAN FILTER  +=====> |  AVERAGE FILTER  +====+================>
+                     ||  |                 |       |                  |   ||
+        f_min        ||  +-----------------+       +------------------+   ||           PEAK f
+        +-------+    ||  +=================================================+   +------------>
+                |    ||  ||                                                    |
+        f_max   |    ||  ||      +---------------+                             | PEAK f STDEV
+        +---+   |    ||  +=====> |               +-----------------------------+   +-------->
+            |   |    +=========> |  PEAK FINDER  |                                 |
+            |   +--------------> |               +---------------------------------+
+            +------------------> |               |
+                                 +---------------+
+
+
+
+        Logic representation:
+
+        f_resp ^
+               |                   /\
+               |                  /  \
+               |                 |    |
+               |                 |    \
+               |---\    ________/      |
+               |    |  /               |
+               |    |  |               \_____/\
+               |    \__/                       \__________/\__
+               +----------x-------- ^--------x----------------x>
+               0          f_min     |        f_max            acq_f/2
+                                    |
+                                    |PEAK f
+                                 <--|--> PEAK f STDEV

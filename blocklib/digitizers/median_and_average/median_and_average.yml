@@ -31,3 +31,8 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: This block filters the signal by first passing it into a median filter that takes care of high signal spikes, and then averages the result to result in a smooth estimation of the signals components.
+  detail: |-
+        Operates with vectors, for easier transmission of the full spectrum we're estimating at a given point.

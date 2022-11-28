@@ -57,3 +57,24 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: Post-mortem sink
+  detail: |-
+        This is a sync data block (or pass-trough data block) allowing the users to
+        expose post-mortem data to the FESA control system. All incoming samples are
+        copied to the outputs and at the same time stored in a circular buffer.
+
+        The circular buffer can be frozen by using the post_mortem_sink::freeze_buffer
+        method and the data can be obtained by using the post_mortem_sink::get_items
+        method.
+
+        It is important to notice that calling the post_mortem_sink::get_data method
+        unfreezes the buffer meaning the clients must make sure that all the data is
+        read out in a single call to the post_mortem_sink::get_data method.
+
+        This sink should be used for streaming data only because internally
+        it is assumed that items are evenly spaced between each other (important for
+        calculating timestamps).
+
+        Incoming samples are passed trough while the buffer is frozen.

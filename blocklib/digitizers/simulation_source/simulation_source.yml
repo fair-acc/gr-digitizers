@@ -98,3 +98,14 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: Simulates a device similar to a PicoScope oscilloscope. User needs to set the data similar to the GNU Radio's vector source.
+  detail: |-
+        Both rapid block and streaming mode acquisition modes are supported. In both modes the
+        simulation source behaves similarly, that is it keeps outputting the provided data buffer
+        again and again.
+
+        Notes:
+         - Error estimate is hardcoded to 0.005
+         - This source sleeps 1 second in between rapid blocks

@@ -42,3 +42,17 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: Issues interlock if the signal is out of bounds. Bounds are specified by using two input signals, namely min and max.
+  detail: |-
+        All three input signals should have the same sampling rate.
+
+        Note this block is not aware about the timing and it simply compares the input signal by
+        using the following formula:
+        (( y(t)≤ ymin(t )) ∨ (y(t) ≥ ymax(t))) {... issue interlock ...}
+
+        Interlock detection can be disabled by driving the two reference signals higher (or lower
+        in case of min) than the maximum expected value. E.g. if max_max argument is specified to
+        be 10 and the max input signal rises above 10 then the upper bounds checking is disabled,
+        namely the following part: (y(t) ≥ ymax(t)).

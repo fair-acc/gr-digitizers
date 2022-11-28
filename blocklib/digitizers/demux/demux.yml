@@ -35,3 +35,12 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: Extracts a subset of triggered data.
+  detail: |-
+        This block uses trigger tags in order to cut out data windows around them and forwards the cut windows to the output
+        [ pre-trigger window |  post-trigger window ]
+
+        Trigger and AcqInfo tags in each window are as well forwarded to the outputs.
+        Tags are re-created in order to reset the offset. (Just passing them to the output would result in wrong offset values)

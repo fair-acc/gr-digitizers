@@ -23,3 +23,5 @@ implementations:
 -   id: cpu
 
 file_format: 1
+doc:
+  brief: The block recieves a char(8bit) input and extracts the n-th bit the user wants. If this bit is zero, then zero is passed along, otherwise 255.

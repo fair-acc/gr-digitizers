@@ -28,3 +28,10 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: Decimates the samples (keep 1 in N) and fixes tags.
+  detail: |-
+        Tags are attached to the correspondent decimated sample, timebase and acq_info tags
+        are fixed with the decimation factor and user provided delay. If more than one acq_info
+        tags falls into the same output offset then the tags get merged.

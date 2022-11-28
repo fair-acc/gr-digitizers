@@ -36,3 +36,7 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: Scales and offsets the input signal. All values are passed through. Scaling and offset parameters are settable.
+  detail: Accepts two inputs and produces two outputs. the first input gets scaled and offsetted, while the second input is only scaled.

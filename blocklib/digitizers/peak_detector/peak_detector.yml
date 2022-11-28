@@ -46,3 +46,11 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: Detects peaks of the filtered input attaches a tag to the corresponding maximal value of the actual signal in the proximity of the peak found in the filtered signal.
+  detail: |-
+        The block expects the full double-spectrum as the FFT calculates ir on the actual input,
+        just the first half on the spectrum on the filtered input.
+        This is because the filter block that calculates this averaged median filtered signal is time-complex,
+        the information on the upper half of the spectrum is redundant.

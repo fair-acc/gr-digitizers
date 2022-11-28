@@ -39,3 +39,11 @@ implementations:
 -   id: cpu
 
 file_format: 1
+
+doc:
+  brief: This block is a hier block, that decimates, analyzes and returns the frequency response(magnitudes and phases), and the frequencies of the analysis.
+  detail: |-
+        The block expects the bounds decimated, but it still decimates them to the corresponding delta t.
+        The block returns the responses from lower frequency to the upper frequency.
+
+        The block samples the signal every delta_t seconds, and calculates the frequency response for it.
