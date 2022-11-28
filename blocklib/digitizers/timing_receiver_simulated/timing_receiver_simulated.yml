@@ -1,0 +1,26 @@
+module: digitizers
+block: timing_receiver_simulated
+label: Timing Receiver (Mock)
+blocktype: block
+
+parameters:
+-   id: trigger_name
+    label: Trigger Name
+    dtype: string
+    default: "\"PPS\""
+-   id: trigger_offset
+    label: Trigger Offset
+    dtype: rf64
+-   id: tag_time_interval
+    label: Time Interval (ms)
+    dtype: ri64
+
+ports:
+-   domain: message
+    id: out
+    direction: output
+
+implementations:
+-   id: cpu
+
+file_format: 1
