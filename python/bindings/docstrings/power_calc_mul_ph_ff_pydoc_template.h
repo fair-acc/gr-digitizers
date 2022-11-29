@@ -7,7 +7,7 @@
  *
  */
 #include "pydoc_macros.h"
-#define D(...) DOC(gr,pulsed_power_daq, __VA_ARGS__ )
+#define D(...) DOC(gr, pulsed_power_daq, __VA_ARGS__)
 /*
   This file contains placeholders for docstrings for the Python bindings.
   Do not edit! These were automatically extracted during the binding process
@@ -15,7 +15,7 @@
  */
 
 
- 
+
  static const char *__doc_gr_pulsed_power_daq_power_calc_mul_ph_ff = R"doc()doc";
 
 
