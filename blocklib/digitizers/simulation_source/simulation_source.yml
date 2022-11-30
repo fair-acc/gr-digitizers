@@ -7,7 +7,7 @@ includes:
 
 parameters:
 -   id: sample_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: rf64
     default: 10000
 -   id: buffer_size

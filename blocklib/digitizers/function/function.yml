@@ -1,26 +1,27 @@
 module: digitizers
 block: function
-label: function
+label: Reference Function
 blocktype: block
 
 parameters:
 -   id: decimation
     label: Decimation
     dtype: size
+    default: 1
 -   id: timing
-    label: Timing Function
+    label: Timing w.r.t. Beam-In (s)
     dtype: rf32
     container: vector
 -   id: ref
-    label: Reference Function
+    label: Reference
     dtype: rf32
     container: vector
 -   id: min
-    label: Min Function
+    label: Min
     dtype: rf32
     container: vector
 -   id: max
-    label: Max Function
+    label: Max
     dtype: rf32
     container: vector
 

@@ -65,7 +65,7 @@ work_return_t edge_trigger_cpu::work(work_io& wio)
     const auto lo_threshold = pmtf::get_as<float>(*this->param_lo);
     const auto hi_threshold = pmtf::get_as<float>(*this->param_hi);
     const auto send_udp_on_raising_edge =
-        pmtf::get_as<bool>(*this->param_send_up_on_raising_edge);
+        pmtf::get_as<bool>(*this->param_send_udp_on_raising_edge);
     const auto timeout_samples = pmtf::get_as<float>(*this->param_samp_rate) *
                                  pmtf::get_as<float>(*this->param_timeout);
     const auto all_tags = wio.inputs()[0].tags_in_window(0, noutput_items);

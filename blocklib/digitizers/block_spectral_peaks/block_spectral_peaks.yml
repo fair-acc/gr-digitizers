@@ -1,24 +1,28 @@
 module: digitizers
 block: block_spectral_peaks
-label: block_spectral_peaks
+label: Fitting of Spectral Peaks
 blocktype: hier_block
 
 parameters:
 -   id: samp_rate
-    label: Sample rate
+    label: Sample Rate (Hz)
     dtype: rf64
 -   id: fft_window
-    label: FFT Filter Window Size
+    label: FFT Window Size Half
     dtype: size
+    default: 1024
 -   id: n_med
-    label: Median Filter Window Size
+    label: MedianWindow
     dtype: size
+    default: 10
 -   id: n_avg
-    label: Averaging Filter Window Size
+    label: Average Window
     dtype: size
+    default: 10
 -   id: n_prox
-    label: Proximity Window Size
+    label: Proximity Window
     dtype: size
+    default: 10
 
 ports:
 -   domain: stream

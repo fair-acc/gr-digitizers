@@ -1,22 +1,25 @@
 module: digitizers
 block: freq_estimator
-label: freq_estimator
+label: Frequency Estimation
 blocktype: block
 
 parameters:
 -   id: samp_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: rf32
 -   id: signal_window_size
-    label: Signal Window Size
+    label: Signal Avg. Window
     dtype: size
+    default: 10
 -   id: averager_window_size
-    label: Averager Window Size
+    label: Freq. Est. Avg. Window
     dtype: size
+    default: 10
 -   id: decim
     label: Decimation Factor
-    dtype: ri32
+    dtype: ri32 # TODO(PORT) probably should be "size", too?
     settable: true
+    default: 1
 
 ports:
 -   domain: stream

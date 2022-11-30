@@ -1,6 +1,6 @@
 module: digitizers
 block: edge_trigger_receiver
-label: edge_trigger_receiver
+label: Edge Trigger Receiver
 blocktype: sync_block
 
 parameters:

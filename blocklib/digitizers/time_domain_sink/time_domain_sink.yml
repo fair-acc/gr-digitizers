@@ -20,7 +20,7 @@ parameters:
     label: Signal Unit
     dtype: string
 -   id: samp_rate
-    label: Sample rate
+    label: Sample rate (Hz)
     dtype: float
     settable: true
 -   id: acquisition_type

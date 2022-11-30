@@ -1,6 +1,6 @@
 module: digitizers
 block: post_mortem_sink
-label: post_mortem_sink
+label: Post-Mortem Sink
 blocktype: sync_block
 includes:
   - gnuradio/digitizers/sink_common.h
@@ -13,13 +13,14 @@ parameters:
     label: Unit
     dtype: string
 -   id: sample_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: rf32
     gettable: true
 -   id: buffer_size
     label: Buffer Size
     dtype: size
     gettable: true
+    default: 100000
 
 callbacks:
     - id: get_metadata # TODO(PORT) do we really need this getter, can't we just make name and unit gettable?

@@ -1,6 +1,6 @@
 module: digitizers
 block: median_and_average
-label: median_and_average
+label: Median & Average
 blocktype: block
 
 parameters:

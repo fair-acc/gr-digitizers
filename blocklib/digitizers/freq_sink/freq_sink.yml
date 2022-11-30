@@ -1,6 +1,6 @@
 module: digitizers
 block: freq_sink
-label: freq_sink
+label: Frequency Sink
 blocktype: sync_block
 
 includes:
@@ -13,7 +13,7 @@ parameters:
     label: Signal Name
     dtype: string
 -   id: sample_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: rf32
     gettable: true
 -   id: nbins
@@ -24,9 +24,11 @@ parameters:
     label: Number of Measurements
     dtype: size
     gettable: true
+    default: 1
 -   id: nbuffers
     label: Number of Buffers
     dtype: size
+    default: 1
 -   id: mode
     label: Sink Mode
     dtype: enums/freq_sink_mode_t

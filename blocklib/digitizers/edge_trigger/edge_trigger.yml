@@ -1,35 +1,41 @@
 module: digitizers
 block: edge_trigger
-label: edge_trigger
+label: Edge Trigger (with UDP)
 blocktype: block
 
 parameters:
 -   id: samp_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: rf32
 -   id: lo
-    label: Lo
+    label: Low Threshold
     dtype: rf32
+    default: 0.7
 -   id: hi
-    label: Hi
+    label: High Threshold
     dtype: rf32
+    default: 2.0
 -   id: initial_state
-    label: Initial State
+    label: Initial
     dtype: rf32
+    default: 0.0
 -   id: send_udp
     label: Send UDP
     dtype: bool
     settable: true
+    default: "true"
 -   id: host_list
-    label: Host List
+    label: Hosts
     dtype: string
     #container: vector // TODO(PORT) this breaks in the generated edge_trigger.cc
--   id: send_up_on_raising_edge
+-   id: send_udp_on_raising_edge
     label: Send UDP on Raising Edge
     dtype: bool
+    default: "true"
 -   id: timeout
-    label: Timeout
+    label: Timeout (s)
     dtype: rf32
+    default: 0.01
     
 ports:
 -   domain: stream

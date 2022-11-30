@@ -8,7 +8,7 @@ parameters:
     label: Output Vector Size
     dtype: size
 -   id: samp_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: rf64
 -   id: delta_t
     label: Time in Seconds Between Each Acquisition

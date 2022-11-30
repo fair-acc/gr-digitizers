@@ -1,15 +1,17 @@
 module: digitizers
 block: demux
-label: demux
+label: Demux
 blocktype: block
 
 parameters:
 -   id: post_trigger_window
     label: Post-Trigger Window
     dtype: size
+    default: 1000
 -   id: pre_trigger_window
     label: Pre-Trigger Window
     dtype: size
+    default: 0
 
 ports:
 -   domain: stream

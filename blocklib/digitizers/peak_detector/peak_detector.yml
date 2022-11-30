@@ -1,11 +1,11 @@
 module: digitizers
 block: peak_detector
-label: peak_detector
+label: Peak Detector
 blocktype: block
 
 parameters:
 -   id: samp_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: double
 -   id: vec_len
     label: Vector Length

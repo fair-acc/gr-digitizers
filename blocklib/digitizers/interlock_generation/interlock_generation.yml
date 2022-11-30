@@ -1,15 +1,19 @@
 module: digitizers
 block: interlock_generation
-label: interlock_generation
+label: Actual vs. Reference Monitoring
 blocktype: sync_block
 
 parameters:
 -   id: max_min
-    label: Lower bound of min boundary
+    label: Min Threshold
     dtype: rf32
+    grc:
+        default: -1e5
 -   id: max_max
-    label: Upper bound of max boundary
+    label: Max. Threshold
     dtype: rf32
+    grc:
+        default: 1e5
 
 callbacks:
    - id: set_callback

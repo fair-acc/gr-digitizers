@@ -1,19 +1,20 @@
 module: digitizers
 block: block_scaling_offset
-label: block_scaling_offset
+label: Scaling & Offset
 blocktype: sync_block
 
 parameters:
 -   id: scale
-    label: Scale
+    label: Scale Factor
     dtype: rf64
     settable: true
+    default: 1.0
 -   id: offset
-    label: Offset
+    label: Offset (After Scale)
     dtype: rf64
     settable: true
+    default: 0.0
 
-# Example Ports
 ports:
 -   domain: stream
     id: in_sig

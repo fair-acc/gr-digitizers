@@ -11,7 +11,7 @@ parameters:
     label: Window Size
     dtype: size
 -   id: sample_rate
-    label: Sample Rate
+    label: Sample Rate (Hz)
     dtype: rf64
 
 ports:
