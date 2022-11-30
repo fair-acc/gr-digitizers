@@ -14,13 +14,14 @@
 
 namespace gr::digitizers {
 
-void qa_stft_goertzl_dynamic_decimated::t1() {
-    auto               fg        = gr::flowgraph::make("basic_goertzl_dynamic");
+void qa_stft_goertzl_dynamic_decimated::t1()
+{
+    auto fg = gr::flowgraph::make("basic_goertzl_dynamic");
 
-    std::size_t        win_size  = 1024;
-    double             freq      = 512;
-    double             samp_rate = 10000;
-    std::size_t        nbins     = 100;
+    std::size_t win_size = 1024;
+    double freq = 512;
+    double samp_rate = 10000;
+    std::size_t nbins = 100;
     std::vector<float> min_v;
     std::vector<float> max_v;
     std::vector<float> sig_v;
@@ -29,19 +30,21 @@ void qa_stft_goertzl_dynamic_decimated::t1() {
         if (i < win_size) {
             min_v.push_back(0);
             max_v.push_back(2 * freq);
-        } else {
+        }
+        else {
             min_v.push_back(freq);
             max_v.push_back(samp_rate / 2);
         }
     }
-    auto src  = blocks::vector_source_f::make({ sig_v });
-    auto min  = blocks::vector_source_f::make({ min_v });
-    auto max  = blocks::vector_source_f::make({ max_v });
+    auto src = blocks::vector_source_f::make({ sig_v });
+    auto min = blocks::vector_source_f::make({ min_v });
+    auto max = blocks::vector_source_f::make({ max_v });
 
     auto snk0 = blocks::vector_sink_f::make({ nbins });
     auto snk1 = blocks::vector_sink_f::make({ nbins });
     auto snk2 = blocks::vector_sink_f::make({ nbins });
-    auto stft = stft_goertzl_dynamic_decimated::make({ samp_rate, (1.0 * win_size) / samp_rate, win_size, nbins });
+    auto stft = stft_goertzl_dynamic_decimated::make(
+        { samp_rate, (1.0 * win_size) / samp_rate, win_size, nbins });
 
     fg->connect(src, 0, stft, 0);
     fg->connect(min, 0, stft, 1);
@@ -76,11 +79,11 @@ void qa_stft_goertzl_dynamic_decimated::t1() {
 
 } /* namespace gr::digitizers */
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_stft_goertzl_dynamic_decimated::suite());
 
     bool was_successful = runner.run("", false);

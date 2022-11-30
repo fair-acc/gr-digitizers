@@ -13,7 +13,7 @@
 
 namespace gr::digitizers {
 
-char const *const edge_detect_tag_name = "edge_detect";
+char const* const edge_detect_tag_name = "edge_detect";
 /*!
  * \brief Convenience structure for encoding/decoding the edge detect datagram.
  *
@@ -23,15 +23,15 @@ char const *const edge_detect_tag_name = "edge_detect";
  *
  */
 struct DIGITIZERS_API edge_detect_t {
-    int64_t  timing_event_timestamp;        // UTC nanoseconds
-    int64_t  retrigger_event_timestamp;     // UTC nanoseconds
-    int64_t  delay_since_last_timing_event; // nanoseconds
-    int64_t  samples_since_last_timing_event;
-    float    value; // trigger value (normally in Volts)
+    int64_t timing_event_timestamp;        // UTC nanoseconds
+    int64_t retrigger_event_timestamp;     // UTC nanoseconds
+    int64_t delay_since_last_timing_event; // nanoseconds
+    int64_t samples_since_last_timing_event;
+    float value; // trigger value (normally in Volts)
 
     uint64_t offset; // tag offset
 
-    bool     is_raising_edge;
+    bool is_raising_edge;
 };
 
 /*!
@@ -55,20 +55,25 @@ struct DIGITIZERS_API edge_detect_t {
  * \param edge_detect struct holding all the info for encoding
  * \return string holding an xml node.
  */
-inline std::string
-encode_edge_detect(const edge_detect_t &edge_detect) {
+inline std::string encode_edge_detect(const edge_detect_t& edge_detect)
+{
     boost::property_tree::ptree element;
-    element.put<std::string>("edgeDetect.<xmlattr>.edge", edge_detect.is_raising_edge ? "rising" : "falling");
+    element.put<std::string>("edgeDetect.<xmlattr>.edge",
+                             edge_detect.is_raising_edge ? "rising" : "falling");
     element.put<float>("edgeDetect.<xmlattr>.val", edge_detect.value);
-    element.put<int64_t>("edgeDetect.<xmlattr>.timingEventTimeStamp", edge_detect.timing_event_timestamp);
-    element.put<int64_t>("edgeDetect.<xmlattr>.retriggerEventTimeStamp", edge_detect.retrigger_event_timestamp);
-    element.put<int64_t>("edgeDetect.<xmlattr>.delaySinceLastTimingEvent", edge_detect.delay_since_last_timing_event);
-    element.put<int64_t>("edgeDetect.<xmlattr>.samplesSinceLastTimingEvent", edge_detect.samples_since_last_timing_event);
+    element.put<int64_t>("edgeDetect.<xmlattr>.timingEventTimeStamp",
+                         edge_detect.timing_event_timestamp);
+    element.put<int64_t>("edgeDetect.<xmlattr>.retriggerEventTimeStamp",
+                         edge_detect.retrigger_event_timestamp);
+    element.put<int64_t>("edgeDetect.<xmlattr>.delaySinceLastTimingEvent",
+                         edge_detect.delay_since_last_timing_event);
+    element.put<int64_t>("edgeDetect.<xmlattr>.samplesSinceLastTimingEvent",
+                         edge_detect.samples_since_last_timing_event);
 
-    std::stringstream                                      iostr;
+    std::stringstream iostr;
     boost::property_tree::xml_writer_settings<std::string> settings;
-    boost::property_tree::xml_parser::write_xml_element(iostr,
-            boost::property_tree::ptree::key_type(), element, -1, settings);
+    boost::property_tree::xml_parser::write_xml_element(
+        iostr, boost::property_tree::ptree::key_type(), element, -1, settings);
     return iostr.str();
 };
 
@@ -80,10 +85,10 @@ encode_edge_detect(const edge_detect_t &edge_detect) {
  * \param edge_detect a reference to the gr::digitizers::edge_detect_t structure
  * \return true if successfully decoded else it returns false
  */
-inline bool
-decode_edge_detect(const std::string &payload, edge_detect_t &edge_detect) {
+inline bool decode_edge_detect(const std::string& payload, edge_detect_t& edge_detect)
+{
     try {
-        std::stringstream           iostr(payload);
+        std::stringstream iostr(payload);
         boost::property_tree::ptree tree;
 
         // Parse the XML into the property tree.
@@ -92,16 +97,22 @@ decode_edge_detect(const std::string &payload, edge_detect_t &edge_detect) {
         auto edge = tree.get<std::string>("edgeDetect.<xmlattr>.edge");
         if (edge == "rising") {
             edge_detect.is_raising_edge = true;
-        } else if (edge == "falling") {
+        }
+        else if (edge == "falling") {
             edge_detect.is_raising_edge = false;
-        } else {
+        }
+        else {
             return false;
         }
-        edge_detect.value                           = tree.get<float>("edgeDetect.<xmlattr>.val");
-        edge_detect.timing_event_timestamp          = tree.get<int64_t>("edgeDetect.<xmlattr>.timingEventTimeStamp");
-        edge_detect.retrigger_event_timestamp       = tree.get<int64_t>("edgeDetect.<xmlattr>.retriggerEventTimeStamp");
-        edge_detect.delay_since_last_timing_event   = tree.get<int64_t>("edgeDetect.<xmlattr>.delaySinceLastTimingEvent");
-        edge_detect.samples_since_last_timing_event = tree.get<int64_t>("edgeDetect.<xmlattr>.samplesSinceLastTimingEvent");
+        edge_detect.value = tree.get<float>("edgeDetect.<xmlattr>.val");
+        edge_detect.timing_event_timestamp =
+            tree.get<int64_t>("edgeDetect.<xmlattr>.timingEventTimeStamp");
+        edge_detect.retrigger_event_timestamp =
+            tree.get<int64_t>("edgeDetect.<xmlattr>.retriggerEventTimeStamp");
+        edge_detect.delay_since_last_timing_event =
+            tree.get<int64_t>("edgeDetect.<xmlattr>.delaySinceLastTimingEvent");
+        edge_detect.samples_since_last_timing_event =
+            tree.get<int64_t>("edgeDetect.<xmlattr>.samplesSinceLastTimingEvent");
     } catch (...) {
         return false;
     }
@@ -109,38 +120,43 @@ decode_edge_detect(const std::string &payload, edge_detect_t &edge_detect) {
     return true;
 };
 
-inline tag_t
-make_edge_detect_tag(edge_detect_t &edge_detect) {
-    auto value = std::vector<pmtf::pmt>{ edge_detect.is_raising_edge,
+inline tag_t make_edge_detect_tag(edge_detect_t& edge_detect)
+{
+    auto value = std::vector<pmtf::pmt>{
+        edge_detect.is_raising_edge,
         static_cast<uint64_t>(edge_detect.timing_event_timestamp),
         static_cast<uint64_t>(edge_detect.retrigger_event_timestamp),
         static_cast<uint64_t>(edge_detect.delay_since_last_timing_event),
-        static_cast<uint64_t>(edge_detect.samples_since_last_timing_event) };
+        static_cast<uint64_t>(edge_detect.samples_since_last_timing_event)
+    };
     return { edge_detect.offset, { { edge_detect_tag_name, std::move(value) } } };
 }
 
-inline edge_detect_t
-decode_edge_detect_tag(const tag_t &tag) {
+inline edge_detect_t decode_edge_detect_tag(const tag_t& tag)
+{
     const auto tag_value = tag.get(edge_detect_tag_name);
 
     if (!tag_value) {
-        throw std::runtime_error(fmt::format("Exception in {}:{}: tag does not contain '{}'", __FILE__, __LINE__, edge_detect_tag_name));
+        throw std::runtime_error(
+            fmt::format("Exception in {}:{}: tag does not contain '{}'",
+                        __FILE__,
+                        __LINE__,
+                        edge_detect_tag_name));
     }
 
-    const auto tag_vec   = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
+    const auto tag_vec = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
 
     if (tag_vec.empty()) {
-        throw std::runtime_error(fmt::format("Exception in {}:{}: invalid edge detect tag format", __FILE__, __LINE__));
+        throw std::runtime_error(fmt::format(
+            "Exception in {}:{}: invalid edge detect tag format", __FILE__, __LINE__));
     }
 
-    return {
-        .timing_event_timestamp          = pmtf::get_as<int64_t>(tag_vec[1]),
-        .retrigger_event_timestamp       = pmtf::get_as<int64_t>(tag_vec[2]),
-        .delay_since_last_timing_event   = pmtf::get_as<int64_t>(tag_vec[3]),
-        .samples_since_last_timing_event = pmtf::get_as<int64_t>(tag_vec[4]),
-        .offset                          = tag.offset(),
-        .is_raising_edge                 = pmtf::get_as<bool>(tag_vec[0])
-    };
+    return { .timing_event_timestamp = pmtf::get_as<int64_t>(tag_vec[1]),
+             .retrigger_event_timestamp = pmtf::get_as<int64_t>(tag_vec[2]),
+             .delay_since_last_timing_event = pmtf::get_as<int64_t>(tag_vec[3]),
+             .samples_since_last_timing_event = pmtf::get_as<int64_t>(tag_vec[4]),
+             .offset = tag.offset(),
+             .is_raising_edge = pmtf::get_as<bool>(tag_vec[0]) };
 }
 
 } // namespace gr::digitizers

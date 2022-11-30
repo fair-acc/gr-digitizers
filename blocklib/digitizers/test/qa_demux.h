@@ -1,12 +1,13 @@
 #ifndef _QA_DEMUX_H_
 #define _QA_DEMUX_H_
 
-#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
+#include <cppunit/extensions/HelperMacros.h>
 
 namespace gr::digitizers {
 
-class qa_demux : public CppUnit::TestCase {
+class qa_demux : public CppUnit::TestCase
+{
 public:
     CPPUNIT_TEST_SUITE(qa_demux);
     CPPUNIT_TEST(test_no_trigger);
@@ -27,7 +28,8 @@ private:
     void test_triggers_lost1();
 
     // TODO: No support for overlapping trigger-tags
-    //       Though we should test if a warning for skipped triggers is displayed in that case
+    //       Though we should test if a warning for skipped triggers is displayed in that
+    //       case
     //  void test_triggers_lost2();
     void test_hangup();
 };

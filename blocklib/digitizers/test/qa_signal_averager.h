@@ -1,12 +1,13 @@
 #ifndef _QA_SIGNAL_AVERAGER_H_
 #define _QA_SIGNAL_AVERAGER_H_
 
-#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
+#include <cppunit/extensions/HelperMacros.h>
 
 namespace gr::digitizers {
 
-class qa_signal_averager : public CppUnit::TestCase {
+class qa_signal_averager : public CppUnit::TestCase
+{
 public:
     CPPUNIT_TEST_SUITE(qa_signal_averager);
     CPPUNIT_TEST(single_input_test);

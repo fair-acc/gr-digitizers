@@ -6,31 +6,40 @@
 
 namespace gr::digitizers {
 
-stft_goertzl_dynamic_cpu::stft_goertzl_dynamic_cpu(const block_args &args)
-    : INHERITED_CONSTRUCTORS
-    , d_window_function(kernel::fft::window::build(kernel::fft::window::window_t::HANN, args.winsize, 1.0)) {
+stft_goertzl_dynamic_cpu::stft_goertzl_dynamic_cpu(const block_args& args)
+    : INHERITED_CONSTRUCTORS,
+      d_window_function(kernel::fft::window::build(
+          kernel::fft::window::window_t::HANN, args.winsize, 1.0))
+{
     set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
-void stft_goertzl_dynamic_cpu::goertzel(const float *data, const long data_len, float Ts, float frequency, int filter_size, float &real, float &imag) {
+void stft_goertzl_dynamic_cpu::goertzel(const float* data,
+                                        const long data_len,
+                                        float Ts,
+                                        float frequency,
+                                        int filter_size,
+                                        float& real,
+                                        float& imag)
+{
     // https://github.com/NaleRaphael/goertzel-ffrequency/blob/master/src/dsp.c
-    float    k; // Related to frequency bins
-    float    omega;
-    float    sine, cosine, coeff, sf;
-    float    q0, q1, q2;
+    float k; // Related to frequency bins
+    float omega;
+    float sine, cosine, coeff, sf;
+    float q0, q1, q2;
     long int i;
 
-    k             = (0.5f + ((float) (filter_size * frequency) * Ts));
+    k = (0.5f + ((float)(filter_size * frequency) * Ts));
 
-    omega         = 2.0f * M_PI * k / (float) filter_size;
-    sine          = sin(omega);
-    cosine        = cos(omega);
-    coeff         = 2.0f * cosine;
-    sf            = (float) data_len / 2.0f; // scale factor: for normalization
+    omega = 2.0f * M_PI * k / (float)filter_size;
+    sine = sin(omega);
+    cosine = cos(omega);
+    coeff = 2.0f * cosine;
+    sf = (float)data_len / 2.0f; // scale factor: for normalization
 
-    q0            = 0.0f;
-    q1            = 0.0f;
-    q2            = 0.0f;
+    q0 = 0.0f;
+    q1 = 0.0f;
+    q2 = 0.0f;
 
     long int dlen = data_len - data_len % 3;
     for (i = 0; i < dlen; i += 3) {
@@ -49,10 +58,17 @@ void stft_goertzl_dynamic_cpu::goertzel(const float *data, const long data_len, 
     imag = (q2 * sine) / sf;
 }
 
-void stft_goertzl_dynamic_cpu::dft(const float *data, const long data_len, float Ts, float frequency, float &real, float &imag) {
-    // legacy implementation - mathematically most correct, but numerically expensive due to sine and cosine computations
-    real         = 0.0;
-    imag         = 0.0;
+void stft_goertzl_dynamic_cpu::dft(const float* data,
+                                   const long data_len,
+                                   float Ts,
+                                   float frequency,
+                                   float& real,
+                                   float& imag)
+{
+    // legacy implementation - mathematically most correct, but numerically expensive due
+    // to sine and cosine computations
+    real = 0.0;
+    imag = 0.0;
     float omega0 = 2.0 * M_PI * frequency * Ts;
     for (int i = 0; i < data_len; i++) {
         float in = data[i] * d_window_function[i];
@@ -63,30 +79,32 @@ void stft_goertzl_dynamic_cpu::dft(const float *data, const long data_len, float
     imag /= 0.5 * data_len;
 }
 
-work_return_t stft_goertzl_dynamic_cpu::work(work_io &wio) {
-    const auto in          = wio.inputs()[0].items<float>();
-    const auto f_min       = wio.inputs()[1].items<float>();
-    const auto f_max       = wio.inputs()[2].items<float>();
+work_return_t stft_goertzl_dynamic_cpu::work(work_io& wio)
+{
+    const auto in = wio.inputs()[0].items<float>();
+    const auto f_min = wio.inputs()[1].items<float>();
+    const auto f_max = wio.inputs()[2].items<float>();
 
-    auto       mag         = wio.outputs()[0].items<float>();
-    auto       phs         = wio.outputs()[1].items<float>();
-    auto       fqs         = wio.outputs()[2].items<float>();
+    auto mag = wio.outputs()[0].items<float>();
+    auto phs = wio.outputs()[1].items<float>();
+    auto fqs = wio.outputs()[2].items<float>();
 
     const auto samp_length = 1. / pmtf::get_as<std::size_t>(*this->param_samp_rate);
-    const auto winsize     = pmtf::get_as<std::size_t>(*this->param_winsize);
-    const auto nbins       = pmtf::get_as<std::size_t>(*this->param_nbins);
+    const auto winsize = pmtf::get_as<std::size_t>(*this->param_winsize);
+    const auto nbins = pmtf::get_as<std::size_t>(*this->param_nbins);
 
-    double     f_range     = f_max[0] - f_min[0];
+    double f_range = f_max[0] - f_min[0];
     // printf("noutput_items = %i, d_winsize =%i\n", noutput_items, d_winsize);
 
     // do frequency analysis for each bin
     for (std::size_t i = 0; i < nbins; i++) {
-        double bin_f_range_factor = static_cast<double>(i) / static_cast<double>(nbins - 1);
-        double freq               = f_min[0] + (bin_f_range_factor * f_range);
+        double bin_f_range_factor =
+            static_cast<double>(i) / static_cast<double>(nbins - 1);
+        double freq = f_min[0] + (bin_f_range_factor * f_range);
 
         // Goertzel vs DFT
         if (1) {
-            float  w  = 2.0 * M_PI * freq * samp_length;
+            float w = 2.0 * M_PI * freq * samp_length;
             double wr = 2.0 * std::cos(w);
             double wi = std::sin(w);
             double d1 = 0.0; // resets for each iteration
@@ -96,23 +114,27 @@ work_return_t stft_goertzl_dynamic_cpu::work(work_io &wio) {
             for (std::size_t j = 0; j < winsize; j++) {
                 // double y = in[j] + wr * d1 - d2;
                 double y = in[j] * d_window_function[j] + wr * d1 - d2;
-                d2       = d1;
-                d1       = y;
+                d2 = d1;
+                d1 = y;
             }
             double re = (0.5 * wr * d1 - d2) / winsize;
             double im = (wi * d1) / winsize;
 
             // transform from carthesian to polar components
-            mag[i] = std::sqrt((re * re) + (im * im)); // this usually should be hypotf(re,im) /over-/under-flow  protected/performance
-            mag[i] = std::hypotf(re, im);              // faster and over-/under-flow  protected
+            mag[i] = std::sqrt((re * re) +
+                               (im * im)); // this usually should be hypotf(re,im)
+                                           // /over-/under-flow  protected/performance
+            mag[i] = std::hypotf(re, im);  // faster and over-/under-flow  protected
             phs[i] = gr::kernel::math::fast_atan2f(re, im);
             phs[i] = 0.0;
-        } else {
+        }
+        else {
             float re;
             float im;
             if (1) {
                 goertzel(in, winsize, samp_length, freq, winsize, re, im);
-            } else {
+            }
+            else {
                 dft(in, winsize, samp_length, freq, re, im);
             }
             mag[i] = std::hypotf(re, im); // faster and over-/under-flow  protected
@@ -125,7 +147,7 @@ work_return_t stft_goertzl_dynamic_cpu::work(work_io &wio) {
 
     auto tags = wio.inputs()[0].tags_in_window(0, 1);
 
-    for (auto &tag : tags) {
+    for (auto& tag : tags) {
         tag.set_offset(wio.outputs()[0].nitems_written());
         wio.outputs()[0].add_tag(tag);
     }

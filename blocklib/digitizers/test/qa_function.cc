@@ -4,15 +4,15 @@
  * You may use, distribute and modify this code under the terms of the GPL v.3  license.
  */
 
-#include "qa_function.h"
 #include "function.h"
 #include "qa_common.h"
+#include "qa_function.h"
 
-#include <digitizers/tags.h>
 #include <gnuradio/attributes.h>
 #include <gnuradio/blocks/vector_sink.h>
 #include <gnuradio/blocks/vector_source.h>
 #include <gnuradio/flowgraph.h>
+#include <digitizers/tags.h>
 
 #include <cppunit/CompilerOutputter.h>
 #include <cppunit/TestAssert.h>
@@ -22,18 +22,22 @@
 namespace gr::digitizers {
 
 struct function_test_flowgraph_t {
-    gr::flowgraph::sptr               top;
+    gr::flowgraph::sptr top;
     gr::blocks::vector_source_f::sptr timing;
-    function::sptr                    func;
-    gr::blocks::vector_sink_f::sptr   ref_sink;
-    gr::blocks::vector_sink_f::sptr   min_sink;
-    gr::blocks::vector_sink_f::sptr   max_sink;
+    function::sptr func;
+    gr::blocks::vector_sink_f::sptr ref_sink;
+    gr::blocks::vector_sink_f::sptr min_sink;
+    gr::blocks::vector_sink_f::sptr max_sink;
 
-    function_test_flowgraph_t(std::size_t nsamples, function::sptr function, const std::vector<tag_t> &tags = std::vector<tag_t>()) {
-        func     = function;
+    function_test_flowgraph_t(std::size_t nsamples,
+                              function::sptr function,
+                              const std::vector<tag_t>& tags = std::vector<tag_t>())
+    {
+        func = function;
 
-        top      = gr::flowgraph::make("test");
-        timing   = gr::blocks::vector_source_f::make({ .data = std::vector<float>(nsamples), .tags = tags });
+        top = gr::flowgraph::make("test");
+        timing = gr::blocks::vector_source_f::make(
+            { .data = std::vector<float>(nsamples), .tags = tags });
         ref_sink = gr::blocks::vector_sink_f::make({});
         min_sink = gr::blocks::vector_sink_f::make({});
         max_sink = gr::blocks::vector_sink_f::make({});
@@ -45,12 +49,11 @@ struct function_test_flowgraph_t {
         top->connect(func, 2, max_sink, 0);
     }
 
-    void run() {
-        top->run();
-    }
+    void run() { top->run(); }
 
 #ifdef PORT_DISABLED // TODO(PORT) sink->reset() not functional
-    void reset() {
+    void reset()
+    {
         ref_sink->reset();
         min_sink->reset();
         max_sink->reset();
@@ -59,15 +62,16 @@ struct function_test_flowgraph_t {
 #endif
 };
 
-void qa_function::test_no_timing() {
-    std::vector<float>        time     = { 0.0, 1.0 };
-    std::vector<float>        ref      = { 1.5, 2.5 };
-    std::vector<float>        min      = { 1.0, 2.0 };
-    std::vector<float>        max      = { 2.0, 3.0 };
+void qa_function::test_no_timing()
+{
+    std::vector<float> time = { 0.0, 1.0 };
+    std::vector<float> ref = { 1.5, 2.5 };
+    std::vector<float> min = { 1.0, 2.0 };
+    std::vector<float> max = { 2.0, 3.0 };
 
-    auto                      func     = function::make({ 1, time, ref, min, max });
+    auto func = function::make({ 1, time, ref, min, max });
 
-    size_t                    nsamples = 10000;
+    size_t nsamples = 10000;
     function_test_flowgraph_t fg(nsamples, func);
     fg.run();
 
@@ -101,19 +105,21 @@ void qa_function::test_no_timing() {
 #endif
 }
 
-void qa_function::test_function() {
-    std::vector<float> time     = { 0.5, 0.9 };
-    std::vector<float> ref      = { 1.5, 2.5 };
-    std::vector<float> min      = { 1.0, 2.0 };
-    std::vector<float> max      = { 2.0, 3.0 };
+void qa_function::test_function()
+{
+    std::vector<float> time = { 0.5, 0.9 };
+    std::vector<float> ref = { 1.5, 2.5 };
+    std::vector<float> min = { 1.0, 2.0 };
+    std::vector<float> max = { 2.0, 3.0 };
 
-    auto               func     = function::make({ 1, time, ref, min, max });
+    auto func = function::make({ 1, time, ref, min, max });
 
-    std::size_t        nsamples = 10000;
-    acq_info_t         info{};
+    std::size_t nsamples = 10000;
+    acq_info_t info{};
     info.timebase = 1.0 / nsamples;
 
-    function_test_flowgraph_t fg(nsamples, func, std::vector<gr::tag_t>{ make_acq_info_tag(info, 0) });
+    function_test_flowgraph_t fg(
+        nsamples, func, std::vector<gr::tag_t>{ make_acq_info_tag(info, 0) });
     fg.run();
 
     auto dref = fg.ref_sink->data();
@@ -131,11 +137,11 @@ void qa_function::test_function() {
 
 } // namespace gr::digitizers
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_function::suite());
 
     bool was_successful = runner.run("", false);

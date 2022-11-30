@@ -1,8 +1,8 @@
 #ifndef INCLUDED_DIGITIZERS_RANGE_H
 #define INCLUDED_DIGITIZERS_RANGE_H
 
-#include <boost/math/special_functions/round.hpp>
 #include <gnuradio/digitizers/api.h>
+#include <boost/math/special_functions/round.hpp>
 #include <iostream>
 #include <limits>
 #include <vector>
@@ -18,21 +18,25 @@ static const double default_step = 0.0000001;
  *
  * Based on: https://github.com/EttusResearch/uhd/blob/maint/host/lib/types/ranges.cpp
  */
-class DIGITIZERS_API range_t {
+class DIGITIZERS_API range_t
+{
 public:
-    range_t(double value = 0.0)
-        : d_start(value), d_stop(value), d_step(0.0) {}
+    range_t(double value = 0.0) : d_start(value), d_stop(value), d_step(0.0) {}
 
     range_t(double start, double stop, double step = default_step)
-        : d_start(start), d_stop(stop), d_step(step) {
+        : d_start(start), d_stop(stop), d_step(step)
+    {
         if (stop < start) {
             std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__ << ":  stop should be larger or equal to start, start: " << start << ", stop: " << stop;
+            message << "Exception in " << __FILE__ << ":" << __LINE__
+                    << ":  stop should be larger or equal to start, start: " << start
+                    << ", stop: " << stop;
             throw std::invalid_argument(message.str());
         }
         if (step <= 0.0) {
             std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__ << ":  invalid step: " << step;
+            message << "Exception in " << __FILE__ << ":" << __LINE__
+                    << ":  invalid step: " << step;
             throw std::invalid_argument(message.str());
         }
     }
@@ -49,29 +53,36 @@ private:
     double d_step;
 };
 
-class DIGITIZERS_API meta_range_t : public std::vector<range_t> {
+class DIGITIZERS_API meta_range_t : public std::vector<range_t>
+{
 public:
     meta_range_t() {}
 
-    template<typename InputIterator>
+    template <typename InputIterator>
     meta_range_t(InputIterator first, InputIterator last)
-        : std::vector<range_t>(first, last) { /* NOP */
+        : std::vector<range_t>(first, last)
+    { /* NOP */
     }
 
     meta_range_t(double start, double stop, double step = default_step)
-        : std::vector<range_t>(1, range_t(start, stop, step)) {}
+        : std::vector<range_t>(1, range_t(start, stop, step))
+    {
+    }
 
-    double start() const {
+    double start() const
+    {
         check_meta_range_monotonic();
         return back().start();
     }
 
-    double stop() const {
+    double stop() const
+    {
         check_meta_range_monotonic();
         return front().stop();
     }
 
-    double clip(double value) const {
+    double clip(double value) const
+    {
         check_meta_range_monotonic();
 
         // less or equal to min
@@ -84,25 +95,27 @@ public:
             return back().stop();
         }
 
-        // find appropriate range, always clip up! Note reverse iterator is used in order to
-        // simplify the implementation...
-        auto it = std::find_if(begin(), end(), [value](const range_t &r) {
-            return value <= r.start();
-        });
+        // find appropriate range, always clip up! Note reverse iterator is used in order
+        // to simplify the implementation...
+        auto it = std::find_if(
+            begin(), end(), [value](const range_t& r) { return value <= r.start(); });
 
         // this should not happen.... ever.
         if (it == end()) {
             std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": failed to find appropriate range for the value: " << value;
+            message << "Exception in " << __FILE__ << ":" << __LINE__
+                    << ": failed to find appropriate range for the value: " << value;
             throw std::runtime_error(message.str());
         }
 
         // lest find setting
         if (it->start() == it->stop()) {
             return it->start();
-        } else if (it->step() != 0.0) {
+        }
+        else if (it->step() != 0.0) {
             return round((value - it->start()) / it->step()) * it->step() + it->start();
-        } else {
+        }
+        else {
             // lower-bound check done as part of find_if
             assert(value >= it->start());
             return value >= it->stop() ? it->stop() : value;
@@ -110,16 +123,19 @@ public:
     };
 
 private:
-    void check_meta_range_monotonic() const {
+    void check_meta_range_monotonic() const
+    {
         if (empty()) {
             std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__ << ": meta-range cannot be empty";
+            message << "Exception in " << __FILE__ << ":" << __LINE__
+                    << ": meta-range cannot be empty";
             throw std::runtime_error(message.str());
         }
         for (size_type i = 1; i < size(); i++) {
             if (at(i).start() < at(i - 1).stop()) {
                 std::ostringstream message;
-                message << "Exception in " << __FILE__ << ":" << __LINE__ << ": meta-range is not monotonic";
+                message << "Exception in " << __FILE__ << ":" << __LINE__
+                        << ": meta-range is not monotonic";
                 throw std::runtime_error(message.str());
             }
         }

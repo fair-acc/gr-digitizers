@@ -4,15 +4,27 @@
 
 namespace gr::digitizers {
 
-class stft_goertzl_dynamic_cpu : public stft_goertzl_dynamic {
+class stft_goertzl_dynamic_cpu : public stft_goertzl_dynamic
+{
 public:
-    explicit stft_goertzl_dynamic_cpu(const block_args &args);
+    explicit stft_goertzl_dynamic_cpu(const block_args& args);
 
-    work_return_t work(work_io &wio) override;
+    work_return_t work(work_io& wio) override;
 
 private:
-    void               goertzel(const float *data, const long data_len, float Ts, float frequency, int filter_size, float &real, float &imag);
-    void               dft(const float *data, const long data_len, float Ts, float frequency, float &real, float &imag);
+    void goertzel(const float* data,
+                  const long data_len,
+                  float Ts,
+                  float frequency,
+                  int filter_size,
+                  float& real,
+                  float& imag);
+    void dft(const float* data,
+             const long data_len,
+             float Ts,
+             float frequency,
+             float& real,
+             float& imag);
 
     std::vector<float> d_window_function;
 };

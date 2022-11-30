@@ -14,12 +14,13 @@
 
 namespace gr::digitizers {
 
-void qa_block_scaling_offset::scale_and_offset() {
-    auto               fg     = gr::flowgraph::make("scale_and_offset");
+void qa_block_scaling_offset::scale_and_offset()
+{
+    auto fg = gr::flowgraph::make("scale_and_offset");
 
-    double             scale  = 1.5;
-    double             offset = 2;
-    int                n      = 30;
+    double scale = 1.5;
+    double offset = 2;
+    int n = 30;
     std::vector<float> data;
     for (int i = 0; i < n; i++) {
         data.push_back(i);
@@ -29,7 +30,7 @@ void qa_block_scaling_offset::scale_and_offset() {
     auto src1 = blocks::vector_source_f::make({ data });
     auto snk0 = blocks::vector_sink_f::make({ 1 });
     auto snk1 = blocks::vector_sink_f::make({ 1 });
-    auto bso  = block_scaling_offset::make({ scale, offset });
+    auto bso = block_scaling_offset::make({ scale, offset });
 
     fg->connect(src0, 0, bso, 0);
     fg->connect(bso, 0, snk0, 0);
@@ -52,11 +53,11 @@ void qa_block_scaling_offset::scale_and_offset() {
 }
 } /* namespace gr::digitizers */
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_block_scaling_offset::suite());
 
     bool was_successful = runner.run("", false);

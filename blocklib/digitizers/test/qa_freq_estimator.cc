@@ -13,18 +13,22 @@
 
 namespace gr::digitizers {
 
-void qa_freq_estimator::basic_frequency_estimation() {
-    int  sig_avg_window  = 4;
-    int  freq_avg_window = 10;
-    auto fg              = gr::flowgraph::make("basic_connection");
+void qa_freq_estimator::basic_frequency_estimation()
+{
+    int sig_avg_window = 4;
+    int freq_avg_window = 10;
+    auto fg = gr::flowgraph::make("basic_connection");
     // Put test here
-    std::vector<float> cycle({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -8, -7, -6, -5, -4, -3, -2, -1 });
+    std::vector<float> cycle({ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  8,  7,
+                               6,  5,  4,  3,  2,  1,  0,  -1, -2, -3, -4, -5,
+                               -6, -7, -8, -9, -8, -7, -6, -5, -4, -3, -2, -1 });
     std::vector<float> sig;
     for (int i = 0; i < 100; i++) {
         sig.insert(sig.end(), cycle.begin(), cycle.end());
     }
     auto sine = gr::blocks::vector_source_f::make({ sig });
-    auto freq = digitizers::freq_estimator::make({ 36000, sig_avg_window, freq_avg_window, 1 });
+    auto freq =
+        digitizers::freq_estimator::make({ 36000, sig_avg_window, freq_avg_window, 1 });
     auto sink = blocks::vector_sink_f::make({ 1 });
 
     fg->connect(sine, 0, freq, 0);
@@ -39,11 +43,11 @@ void qa_freq_estimator::basic_frequency_estimation() {
 }
 } /* namespace gr::digitizers */
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_freq_estimator::suite());
 
     bool was_successful = runner.run("", false);

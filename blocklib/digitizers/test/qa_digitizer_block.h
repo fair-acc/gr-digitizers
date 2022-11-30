@@ -1,15 +1,16 @@
 #ifndef LIB_QA_DIGITIZER_BLOCK_H_
 #define LIB_QA_DIGITIZER_BLOCK_H_
 
-#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
+#include <cppunit/extensions/HelperMacros.h>
 #include <cstdint>
 #include <vector>
 
 namespace gr::digitizers {
 
-class qa_digitizer_block : public CppUnit::TestCase {
-    std::vector<float>   d_cha_vec, d_chb_vec;
+class qa_digitizer_block : public CppUnit::TestCase
+{
+    std::vector<float> d_cha_vec, d_chb_vec;
     std::vector<uint8_t> d_port_vec;
 
 public:

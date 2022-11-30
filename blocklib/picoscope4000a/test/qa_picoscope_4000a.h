@@ -1,12 +1,13 @@
 #pragma once
 
 #include "picoscope4000a.h"
-#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
+#include <cppunit/extensions/HelperMacros.h>
 
 namespace gr::picoscope4000a {
 
-class qa_picoscope_4000a : public CppUnit::TestCase {
+class qa_picoscope_4000a : public CppUnit::TestCase
+{
 public:
     CPPUNIT_TEST_SUITE(qa_picoscope_4000a);
     CPPUNIT_TEST(open_close);

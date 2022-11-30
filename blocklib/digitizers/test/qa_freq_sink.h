@@ -1,12 +1,13 @@
 #ifndef _QA_FREQ_SINK_F_H_
 #define _QA_FREQ_SINK_F_H_
 
-#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
+#include <cppunit/extensions/HelperMacros.h>
 
 namespace gr::digitizers {
 
-class qa_freq_sink : public CppUnit::TestCase {
+class qa_freq_sink : public CppUnit::TestCase
+{
 public:
     CPPUNIT_TEST_SUITE(qa_freq_sink);
     CPPUNIT_TEST(test_metadata);

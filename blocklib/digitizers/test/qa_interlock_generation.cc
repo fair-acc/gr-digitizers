@@ -13,14 +13,13 @@
 
 namespace gr::digitizers {
 
-int  count_interlock_calls = 0;
+int count_interlock_calls = 0;
 
-void interlock(int64_t, void *) {
-    count_interlock_calls++;
-}
+void interlock(int64_t, void*) { count_interlock_calls++; }
 
-void qa_interlock_generation::interlock_generation_test() {
-    auto               fg = gr::flowgraph::make("interlock_generation_test");
+void qa_interlock_generation::interlock_generation_test()
+{
+    auto fg = gr::flowgraph::make("interlock_generation_test");
 
     std::vector<float> sig_v;
     std::vector<float> min_v;
@@ -38,9 +37,9 @@ void qa_interlock_generation::interlock_generation_test() {
         min_v.push_back(i - 15);
         max_v.push_back(i - 5);
     }
-    auto sig  = blocks::vector_source_f::make({ sig_v });
-    auto min  = blocks::vector_source_f::make({ min_v });
-    auto max  = blocks::vector_source_f::make({ max_v });
+    auto sig = blocks::vector_source_f::make({ sig_v });
+    auto min = blocks::vector_source_f::make({ min_v });
+    auto max = blocks::vector_source_f::make({ max_v });
 
     auto i_lk = interlock_generation::make({ -100, 100 });
 
@@ -69,11 +68,11 @@ void qa_interlock_generation::interlock_generation_test() {
 
 } /* namespace gr::digitizers */
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_interlock_generation::suite());
 
     bool was_successful = runner.run("", false);

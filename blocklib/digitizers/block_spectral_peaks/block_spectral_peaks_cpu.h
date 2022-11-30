@@ -6,13 +6,14 @@
 
 namespace gr::digitizers {
 
-class block_spectral_peaks_cpu : public block_spectral_peaks {
+class block_spectral_peaks_cpu : public block_spectral_peaks
+{
 public:
-    explicit block_spectral_peaks_cpu(const block_args &args);
+    explicit block_spectral_peaks_cpu(const block_args& args);
 
 private:
     median_and_average::sptr d_med_avg;
-    peak_detector::sptr      d_peaks;
+    peak_detector::sptr d_peaks;
 };
 
 } // namespace gr::digitizers

@@ -1,12 +1,13 @@
 #ifndef _QA_POST_MORTEM_SINK_H_
 #define _QA_POST_MORTEM_SINK_H_
 
-#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
+#include <cppunit/extensions/HelperMacros.h>
 
 namespace gr::digitizers {
 
-class qa_post_mortem_sink : public CppUnit::TestCase {
+class qa_post_mortem_sink : public CppUnit::TestCase
+{
 public:
     CPPUNIT_TEST_SUITE(qa_post_mortem_sink);
     CPPUNIT_TEST(basics);

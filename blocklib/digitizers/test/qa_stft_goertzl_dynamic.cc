@@ -15,12 +15,13 @@
 
 namespace gr::digitizers {
 
-void qa_stft_goertzl_dynamic::basic_test() {
-    auto               fg        = gr::flowgraph::make("basic_goertzl_non-dynamic");
-    std::size_t        win_size  = 1024;
-    double             freq      = 512;
-    double             samp_rate = 10000;
-    std::size_t        nbins     = 100;
+void qa_stft_goertzl_dynamic::basic_test()
+{
+    auto fg = gr::flowgraph::make("basic_goertzl_non-dynamic");
+    std::size_t win_size = 1024;
+    double freq = 512;
+    double samp_rate = 10000;
+    std::size_t nbins = 100;
     std::vector<float> data;
     for (std::size_t i = 0; i < win_size * 2; i++) {
         data.push_back(sin(2.0 * M_PI * i * freq / samp_rate));
@@ -32,9 +33,9 @@ void qa_stft_goertzl_dynamic::basic_test() {
     std::vector<float> max_v;
     max_v.push_back(2 * freq);
     max_v.push_back(samp_rate / 2);
-    auto src  = blocks::vector_source_f::make({ data, false, win_size });
-    auto min  = blocks::vector_source_f::make({ min_v });
-    auto max  = blocks::vector_source_f::make({ max_v });
+    auto src = blocks::vector_source_f::make({ data, false, win_size });
+    auto min = blocks::vector_source_f::make({ min_v });
+    auto max = blocks::vector_source_f::make({ max_v });
 
     auto snk0 = blocks::vector_sink_f::make({ nbins });
     auto snk1 = blocks::vector_sink_f::make({ nbins });
@@ -73,11 +74,11 @@ void qa_stft_goertzl_dynamic::basic_test() {
 }
 } /* namespace gr::digitizers */
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_stft_goertzl_dynamic::suite());
 
     bool was_successful = runner.run("", false);

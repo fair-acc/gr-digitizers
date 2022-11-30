@@ -1,12 +1,13 @@
 #ifndef _QA_EDGE_TRIGGER_H_
 #define _QA_EDGE_TRIGGER_H_
 
-#include <cppunit/extensions/HelperMacros.h>
 #include <cppunit/TestCase.h>
+#include <cppunit/extensions/HelperMacros.h>
 
 namespace gr::digitizers {
 
-class qa_edge_trigger : public CppUnit::TestCase {
+class qa_edge_trigger : public CppUnit::TestCase
+{
 public:
     CPPUNIT_TEST_SUITE(qa_edge_trigger);
     CPPUNIT_TEST(decode);

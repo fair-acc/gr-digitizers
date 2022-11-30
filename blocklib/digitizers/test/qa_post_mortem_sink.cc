@@ -19,8 +19,9 @@
 
 namespace gr::digitizers {
 
-void qa_post_mortem_sink::basics() {
-    auto sink     = post_mortem_sink::make({ "test", "unit", 1234.0f, 2048 });
+void qa_post_mortem_sink::basics()
+{
+    auto sink = post_mortem_sink::make({ "test", "unit", 1234.0f, 2048 });
 
     auto metadata = sink->get_metadata();
     CPPUNIT_ASSERT_EQUAL(std::string("test"), metadata.name);
@@ -29,30 +30,31 @@ void qa_post_mortem_sink::basics() {
 
     std::size_t data_size = 10;
 
-    const auto  pm_data   = sink->get_post_mortem_data(data_size);
+    const auto pm_data = sink->get_post_mortem_data(data_size);
     CPPUNIT_ASSERT_EQUAL(std::size_t{ 0 }, pm_data.values.size());
     CPPUNIT_ASSERT_EQUAL(std::size_t{ 0 }, pm_data.errors.size());
 }
 
-template<typename ItExpected, typename ItActual>
+template <typename ItExpected, typename ItActual>
 static void
-assert_equal(ItExpected expected_begin, ItExpected expected_end, ItActual actual_begin) {
+assert_equal(ItExpected expected_begin, ItExpected expected_end, ItActual actual_begin)
+{
     for (; expected_begin != expected_end; ++expected_begin, ++actual_begin) {
         CPPUNIT_ASSERT_EQUAL(*expected_begin, *actual_begin);
     }
 }
 
-template<typename ItExpected, typename ItActual>
-static void
-assert_equal(const ItExpected &expected, const ItActual &returned) {
+template <typename ItExpected, typename ItActual>
+static void assert_equal(const ItExpected& expected, const ItActual& returned)
+{
     for (std::size_t i = 0; i < expected.size(); i++) {
         CPPUNIT_ASSERT_EQUAL(expected[i], returned[i]);
     }
 }
 
-template<typename ItExpected, typename ItActual>
-static void
-assert_equal(const ItExpected &expected, const ItActual *returned) {
+template <typename ItExpected, typename ItActual>
+static void assert_equal(const ItExpected& expected, const ItActual* returned)
+{
     for (std::size_t i = 0; i < expected.size(); i++) {
         CPPUNIT_ASSERT_EQUAL(expected[i], returned[i]);
     }
@@ -60,24 +62,26 @@ assert_equal(const ItExpected &expected, const ItActual *returned) {
 
 static const float DEFAULT_SAMP_RATE = 100000.0f;
 
-void               qa_post_mortem_sink::buffer_not_full() {
-                  auto fg = gr::flowgraph::make("test");
+void qa_post_mortem_sink::buffer_not_full()
+{
+    auto fg = gr::flowgraph::make("test");
 
-                  // test data
-                  std::size_t data_size = 124;
-                  auto        data      = make_test_data(data_size);
+    // test data
+    std::size_t data_size = 124;
+    auto data = make_test_data(data_size);
 
-                  auto        source    = gr::blocks::vector_source_f::make({ data });
-                  auto        pm        = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
-                  auto        sink      = gr::blocks::vector_sink_f::make({});
-                  auto        sink_errs = gr::blocks::vector_sink_f::make({});
+    auto source = gr::blocks::vector_source_f::make({ data });
+    auto pm =
+        post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
+    auto sink = gr::blocks::vector_sink_f::make({});
+    auto sink_errs = gr::blocks::vector_sink_f::make({});
 
-                  // connect data and error and than run
-                  fg->connect(source, 0, pm, 0);
-                  fg->connect(source, 0, pm, 1);
-                  fg->connect(pm, 0, sink, 0);
-                  fg->connect(pm, 1, sink_errs, 0);
-                  fg->run();
+    // connect data and error and than run
+    fg->connect(source, 0, pm, 0);
+    fg->connect(source, 0, pm, 1);
+    fg->connect(pm, 0, sink, 0);
+    fg->connect(pm, 1, sink_errs, 0);
+    fg->run();
 
 #ifdef PORT_DISABLED // Check if we can access this outside of the work function
     CPPUNIT_ASSERT_EQUAL(data_size, pm->nitems_read(0));
@@ -92,19 +96,20 @@ void               qa_post_mortem_sink::buffer_not_full() {
     CPPUNIT_ASSERT_EQUAL(int64_t{ -1 }, pm_data.info.timestamp);
 }
 
-void qa_post_mortem_sink::buffer_full() {
+void qa_post_mortem_sink::buffer_full()
+{
     auto fg = gr::flowgraph::make("test");
 
     // test data
-    std::size_t data_size   = 124;
-    auto        data        = make_test_data(data_size);
-    auto        data_errs   = make_test_data(data_size, 0.01);
+    std::size_t data_size = 124;
+    auto data = make_test_data(data_size);
+    auto data_errs = make_test_data(data_size, 0.01);
 
-    auto        source      = gr::blocks::vector_source_f::make({ data });
-    auto        source_errs = gr::blocks::vector_source_f::make({ data_errs });
-    auto        pm          = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size });
-    auto        sink        = gr::blocks::vector_sink_f::make({});
-    auto        sink_errs   = gr::blocks::vector_sink_f::make({});
+    auto source = gr::blocks::vector_source_f::make({ data });
+    auto source_errs = gr::blocks::vector_source_f::make({ data_errs });
+    auto pm = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size });
+    auto sink = gr::blocks::vector_sink_f::make({});
+    auto sink_errs = gr::blocks::vector_sink_f::make({});
 
     // connect and run
     fg->connect(source, 0, pm, 0);
@@ -128,18 +133,20 @@ void qa_post_mortem_sink::buffer_full() {
     CPPUNIT_ASSERT_EQUAL(int64_t{ -1 }, pm_data.info.timestamp);
 }
 
-void qa_post_mortem_sink::buffer_overflow() {
-    auto        fg          = gr::flowgraph::make("test");
+void qa_post_mortem_sink::buffer_overflow()
+{
+    auto fg = gr::flowgraph::make("test");
 
-    std::size_t data_size   = 124;
-    auto        data        = make_test_data(data_size);
-    auto        data_errs   = make_test_data(data_size, 0.01);
+    std::size_t data_size = 124;
+    auto data = make_test_data(data_size);
+    auto data_errs = make_test_data(data_size, 0.01);
 
-    auto        source      = gr::blocks::vector_source_f::make({ data });
-    auto        source_errs = gr::blocks::vector_source_f::make({ data_errs });
-    auto        pm          = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size - 1 });
-    auto        sink        = gr::blocks::vector_sink_f::make({});
-    auto        sink_errs   = gr::blocks::vector_sink_f::make({});
+    auto source = gr::blocks::vector_source_f::make({ data });
+    auto source_errs = gr::blocks::vector_source_f::make({ data_errs });
+    auto pm =
+        post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size - 1 });
+    auto sink = gr::blocks::vector_sink_f::make({});
+    auto sink_errs = gr::blocks::vector_sink_f::make({});
 
     // connect and run
     fg->connect(source, 0, pm, 0);
@@ -165,30 +172,30 @@ void qa_post_mortem_sink::buffer_overflow() {
 }
 
 // Check if timestamp is calculated correctly
-void qa_post_mortem_sink::acq_info() {
+void qa_post_mortem_sink::acq_info()
+{
     std::size_t data_size = 200;
 
     // Monotone clock is assumed...
-    double     timebase = 0.00015;
+    double timebase = 0.00015;
     acq_info_t info{};
-    info.timebase               = timebase;
-    info.timestamp              = 321;
-    info.status                 = 1 << 1;
+    info.timebase = timebase;
+    info.timestamp = 321;
+    info.status = 1 << 1;
 
-    std::vector<gr::tag_t> tags = {
-        make_acq_info_tag(info, 0)
-    };
+    std::vector<gr::tag_t> tags = { make_acq_info_tag(info, 0) };
 
-    auto fg          = gr::flowgraph::make("test");
+    auto fg = gr::flowgraph::make("test");
 
-    auto data        = make_test_data(data_size);
-    auto data_errs   = make_test_data(data_size, 0.01);
+    auto data = make_test_data(data_size);
+    auto data_errs = make_test_data(data_size, 0.01);
 
-    auto source      = gr::blocks::vector_source_f::make({ .data = data, .tags = tags });
+    auto source = gr::blocks::vector_source_f::make({ .data = data, .tags = tags });
     auto source_errs = gr::blocks::vector_source_f::make({ data_errs });
-    auto pm          = post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
-    auto sink        = gr::blocks::vector_sink_f::make({});
-    auto sink_errs   = gr::blocks::vector_sink_f::make({});
+    auto pm =
+        post_mortem_sink::make({ "test", "unit", DEFAULT_SAMP_RATE, data_size * 2 });
+    auto sink = gr::blocks::vector_sink_f::make({});
+    auto sink_errs = gr::blocks::vector_sink_f::make({});
 
     // connect and run
     fg->connect(source, 0, pm, 0);
@@ -207,11 +214,11 @@ void qa_post_mortem_sink::acq_info() {
 
 } /* namespace gr::digitizers */
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_post_mortem_sink::suite());
 
     bool was_successful = runner.run("", false);

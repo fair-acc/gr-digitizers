@@ -15,33 +15,37 @@
 
 namespace gr::digitizers {
 
-void qa_block_spectral_peaks::test_spectral_peaks() {
-    auto               fg      = gr::flowgraph::make("basic_connection");
-    std::size_t        vec_len = 1024;
-    std::size_t        n_med   = 5;
-    std::size_t        n_avg   = 5;
+void qa_block_spectral_peaks::test_spectral_peaks()
+{
+    auto fg = gr::flowgraph::make("basic_connection");
+    std::size_t vec_len = 1024;
+    std::size_t n_med = 5;
+    std::size_t n_avg = 5;
     std::vector<float> cycle;
     // simple peak in the middle
     for (std::size_t i = 0; i < vec_len; i++) {
         if (i < vec_len / 2) {
             cycle.push_back(i);
-        } else {
+        }
+        else {
             cycle.push_back(vec_len - i);
         }
     }
     // spike middle
     int mult = 1;
-    for (std::size_t i = vec_len / 2 - (n_avg + n_med); i < vec_len / 2 + (n_avg + n_med); i++) {
+    for (std::size_t i = vec_len / 2 - (n_avg + n_med); i < vec_len / 2 + (n_avg + n_med);
+         i++) {
         cycle[i] *= mult;
         if (i < vec_len / 2) {
             mult++;
-        } else {
+        }
+        else {
             mult--;
         }
     }
-    auto src  = blocks::vector_source_f::make({ cycle, false, vec_len });
+    auto src = blocks::vector_source_f::make({ cycle, false, vec_len });
     auto flow = blocks::vector_source_f::make({ std::vector<float>{ 0.0 } });
-    auto fup  = blocks::vector_source_f::make({ std::vector<float>{ 16000.0 } });
+    auto fup = blocks::vector_source_f::make({ std::vector<float>{ 16000.0 } });
 
     auto snk0 = blocks::vector_sink_f::make({ vec_len });
     auto snk1 = blocks::vector_sink_f::make({ 1 });
@@ -57,8 +61,8 @@ void qa_block_spectral_peaks::test_spectral_peaks() {
 
     fg->run();
 
-    auto med   = snk0->data();
-    auto max   = snk1->data();
+    auto med = snk0->data();
+    auto max = snk1->data();
     auto stdev = snk2->data();
 
     CPPUNIT_ASSERT_EQUAL(cycle.size(), med.size());
@@ -69,11 +73,11 @@ void qa_block_spectral_peaks::test_spectral_peaks() {
 
 } // namespace gr::digitizers
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_block_spectral_peaks::suite());
 
     bool was_successful = runner.run("", false);

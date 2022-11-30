@@ -4,10 +4,11 @@
 
 namespace gr::digitizers {
 
-class signal_averager_cpu : public virtual signal_averager {
+class signal_averager_cpu : public virtual signal_averager
+{
 public:
     explicit signal_averager_cpu(block_args args);
-    work_return_t work(work_io &wio) override;
+    work_return_t work(work_io& wio) override;
 
 private:
     // private variables here

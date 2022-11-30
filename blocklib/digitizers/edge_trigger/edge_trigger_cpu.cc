@@ -11,37 +11,42 @@ namespace gr::digitizers {
 // untested
 
 // To be on the safe side allocate big circular buffers
-static constexpr size_t CIRC_BUFFER_SIZE      = 1024;
+static constexpr size_t CIRC_BUFFER_SIZE = 1024;
 static constexpr size_t EDGE_CIRC_BUFFER_SIZE = 4096;
 
-edge_trigger_cpu::edge_trigger_cpu(const block_args &args)
-    : INHERITED_CONSTRUCTORS
-    , d_actual_state(args.initial_state >= args.hi)
-    , d_wr_events(CIRC_BUFFER_SIZE)
-    , d_triggers(CIRC_BUFFER_SIZE)
-    , d_detected_edges(EDGE_CIRC_BUFFER_SIZE) {
+edge_trigger_cpu::edge_trigger_cpu(const block_args& args)
+    : INHERITED_CONSTRUCTORS,
+      d_actual_state(args.initial_state >= args.hi),
+      d_wr_events(CIRC_BUFFER_SIZE),
+      d_triggers(CIRC_BUFFER_SIZE),
+      d_detected_edges(EDGE_CIRC_BUFFER_SIZE)
+{
     // parse receiving host names and ports
-    std::vector<std::string>                      hosts;
-    boost::tokenizer<boost::char_separator<char>> tokens(args.host_list, boost::char_separator<char>(", "));
-    for (auto &t : tokens) {
+    std::vector<std::string> hosts;
+    boost::tokenizer<boost::char_separator<char>> tokens(
+        args.host_list, boost::char_separator<char>(", "));
+    for (auto& t : tokens) {
         std::string host = t;
         host.erase(std::remove(host.begin(), host.end(), '"'), host.end());
         hosts.push_back(host);
     }
 
-    for (const auto &host : hosts) {
+    for (const auto& host : hosts) {
         std::vector<std::string> parts;
         boost::algorithm::split(parts, host, [](char c) { return c == ':'; });
 
-        auto new_client = std::make_shared<udp_sender>(d_io_service, parts.at(0), parts.at(1));
+        auto new_client =
+            std::make_shared<udp_sender>(d_io_service, parts.at(0), parts.at(1));
         d_receivers.push_back(new_client);
-        d_debug_logger->debug("edge_trigger_ff::registered host: '{}'", new_client->host_and_port());
+        d_debug_logger->debug("edge_trigger_ff::registered host: '{}'",
+                              new_client->host_and_port());
     }
 
     set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
-bool edge_trigger_cpu::start() {
+bool edge_trigger_cpu::start()
+{
     d_wr_events.clear();
     d_triggers.clear();
     d_detected_edges.clear();
@@ -49,28 +54,31 @@ bool edge_trigger_cpu::start() {
     return true;
 }
 
-work_return_t edge_trigger_cpu::work(work_io &wio) {
-    const auto in                       = wio.inputs()[0].items<float>();
+work_return_t edge_trigger_cpu::work(work_io& wio)
+{
+    const auto in = wio.inputs()[0].items<float>();
 
-    const auto noutput_items            = wio.outputs()[0].n_items;
+    const auto noutput_items = wio.outputs()[0].n_items;
 
-    auto       count0                   = wio.inputs()[0].nitems_read();
+    auto count0 = wio.inputs()[0].nitems_read();
 
-    const auto lo_threshold             = pmtf::get_as<float>(*this->param_lo);
-    const auto hi_threshold             = pmtf::get_as<float>(*this->param_hi);
-    const auto send_udp_on_raising_edge = pmtf::get_as<bool>(*this->param_send_up_on_raising_edge);
-    const auto timeout_samples          = pmtf::get_as<float>(*this->param_samp_rate) * pmtf::get_as<float>(*this->param_timeout);
-    const auto all_tags                 = wio.inputs()[0].tags_in_window(0, noutput_items);
+    const auto lo_threshold = pmtf::get_as<float>(*this->param_lo);
+    const auto hi_threshold = pmtf::get_as<float>(*this->param_hi);
+    const auto send_udp_on_raising_edge =
+        pmtf::get_as<bool>(*this->param_send_up_on_raising_edge);
+    const auto timeout_samples = pmtf::get_as<float>(*this->param_samp_rate) *
+                                 pmtf::get_as<float>(*this->param_timeout);
+    const auto all_tags = wio.inputs()[0].tags_in_window(0, noutput_items);
     // Consume all the WR events
     const auto events = filter_tags(std::vector<tag_t>(all_tags), wr_event_tag_name);
 
-    for (const auto &tag : events) {
+    for (const auto& tag : events) {
         d_wr_events.push_back(decode_wr_event_tag(tag));
     }
 
     // Detect all triggers
     const auto triggers = filter_tags(std::vector<tag_t>(all_tags), trigger_tag_name);
-    for (const auto &tag : triggers) {
+    for (const auto& tag : triggers) {
         d_triggers.push_back(tag.offset());
     }
 
@@ -83,7 +91,7 @@ work_return_t edge_trigger_cpu::work(work_io &wio) {
     const bool outputing = !wio.outputs().empty();
 
     // Do signal processing
-    float *out = nullptr;
+    float* out = nullptr;
     if (outputing) {
         out = wio.outputs()[0].items<float>();
     }
@@ -94,13 +102,14 @@ work_return_t edge_trigger_cpu::work(work_io &wio) {
         if (d_actual_state == false) {
             // actual_state is '0'
             if (in[i] > hi_threshold) {
-                edge_detected  = send_udp_on_raising_edge;
+                edge_detected = send_udp_on_raising_edge;
                 d_actual_state = true;
             }
-        } else {
+        }
+        else {
             // actual_state is '1'
             if (in[i] < lo_threshold) {
-                edge_detected  = !send_udp_on_raising_edge;
+                edge_detected = !send_udp_on_raising_edge;
                 d_actual_state = false;
             }
         }
@@ -121,11 +130,12 @@ work_return_t edge_trigger_cpu::work(work_io &wio) {
         // To detect timeout
         const auto samples_since_trigger = count0 <= trigger ? 0 : count0 - trigger;
 
-        // It is assumed that first WR event belongs to the first trigger. We cannot really
-        // detect sporadic or misaligned events.
+        // It is assumed that first WR event belongs to the first trigger. We cannot
+        // really detect sporadic or misaligned events.
         if (d_wr_events.empty()) {
             if (samples_since_trigger > timeout_samples) {
-                d_logger->error("Timeout receiving WR event for trigger at offset: {}", trigger);
+                d_logger->error("Timeout receiving WR event for trigger at offset: {}",
+                                trigger);
                 triggers_consumed++;
                 continue;
             }
@@ -156,12 +166,13 @@ work_return_t edge_trigger_cpu::work(work_io &wio) {
         //          }
 
         //          if (detected) {
-        //            send_edge_detect_info(trigger, detected_edge, wr_event, !output_items.empty());
-        //            d_wr_events.pop_front();
+        //            send_edge_detect_info(trigger, detected_edge, wr_event,
+        //            !output_items.empty()); d_wr_events.pop_front();
         //            triggers_consumed++;
         //          }
         //          else if (samples_since_trigger > d_timeout_samples) {
-        //            GR_LOG_ERROR(d_logger, "Timeout detecting edge for trigger at offset: "
+        //            GR_LOG_ERROR(d_logger, "Timeout detecting edge for trigger at
+        //            offset: "
         //                    + std::to_string(trigger));
         //            triggers_consumed++;
         //          }

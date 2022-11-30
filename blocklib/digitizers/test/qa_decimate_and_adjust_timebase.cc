@@ -1,5 +1,5 @@
-#include "qa_decimate_and_adjust_timebase.h"
 #include "decimate_and_adjust_timebase.h"
+#include "qa_decimate_and_adjust_timebase.h"
 #include <digitizers/tags.h>
 
 #include <gnuradio/attributes.h>
@@ -14,34 +14,38 @@
 
 namespace gr::digitizers {
 
-void qa_decimate_and_adjust_timebase::test_decimation() {
-    double             samp_rate    = 5000000;
-    std::size_t        decim_factor = 5;
-    std::size_t        n_samples    = decim_factor * 100;
+void qa_decimate_and_adjust_timebase::test_decimation()
+{
+    double samp_rate = 5000000;
+    std::size_t decim_factor = 5;
+    std::size_t n_samples = decim_factor * 100;
 
     std::vector<float> signal;
     for (std::size_t i = 0; i <= n_samples; i++)
         signal.push_back(4711.);
 
-    trigger_t  tag1;
-    trigger_t  tag2;
+    trigger_t tag1;
+    trigger_t tag2;
 
     acq_info_t acq_info_tag1;
     acq_info_tag1.status = 2;
     acq_info_t acq_info_tag2;
-    acq_info_tag2.status        = 1;
+    acq_info_tag2.status = 1;
 
     std::vector<gr::tag_t> tags = {
         make_trigger_tag(tag1, 40),
         make_trigger_tag(tag2, 73),
-        make_acq_info_tag(acq_info_tag1, 76), // two acq_info steps in the same decim window will be merged
+        make_acq_info_tag(
+            acq_info_tag1,
+            76), // two acq_info steps in the same decim window will be merged
         make_acq_info_tag(acq_info_tag2, 77)
     };
 
-    auto top   = gr::flowgraph::make("test_single_decim_factor");
-    auto src   = blocks::vector_source_f::make({ .data = signal, .tags = tags });
-    auto snk   = blocks::vector_sink_f::make({ 1 });
-    auto decim = digitizers::decimate_and_adjust_timebase::make({ decim_factor, 0.0, samp_rate });
+    auto top = gr::flowgraph::make("test_single_decim_factor");
+    auto src = blocks::vector_source_f::make({ .data = signal, .tags = tags });
+    auto snk = blocks::vector_sink_f::make({ 1 });
+    auto decim =
+        digitizers::decimate_and_adjust_timebase::make({ decim_factor, 0.0, samp_rate });
     top->connect(src, 0, decim, 0);
     top->connect(decim, 0, snk, 0);
 
@@ -51,7 +55,8 @@ void qa_decimate_and_adjust_timebase::test_decimation() {
     CPPUNIT_ASSERT_EQUAL(size_t(n_samples / decim_factor), data.size());
 
     auto tags_out = snk->tags();
-    // TODO(PORT) the following assumes that the block joins acq_info tags (like signal_averager), but the current implementation doesn't
+    // TODO(PORT) the following assumes that the block joins acq_info tags (like
+    // signal_averager), but the current implementation doesn't
 #ifdef PORT_DISABLED
     CPPUNIT_ASSERT_EQUAL(std::size_t(3), tags_out.size());
 #else
@@ -68,22 +73,30 @@ void qa_decimate_and_adjust_timebase::test_decimation() {
 #endif
 }
 
-void qa_decimate_and_adjust_timebase::offset_trigger_tag_test() {
-    double             samp_rate = 1000; // sample_to_sample distance = 1ms
-    std::size_t        decim     = 10;
-    std::size_t        size      = 1000;
+void qa_decimate_and_adjust_timebase::offset_trigger_tag_test()
+{
+    double samp_rate = 1000; // sample_to_sample distance = 1ms
+    std::size_t decim = 10;
+    std::size_t size = 1000;
     std::vector<float> samples;
 
     for (std::size_t i = 0; i < size; i++)
         samples.push_back(1.);
 
-    trigger_t              tag0, tag1, tag2, tag3;
+    trigger_t tag0, tag1, tag2, tag3;
 
     std::vector<gr::tag_t> tags = {
-        make_trigger_tag(tag0, 40), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So no offset is expected.
-        make_trigger_tag(tag1, 41), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So a positive offset of 1 samples (= 1ms) is expected.
-        make_trigger_tag(tag2, 75), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 5 samples (= 5ms) is expected.
-        make_trigger_tag(tag3, 79), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So a positive offset of 9 samples (= 9ms) is expected.
+        make_trigger_tag(tag0, 40), // samples 40 till 49 should be merged. Logic is "pick
+                                    // 1 of n". So no offset is expected.
+        make_trigger_tag(
+            tag1, 41), // samples 40 till 49 should be merged. Logic is "pick 1 of n". So
+                       // a positive offset of 1 samples (= 1ms) is expected.
+        make_trigger_tag(
+            tag2, 75), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So
+                       // a positive offset of 5 samples (= 5ms) is expected.
+        make_trigger_tag(
+            tag3, 79), // samples 70 till 79 should be merged. Logic is "pick 1 of n". So
+                       // a positive offset of 9 samples (= 9ms) is expected.
     };
 
     auto top = gr::flowgraph::make("single_input_test");
@@ -95,7 +108,7 @@ void qa_decimate_and_adjust_timebase::offset_trigger_tag_test() {
     top->connect(avg, 0, snk, 0);
 
     top->run();
-    auto data     = snk->data();
+    auto data = snk->data();
     auto tags_out = snk->tags();
     CPPUNIT_ASSERT_EQUAL(std::size_t(4), tags_out.size());
     CPPUNIT_ASSERT_EQUAL(data.size(), size / decim);
@@ -103,11 +116,11 @@ void qa_decimate_and_adjust_timebase::offset_trigger_tag_test() {
 
 } // namespace gr::digitizers
 
-int main(int, char **) {
+int main(int, char**)
+{
     CppUnit::TextTestRunner runner;
-    runner.setOutputter(CppUnit::CompilerOutputter::defaultOutputter(
-            &runner.result(),
-            std::cerr));
+    runner.setOutputter(
+        CppUnit::CompilerOutputter::defaultOutputter(&runner.result(), std::cerr));
     runner.addTest(gr::digitizers::qa_decimate_and_adjust_timebase::suite());
 
     bool was_successful = runner.run("", false);
