@@ -44,6 +44,10 @@ jobs:
           tar -xzvf root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz
           # cat root/bin/thisroot.sh >> $GITHUB_ENV # add root environment setup to default environment for subsequent steps
           # cat root/bin/thisroot.sh
+      - name: Install gr-digitizer dependencies
+        run: |
+          su -c "apt-get update"
+          su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev" || true
       - name: Meson Setup
         run: 'cd ${GITHUB_WORKSPACE} && meson setup build --buildtype=debugoptimized -Denable_testing=true -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./root'
       - name: Make
