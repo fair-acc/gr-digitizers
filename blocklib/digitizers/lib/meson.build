@@ -1,5 +1,5 @@
 digitizers_sources += ['digitizer_block_impl.cc', 'picoscope_impl.cc']
-digitizers_deps += [gnuradio_gr_dep, volk_dep, fmt_dep, boost_dep, pmtf_dep, python3_embed_dep, json_dep, root_dep]
+digitizers_deps += [gnuradio_gr_dep, volk_dep, fmt_dep, spdlog_dep, boost_dep, pmtf_dep, python3_embed_dep, json_dep, root_dep]
 
 block_cpp_args = ['-DHAVE_CPU']
 
@@ -16,3 +16,13 @@ gnuradio_blocklib_digitizers_lib = library('gnuradio-blocklib-digitizers',
 gnuradio_blocklib_digitizers_dep = declare_dependency(include_directories : ['../include/gnuradio', '../include', '../lib'], # TODO see above for ../lib
 					   link_with : gnuradio_blocklib_digitizers_lib,
                        dependencies : digitizers_deps)
+
+pkg = import('pkgconfig')
+libs = [gnuradio_blocklib_digitizers_lib]     # the library/libraries users need to link against
+h = ['.'] # subdirectories of ${prefix}/${includedir} to add to header path
+pkg.generate(libraries : libs,
+             subdirs : h,
+             version : meson.project_version(),
+             name : 'libgnuradio-blocklib-digitizers',
+             filebase : 'gnuradio-blocklib-digitizers',
+             description : 'GNU Radio Digitizers component')
