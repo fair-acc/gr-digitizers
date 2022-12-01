@@ -1,0 +1,54 @@
+name: build and run tests
+on: [pull_request]
+
+jobs:
+  linux-docker:
+    runs-on: ubuntu-20.04
+    # The GH default is 360 minutes (it's also the max as of Feb-2021). However we should fail sooner.
+    # The only reason to exceed this time is if a test hangs.
+    timeout-minutes: 120
+    strategy:
+      # Enabling fail-fast would kill all Dockers if one of them fails. We want maximum output.
+      fail-fast: false
+      matrix:
+        # For every distro we want to test here, add one key 'distro' with a descriptive name, and one key
+        # 'containerId' with the name of the container (i.e., what you want to docker-pull)
+        include:
+          - distro: 'Ubuntu 22.04'
+            containerId: 'mormj/gr4-runtime-docker:ubuntu-22.04'
+    name: ${{ matrix.distro }}
+    container:
+      image: ${{ matrix.containerId }}
+      volumes:
+        - build_data:/build
+      options: --cpus 2
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Project
+      - name: Install picoscope
+        run: |
+          # https://www.picotech.com/downloads/linux
+          wget -qO - https://labs.picotech.com/Release.gpg.key | sudo apt-key add -
+          sudo bash -c 'echo "deb https://labs.picotech.com/rc/picoscope7/debian/ picoscope main" >/etc/apt/sources.list.d/picoscope7.list'
+          sudo apt-get update
+          sudo apt-get install libps3000a libps4000a libps5000a libps6000a
+      - name: Install root
+        run: |
+          # https://root.cern/install/dependencies/
+          sudo apt-get install dpkg-dev cmake g++ gcc binutils libx11-dev libxpm-dev libxft-dev libxext-dev python libssl-dev
+          # https://root.cern/install/#download-a-pre-compiled-binary-distribution
+          wget https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz
+          tar -xzvf root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz
+          # source root/bin/thisroot.sh
+          cat rout/bin/thisroot.sh >> $GITHUB_ENV # add root environment setup to default environment for subsequent steps
+      - name: Meson Setup
+        run: 'cd ${GITHUB_WORKSPACE} && meson setup build --buildtype=debugoptimized -Denable_testing=true'
+      - name: Make
+        run: 'cd ${GITHUB_WORKSPACE}/build && ninja'
+      - name: Make Test
+        run: 'cd ${GITHUB_WORKSPACE}/build && ninja test'
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: Linux_Meson_Testlog
+          path: build/meson-logs/testlog.txt
