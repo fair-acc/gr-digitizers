@@ -37,8 +37,8 @@ jobs:
       - name: Install root
         run: |
           su -c "apt-get update"
-          # https://root.cern/install/dependencies/
-          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils libx11-dev libxpm-dev libxft-dev libxext-dev python3 libssl-dev" || true
+          # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev 
+          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev" || true 
           # https://root.cern/install/#download-a-pre-compiled-binary-distribution
           mkdir .local
           cd .local
@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           source .local/root/bin/thisroot.sh
-          meson setup build --buildtype=debugoptimized -Denable_testing=true -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
+          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
       - name: Make
         shell: bash
         run: |
