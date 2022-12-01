@@ -42,15 +42,16 @@ jobs:
           # https://root.cern/install/#download-a-pre-compiled-binary-distribution
           wget https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz
           tar -xzvf root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz
-          # source root/bin/thisroot.sh
-          cat root/bin/thisroot.sh >> $GITHUB_ENV # add root environment setup to default environment for subsequent steps
-          cat root/bin/thisroot.sh
+          # cat root/bin/thisroot.sh >> $GITHUB_ENV # add root environment setup to default environment for subsequent steps
+          # cat root/bin/thisroot.sh
       - name: Meson Setup
         run: 'cd ${GITHUB_WORKSPACE} && meson setup build --buildtype=debugoptimized -Denable_testing=true -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./root'
       - name: Make
         run: 'cd ${GITHUB_WORKSPACE}/build && ninja'
       - name: Make Test
-        run: 'cd ${GITHUB_WORKSPACE}/build && ninja test'
+        run: |
+          source root/bin/thisroot.sh
+          'cd ${GITHUB_WORKSPACE}/build && ninja test'
       - uses: actions/upload-artifact@v1
         if: failure()
         with:
