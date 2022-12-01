@@ -49,15 +49,18 @@ jobs:
           su -c "apt-get update"
           su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev" || true
       - name: Meson Setup
+        shell: bash
         run: |
           source .local/root/bin/thisroot.sh
           meson setup build --buildtype=debugoptimized -Denable_testing=true -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
       - name: Make
+        shell: bash
         run: |
           source .local/root/bin/thisroot.sh
           cd build
           ninja
       - name: Make Test
+        shell: bash
         run: |
           source .local/root/bin/thisroot.sh
           cd build
