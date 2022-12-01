@@ -25,9 +25,8 @@ edge_trigger_cpu::edge_trigger_cpu(const block_args& args)
     std::vector<std::string> hosts;
     boost::tokenizer<boost::char_separator<char>> tokens(
         args.host_list, boost::char_separator<char>(", "));
-    for (auto& t : tokens) {
-        std::string host = t;
-        host.erase(std::remove(host.begin(), host.end(), '"'), host.end());
+    for (auto host : tokens) {
+        std::erase(host, '"');
         hosts.push_back(host);
     }
 

@@ -5,9 +5,9 @@ namespace gr::digitizers {
 
 block_spectral_peaks_cpu::block_spectral_peaks_cpu(const block_args& args)
     : INHERITED_CONSTRUCTORS
+    , d_med_avg(median_and_average::make({ args.fft_window, args.n_med, args.n_avg }))
+    , d_peaks(peak_detector::make({ args.samp_rate, args.fft_window, args.n_prox }))
 {
-    d_med_avg = median_and_average::make({ args.fft_window, args.n_med, args.n_avg });
-    d_peaks = peak_detector::make({ args.samp_rate, args.fft_window, args.n_prox });
     connect(self(), 0, d_med_avg, 0);
     connect(self(), 0, d_peaks, 0);
     connect(self(), 1, d_peaks, 2);

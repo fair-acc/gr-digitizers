@@ -19,7 +19,7 @@ work_return_t edge_trigger_receiver_cpu::work(work_io& wio)
     auto out = wio.outputs()[0].items<float>();
 
     std::string message = d_udp_receive->get_msg();
-    if (message != "") {
+    if (!message.empty()) {
         edge_detect_t edge;
         if (decode_edge_detect(message, edge)) {
             tag_t edge_tag = make_edge_detect_tag(edge);

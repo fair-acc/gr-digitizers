@@ -17,13 +17,13 @@ work_return_t signal_averager_cpu::work(work_io& wio)
     const auto decim = pmtf::get_as<std::size_t>(*this->param_window_size);
 
     auto noutput_items = std::numeric_limits<std::size_t>::max();
-    for (auto& w : wio.inputs()) {
+    for (const auto& w : wio.inputs()) {
         noutput_items = std::min(noutput_items, w.n_items / decim);
     }
     if (noutput_items == 0) {
         return work_return_t::INSUFFICIENT_INPUT_ITEMS;
     }
-    for (auto& w : wio.outputs()) {
+    for (const auto& w : wio.outputs()) {
         noutput_items = std::min(noutput_items, w.n_items);
     }
 

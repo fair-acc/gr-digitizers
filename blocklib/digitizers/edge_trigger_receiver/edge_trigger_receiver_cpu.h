@@ -69,7 +69,7 @@ public:
 
     std::string get_msg()
     {
-        std::string message = "";
+        std::string message;
         if (d_messages.size() > 0) {
             d_messages.wait_and_pop(message, boost::chrono::milliseconds(0));
         }

@@ -14,8 +14,8 @@ static std::vector<std::string> parse_names(std::string str)
     boost::char_separator<char> sep(", ");
     boost::tokenizer<boost::char_separator<char>> tokens(str, sep);
 
-    for (auto& t : tokens) {
-        std::string name = t;
+    for (auto name : tokens) {
+        //TODO(PORT) use string_view, this will crash for \""\""
         if (name.at(0) == '"') {
             name = name.substr(1, name.length() - 2);
         }

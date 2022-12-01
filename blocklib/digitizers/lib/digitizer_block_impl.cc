@@ -613,7 +613,7 @@ bool digitizer_block_impl::stop()
         stop_poll_thread();
     }
 
-    d_configure_exception_message = "";
+    d_configure_exception_message.clear();
 
     return true;
 }
