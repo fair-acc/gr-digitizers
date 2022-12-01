@@ -27,6 +27,8 @@ jobs:
         name: Checkout Project
       - name: Install picoscope
         run: |
+          sudo apt-get update
+          sudo apt-get install wget
           # https://www.picotech.com/downloads/linux
           wget -qO - https://labs.picotech.com/Release.gpg.key | sudo apt-key add -
           sudo bash -c 'echo "deb https://labs.picotech.com/rc/picoscope7/debian/ picoscope main" >/etc/apt/sources.list.d/picoscope7.list'
@@ -34,6 +36,7 @@ jobs:
           sudo apt-get install libps3000a libps4000a libps5000a libps6000a
       - name: Install root
         run: |
+          sudo apt-get update
           # https://root.cern/install/dependencies/
           sudo apt-get install dpkg-dev cmake g++ gcc binutils libx11-dev libxpm-dev libxft-dev libxext-dev python libssl-dev
           # https://root.cern/install/#download-a-pre-compiled-binary-distribution
