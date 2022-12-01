@@ -28,12 +28,13 @@ jobs:
       - name: Install picoscope
         run: |
           su -c "apt-get update"
-          su -c "apt-get --yes install wget gnupg2"
+          su -c "apt-get --yes install wget gnupg2 apt-utils udev"
           # https://www.picotech.com/downloads/linux
           wget -qO - https://labs.picotech.com/Release.gpg.key | su -c "apt-key add -"
           su -c "bash -c 'echo \"deb https://labs.picotech.com/rc/picoscope7/debian/ picoscope main\" >/etc/apt/sources.list.d/picoscope7.list'"
           su -c "apt-get update"
-          su -c "apt-get --yes install libps3000a libps4000a libps5000a libps6000a"
+          su -c "mkdir -p /etc/udev/rules.d"
+          su -c "apt-get --yes install libps3000a libps4000a libps5000a libps6000a" || true # ignore udev errors in post install because of udev in container
       - name: Install root
         run: |
           su -c "apt-get update"
@@ -45,7 +46,7 @@ jobs:
           # source root/bin/thisroot.sh
           cat rout/bin/thisroot.sh >> $GITHUB_ENV # add root environment setup to default environment for subsequent steps
       - name: Meson Setup
-        run: 'cd ${GITHUB_WORKSPACE} && meson setup build --buildtype=debugoptimized -Denable_testing=true'
+        run: 'cd ${GITHUB_WORKSPACE} && meson setup build --buildtype=debugoptimized -Denable_testing=true -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./root'
       - name: Make
         run: 'cd ${GITHUB_WORKSPACE}/build && ninja'
       - name: Make Test
