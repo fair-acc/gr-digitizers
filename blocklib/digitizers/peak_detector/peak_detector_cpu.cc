@@ -179,7 +179,10 @@ work_return_t peak_detector_cpu::work(work_io& wio)
 
     max_sig[0] = (maxInterpolated * freq) / (2.0 * vec_len);
     width_sig[0] = freq_whm * whm2stdev;
-    wio.consume_each(noutput_items);
+
+    // TODO(PORT) was consume_each(noutput_items). Did that make any sense in GR3? (leads to extra calls
+    // to work() with ginormous n_items for inputs 0 and 1.
+    wio.consume_each(1);
 
     /*
     max_sig[0] = (max_i * d_freq) / (2.0 * d_vec_len);
