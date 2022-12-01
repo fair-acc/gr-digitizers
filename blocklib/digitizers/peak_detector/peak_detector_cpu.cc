@@ -109,8 +109,6 @@ work_return_t peak_detector_cpu::work(work_io& wio)
     auto max_sig = wio.outputs()[0].items<float>();
     auto width_sig = wio.outputs()[1].items<float>();
 
-    const auto noutput_items = wio.outputs()[0].n_items;
-
     const auto prox = static_cast<int>(pmtf::get_as<std::size_t>(*this->param_proximity));
     const auto vec_len =
         static_cast<int>(pmtf::get_as<std::size_t>(*this->param_vec_len));
