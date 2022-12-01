@@ -95,7 +95,7 @@ if enable_picoscope
   # TODO(PORT) do at least some basic checks whether these includes/libs exist
   # HACK: ps4000aApi.h includes PicoCallback.h, which is only in libps5000a and libps6000a
   callback_includedir = join_paths(libpicoscope_includedir, 'libps6000a')
-  libpicoscope3000a_dep = declare_dependency(include_directories : join_paths(libpicoscope_includedir, 'libps3000a'), link_args : ['-L' + libpicoscope_libdir, '-lps3000a'])
+  libpicoscope3000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps3000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps3000a'])
   libpicoscope4000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps4000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps4000a'])
   libpicoscope6000_dep = declare_dependency(include_directories : join_paths(libpicoscope_includedir, 'libps6000'), link_args : ['-L' + libpicoscope_libdir, '-lps6000'])
 endif
