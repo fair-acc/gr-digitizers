@@ -1,0 +1,69 @@
+module: digitizers
+block: stft_goertzl_dynamic
+label: stft_goertzl_dynamic
+blocktype: sync_block
+
+parameters:
+-   id: samp_rate
+    label: Sample Rate (Hz)
+    dtype: rf64
+    settable: true
+-   id: winsize
+    label: Window Size
+    dtype: size
+-   id: nbins
+    label: Number of Bins
+    dtype: size
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+    shape: parameters/winsize
+-   domain: stream
+    id: f_min
+    direction: input
+    type: rf32
+-   domain: stream
+    id: f_max
+    direction: input
+    type: rf32
+-   domain: stream
+    id: mag
+    direction: output
+    type: rf32
+    shape: parameters/nbins
+-   domain: stream
+    id: phs
+    direction: output
+    type: rf32
+    shape: parameters/nbins
+-   domain: stream
+    id: fqs
+    direction: output
+    type: rf32
+    shape: parameters/nbins
+
+implementations:
+-   id: cpu
+
+file_format: 1
+
+doc:
+  brief: The block returns the response from lower frequency to the upper frequency.
+  detail: |-
+        Both bounds are read from inputs, with the correspondent vector of samples. The vector
+        of samples needs to be of length winsize. The block creates nbins different frequency
+        responses, that are linearly interpolated between the lower and upper bound. The
+        boundaries are considered as part of the window, except in the case where there is only
+        one bin, in which case the analysis frequency is the average of fMin and fMax,
+        ie. (fMin+fMax)/2. The block returns magnitudes, phase shifts, and frequencies of the
+        analysis, all of length nbins.
+
+        ^
+        |          < - - - - - - - >
+        |          |       |       |
+        |          b0      b1      b2
+        L----------*---------------*------------*>
+        0          fMin            fMax         f_samp*

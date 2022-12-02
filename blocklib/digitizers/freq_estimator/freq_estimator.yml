@@ -1,0 +1,52 @@
+module: digitizers
+block: freq_estimator
+label: Frequency Estimation
+blocktype: block
+
+parameters:
+-   id: samp_rate
+    label: Sample Rate (Hz)
+    dtype: rf32
+-   id: signal_window_size
+    label: Signal Avg. Window
+    dtype: size
+    default: 10
+-   id: averager_window_size
+    label: Freq. Est. Avg. Window
+    dtype: size
+    default: 10
+-   id: decim
+    label: Decimation Factor
+    dtype: ri32 # TODO(PORT) probably should be "size", too?
+    settable: true
+    default: 1
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+
+-   domain: stream
+    id: out
+    direction: output
+    type: rf32
+
+implementations:
+-   id: cpu
+
+file_format: 1
+
+doc:
+  brief: Estimates a base frequency of the signal by counting the number of samples between events where signal goes through zero, and computing the time that took, given the sampling rate.
+  detail: |-
+        This is just a rough estimate of the frequency. To avoid false positives because of noise and
+        other undesired components of the signal, the signal is passed through a running average of size
+        given by the user. The result itself is then also averaged with the same averaging window for a
+        more stable result.
+
+        Meaning the estimate of the frequency is an inverse of the average of the last
+        n time intervals it took for the averaged signal(to remove noise) to pass through zero.
+
+        IMPORTANT:
+        The specified window must be much smaller than the number of samples in one cycle of the signal!

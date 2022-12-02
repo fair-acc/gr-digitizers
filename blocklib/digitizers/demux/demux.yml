@@ -1,0 +1,48 @@
+module: digitizers
+block: demux
+label: Demux
+blocktype: block
+
+parameters:
+-   id: post_trigger_window
+    label: Post-Trigger Window
+    dtype: size
+    default: 1000
+-   id: pre_trigger_window
+    label: Pre-Trigger Window
+    dtype: size
+    default: 0
+
+ports:
+-   domain: stream
+    id: in0
+    direction: input
+    type: rf32
+-   domain: stream
+    id: in1
+    direction: input
+    optional: true
+    type: rf32
+-   domain: stream
+    id: out0
+    direction: output
+    type: rf32
+-   domain: stream
+    id: out1
+    direction: output
+    optional: true
+    type: rf32
+
+implementations:
+-   id: cpu
+
+file_format: 1
+
+doc:
+  brief: Extracts a subset of triggered data.
+  detail: |-
+        This block uses trigger tags in order to cut out data windows around them and forwards the cut windows to the output
+        [ pre-trigger window |  post-trigger window ]
+
+        Trigger and AcqInfo tags in each window are as well forwarded to the outputs.
+        Tags are re-created in order to reset the offset. (Just passing them to the output would result in wrong offset values)

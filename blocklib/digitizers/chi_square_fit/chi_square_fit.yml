@@ -1,0 +1,93 @@
+module: digitizers
+block: chi_square_fit
+label: Chi-Square Fitting
+blocktype: block
+
+parameters:
+-   id: in_vec_size
+    label: Input Vector Size
+    dtype: size
+-   id: func
+    label: Function
+    dtype: string
+    settable: true
+-   id: lim_up
+    label: Function Upper Bound
+    dtype: rf64
+    settable: true
+-   id: lim_dn
+    label: Function Lower Bound
+    dtype: rf64
+    settable: true
+-   id: n_params
+    label: Number of Parameters
+    dtype: size
+-   id: par_name
+    label: Parameter Names
+    dtype: string
+#    container: vector # // TODO(PORT) this leads to a compiler error in generated code
+-   id: par_init
+    label: Initial Parameter Values
+    dtype: rf64
+    container: vector
+-   id: par_err
+    label: Initial Parameter Error Estimates
+    dtype: rf64
+    container: vector
+-   id: par_fit
+    label: Parameter adjustability
+    dtype: ri8
+    container: vector
+    settable: true
+-   id: par_lim_up
+    label: Search Space Low
+    dtype: rf64
+    container: vector
+    settable: true
+-   id: par_lim_dn
+    label: Search Space Up
+    dtype: rf64
+    container: vector
+    settable: true
+-   id: max_chi_square_error
+    label: Allowable Chi Square Error
+    dtype: rf64
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+    shape: parameters/in_vec_size
+-   domain: stream
+    id: params
+    direction: output
+    type: rf32
+    shape: parameters/n_params
+-   domain: stream
+    id: errs
+    direction: output
+    type: rf32
+    shape: parameters/n_params
+-   domain: stream
+    id: chi_sq
+    direction: output
+    type: rf32
+-   domain: stream
+    id: valid
+    direction: output
+    type: ri8
+
+implementations:
+-   id: cpu
+
+file_format: 1
+
+doc:
+  brief: It accepts vectors of samples in the time/freq domain and tries to fit the given function from lim_dn to lim_up of the input vector.
+  detail: |-
+        The functions parameters will be adjusted in each iteration. The parameters of
+        the function are bordered in a hypercube with size of par_lim_dn -> par_lim_up.
+        Each given parameter has a corresponding flag, whether it is constant or not.
+
+        The initial values of the parameter are supplied in par_init.

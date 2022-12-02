@@ -1,0 +1,59 @@
+module: digitizers
+block: function
+label: Reference Function
+blocktype: block
+
+parameters:
+-   id: decimation
+    label: Decimation
+    dtype: size
+    default: 1
+-   id: timing
+    label: Timing w.r.t. Beam-In (s)
+    dtype: rf32
+    container: vector
+-   id: ref
+    label: Reference
+    dtype: rf32
+    container: vector
+-   id: min
+    label: Min
+    dtype: rf32
+    container: vector
+-   id: max
+    label: Max
+    dtype: rf32
+    container: vector
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+-   domain: stream
+    id: out
+    direction: output
+    type: rf32
+    multiplicity: '3'
+
+implementations:
+-   id: cpu
+
+file_format: 1
+
+doc:
+  brief: Generates reference signal alongside the min a max signals.
+  detail: |-
+        The only purpose of the 'timing' input port is to provided precise timing information to this
+        block. This is done by scanning for acq_info tags, holding three pieces of information required
+        for the correct signal generation:
+         - timestamp
+         - last beam-in timestamp
+         - timebase
+
+        The three functions (reference, min and max) are specified by using four separate vectors. One
+        vector is used to provide relative timing information w.r.t. BEAM_IN event and other three to
+        specify function value for a given time point. Values are calculated by using a direct
+        linear interpolation.
+
+        Note the time points of the functions should be monotonically increasing.

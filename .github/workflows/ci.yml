@@ -1,0 +1,72 @@
+name: build and run tests
+on: [pull_request]
+
+jobs:
+  linux-docker:
+    runs-on: ubuntu-20.04
+    # The GH default is 360 minutes (it's also the max as of Feb-2021). However we should fail sooner.
+    # The only reason to exceed this time is if a test hangs.
+    timeout-minutes: 120
+    strategy:
+      # Enabling fail-fast would kill all Dockers if one of them fails. We want maximum output.
+      fail-fast: false
+      matrix:
+        # For every distro we want to test here, add one key 'distro' with a descriptive name, and one key
+        # 'containerId' with the name of the container (i.e., what you want to docker-pull)
+        include:
+          - distro: 'Ubuntu 22.04'
+            containerId: 'mormj/gr4-runtime-docker:ubuntu-22.04'
+    name: ${{ matrix.distro }}
+    container:
+      image: ${{ matrix.containerId }}
+      volumes:
+        - build_data:/build
+      options: --cpus 2
+    steps:
+      - uses: actions/checkout@v2
+        name: Checkout Project
+      - name: Install picoscope
+        run: |
+          su -c "apt-get update"
+          su -c "apt-get --yes install wget gnupg2 apt-utils udev"
+          # https://www.picotech.com/downloads/linux
+          wget -qO - https://labs.picotech.com/Release.gpg.key | su -c "apt-key add -"
+          su -c "bash -c 'echo \"deb https://labs.picotech.com/rc/picoscope7/debian/ picoscope main\" >/etc/apt/sources.list.d/picoscope7.list'"
+          su -c "apt-get update"
+          su -c "apt-get --yes install libps3000a libps4000a libps6000 libps6000a" || true # ignore udev errors in post install because of udev in container
+      - name: Install root
+        run: |
+          su -c "apt-get update"
+          # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev 
+          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev" || true 
+          # https://root.cern/install/#download-a-pre-compiled-binary-distribution
+          mkdir .local
+          cd .local
+          wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
+          pwd
+      - name: Install gr-digitizer dependencies
+        run: |
+          su -c "apt-get update"
+          su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev" || true
+      - name: Meson Setup
+        shell: bash
+        run: |
+          source .local/root/bin/thisroot.sh
+          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
+      - name: Make
+        shell: bash
+        run: |
+          source .local/root/bin/thisroot.sh
+          cd build
+          ninja
+      - name: Make Test
+        shell: bash
+        run: |
+          source .local/root/bin/thisroot.sh
+          cd build
+          ninja test
+      - uses: actions/upload-artifact@v1
+        if: failure()
+        with:
+          name: Linux_Meson_Testlog
+          path: build/meson-logs/testlog.txt

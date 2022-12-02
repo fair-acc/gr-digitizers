@@ -1,0 +1,111 @@
+module: digitizers
+block: simulation_source
+label: simulation_source
+blocktype: sync_block
+includes:
+  - gnuradio/digitizers/enums.h
+
+parameters:
+-   id: sample_rate
+    label: Sample Rate (Hz)
+    dtype: rf64
+    default: 10000
+-   id: buffer_size
+    label: Buffer Size
+    dtype: size
+    default: 8192
+-   id: nr_buffers
+    label: Number of Buffers
+    dtype: size
+    default: 100
+-   id: driver_buffer_size
+    label: Driver Buffer Size
+    dtype: size
+    default: 100000
+-   id: pre_samples
+    label: Pre-Sample Count
+    dtype: size
+    default: 1000
+-   id: post_samples
+    label: Post-Sample Count
+    dtype: size
+    default: 9000
+-   id: acquisition_mode
+    label: Acquisition Mode
+    dtype: enums/digitizer_acquisition_mode_t
+    is_enum: true
+    default: digitizer_acquisition_mode_t::STREAMING
+-   id: rapid_block_nr_captures
+    label: No. of Captures (Rapid Block Mode)
+    dtype: size
+    default: 1
+-   id: streaming_mode_poll_rate
+    label: Polling rate (Streaming Mode)
+    dtype: rf64
+    default: 0.001
+-   id: downsampling_mode
+    label: Downsampling Mode
+    dtype: enums/digitizer_downsampling_mode_t
+    is_enum: true
+    default: digitizer_downsampling_mode_t::NONE
+-   id: downsampling_factor
+    label: Downsampling Factor
+    dtype: size
+    default: 1
+-   id: auto_arm
+    label: Auto-Arm
+    dtype: bool
+    default: 'false'
+-   id: trigger_once
+    label: Trigger once
+    dtype: bool
+    default: 'false'
+
+callbacks:
+   - id: set_data
+     return: void
+     args:
+      - id: channel_a_data
+        dtype: std::vector<float>
+      - id: channel_b_data
+        dtype: std::vector<float>
+      - id: port_data
+        dtype: std::vector<uint8_t>
+
+ports:
+-   domain: stream
+    id: value_a
+    direction: output
+    type: rf32
+-   domain: stream
+    id: error_a
+    direction: output
+    type: rf32
+-   domain: stream
+    id: value_b
+    direction: output
+    type: rf32
+-   domain: stream
+    id: error_b
+    direction: output
+    type: rf32
+-   domain: stream
+    id: port
+    direction: output
+    type: ri8
+
+implementations:
+-   id: cpu
+
+file_format: 1
+
+doc:
+  brief: Simulates a device similar to a PicoScope oscilloscope. User needs to set the data similar to the GNU Radio's vector source.
+  detail: |-
+        Both rapid block and streaming mode acquisition modes are supported. In both modes the
+        simulation source behaves similarly, that is it keeps outputting the provided data buffer
+        again and again.
+
+        Notes:
+         - Error estimate is hardcoded to 0.005
+         - This source sleeps 1 second in between rapid blocks

@@ -1,0 +1,31 @@
+module: digitizers
+block: stream_to_vector_overlay
+label: stream_to_vector_overlay
+blocktype: block
+
+parameters:
+-   id: vec_size
+    label: Output Vector Size
+    dtype: size
+-   id: samp_rate
+    label: Sample Rate (Hz)
+    dtype: rf64
+-   id: delta_t
+    label: Time in Seconds Between Each Acquisition
+    dtype: rf64
+
+ports:
+-   domain: stream
+    id: in
+    direction: input
+    type: rf32
+-   domain: stream
+    id: out
+    direction: output
+    type: rf32
+    shape: parameters/vec_size
+
+implementations:
+-   id: cpu
+
+file_format: 1

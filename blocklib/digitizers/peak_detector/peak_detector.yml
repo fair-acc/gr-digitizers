@@ -1,0 +1,56 @@
+module: digitizers
+block: peak_detector
+label: Peak Detector
+blocktype: block
+
+parameters:
+-   id: samp_rate
+    label: Sample Rate (Hz)
+    dtype: double
+-   id: vec_len
+    label: Vector Length
+    dtype: size
+-   id: proximity
+    label: Proximity
+    dtype: size
+
+ports:
+-   domain: stream
+    id: actual
+    direction: input
+    type: rf32
+    shape: parameters/vec_len
+-   domain: stream
+    id: filtered
+    direction: input
+    type: rf32
+    shape: parameters/vec_len
+-   domain: stream
+    id: low_freq
+    direction: input
+    type: rf32
+-   domain: stream
+    id: up_freq
+    direction: input
+    type: rf32
+-   domain: stream
+    id: max_sig
+    direction: output
+    type: rf32
+-   domain: stream
+    id: width_sig
+    direction: output
+    type: rf32
+
+implementations:
+-   id: cpu
+
+file_format: 1
+
+doc:
+  brief: Detects peaks of the filtered input attaches a tag to the corresponding maximal value of the actual signal in the proximity of the peak found in the filtered signal.
+  detail: |-
+        The block expects the full double-spectrum as the FFT calculates ir on the actual input,
+        just the first half on the spectrum on the filtered input.
+        This is because the filter block that calculates this averaged median filtered signal is time-complex,
+        the information on the upper half of the spectrum is redundant.
