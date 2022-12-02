@@ -1,7 +1,3 @@
-# Binary files
-build/
-builddir/
-
 # Annoying OS Generated Files
 .DS_Store
 .DS_Store?
