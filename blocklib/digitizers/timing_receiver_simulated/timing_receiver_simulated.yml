@@ -1,9 +1,15 @@
 module: digitizers
 block: timing_receiver_simulated
-label: Timing Receiver (Mock)
+label: Timing Receiver (Mock & ZeroMQ)
 blocktype: block
+includes:
+-   gnuradio/digitizers/enums.h
 
 parameters:
+-   id: simulation_mode
+    label: Simulation Mode
+    dtype: enums/timing_receiver_simulation_mode_t
+    is_enum: true
 -   id: trigger_name
     label: Trigger Name
     dtype: string
@@ -11,9 +17,16 @@ parameters:
 -   id: trigger_offset
     label: Trigger Offset
     dtype: rf64
--   id: tag_time_interval
+-   id: tag_time_interval # for mode == PERIODIC_INTERVAL only
     label: Time Interval (ms)
     dtype: ri64
+    default: 1000
+-   id: zmq_endpoint
+    label: ZermMQ Endpoint # for mode == ZEROMQ only
+    dtype: string
+-   id: zmq_group
+    label: ZeroMQ Group # for mode == ZEROMQ only
+    dtype: string
 
 ports:
 -   domain: message

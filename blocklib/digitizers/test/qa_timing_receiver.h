@@ -9,11 +9,13 @@ class qa_timing_receiver : public CppUnit::TestCase
 {
 public:
     CPPUNIT_TEST_SUITE(qa_timing_receiver);
-    CPPUNIT_TEST(basic_simulation);
+    CPPUNIT_TEST(periodic_interval);
+    CPPUNIT_TEST(basic_zmq);
     CPPUNIT_TEST_SUITE_END();
 
 private:
-    void basic_simulation();
+    void periodic_interval();
+    void basic_zmq();
 };
 
 } /* namespace gr::digitizers */

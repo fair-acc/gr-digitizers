@@ -30,6 +30,14 @@ endif
 py3 = import('python').find_installation('python3')
 json_dep = dependency('nlohmann_json')
 
+cmake = import('cmake')
+opt_var = cmake.subproject_options()
+# need draft features enabled for RADIO/DISH
+# This also prevents us from relying on distro packages
+opt_var.add_cmake_defines({'ENABLE_DRAFTS': true})
+libzmq = cmake.subproject('libzmq', options: opt_var)
+libzmq_dep = libzmq.dependency('libzmq')
+
 enable_picoscope = get_option('enable_picoscope')
 
 if (get_option('enable_testing'))
