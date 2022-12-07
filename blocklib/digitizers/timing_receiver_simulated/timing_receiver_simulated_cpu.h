@@ -108,23 +108,17 @@ private:
         auto socket = std::unique_ptr<void, decltype(close_socket)>(
             zmq_socket(context.get(), ZMQ_DISH), close_socket);
 
-        bool connected = false;
+        d_logger->debug("Binding to ZeroMQ endpoint '{}'", zmq_endpoint);
+        const auto rc = zmq_bind(socket.get(), zmq_endpoint.data());
+        if (rc != 0) {
+            d_logger->error("Could not bind to ZeroMQ endpoint '{}'", zmq_endpoint);
+            return;
+        }
 
-        while (!connected && !_stop_requested) {
-            d_logger->debug("Binding to ZeroMQ endpoint '{}'", zmq_endpoint);
-            const auto rc = zmq_bind(socket.get(), zmq_endpoint.data());
-            if (rc != 0) {
-                d_logger->warn("Could not bind to ZeroMQ endpoint '{}'", zmq_endpoint);
-                std::this_thread::sleep_for(500ms);
-                continue;
-            }
-
-            d_logger->debug("Joining ZeroMQ group '{}'", zmq_group);
-            if (zmq_join(socket.get(), zmq_group.data()) != 0) {
-                d_logger->error("Could not join ZeroMQ group '{}'", zmq_group);
-                continue;
-            }
-            connected = true;
+        d_logger->debug("Joining ZeroMQ group '{}'", zmq_group);
+        if (zmq_join(socket.get(), zmq_group.data()) != 0) {
+            d_logger->error("Could not join ZeroMQ group '{}'", zmq_group);
+            return;
         }
 
         while (!_stop_requested) {
