@@ -17,16 +17,28 @@ parameters:
 -   id: trigger_offset
     label: Trigger Offset
     dtype: rf64
+    default: 0
 -   id: tag_time_interval # for mode == PERIODIC_INTERVAL only
     label: Time Interval (ms)
     dtype: ri64
     default: 1000
 -   id: zmq_endpoint
-    label: ZermMQ Endpoint # for mode == ZEROMQ only
+    label: ZeroMQ Endpoint # for mode == ZEROMQ only
     dtype: string
 -   id: zmq_group
     label: ZeroMQ Group # for mode == ZEROMQ only
     dtype: string
+
+callbacks:
+-   id: post_timing_message
+    return: void
+    args:
+     - id: name
+       dtype: string
+     - id: timestamp_ns
+       dtype: ri64
+     - id: offset
+       dtype: rf64
 
 ports:
 -   domain: message

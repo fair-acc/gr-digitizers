@@ -44,7 +44,7 @@ public:
                 periodical_loop(trigger_name, interval, offset);
             });
         }
-        else {
+        else if (mode == timing_receiver_simulation_mode_t::ZEROMQ) {
             const auto endpoint = pmtf::get_as<std::string>(*this->param_zmq_endpoint);
             const auto group = pmtf::get_as<std::string>(*this->param_zmq_group);
             _thread = std::jthread([this, endpoint, group, trigger_name, offset] {
@@ -61,6 +61,15 @@ public:
             _thread.join();
         }
         return block::stop();
+    }
+
+    void post_timing_message(std::string name, int64_t timestamp_ns, double offset)
+    {
+        std::map<std::string, pmtf::pmt> msg = { { tag::TRIGGER_NAME, name },
+                                                 { tag::TRIGGER_OFFSET, offset },
+                                                 { tag::TRIGGER_TIME, timestamp_ns } };
+
+        d_msg_out->post(std::move(msg));
     }
 
 private:

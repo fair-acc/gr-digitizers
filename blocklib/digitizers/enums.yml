@@ -23,5 +23,6 @@ digitizer_downsampling_mode_t:
 
 timing_receiver_simulation_mode_t:
   enumerators:
+  - id: MANUAL
   - id: PERIODIC_INTERVAL
   - id: ZEROMQ

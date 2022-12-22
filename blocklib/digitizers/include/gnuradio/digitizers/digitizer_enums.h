@@ -42,7 +42,7 @@ enum class DIGITIZERS_API downsampling_mode_t {
  * \ingroup digitizers
  */
 struct DIGITIZERS_API error_info_t {
-    uint64_t timestamp;
+    std::chrono::nanoseconds timestamp;
     std::error_code code;
 };
 

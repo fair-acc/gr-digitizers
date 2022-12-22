@@ -347,11 +347,7 @@ void qa_picoscope_6000::rapid_block_tags()
         CPPUNIT_ASSERT_EQUAL(tag.map().size(), std::size_t{ 1 });
         const auto key = tag.map().begin()->first;
 
-        if (key == digitizers::trigger_tag_name) {
-            auto triggered_data = digitizers::decode_trigger_tag(tag);
-            CPPUNIT_ASSERT_EQUAL(uint32_t{ 0 }, triggered_data.status);
-        }
-        else if (key == digitizers::timebase_info_tag_name) {
+        if (key == digitizers::timebase_info_tag_name) {
             double timebase = digitizers::decode_timebase_info_tag(tag);
             CPPUNIT_ASSERT_DOUBLES_EQUAL(1.0 / samp_rate, timebase, 0.0000001);
         }

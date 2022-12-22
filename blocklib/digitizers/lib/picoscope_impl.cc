@@ -51,7 +51,7 @@ void picoscope_impl::streaming_callback(int32_t nr_samples,
                                         int16_t overflow)
 {
     // trigger timestamp
-    uint64_t local_timestamp = get_timestamp_nano_utc();
+    std::chrono::nanoseconds local_timestamp = get_timestamp_nano_utc();
 
     // According to well informed sources, the driver indicates the buffer overrun by
     // setting all the bits of the overflow argument to true.

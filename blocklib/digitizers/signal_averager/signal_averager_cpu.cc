@@ -51,9 +51,6 @@ work_return_t signal_averager_cpu::work(work_io& wio)
             bool found_acq_info = false;
             for (auto tag : tags) {
                 // std::cout << "tag found: " << tag.key << std::endl;
-                // TODO(PORT) this assumes that all tags have no more than one key/value
-                // pair
-                assert(tag.map().size() == 1);
                 if (tag.get(acq_info_tag_name)) {
                     found_acq_info = true;
                     merged_acq_info.status |= decode_acq_info_tag(tag).status;

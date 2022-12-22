@@ -19,6 +19,9 @@ public:
     CPPUNIT_TEST(rapid_block_correct_tags);
     CPPUNIT_TEST(streaming_basics);
     CPPUNIT_TEST(streaming_correct_tags);
+    CPPUNIT_TEST(streaming_timing_no_signal);
+    CPPUNIT_TEST(streaming_timing_analog_input);
+    CPPUNIT_TEST(streaming_timing_digital_input);
     CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -27,6 +30,9 @@ private:
     void rapid_block_correct_tags();
     void streaming_basics();
     void streaming_correct_tags();
+    void streaming_timing_no_signal();
+    void streaming_timing_analog_input();
+    void streaming_timing_digital_input();
 };
 
 } /* namespace gr::digitizers */

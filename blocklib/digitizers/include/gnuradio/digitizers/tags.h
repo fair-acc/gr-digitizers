@@ -3,13 +3,15 @@
 
 #include <gnuradio/digitizers/api.h>
 #include <gnuradio/tag.h>
+
 #include <pmtv/pmt.hpp>
-#include <cassert>
 
 #include <fmt/format.h>
 
-namespace gr {
-namespace digitizers {
+#include <cassert>
+#include <chrono>
+
+namespace gr::digitizers {
 
 // ################################################################################################################
 // ################################################################################################################
@@ -101,63 +103,79 @@ inline acq_info_t decode_acq_info_tag(const gr::tag_t& tag)
 // ################################################################################################################
 // ################################################################################################################
 
-char const* const trigger_tag_name = "trigger";
 struct DIGITIZERS_API trigger_t {
-    uint32_t downsampling_factor;
-    int64_t timestamp;
-    uint32_t status;
+    std::string name;
+    std::chrono::nanoseconds timestamp;
+    std::chrono::nanoseconds offset;
 };
 
-inline gr::tag_t make_trigger_tag(trigger_t& trigger_tag_data, uint64_t offset)
+inline gr::tag_t make_trigger_tag(uint64_t tag_offset,
+                                  std::string name,
+                                  std::chrono::nanoseconds timestamp_ns,
+                                  std::chrono::nanoseconds trigger_offset)
 {
-    const auto value =
-        std::vector<pmtv::pmt>{ static_cast<long>(trigger_tag_data.downsampling_factor),
-                                static_cast<uint64_t>(trigger_tag_data.timestamp),
-                                static_cast<long>(trigger_tag_data.status) };
-    return { offset, { { trigger_tag_name, value } } };
+    return { tag_offset,
+             { { tag::TRIGGER_NAME, std::move(name) },
+               { tag::TRIGGER_TIME, timestamp_ns.count() },
+               { tag::TRIGGER_OFFSET,
+                 std::chrono::duration<double>(trigger_offset).count() } } };
 }
 
-inline gr::tag_t make_trigger_tag(uint32_t downsampling_factor,
-                                  int64_t timestamp,
-                                  uint64_t offset,
-                                  uint32_t status)
+inline gr::tag_t make_trigger_tag(const trigger_t& trigger_tag_data, uint64_t offset)
 {
-    const auto value = std::vector<pmtv::pmt>{ static_cast<long>(downsampling_factor),
-                                               static_cast<uint64_t>(timestamp),
-                                               static_cast<long>(status) };
-    return { offset, { { trigger_tag_name, value } } };
+    return make_trigger_tag(offset,
+                            trigger_tag_data.name,
+                            trigger_tag_data.timestamp,
+                            trigger_tag_data.offset);
 }
 
-// e.g. used for streaming
 inline gr::tag_t make_trigger_tag(uint64_t offset)
 {
-    const auto value = std::vector<pmtv::pmt>{ static_cast<long>(0),
-                                               static_cast<uint64_t>(0),
-                                               static_cast<long>(0) };
-    return { offset, { { trigger_tag_name, value } } };
+    using namespace std::chrono_literals;
+    return make_trigger_tag(offset, {}, 0ns, 0ns);
 }
+
+namespace detail {
+template <typename T>
+inline constexpr std::chrono::nanoseconds convert_to_ns(T ns)
+{
+    using namespace std::chrono;
+    return round<nanoseconds>(duration<T, std::nano>{ ns });
+}
+} // namespace detail
 
 inline trigger_t decode_trigger_tag(const gr::tag_t& tag)
 {
-    const auto tag_value = tag.get(trigger_tag_name);
-    if (!tag_value) {
+    const auto name = tag.get(tag::TRIGGER_NAME.key());
+    if (!name) {
         throw std::runtime_error(
             fmt::format("Exception in {}:{}: tag does not contain '{}'",
                         __FILE__,
                         __LINE__,
-                        trigger_tag_name));
+                        tag::TRIGGER_NAME.key()));
     }
 
-    const auto tag_vector = pmtv::get_vector<pmtv::pmt>(tag_value->get());
-
-    if (tag_vector.size() != 3) {
-        throw std::runtime_error(fmt::format(
-            "Exception in {}:{}: invalid trigger tag format", __FILE__, __LINE__));
+    const auto timestamp = tag.get(tag::TRIGGER_TIME.key());
+    if (!timestamp) {
+        throw std::runtime_error(
+            fmt::format("Exception in {}:{}: tag does not contain '{}'",
+                        __FILE__,
+                        __LINE__,
+                        tag::TRIGGER_TIME.key()));
     }
 
-    return { .downsampling_factor = static_cast<uint32_t>(std::get<long>(tag_vector[0])),
-             .timestamp = static_cast<int64_t>(std::get<uint64_t>(tag_vector[1])),
-             .status = static_cast<uint32_t>(std::get<long>(tag_vector[2])) };
+    const auto offset = tag.get(tag::TRIGGER_OFFSET.key());
+    if (!offset) {
+        throw std::runtime_error(
+            fmt::format("Exception in {}:{}: tag does not contain '{}'",
+                        __FILE__,
+                        __LINE__,
+                        tag::TRIGGER_OFFSET.key()));
+    }
+
+    return { .name = pmtf::get_as<std::string>(name->get()),
+             .timestamp = detail::convert_to_ns(std::get<int64_t>(timestamp->get())),
+             .offset = detail::convert_to_ns(std::get<double>(offset->get())) };
 }
 
 // ################################################################################################################
@@ -252,7 +270,6 @@ inline wr_event_t decode_wr_event_tag(const gr::tag_t& tag)
 // ################################################################################################################
 // ################################################################################################################
 
-} // namespace digitizers
-} // namespace gr
+} // namespace gr::digitizers
 
 #endif /* INCLUDED_DIGITIZERS_TAGS_H */
