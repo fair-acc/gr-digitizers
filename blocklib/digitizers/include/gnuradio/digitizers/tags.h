@@ -155,8 +155,7 @@ inline trigger_t decode_trigger_tag(const gr::tag_t& tag)
             "Exception in {}:{}: invalid trigger tag format", __FILE__, __LINE__));
     }
 
-    return { .downsampling_factor =
-                 static_cast<uint32_t>(std::get<long>(tag_vector[0])),
+    return { .downsampling_factor = static_cast<uint32_t>(std::get<long>(tag_vector[0])),
              .timestamp = static_cast<int64_t>(std::get<uint64_t>(tag_vector[1])),
              .status = static_cast<uint32_t>(std::get<long>(tag_vector[2])) };
 }
@@ -245,8 +244,7 @@ inline wr_event_t decode_wr_event_tag(const gr::tag_t& tag)
     }
 
     return { .event_id = std::get<std::string>(tag_vector[0]),
-             .wr_trigger_stamp =
-                 static_cast<int64_t>(std::get<uint64_t>(tag_vector[1])),
+             .wr_trigger_stamp = static_cast<int64_t>(std::get<uint64_t>(tag_vector[1])),
              .wr_trigger_stamp_utc =
                  static_cast<int64_t>(std::get<uint64_t>(tag_vector[2])) };
 }

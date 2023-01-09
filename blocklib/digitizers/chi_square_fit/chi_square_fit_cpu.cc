@@ -15,7 +15,7 @@ static std::vector<std::string> parse_names(std::string str)
     boost::tokenizer<boost::char_separator<char>> tokens(str, sep);
 
     for (auto name : tokens) {
-        //TODO(PORT) use string_view, this will crash for \""\""
+        // TODO(PORT) use string_view, this will crash for \""\""
         if (name.at(0) == '"') {
             name = name.substr(1, name.length() - 2);
         }
@@ -49,8 +49,7 @@ void chi_square_fit_cpu::do_update_design()
     const auto vec_len = std::get<std::size_t>(*this->param_in_vec_size);
     const auto function_upper_limit = std::get<double>(*this->param_lim_up);
     const auto function_lower_limit = std::get<double>(*this->param_lim_dn);
-    const auto max_chi_square_error =
-        std::get<double>(*this->param_max_chi_square_error);
+    const auto max_chi_square_error = std::get<double>(*this->param_max_chi_square_error);
     const auto function = std::get<std::string>(*this->param_func);
     const auto n_params = std::get<std::size_t>(*this->param_n_params);
 
