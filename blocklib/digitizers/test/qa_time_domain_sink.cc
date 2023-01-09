@@ -106,7 +106,7 @@ void qa_time_domain_sink::Test::callback(std::span<float> values,
 
 void qa_time_domain_sink::stream_basics()
 {
-    auto sink = time_domain_sink<float>::make(
+    auto sink = time_domain_sink::make(
         { "test", "unit", 1000.0, time_sink_mode_t::TIME_SINK_MODE_STREAMING, 2048 });
     CPPUNIT_ASSERT_EQUAL(size_t{ 2048 }, sink->output_package_size());
     CPPUNIT_ASSERT_EQUAL(1000.0f, sink->samp_rate());
@@ -126,11 +126,11 @@ void qa_time_domain_sink::stream_values_no_tags()
 
     auto source = gr::blocks::vector_source_f::make({ .data = data });
     auto sink =
-        time_domain_sink<float>::make({ "test",
-                                        "unit",
-                                        1000.0,
-                                        time_sink_mode_t::TIME_SINK_MODE_STREAMING,
-                                        chunk_size });
+        time_domain_sink::make({ "test",
+                                 "unit",
+                                 1000.0,
+                                 time_sink_mode_t::TIME_SINK_MODE_STREAMING,
+                                 chunk_size });
 
     sink->set_callback(copy_data_callback, &test);
 
@@ -161,11 +161,11 @@ void qa_time_domain_sink::stream_values()
     auto source_errs = gr::blocks::vector_source_f::make({ .data = data_errs });
 
     auto sink =
-        time_domain_sink<float>::make({ "test",
-                                        "unit",
-                                        1000.0,
-                                        time_sink_mode_t::TIME_SINK_MODE_STREAMING,
-                                        chunk_size });
+        time_domain_sink::make({ "test",
+                                 "unit",
+                                 1000.0,
+                                 time_sink_mode_t::TIME_SINK_MODE_STREAMING,
+                                 chunk_size });
 
     sink->set_callback(copy_data_callback, &test);
 
@@ -194,11 +194,11 @@ void qa_time_domain_sink::stream_no_callback()
     auto source = gr::blocks::vector_source_f::make({ .data = data });
 
     auto sink =
-        time_domain_sink<float>::make({ "no_callback_test",
-                                        "unit",
-                                        1000.0,
-                                        time_sink_mode_t::TIME_SINK_MODE_STREAMING,
-                                        data_size });
+        time_domain_sink::make({ "no_callback_test",
+                                 "unit",
+                                 1000.0,
+                                 time_sink_mode_t::TIME_SINK_MODE_STREAMING,
+                                 data_size });
 
     // connect data and error and run
     top->connect(source, 0, sink, 0);
@@ -251,7 +251,7 @@ void qa_time_domain_sink::stream_acq_info_tag()
     auto data_errs = get_test_data(data_size, 0.01);
     auto source_errs = gr::blocks::vector_source_f::make({ .data = data_errs });
 
-    auto sink = gr::digitizers::time_domain_sink<float>::make(
+    auto sink = gr::digitizers::time_domain_sink::make(
         { "test",
           "unit",
           static_cast<float>(1.0f / timebase),

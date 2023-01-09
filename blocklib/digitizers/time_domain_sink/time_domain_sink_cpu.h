@@ -4,11 +4,10 @@
 
 namespace gr::digitizers {
 
-template <class T>
-class time_domain_sink_cpu : public time_domain_sink<T>
+class time_domain_sink_cpu : public time_domain_sink
 {
 public:
-    time_domain_sink_cpu(const typename time_domain_sink<T>::block_args& args);
+    explicit time_domain_sink_cpu(const block_args& args);
 
     work_return_t work(work_io& wio) override;
 
