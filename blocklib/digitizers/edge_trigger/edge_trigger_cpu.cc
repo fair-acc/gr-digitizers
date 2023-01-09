@@ -61,12 +61,12 @@ work_return_t edge_trigger_cpu::work(work_io& wio)
 
     auto count0 = wio.inputs()[0].nitems_read();
 
-    const auto lo_threshold = pmtf::get_as<float>(*this->param_lo);
-    const auto hi_threshold = pmtf::get_as<float>(*this->param_hi);
+    const auto lo_threshold = std::get<float>(*this->param_lo);
+    const auto hi_threshold = std::get<float>(*this->param_hi);
     const auto send_udp_on_raising_edge =
-        pmtf::get_as<bool>(*this->param_send_udp_on_raising_edge);
-    const auto timeout_samples = pmtf::get_as<float>(*this->param_samp_rate) *
-                                 pmtf::get_as<float>(*this->param_timeout);
+        std::get<bool>(*this->param_send_udp_on_raising_edge);
+    const auto timeout_samples = std::get<float>(*this->param_samp_rate) *
+                                 std::get<float>(*this->param_timeout);
     const auto all_tags = wio.inputs()[0].tags_in_window(0, noutput_items);
     // Consume all the WR events
     const auto events = filter_tags(std::vector<tag_t>(all_tags), wr_event_tag_name);

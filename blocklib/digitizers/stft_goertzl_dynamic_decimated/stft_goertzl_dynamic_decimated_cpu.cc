@@ -33,7 +33,7 @@ void stft_goertzl_dynamic_decimated_cpu::on_parameter_change(param_action_sptr a
     hier_block::on_parameter_change(action);
 
     if (action->id() == id_samp_rate) {
-        d_stft->set_samp_rate(pmtf::get_as<double>(*this->param_samp_rate));
+        d_stft->set_samp_rate(std::get<double>(*this->param_samp_rate));
     }
 }
 

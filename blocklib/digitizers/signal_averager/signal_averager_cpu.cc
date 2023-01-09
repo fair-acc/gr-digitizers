@@ -14,7 +14,7 @@ signal_averager_cpu::signal_averager_cpu(block_args args) : INHERITED_CONSTRUCTO
 
 work_return_t signal_averager_cpu::work(work_io& wio)
 {
-    const auto decim = pmtf::get_as<std::size_t>(*this->param_window_size);
+    const auto decim = std::get<std::size_t>(*this->param_window_size);
 
     auto noutput_items = std::numeric_limits<std::size_t>::max();
     for (const auto& w : wio.inputs()) {

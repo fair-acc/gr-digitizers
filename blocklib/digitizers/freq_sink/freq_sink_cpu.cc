@@ -27,9 +27,9 @@ work_return_t freq_sink_cpu::work(work_io& wio)
         wio.inputs()[0].n_items; // TODO(PORT) we don't have an output, is this correct?
                                  // call it ninput_items?
 
-    const auto samp_rate = pmtf::get_as<float>(*this->param_sample_rate);
-    const auto nmeasurements = pmtf::get_as<std::size_t>(*this->param_nmeasurements);
-    const auto nbins = pmtf::get_as<std::size_t>(*this->param_nbins);
+    const auto samp_rate = std::get<float>(*this->param_sample_rate);
+    const auto nmeasurements = std::get<std::size_t>(*this->param_nmeasurements);
+    const auto nbins = std::get<std::size_t>(*this->param_nbins);
 
     assert(noutput_items % nmeasurements == 0);
 
@@ -133,8 +133,8 @@ spectra_measurement_t freq_sink_cpu::get_measurements(std::size_t nr_measurement
     }
 #endif
     nr_measurements =
-        std::min(nr_measurements, pmtf::get_as<std::size_t>(*this->param_nmeasurements));
-    const auto nbins = pmtf::get_as<std::size_t>(*this->param_nbins);
+        std::min(nr_measurements, std::get<std::size_t>(*this->param_nmeasurements));
+    const auto nbins = std::get<std::size_t>(*this->param_nbins);
 
     const auto data_size = nr_measurements * nbins * sizeof(float);
 

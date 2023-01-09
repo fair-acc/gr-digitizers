@@ -12,7 +12,7 @@ decimate_and_adjust_timebase_cpu::decimate_and_adjust_timebase_cpu(block_args ar
 
 work_return_t decimate_and_adjust_timebase_cpu::work(work_io& wio)
 {
-    const auto decimation = pmtf::get_as<std::size_t>(*this->param_decimation);
+    const auto decimation = std::get<std::size_t>(*this->param_decimation);
 
     if (wio.inputs()[0].n_items < decimation) {
         return work_return_t::INSUFFICIENT_INPUT_ITEMS;

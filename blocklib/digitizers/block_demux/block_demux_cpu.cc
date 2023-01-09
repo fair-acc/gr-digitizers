@@ -11,7 +11,7 @@ work_return_t block_demux_cpu::work(work_io& wio)
     auto out = wio.outputs()[0].items<float>();
     const auto noutput_items = wio.outputs()[0].n_items;
 
-    const auto bit = pmtf::get_as<std::size_t>(*this->param_bit_to_keep);
+    const auto bit = std::get<std::size_t>(*this->param_bit_to_keep);
 
     for (std::size_t i = 0; i < noutput_items; i++) {
         out[i] = ((in[i] >> bit) & 1);

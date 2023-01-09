@@ -5,7 +5,7 @@ blocktype: sync_block
 includes:
   - gnuradio/digitizers/enums.h
 # TODO(PORT) removing the template parameter leads to an undefined ref. to
-# the pmtf::pmt(time_sink_mode_t) ctor when linking the digitizers lib.
+# the pmtv::pmt(time_sink_mode_t) ctor when linking the digitizers lib.
 # Probably a bug in code generation for enums.yml.
 typekeys:
   - id: T

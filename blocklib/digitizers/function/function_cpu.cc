@@ -31,7 +31,7 @@ bool function_cpu::start()
 
 work_return_t function_cpu::work(work_io& wio)
 {
-    const auto decimation = pmtf::get_as<std::size_t>(*this->param_decimation);
+    const auto decimation = std::get<std::size_t>(*this->param_decimation);
 
     const auto ninput_items = wio.inputs()[0].n_items;
 

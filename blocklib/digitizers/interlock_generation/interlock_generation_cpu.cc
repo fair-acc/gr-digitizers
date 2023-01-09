@@ -31,8 +31,8 @@ work_return_t interlock_generation_cpu::work(work_io& wio)
 
     auto out = wio.outputs()[0].items<float>();
     const auto noutput_items = wio.outputs()[0].n_items;
-    const auto max_min = pmtf::get_as<float>(*this->param_max_min);
-    const auto max_max = pmtf::get_as<float>(*this->param_max_max);
+    const auto max_min = std::get<float>(*this->param_max_min);
+    const auto max_max = std::get<float>(*this->param_max_max);
 
     for (std::size_t i = 0; i < noutput_items; i++) {
         // Get acq_info tags in range
