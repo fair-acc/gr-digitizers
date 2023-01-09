@@ -110,8 +110,7 @@ work_return_t peak_detector_cpu::work(work_io& wio)
     auto width_sig = wio.outputs()[1].items<float>();
 
     const auto prox = static_cast<int>(std::get<std::size_t>(*this->param_proximity));
-    const auto vec_len =
-        static_cast<int>(std::get<std::size_t>(*this->param_vec_len));
+    const auto vec_len = static_cast<int>(std::get<std::size_t>(*this->param_vec_len));
     const auto freq = static_cast<int>(std::get<double>(*this->param_samp_rate));
 
     // TODO: verify bounds
@@ -178,8 +177,8 @@ work_return_t peak_detector_cpu::work(work_io& wio)
     max_sig[0] = (maxInterpolated * freq) / (2.0 * vec_len);
     width_sig[0] = freq_whm * whm2stdev;
 
-    // TODO(PORT) was consume_each(noutput_items). Did that make any sense in GR3? (leads to extra calls
-    // to work() with ginormous n_items for inputs 0 and 1.
+    // TODO(PORT) was consume_each(noutput_items). Did that make any sense in GR3? (leads
+    // to extra calls to work() with ginormous n_items for inputs 0 and 1.
     wio.consume_each(1);
 
     /*

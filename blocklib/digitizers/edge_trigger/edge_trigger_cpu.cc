@@ -65,8 +65,8 @@ work_return_t edge_trigger_cpu::work(work_io& wio)
     const auto hi_threshold = std::get<float>(*this->param_hi);
     const auto send_udp_on_raising_edge =
         std::get<bool>(*this->param_send_udp_on_raising_edge);
-    const auto timeout_samples = std::get<float>(*this->param_samp_rate) *
-                                 std::get<float>(*this->param_timeout);
+    const auto timeout_samples =
+        std::get<float>(*this->param_samp_rate) * std::get<float>(*this->param_timeout);
     const auto all_tags = wio.inputs()[0].tags_in_window(0, noutput_items);
     // Consume all the WR events
     const auto events = filter_tags(std::vector<tag_t>(all_tags), wr_event_tag_name);

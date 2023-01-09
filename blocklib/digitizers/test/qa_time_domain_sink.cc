@@ -125,12 +125,11 @@ void qa_time_domain_sink::stream_values_no_tags()
     Test test(chunk_size);
 
     auto source = gr::blocks::vector_source_f::make({ .data = data });
-    auto sink =
-        time_domain_sink::make({ "test",
-                                 "unit",
-                                 1000.0,
-                                 time_sink_mode_t::TIME_SINK_MODE_STREAMING,
-                                 chunk_size });
+    auto sink = time_domain_sink::make({ "test",
+                                         "unit",
+                                         1000.0,
+                                         time_sink_mode_t::TIME_SINK_MODE_STREAMING,
+                                         chunk_size });
 
     sink->set_callback(copy_data_callback, &test);
 
@@ -160,12 +159,11 @@ void qa_time_domain_sink::stream_values()
     auto data_errs = get_test_data(chunk_size, 0.01);
     auto source_errs = gr::blocks::vector_source_f::make({ .data = data_errs });
 
-    auto sink =
-        time_domain_sink::make({ "test",
-                                 "unit",
-                                 1000.0,
-                                 time_sink_mode_t::TIME_SINK_MODE_STREAMING,
-                                 chunk_size });
+    auto sink = time_domain_sink::make({ "test",
+                                         "unit",
+                                         1000.0,
+                                         time_sink_mode_t::TIME_SINK_MODE_STREAMING,
+                                         chunk_size });
 
     sink->set_callback(copy_data_callback, &test);
 
@@ -193,12 +191,11 @@ void qa_time_domain_sink::stream_no_callback()
     auto data = get_test_data(data_size);
     auto source = gr::blocks::vector_source_f::make({ .data = data });
 
-    auto sink =
-        time_domain_sink::make({ "no_callback_test",
-                                 "unit",
-                                 1000.0,
-                                 time_sink_mode_t::TIME_SINK_MODE_STREAMING,
-                                 data_size });
+    auto sink = time_domain_sink::make({ "no_callback_test",
+                                         "unit",
+                                         1000.0,
+                                         time_sink_mode_t::TIME_SINK_MODE_STREAMING,
+                                         data_size });
 
     // connect data and error and run
     top->connect(source, 0, sink, 0);
