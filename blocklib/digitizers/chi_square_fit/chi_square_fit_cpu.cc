@@ -46,13 +46,13 @@ chi_square_fit_cpu::chi_square_fit_cpu(const block_args& args)
 
 void chi_square_fit_cpu::do_update_design()
 {
-    const auto vec_len = pmtf::get_as<std::size_t>(*this->param_in_vec_size);
-    const auto function_upper_limit = pmtf::get_as<double>(*this->param_lim_up);
-    const auto function_lower_limit = pmtf::get_as<double>(*this->param_lim_dn);
+    const auto vec_len = std::get<std::size_t>(*this->param_in_vec_size);
+    const auto function_upper_limit = std::get<double>(*this->param_lim_up);
+    const auto function_lower_limit = std::get<double>(*this->param_lim_dn);
     const auto max_chi_square_error =
-        pmtf::get_as<double>(*this->param_max_chi_square_error);
-    const auto function = pmtf::get_as<std::string>(*this->param_func);
-    const auto n_params = pmtf::get_as<std::size_t>(*this->param_n_params);
+        std::get<double>(*this->param_max_chi_square_error);
+    const auto function = std::get<std::string>(*this->param_func);
+    const auto n_params = std::get<std::size_t>(*this->param_n_params);
 
     d_func = TF1("func", function.c_str(), function_lower_limit, function_upper_limit);
 
@@ -83,8 +83,8 @@ work_return_t chi_square_fit_cpu::work(work_io& wio)
         d_design_updated = false;
     }
 
-    const auto vec_len = pmtf::get_as<std::size_t>(*this->param_in_vec_size);
-    const auto n_params = pmtf::get_as<std::size_t>(*this->param_n_params);
+    const auto vec_len = std::get<std::size_t>(*this->param_in_vec_size);
+    const auto n_params = std::get<std::size_t>(*this->param_n_params);
 
     for (std::size_t i = 0; i < n_params; i++) {
         d_func.SetParameter(i, d_par_initial_values[i]);
@@ -128,15 +128,6 @@ work_return_t chi_square_fit_cpu::work(work_io& wio)
     return work_return_t::OK;
 }
 
-template <class T>
-std::vector<T> get_as_vector(const pmtf::pmt& pv)
-{
-    const auto v = pmtf::get_as<std::vector<pmtf::pmt>>(pv);
-    std::vector<T> r;
-    std::transform(v.begin(), v.end(), std::back_inserter(r), &pmtf::get_as<T>);
-    return r;
-}
-
 void chi_square_fit_cpu::on_parameter_change(param_action_sptr action)
 {
     block::on_parameter_change(action);
@@ -144,13 +135,13 @@ void chi_square_fit_cpu::on_parameter_change(param_action_sptr action)
     d_design_updated = true;
 
     if (action->id() == id_par_fit) {
-        d_par_fittable = get_as_vector<int8_t>(*this->param_par_fit);
+        d_par_fittable = pmtv::get_vector<int8_t>(*this->param_par_fit);
     }
     else if (action->id() == id_par_lim_up) {
-        d_par_upper_limit = get_as_vector<double>(*this->param_par_lim_up);
+        d_par_upper_limit = pmtv::get_vector<double>(*this->param_par_lim_up);
     }
     else if (action->id() == id_par_lim_dn) {
-        d_par_lower_limit = get_as_vector<double>(*this->param_par_lim_dn);
+        d_par_lower_limit = pmtv::get_vector<double>(*this->param_par_lim_dn);
     }
 }
 

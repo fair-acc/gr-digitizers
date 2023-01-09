@@ -66,10 +66,10 @@ work_return_t median_and_average_cpu::work(work_io& wio)
     const auto in = wio.inputs()[0].items<float>();
     auto out = wio.outputs()[0].items<float>();
 
-    const auto med_len = static_cast<int>(pmtf::get_as<std::size_t>(*this->param_n_med));
-    const auto avg_len = static_cast<int>(pmtf::get_as<std::size_t>(*this->param_n_lp));
+    const auto med_len = static_cast<int>(std::get<std::size_t>(*this->param_n_med));
+    const auto avg_len = static_cast<int>(std::get<std::size_t>(*this->param_n_lp));
     const auto vec_len =
-        static_cast<int>(pmtf::get_as<std::size_t>(*this->param_vec_len));
+        static_cast<int>(std::get<std::size_t>(*this->param_vec_len));
 
     float buffer[2 * med_len + 1];
     float temp_buffer[vec_len];

@@ -20,8 +20,8 @@ work_return_t freq_estimator_cpu::work(work_io& wio)
 
     float new_sig_avg;
 
-    const auto samp_rate = pmtf::get_as<float>(*this->param_samp_rate);
-    const auto decim = pmtf::get_as<int>(*this->param_decim);
+    const auto samp_rate = std::get<float>(*this->param_samp_rate);
+    const auto decim = std::get<int>(*this->param_decim);
 
     for (int i = 0; i < n_in; i++) {
         // average the signal to get rid of noise

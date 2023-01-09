@@ -22,7 +22,7 @@ work_return_t post_mortem_sink_cpu::work(work_io& wio)
     auto ninput_items = wio.inputs()[0].n_items;
 
     const auto reading_errors = wio.inputs().size() > 1;
-    const auto buffer_size = pmtf::get_as<std::size_t>(*this->param_buffer_size);
+    const auto buffer_size = std::get<std::size_t>(*this->param_buffer_size);
 
     // Data is frozen, copy data to outputs and return
     if (d_frozen) {
@@ -108,7 +108,7 @@ post_mortem_sink_cpu::get_post_mortem_data(std::size_t nr_items_to_read)
 
     std::scoped_lock lock(d_mutex);
 
-    const auto buffer_size = pmtf::get_as<std::size_t>(*this->param_buffer_size);
+    const auto buffer_size = std::get<std::size_t>(*this->param_buffer_size);
 
     if (d_nitems_read < buffer_size) {
         nr_items_to_read = std::min(nr_items_to_read, d_nitems_read);

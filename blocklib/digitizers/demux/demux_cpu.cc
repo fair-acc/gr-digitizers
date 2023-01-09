@@ -33,9 +33,9 @@ work_return_t demux_cpu::work(work_io& wio)
     const auto samp0_count = wio.inputs()[0].nitems_read();
 
     const auto post_trigger_window =
-        pmtf::get_as<std::size_t>(*this->param_post_trigger_window);
+        std::get<std::size_t>(*this->param_post_trigger_window);
     const auto pre_trigger_window =
-        pmtf::get_as<std::size_t>(*this->param_pre_trigger_window);
+        std::get<std::size_t>(*this->param_pre_trigger_window);
 
     auto noutput_items = wio.outputs()[0].n_items;
 

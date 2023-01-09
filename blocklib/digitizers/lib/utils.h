@@ -187,17 +187,17 @@ private:
 
 inline gr::tag_t make_peak_info_tag(double frequency, double stdev)
 {
-    return { 0, { { "peak_info", std::vector<pmtf::pmt>(frequency, stdev) } } };
+    return { 0, { { "peak_info", std::vector<pmtv::pmt>(frequency, stdev) } } };
 }
 
 inline void decode_peak_info_tag(const gr::tag_t& tag, double& frequency, double& stdev)
 {
     const auto tag_value = tag.get("peak_info");
     assert(tag_value);
-    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
+    const auto tag_vector = pmtv::get_vector<pmtv::pmt>(tag_value->get());
     assert(tag_vector.size() == 2);
-    frequency = pmtf::get_as<double>(tag_vector[0]);
-    stdev = pmtf::get_as<double>(tag_vector[1]);
+    frequency = std::get<double>(tag_vector[0]);
+    stdev = std::get<double>(tag_vector[1]);
 }
 
 static const double fwhm2stdev = 0.5 / sqrt(2 * log(2));

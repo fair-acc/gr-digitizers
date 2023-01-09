@@ -122,7 +122,7 @@ inline bool decode_edge_detect(const std::string& payload, edge_detect_t& edge_d
 
 inline tag_t make_edge_detect_tag(edge_detect_t& edge_detect)
 {
-    auto value = std::vector<pmtf::pmt>{
+    auto value = std::vector<pmtv::pmt>{
         edge_detect.is_raising_edge,
         static_cast<uint64_t>(edge_detect.timing_event_timestamp),
         static_cast<uint64_t>(edge_detect.retrigger_event_timestamp),
@@ -144,19 +144,19 @@ inline edge_detect_t decode_edge_detect_tag(const tag_t& tag)
                         edge_detect_tag_name));
     }
 
-    const auto tag_vec = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
+    const auto tag_vec = pmtv::get_vector<pmtv::pmt>(tag_value->get());
 
     if (tag_vec.empty()) {
         throw std::runtime_error(fmt::format(
             "Exception in {}:{}: invalid edge detect tag format", __FILE__, __LINE__));
     }
 
-    return { .timing_event_timestamp = pmtf::get_as<int64_t>(tag_vec[1]),
-             .retrigger_event_timestamp = pmtf::get_as<int64_t>(tag_vec[2]),
-             .delay_since_last_timing_event = pmtf::get_as<int64_t>(tag_vec[3]),
-             .samples_since_last_timing_event = pmtf::get_as<int64_t>(tag_vec[4]),
+    return { .timing_event_timestamp = std::get<int64_t>(tag_vec[1]),
+             .retrigger_event_timestamp = std::get<int64_t>(tag_vec[2]),
+             .delay_since_last_timing_event = std::get<int64_t>(tag_vec[3]),
+             .samples_since_last_timing_event = std::get<int64_t>(tag_vec[4]),
              .offset = tag.offset(),
-             .is_raising_edge = pmtf::get_as<bool>(tag_vec[0]) };
+             .is_raising_edge = std::get<bool>(tag_vec[0]) };
 }
 
 } // namespace gr::digitizers

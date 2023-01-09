@@ -46,7 +46,7 @@ work_return_t time_domain_sink_cpu<T>::work(work_io& wio)
     const auto ninput_items = wio.inputs()[0].n_items;
 
     const auto output_package_size =
-        pmtf::get_as<std::size_t>(*this->param_output_package_size);
+        std::get<std::size_t>(*this->param_output_package_size);
 
     assert(ninput_items % output_package_size == 0);
 

@@ -109,10 +109,10 @@ work_return_t peak_detector_cpu::work(work_io& wio)
     auto max_sig = wio.outputs()[0].items<float>();
     auto width_sig = wio.outputs()[1].items<float>();
 
-    const auto prox = static_cast<int>(pmtf::get_as<std::size_t>(*this->param_proximity));
+    const auto prox = static_cast<int>(std::get<std::size_t>(*this->param_proximity));
     const auto vec_len =
-        static_cast<int>(pmtf::get_as<std::size_t>(*this->param_vec_len));
-    const auto freq = static_cast<int>(pmtf::get_as<std::size_t>(*this->param_samp_rate));
+        static_cast<int>(std::get<std::size_t>(*this->param_vec_len));
+    const auto freq = static_cast<int>(std::get<double>(*this->param_samp_rate));
 
     // TODO: verify bounds
     int d_start_bin = 2.0 * low_freq[0] / freq * vec_len;

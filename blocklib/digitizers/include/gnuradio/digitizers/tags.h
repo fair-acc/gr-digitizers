@@ -3,7 +3,7 @@
 
 #include <gnuradio/digitizers/api.h>
 #include <gnuradio/tag.h>
-#include <pmtf/base.hpp>
+#include <pmtv/pmt.hpp>
 #include <cassert>
 
 #include <fmt/format.h>
@@ -65,7 +65,7 @@ inline gr::tag_t make_acq_info_tag(const acq_info_t& acq_info, uint64_t offset)
 {
     return { offset,
              { { acq_info_tag_name,
-                 std::vector<pmtf::pmt>{ static_cast<uint64_t>(acq_info.timestamp),
+                 std::vector<pmtv::pmt>{ static_cast<uint64_t>(acq_info.timestamp),
                                          static_cast<double>(acq_info.timebase),
                                          static_cast<double>(acq_info.user_delay),
                                          static_cast<double>(acq_info.actual_delay),
@@ -84,18 +84,18 @@ inline acq_info_t decode_acq_info_tag(const gr::tag_t& tag)
                         acq_info_tag_name));
     }
 
-    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
+    const auto tag_vector = pmtv::get_vector<pmtv::pmt>(tag_value->get());
 
     if (tag_vector.size() != 5) {
         throw std::runtime_error(fmt::format(
             "Exception in {}:{}: invalid acq_info tag format", __FILE__, __LINE__));
     }
 
-    return { .timestamp = static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[0])),
-             .timebase = pmtf::get_as<double>(tag_vector[1]),
-             .user_delay = pmtf::get_as<double>(tag_vector[2]),
-             .actual_delay = pmtf::get_as<double>(tag_vector[3]),
-             .status = static_cast<uint32_t>(pmtf::get_as<long>(tag_vector[4])) };
+    return { .timestamp = static_cast<int64_t>(std::get<uint64_t>(tag_vector[0])),
+             .timebase = std::get<double>(tag_vector[1]),
+             .user_delay = std::get<double>(tag_vector[2]),
+             .actual_delay = std::get<double>(tag_vector[3]),
+             .status = static_cast<uint32_t>(std::get<long>(tag_vector[4])) };
 }
 
 // ################################################################################################################
@@ -111,7 +111,7 @@ struct DIGITIZERS_API trigger_t {
 inline gr::tag_t make_trigger_tag(trigger_t& trigger_tag_data, uint64_t offset)
 {
     const auto value =
-        std::vector<pmtf::pmt>{ static_cast<long>(trigger_tag_data.downsampling_factor),
+        std::vector<pmtv::pmt>{ static_cast<long>(trigger_tag_data.downsampling_factor),
                                 static_cast<uint64_t>(trigger_tag_data.timestamp),
                                 static_cast<long>(trigger_tag_data.status) };
     return { offset, { { trigger_tag_name, value } } };
@@ -122,7 +122,7 @@ inline gr::tag_t make_trigger_tag(uint32_t downsampling_factor,
                                   uint64_t offset,
                                   uint32_t status)
 {
-    const auto value = std::vector<pmtf::pmt>{ static_cast<long>(downsampling_factor),
+    const auto value = std::vector<pmtv::pmt>{ static_cast<long>(downsampling_factor),
                                                static_cast<uint64_t>(timestamp),
                                                static_cast<long>(status) };
     return { offset, { { trigger_tag_name, value } } };
@@ -131,7 +131,7 @@ inline gr::tag_t make_trigger_tag(uint32_t downsampling_factor,
 // e.g. used for streaming
 inline gr::tag_t make_trigger_tag(uint64_t offset)
 {
-    const auto value = std::vector<pmtf::pmt>{ static_cast<long>(0),
+    const auto value = std::vector<pmtv::pmt>{ static_cast<long>(0),
                                                static_cast<uint64_t>(0),
                                                static_cast<long>(0) };
     return { offset, { { trigger_tag_name, value } } };
@@ -148,7 +148,7 @@ inline trigger_t decode_trigger_tag(const gr::tag_t& tag)
                         trigger_tag_name));
     }
 
-    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
+    const auto tag_vector = pmtv::get_vector<pmtv::pmt>(tag_value->get());
 
     if (tag_vector.size() != 3) {
         throw std::runtime_error(fmt::format(
@@ -156,9 +156,9 @@ inline trigger_t decode_trigger_tag(const gr::tag_t& tag)
     }
 
     return { .downsampling_factor =
-                 static_cast<uint32_t>(pmtf::get_as<long>(tag_vector[0])),
-             .timestamp = static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[1])),
-             .status = static_cast<uint32_t>(pmtf::get_as<long>(tag_vector[2])) };
+                 static_cast<uint32_t>(std::get<long>(tag_vector[0])),
+             .timestamp = static_cast<int64_t>(std::get<uint64_t>(tag_vector[1])),
+             .status = static_cast<uint32_t>(std::get<long>(tag_vector[2])) };
 }
 
 // ################################################################################################################
@@ -188,7 +188,7 @@ inline double decode_timebase_info_tag(const gr::tag_t& tag)
                         timebase_info_tag_name));
     }
 
-    return pmtf::get_as<double>(*tag_value);
+    return std::get<double>(tag_value->get());
 }
 
 // ################################################################################################################
@@ -216,7 +216,7 @@ struct DIGITIZERS_API wr_event_t {
 inline gr::tag_t make_wr_event_tag(const wr_event_t& event, uint64_t offset)
 {
     const auto value =
-        std::vector<pmtf::pmt>{ event.event_id,
+        std::vector<pmtv::pmt>{ event.event_id,
                                 static_cast<uint64_t>(event.wr_trigger_stamp),
                                 static_cast<uint64_t>(event.wr_trigger_stamp_utc) };
     return { offset, { { wr_event_tag_name, value } } };
@@ -237,18 +237,18 @@ inline wr_event_t decode_wr_event_tag(const gr::tag_t& tag)
                         wr_event_tag_name));
     }
 
-    const auto tag_vector = pmtf::get_as<std::vector<pmtf::pmt>>(*tag_value);
+    const auto tag_vector = pmtv::get_vector<pmtv::pmt>(tag_value->get());
 
     if (tag_vector.size() != 3) {
         throw std::runtime_error(fmt::format(
             "Exception in {}:{}: invalid wr_event tag format", __FILE__, __LINE__));
     }
 
-    return { .event_id = pmtf::get_as<std::string>(tag_vector[0]),
+    return { .event_id = std::get<std::string>(tag_vector[0]),
              .wr_trigger_stamp =
-                 static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[1])),
+                 static_cast<int64_t>(std::get<uint64_t>(tag_vector[1])),
              .wr_trigger_stamp_utc =
-                 static_cast<int64_t>(pmtf::get_as<uint64_t>(tag_vector[2])) };
+                 static_cast<int64_t>(std::get<uint64_t>(tag_vector[2])) };
 }
 
 // ################################################################################################################

@@ -89,9 +89,9 @@ work_return_t stft_goertzl_dynamic_cpu::work(work_io& wio)
     auto phs = wio.outputs()[1].items<float>();
     auto fqs = wio.outputs()[2].items<float>();
 
-    const auto samp_length = 1. / pmtf::get_as<std::size_t>(*this->param_samp_rate);
-    const auto winsize = pmtf::get_as<std::size_t>(*this->param_winsize);
-    const auto nbins = pmtf::get_as<std::size_t>(*this->param_nbins);
+    const auto samp_length = 1. / std::get<double>(*this->param_samp_rate);
+    const auto winsize = std::get<std::size_t>(*this->param_winsize);
+    const auto nbins = std::get<std::size_t>(*this->param_nbins);
 
     double f_range = f_max[0] - f_min[0];
     // printf("noutput_items = %i, d_winsize =%i\n", noutput_items, d_winsize);

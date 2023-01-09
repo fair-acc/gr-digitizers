@@ -24,9 +24,9 @@ work_return_t stream_to_vector_overlay_cpu::work(work_io& wio)
     const auto in = wio.inputs()[0].items<float>();
     auto out = wio.outputs()[0].items<float>();
 
-    const auto vec_size = pmtf::get_as<std::size_t>(*this->param_vec_size);
-    const auto samp_rate = pmtf::get_as<double>(*this->param_samp_rate);
-    const auto delta_t = pmtf::get_as<double>(*this->param_delta_t);
+    const auto vec_size = std::get<std::size_t>(*this->param_vec_size);
+    const auto samp_rate = std::get<double>(*this->param_samp_rate);
+    const auto delta_t = std::get<double>(*this->param_delta_t);
 
     if (d_offset >= 1.0) {
         // move along until new samples arrive

@@ -137,11 +137,11 @@ void time_realignment_cpu::on_parameter_change(param_action_sptr action)
 {
     if (action->id() == id_triggerstamp_matching_tolerance) {
         d_triggerstamp_matching_tolerance_ns = static_cast<int64_t>(
-            pmtf::get_as<float>(*this->param_triggerstamp_matching_tolerance) * BILLION);
+            std::get<float>(*this->param_triggerstamp_matching_tolerance) * BILLION);
     }
     else if (action->id() == id_max_buffer_time) {
         d_max_buffer_time_ns = static_cast<int64_t>(
-            pmtf::get_as<float>(*this->param_max_buffer_time) * BILLION);
+            std::get<float>(*this->param_max_buffer_time) * BILLION);
     }
 }
 
@@ -229,7 +229,7 @@ bool time_realignment_cpu::fill_wr_stamp(trigger_t& trigger_tag_data)
 
 int64_t time_realignment_cpu::get_user_delay_ns() const
 {
-    return static_cast<int64_t>(pmtf::get_as<float>(*this->param_user_delay) * BILLION);
+    return static_cast<int64_t>(std::get<float>(*this->param_user_delay) * BILLION);
 }
 
 } /* namespace gr::digitizers */
