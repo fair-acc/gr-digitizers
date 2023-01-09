@@ -3,10 +3,8 @@
 
 namespace gr::digitizers {
 
-template <class T>
-time_domain_sink_cpu<T>::time_domain_sink_cpu(
-    const typename time_domain_sink<T>::block_args& args)
-    : INHERITED_CONSTRUCTORS(T)
+time_domain_sink_cpu::time_domain_sink_cpu(const block_args& args)
+    : INHERITED_CONSTRUCTORS
 {
     if (args.output_package_size == 0) {
         throw std::runtime_error(
@@ -18,7 +16,7 @@ time_domain_sink_cpu<T>::time_domain_sink_cpu(
 
     try {
         // TODO(PORT) check if this actually throws
-        this->set_output_multiple(args.output_package_size);
+        set_output_multiple(args.output_package_size);
     } catch (const std::exception& ex) {
         throw std::runtime_error(fmt::format("Exception in:{}:{} Channel: {} Error: {}",
                                              __FILE__,
@@ -27,11 +25,10 @@ time_domain_sink_cpu<T>::time_domain_sink_cpu(
                                              ex.what()));
     }
 
-    this->set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
+    set_tag_propagation_policy(tag_propagation_policy_t::TPP_DONT);
 }
 
-template <class T>
-void time_domain_sink_cpu<T>::set_callback(
+void time_domain_sink_cpu::set_callback(
     std::function<
         void(std::vector<float>, std::vector<float>, std::vector<gr::tag_t>, void*)> cb,
     void* user_data)
@@ -40,8 +37,7 @@ void time_domain_sink_cpu<T>::set_callback(
     d_userdata = user_data;
 }
 
-template <class T>
-work_return_t time_domain_sink_cpu<T>::work(work_io& wio)
+work_return_t time_domain_sink_cpu::work(work_io& wio)
 {
     const auto ninput_items = wio.inputs()[0].n_items;
 

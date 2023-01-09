@@ -4,14 +4,7 @@ label: time_domain_sink
 blocktype: sync_block
 includes:
   - gnuradio/digitizers/enums.h
-# TODO(PORT) removing the template parameter leads to an undefined ref. to
-# the pmtv::pmt(time_sink_mode_t) ctor when linking the digitizers lib.
-# Probably a bug in code generation for enums.yml.
-typekeys:
-  - id: T
-    type: class
-    options:
-        - rf32
+
 parameters:
 -   id: signal_name
     label: Signal Name
@@ -46,11 +39,11 @@ ports:
 -   domain: stream
     id: in_values
     direction: input
-    type: typekeys/T
+    type: rf32
 -   domain: stream
     id: in_errors
     direction: input
-    type: typekeys/T
+    type: rf32
     optional: true
 
 implementations:
