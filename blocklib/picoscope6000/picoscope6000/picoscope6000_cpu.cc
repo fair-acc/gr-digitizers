@@ -1,12 +1,13 @@
 #include "picoscope6000_cpu.h"
 #include "picoscope6000_cpu_gen.h"
 
-#include "ps_6000_defs.h"
-
 #include "utils.h"
 #include <digitizers/status.h>
+#include <picoscopeimpl/status_string.h>
+
 #include <cstring>
 
+using namespace gr::picoscope;
 using gr::digitizers::acquisition_mode_t;
 using gr::digitizers::channel_status_t;
 using gr::digitizers::coupling_t;
@@ -26,7 +27,7 @@ const char* PicoStatus6000Errc::name() const noexcept { return "Ps6000"; }
 std::string PicoStatus6000Errc::message(int ev) const
 {
     PICO_STATUS status = static_cast<PICO_STATUS>(ev);
-    return ps6000_get_error_message(status);
+    return detail::get_error_message(status);
 }
 
 const PicoStatus6000Errc thePsErrCategory{};
@@ -62,25 +63,20 @@ static PS6000_COUPLING convert_to_ps6000_coupling(coupling_t coupling,
                                                   double desired_range)
 {
     if (desired_range >= 10.0 && coupling == coupling_t::DC_50R) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": Ranges 10V and 20V are only supported for 1M Ohm coupling";
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}: {}: Ranges 10V and 20V are only supported for 1M Ohm coupling", __FILE__, __LINE__));
     }
 
     if (coupling == coupling_t::AC_1M)
         return PS6000_AC;
-    else if (coupling == coupling_t::DC_1M)
+    if (coupling == coupling_t::DC_1M)
         return PS6000_DC_1M;
-    else if (coupling == coupling_t::DC_50R)
+    if (coupling == coupling_t::DC_50R)
         return PS6000_DC_50R;
-    else {
-        throw std::runtime_error(
-            fmt::format("Exception in {}:{} unsupported coupling mode: {}",
-                        __FILE__,
-                        __LINE__,
-                        static_cast<int>(coupling)));
-    }
+    throw std::runtime_error(
+        fmt::format("Exception in {}:{}: unsupported coupling mode: {}",
+                    __FILE__,
+                    __LINE__,
+                    static_cast<int>(coupling)));
 }
 
 static PS6000_RANGE convert_to_ps6000_range(float range)
@@ -110,10 +106,7 @@ static PS6000_RANGE convert_to_ps6000_range(float range)
     else if (range == 50.0)
         return PS6000_50V;
     else {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": Range value not supported: " << range;
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: Range value not supported: {}", __FILE__, __LINE__, range));
     }
 }
 
@@ -125,14 +118,16 @@ void validate_desired_actual_frequency_ps6000(double desired_freq, double actual
     double diff_percent = (actual_freq - desired_freq) * 100 / desired_freq;
 
     if (abs(diff_percent) > max_diff_percentage) {
-        std::ostringstream message;
-        message << "Critical Error in " << __FILE__ << ":" << __LINE__
-                << ": Desired and actual frequency do not match. desired: "
-                << desired_freq << " actual: " << actual_freq << std::endl;
+        const auto message = fmt::format("Critical Error in {}:{}: Desired and actual "
+                                   "frequency do not match. desired: {} actual: {}",
+                                   __FILE__,
+                                   __LINE__,
+                                   desired_freq,
+                                   actual_freq);
 #ifdef PORT_DISABLED // TODO can't access d_logger from free function
         GR_LOG_ERROR(d_logger, message);
 #endif
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(message);
     }
 }
 
@@ -163,20 +158,20 @@ uint32_t picoscope_6000_impl::convert_frequency_to_ps6000_timebase(double desire
         auto status = ps6000GetTimebase2(
             d_handle, 5 + i, 1024, &time_interval_ns_56[i], 0, &dummy, 0);
         if (status != PICO_OK) {
-            GR_LOG_NOTICE(d_logger,
-                          "timebase cannot be obtained: " +
-                              ps6000_get_error_message(status));
-            GR_LOG_NOTICE(d_logger, "    estimated timebase will be used...");
+            d_logger->notice(
+                "timebase cannot be obtained: {}    estimated timebase will be used...",
+                detail::get_error_message(status));
 
             float time_interval_ns;
             status = ps6000GetTimebase2(
                 d_handle, timebase_estimate, 1024, &time_interval_ns, 0, &dummy, 0);
             if (status != PICO_OK) {
-                std::ostringstream message;
-                message << "Exception in " << __FILE__ << ":" << __LINE__
-                        << ": local time " << timebase_estimate
-                        << " Error: " << ps6000_get_error_message(status);
-                throw std::runtime_error(message.str());
+                throw std::runtime_error(
+                    fmt::format("Exception in {}:{}: local time {} Error: {}",
+                                __FILE__,
+                                __LINE__,
+                                timebase_estimate,
+                                detail::get_error_message(status)));
             }
 
             actual_freq = 1000000000.0 / double(time_interval_ns);
@@ -290,21 +285,21 @@ convert_to_ps6000_threshold_direction(trigger_direction_t direction)
     case trigger_direction_t::HIGH:
         return PS6000_ABOVE;
     default:
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": unsupported trigger direction:" << static_cast<int>(direction);
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: unsupported trigger direction: {}",
+                                 __FILE__,
+                                 __LINE__,
+                                 static_cast<int>(direction)));
     }
 };
 
 int16_t convert_voltage_to_ps6000_raw_logic_value(double voltage, float channel_range)
 {
     if (fabs(voltage) > double(fabs(channel_range))) {
+#ifdef PORT_DISABLED // TODO can't access d_logger from free function
         std::ostringstream message;
         message << "Exception in " << __FILE__ << ":" << __LINE__ << ": Voltage '"
                 << voltage << "' exceed maximum channel range (+/-" << channel_range
                 << "V)";
-#ifdef PORT_DISABLED // TODO can't access d_logger from free function
         GR_LOG_ERROR(d_logger, message.str());
 #endif
     }
@@ -318,24 +313,20 @@ convert_to_ps6000_channel(const std::string& source)
     if (source == "A") {
         return PS6000_CHANNEL_A;
     }
-    else if (source == "B") {
+    if (source == "B") {
         return PS6000_CHANNEL_B;
     }
-    else if (source == "C") {
+    if (source == "C") {
         return PS6000_CHANNEL_C;
     }
-    else if (source == "D") {
+     if (source == "D") {
         return PS6000_CHANNEL_D;
     }
-    else if (source == "AUX") {
+    if (source == "AUX") {
         return PS6000_TRIGGER_AUX;
     }
-    else {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": Invalid trigger Source: " << source;
-        throw std::invalid_argument(message.str());
-    }
+
+    throw std::invalid_argument(fmt::format("Exception in {}:{}: Invalid trigger source: {}", __FILE__, __LINE__, source));
 }
 
 picoscope_6000_impl::picoscope_6000_impl(const digitizers::digitizer_args& args,
@@ -416,23 +407,20 @@ std::error_code picoscope_6000_impl::driver_initialize()
     }
 
     if (devCount == 0) {
-        GR_LOG_ERROR(d_logger, "No ps6000 device found");
+        d_logger->error("No ps6000 device found");
         return make_pico_6000_error_code(12);
     }
 
     if (d_serial_number.empty()) {
         if (devCount != 1) {
-            GR_LOG_ERROR(
-                d_logger,
-                "There is more than one ps6000 connected. Please enter a serial!");
+            d_logger->error("There is more than one ps6000 connected. Please enter a serial!");
             for (uint16_t i = 0; i < devCount; i++)
                 ps6000CloseUnit(temp_handles[i]);
             return make_pico_6000_error_code(12);
         }
     }
     else {
-        GR_LOG_INFO(d_logger,
-                    "Searching for scope with serial: '" + d_serial_number + "'");
+        d_logger->info("Searching for scope with serial: '{}'", d_serial_number);
         bool found = false;
         for (uint16_t i = 0; i < devCount; i++) {
             int16_t requiredSize = 20;
@@ -447,7 +435,7 @@ std::error_code picoscope_6000_impl::driver_initialize()
             for (int a = 0; serial[a] != int8_t('\0'); a++) {
                 convert << serial[a];
             }
-            GR_LOG_INFO(d_logger, "... found scope with serial: '" + convert.str() + "'");
+            d_logger->info("... found scope with serial: '{}'", convert.str());
             if (convert.str() == d_serial_number) {
                 found = true;
                 d_handle = temp_handles[i];
@@ -458,12 +446,10 @@ std::error_code picoscope_6000_impl::driver_initialize()
         }
 
         if (found) {
-            GR_LOG_INFO(d_logger,
-                        "Serials match, scope '" + d_serial_number + "' found.");
+            d_logger->info("Serials match, scope '{}' found.", d_serial_number);
         }
         else {
-            GR_LOG_ERROR(d_logger,
-                         "No matching serial found for scope '" + d_serial_number + "'");
+            d_logger->error("No matching serial found for scope '{}'", d_serial_number);
         }
     }
 
@@ -479,15 +465,13 @@ std::error_code picoscope_6000_impl::driver_configure()
     uint32_t max_samples;
     PICO_STATUS status = ps6000MemorySegments(d_handle, d_nr_captures, &max_samples);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger,
-                     "ps6000MemorySegments: " + ps6000_get_error_message(status));
+        d_logger->error("ps6000MemorySegments: {}", detail::get_error_message(status));
         return make_pico_6000_error_code(status);
     }
 
     status = ps6000SetNoOfCaptures(d_handle, d_nr_captures);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger,
-                     "ps6000SetNoOfCaptures: " + ps6000_get_error_message(status));
+        d_logger->error("ps6000SetNoOfCaptures: {}", detail::get_error_message(status));
         return make_pico_6000_error_code(status);
     }
 
@@ -507,9 +491,7 @@ std::error_code picoscope_6000_impl::driver_configure()
                                   offset,
                                   PS6000_BW_FULL);
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger,
-                         "ps6000SetChannel (chan " + std::to_string(i) +
-                             "): " + ps6000_get_error_message(status));
+            d_logger->error("ps6000SetChannel (chan {}): {}", i, detail::get_error_message(status));
             return make_pico_6000_error_code(status);
         }
     }
@@ -530,10 +512,7 @@ std::error_code picoscope_6000_impl::driver_configure()
             channel_range = 1.; // AUX can only be used for triggering, has a fixed Range
                                 // of +/-1V according to Programmers guideline
         else {
-            std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__
-                    << ": Invalid Channel Name: " << d_trigger_settings.source;
-            GR_LOG_ERROR(d_logger, message.str());
+            d_logger->error("Exception in {}:{}: Invalid channel name: {}", __FILE__, __LINE__, d_trigger_settings.source);
             return make_pico_6000_error_code(status);
         }
 
@@ -547,8 +526,7 @@ std::error_code picoscope_6000_impl::driver_configure()
             0,   // delay
             -1); // auto trigger
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger,
-                         "ps6000SetSimpleTrigger: " + ps6000_get_error_message(status));
+            d_logger->error("ps6000SetSimpleTrigger: {}", detail::get_error_message(status));
             return make_pico_6000_error_code(status);
         }
         d_logger->info("Triggering enabled for picoscope: '{}' Trigger source: '{}' "
@@ -568,9 +546,7 @@ std::error_code picoscope_6000_impl::driver_configure()
         };
         status = ps6000SetTriggerChannelConditions(d_handle, &conds, 1);
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger,
-                         "ps6000SetTriggerChannelConditionsV2: " +
-                             ps6000_get_error_message(status));
+            d_logger->error("ps6000SetTriggerChannelConditionsV2: {}", detail::get_error_message(status));
             return make_pico_6000_error_code(status);
         }
     }
@@ -610,7 +586,7 @@ std::error_code picoscope_6000_impl::driver_arm()
                            (ps6000BlockReady)rapid_block_callback_redirector_6000,
                            this);
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger, "ps6000RunBlock: " + ps6000_get_error_message(status));
+            d_logger->error("ps6000RunBlock: {}", detail::get_error_message(status));
             return make_pico_6000_error_code(status);
         }
     }
@@ -633,8 +609,7 @@ std::error_code picoscope_6000_impl::driver_arm()
                                d_driver_buffer_size);
 
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger,
-                         "ps6000RunStreaming: " + ps6000_get_error_message(status));
+            d_logger->error("ps6000RunStreaming: {}", detail::get_error_message(status));
             return make_pico_6000_error_code(status);
         }
     }
@@ -646,7 +621,7 @@ std::error_code picoscope_6000_impl::driver_disarm()
 {
     auto status = ps6000Stop(d_handle);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps6000Stop: " + ps6000_get_error_message(status));
+        d_logger->error("ps6000Stop: {}", detail::get_error_message(status));
     }
 
     return make_pico_6000_error_code(status);
@@ -660,7 +635,7 @@ std::error_code picoscope_6000_impl::driver_close()
 
     auto status = ps6000CloseUnit(d_handle);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps6000CloseUnit: " + ps6000_get_error_message(status));
+        d_logger->error("ps6000CloseUnit: {}", detail::get_error_message(status));
     }
 
     d_handle = -1;
@@ -699,9 +674,7 @@ std::error_code picoscope_6000_impl::set_buffers(size_t samples, uint32_t block_
         }
 
         if (status != PICO_OK) {
-            GR_LOG_ERROR(d_logger,
-                         "ps6000SetDataBuffer (chan " + std::to_string(aichan) +
-                             "): " + ps6000_get_error_message(status));
+            d_logger->error("ps6000SetDataBuffer (chan {}): {}", aichan, std::to_string(aichan), detail::get_error_message(status));
             return make_pico_6000_error_code(status);
         }
     }
@@ -725,7 +698,7 @@ std::error_code picoscope_6000_impl::driver_prefetch_block(size_t samples,
                                   block_number,
                                   &d_overflow);
     if (status != PICO_OK) {
-        GR_LOG_ERROR(d_logger, "ps6000GetValues: " + ps6000_get_error_message(status));
+        d_logger->error("ps6000GetValues: {}", detail::get_error_message(status));
     }
 
     return make_pico_6000_error_code(status);

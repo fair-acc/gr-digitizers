@@ -107,7 +107,9 @@ if enable_picoscope
   callback_includedir = join_paths(libpicoscope_includedir, 'libps6000a')
   libpicoscope3000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps3000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps3000a'], dependencies : [ libusb_dep, zlib_dep ])
   libpicoscope4000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps4000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps4000a'], dependencies : [ libusb_dep, zlib_dep ])
-  libpicoscope6000_dep = declare_dependency(include_directories : join_paths(libpicoscope_includedir, 'libps6000'), link_args : ['-L' + libpicoscope_libdir, '-lps6000'], dependencies : [ libusb_dep, zlib_dep ])
+  libpicoscope5000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps5000a')], link_args : ['-L' + libpicoscope_libdir, '-lps5000a'], dependencies : [ libusb_dep, zlib_dep ])
+  libpicoscope6000_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps6000'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps6000'], dependencies : [ libusb_dep, zlib_dep ])
+
 endif
 
 if GR_ENABLE_PYTHON
@@ -121,7 +123,9 @@ endif
 subdir('blocklib/digitizers')
 
 if enable_picoscope
+  subdir('picoscopeimpl')
   subdir('blocklib/picoscope3000a')
   subdir('blocklib/picoscope4000a')
+  subdir('blocklib/picoscope5000a')
   subdir('blocklib/picoscope6000')
 endif

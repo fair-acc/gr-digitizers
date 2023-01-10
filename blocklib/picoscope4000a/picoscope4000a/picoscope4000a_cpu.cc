@@ -1,12 +1,13 @@
 #include "picoscope4000a_cpu.h"
 #include "picoscope4000a_cpu_gen.h"
 
-#include "ps_4000a_defs.h"
+#include <picoscopeimpl/status_string.h>
 
 #include "utils.h"
 #include <digitizers/status.h>
 #include <cstring>
 
+using namespace gr::picoscope;
 using gr::digitizers::acquisition_mode_t;
 using gr::digitizers::channel_status_t;
 using gr::digitizers::coupling_t;
@@ -24,7 +25,7 @@ const char* PicoStatus4000aErrc::name() const noexcept { return "Ps4000a"; }
 std::string PicoStatus4000aErrc::message(int ev) const
 {
     PICO_STATUS status = static_cast<PICO_STATUS>(ev);
-    return ps4000a_get_error_message(status);
+    return detail::get_error_message(status);
 }
 
 const PicoStatus4000aErrc thePsErrCategory{};
@@ -60,13 +61,14 @@ static PS4000A_COUPLING convert_to_ps4000a_coupling(coupling_t coupling)
 {
     if (coupling == coupling_t::AC_1M)
         return PS4000A_AC;
-    else if (coupling == coupling_t::DC_1M)
+     if (coupling == coupling_t::DC_1M)
         return PS4000A_DC;
     else {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": unsupported coupling mode:" << static_cast<int>(coupling);
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(
+            fmt::format("Exception in {}:{}: unsupported coupling mode: {}",
+                        __FILE__,
+                        __LINE__,
+                        static_cast<int>(coupling)));
     }
 }
 
@@ -101,10 +103,7 @@ static PS4000A_RANGE convert_to_ps4000a_range(double range)
     else if (range == 200.0)
         return PS4000A_200V;
     else {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": Range value not supported: " << range;
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: Range value not supported: {}", __FILE__, __LINE__, range));
     }
 }
 
@@ -115,14 +114,16 @@ void validate_desired_actual_frequency_ps4000(double desired_freq, double actual
     double max_diff_percentage = 0.001;
     double diff_percent = (actual_freq - desired_freq) * 100 / desired_freq;
     if (abs(diff_percent) > max_diff_percentage) {
-        std::ostringstream message;
-        message << "Critical Error in " << __FILE__ << ":" << __LINE__
-                << ": Desired and actual frequency do not match. desired: "
-                << desired_freq << " actual: " << actual_freq << std::endl;
+        const auto message = fmt::format("Critical Error in {}:{}: Desired and actual "
+                                   "frequency do not match. desired: {} actual: {}",
+                                   __FILE__,
+                                   __LINE__,
+                                   desired_freq,
+                                   actual_freq);
 #ifdef PORT_DISABLED // TODO can't access d_logger from free function
         GR_LOG_ERROR(d_logger, message);
 #endif
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(message);
     }
 }
 
@@ -153,19 +154,20 @@ uint32_t picoscope_4000a_impl::convert_frequency_to_ps4000a_timebase(double desi
         auto status = ps4000aGetTimebase2(
             d_handle, 3 + i, 1024, &time_interval_ns_34[i], &dummy, 0);
         if (status != PICO_OK) {
-            d_logger->notice("timebase cannot be obtained: {}",
-                             ps4000a_get_error_message(status));
-            d_logger->notice("    estimated timebase will be used...");
+            d_logger->notice(
+                "timebase cannot be obtained: {}    estimated timebase will be used...",
+                detail::get_error_message(status));
 
             float time_interval_ns;
             status = ps4000aGetTimebase2(
                 d_handle, timebase_estimate, 1024, &time_interval_ns, &dummy, 0);
             if (status != PICO_OK) {
-                std::ostringstream message;
-                message << "Exception in " << __FILE__ << ":" << __LINE__
-                        << ": local time " << timebase_estimate
-                        << " Error: " << ps4000a_get_error_message(status);
-                throw std::runtime_error(message.str());
+                throw std::runtime_error(
+                    fmt::format("Exception in {}:{}: local time {} Error: {}",
+                                __FILE__,
+                                __LINE__,
+                                timebase_estimate,
+                                detail::get_error_message(status)));
             }
 
             actual_freq = 1000000000.0 / time_interval_ns;
@@ -278,10 +280,10 @@ convert_to_ps4000a_threshold_direction(trigger_direction_t direction)
     case trigger_direction_t::HIGH:
         return PS4000A_ABOVE;
     default:
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": unsupported trigger direction:" << static_cast<int>(direction);
-        throw std::runtime_error(message.str());
+        throw std::runtime_error(fmt::format("Exception in {}:{}: unsupported trigger direction: {}",
+                                 __FILE__,
+                                 __LINE__,
+                                 static_cast<int>(direction)));
     }
 };
 
@@ -290,10 +292,10 @@ int16_t convert_voltage_to_ps4000a_raw_logic_value(double value)
     double max_logical_voltage = 5.0;
 
     if (value > max_logical_voltage) {
-        std::ostringstream message;
-        message << "Exception in " << __FILE__ << ":" << __LINE__
-                << ": max logical level is: " << max_logical_voltage;
-        throw std::invalid_argument(message.str());
+        throw std::invalid_argument(fmt::format("Exception in {}:{}: max logical level is: {}",
+                                    __FILE__,
+                                    __LINE__,
+                                    max_logical_voltage));
     }
     // Note max channel value not provided with PicoScope API, we use ext max value
     return (int16_t)((value / max_logical_voltage) * (double)PS4000A_EXT_MAX_VALUE);
@@ -428,7 +430,7 @@ std::error_code picoscope_4000a_impl::driver_initialize()
     }
 
     if (status != PICO_OK) {
-        d_logger->error("open unit failed: {} ", ps4000a_get_error_message(status));
+        d_logger->error("open unit failed: {} ", detail::get_error_message(status));
         return make_pico_4000a_error_code(status);
     }
 
@@ -436,7 +438,7 @@ std::error_code picoscope_4000a_impl::driver_initialize()
     status = ps4000aMaximumValue(d_handle, &d_max_value);
     if (status != PICO_OK) {
         ps4000aCloseUnit(d_handle);
-        d_logger->error("ps4000aMaximumValue: {}", ps4000a_get_error_message(status));
+        d_logger->error("ps4000aMaximumValue: {}", detail::get_error_message(status));
         return make_pico_4000a_error_code(status);
     }
 
@@ -450,7 +452,7 @@ std::error_code picoscope_4000a_impl::driver_configure()
     int32_t max_samples;
     PICO_STATUS status = ps4000aMemorySegments(d_handle, d_nr_captures, &max_samples);
     if (status != PICO_OK) {
-        d_logger->error("ps4000aMemorySegments: {}", ps4000a_get_error_message(status));
+        d_logger->error("ps4000aMemorySegments: {}", detail::get_error_message(status));
         return make_pico_4000a_error_code(status);
     }
 
@@ -458,7 +460,7 @@ std::error_code picoscope_4000a_impl::driver_configure()
         status = ps4000aSetNoOfCaptures(d_handle, d_nr_captures);
         if (status != PICO_OK) {
             d_logger->error("ps4000aSetNoOfCaptures: {}",
-                            ps4000a_get_error_message(status));
+                            detail::get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -478,7 +480,7 @@ std::error_code picoscope_4000a_impl::driver_configure()
                                    offset);
         if (status != PICO_OK) {
             d_logger->error(
-                "ps4000aSetChannel (chan {}): {}", i, ps4000a_get_error_message(status));
+                "ps4000aSetChannel (chan {}): {}", i, detail::get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -496,7 +498,7 @@ std::error_code picoscope_4000a_impl::driver_configure()
             -1); // auto trigger
         if (status != PICO_OK) {
             d_logger->error("ps4000aSetSimpleTrigger: {}",
-                            ps4000a_get_error_message(status));
+                            detail::get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -510,7 +512,7 @@ std::error_code picoscope_4000a_impl::driver_configure()
                 ps4000aSetTriggerChannelConditions(d_handle, &cond, 1, PS4000A_CLEAR);
             if (status != PICO_OK) {
                 d_logger->error("ps4000aSetTriggerChannelConditionsV2: {}",
-                                ps4000a_get_error_message(status));
+                                detail::get_error_message(status));
                 return make_pico_4000a_error_code(status);
             }
         }
@@ -550,7 +552,7 @@ std::error_code picoscope_4000a_impl::driver_arm()
                             (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
                             this);
         if (status != PICO_OK) {
-            d_logger->error("ps4000aRunBlock: {}", ps4000a_get_error_message(status));
+            d_logger->error("ps4000aRunBlock: {}", detail::get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -573,7 +575,7 @@ std::error_code picoscope_4000a_impl::driver_arm()
                                 d_driver_buffer_size);
 
         if (status != PICO_OK) {
-            d_logger->error("ps4000aRunStreaming: {}", ps4000a_get_error_message(status));
+            d_logger->error("ps4000aRunStreaming: {}", detail::get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -585,7 +587,7 @@ std::error_code picoscope_4000a_impl::driver_disarm()
 {
     auto status = ps4000aStop(d_handle);
     if (status != PICO_OK) {
-        d_logger->error("ps4000aStop: {}", ps4000a_get_error_message(status));
+        d_logger->error("ps4000aStop: {}", detail::get_error_message(status));
     }
 
     return make_pico_4000a_error_code(status);
@@ -599,7 +601,7 @@ std::error_code picoscope_4000a_impl::driver_close()
 
     auto status = ps4000aCloseUnit(d_handle);
     if (status != PICO_OK) {
-        d_logger->error("ps4000aCloseUnit: {}", ps4000a_get_error_message(status));
+        d_logger->error("ps4000aCloseUnit: {}", detail::get_error_message(status));
     }
 
     d_handle = -1;
@@ -642,7 +644,7 @@ std::error_code picoscope_4000a_impl::set_buffers(size_t samples, uint32_t block
         if (status != PICO_OK) {
             d_logger->error("ps4000aSetDataBuffer (chan {}): {}",
                             aichan,
-                            ps4000a_get_error_message(status));
+                            detail::get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
     }
@@ -667,7 +669,7 @@ std::error_code picoscope_4000a_impl::driver_prefetch_block(size_t samples,
                                    block_number,
                                    &d_overflow);
     if (status != PICO_OK) {
-        d_logger->error("ps4000aGetValues: {}", ps4000a_get_error_message(status));
+        d_logger->error("ps4000aGetValues: {}", detail::get_error_message(status));
     }
 
     return make_pico_4000a_error_code(status);

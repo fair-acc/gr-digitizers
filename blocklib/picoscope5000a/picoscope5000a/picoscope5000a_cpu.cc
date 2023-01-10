@@ -1,5 +1,5 @@
-#include "picoscope3000a_cpu.h"
-#include "picoscope3000a_cpu_gen.h"
+#include "picoscope5000a_cpu.h"
+#include "picoscope5000a_cpu_gen.h"
 
 #include "utils.h"
 #include <digitizers/status.h>
@@ -15,26 +15,26 @@ using gr::digitizers::downsampling_mode_t;
 using gr::digitizers::range_t;
 using gr::digitizers::trigger_direction_t;
 
-struct PicoStatus3000aErrc : std::error_category {
+struct PicoStatus5000aErrc : std::error_category {
     const char* name() const noexcept override;
     std::string message(int ev) const override;
 };
 
-const char* PicoStatus3000aErrc::name() const noexcept { return "Ps3000a"; }
+const char* PicoStatus5000aErrc::name() const noexcept { return "Ps5000a"; }
 
-std::string PicoStatus3000aErrc::message(int ev) const
+std::string PicoStatus5000aErrc::message(int ev) const
 {
     PICO_STATUS status = static_cast<PICO_STATUS>(ev);
     return detail::get_error_message(status);
 }
 
-const PicoStatus3000aErrc thePsErrCategory{};
+const PicoStatus5000aErrc thePsErrCategory{};
 
 /*!
  * This method is needed because PICO_STATUS is not a distinct type (e.g. an enum)
  * therfore we cannot really hook this into the std error code properly.
  */
-std::error_code make_pico_3000a_error_code(PICO_STATUS e)
+std::error_code make_pico_5000a_error_code(PICO_STATUS e)
 {
     return { static_cast<int>(e), thePsErrCategory };
 }
@@ -43,13 +43,13 @@ namespace {
 boost::mutex g_init_mutex;
 }
 
-namespace gr::picoscope3000a {
+namespace gr::picoscope5000a {
 
 /*!
  * a structure used for streaming setup
  */
-struct ps3000a_unit_interval_t {
-    PS3000A_TIME_UNITS unit;
+struct ps5000a_unit_interval_t {
+    PS5000A_TIME_UNITS unit;
     uint32_t interval;
 };
 
@@ -57,45 +57,42 @@ struct ps3000a_unit_interval_t {
  * Converters - helper functions
  *********************************************************************/
 
-static PS3000A_COUPLING convert_to_ps3000a_coupling(coupling_t coupling)
+static PS5000A_COUPLING convert_to_ps5000a_coupling(coupling_t coupling)
 {
     if (coupling == coupling_t::AC_1M)
-        return PS3000A_AC;
+        return PS5000A_AC;
     if (coupling == coupling_t::DC_1M)
-        return PS3000A_DC;
+        return PS5000A_DC;
 
-    throw std::runtime_error(fmt::format("{}:{}: unsupported coupling mode: {}",
-                                            __FILE__,
-                                            __LINE__,
-                                            static_cast<int>(coupling)));
+    throw std::runtime_error(fmt::format("Exception in {}:{}: unsupported coupling mode: {}", __FILE__, __LINE__, static_cast<int>(coupling)));
 }
 
-static PS3000A_RANGE convert_to_ps3000a_range(double range)
+static PS5000A_RANGE convert_to_ps5000a_range(double range)
 {
     if (range == 0.01)
-        return PS3000A_10MV;
+        return PS5000A_10MV;
     else if (range == 0.02)
-        return PS3000A_20MV;
+        return PS5000A_20MV;
     else if (range == 0.05)
-        return PS3000A_50MV;
+        return PS5000A_50MV;
     else if (range == 0.1)
-        return PS3000A_100MV;
+        return PS5000A_100MV;
     else if (range == 0.2)
-        return PS3000A_200MV;
+        return PS5000A_200MV;
     else if (range == 0.5)
-        return PS3000A_500MV;
+        return PS5000A_500MV;
     else if (range == 1.0)
-        return PS3000A_1V;
+        return PS5000A_1V;
     else if (range == 2.0)
-        return PS3000A_2V;
+        return PS5000A_2V;
     else if (range == 5.0)
-        return PS3000A_5V;
+        return PS5000A_5V;
     else if (range == 10.0)
-        return PS3000A_10V;
+        return PS5000A_10V;
     else if (range == 20.0)
-        return PS3000A_20V;
+        return PS5000A_20V;
     else if (range == 50.0)
-        return PS3000A_50V;
+        return PS5000A_50V;
     else {
         throw std::runtime_error(
             fmt::format("Exception in {}:{}: Range value not supported: {}",
@@ -105,19 +102,14 @@ static PS3000A_RANGE convert_to_ps3000a_range(double range)
     }
 }
 
-void validate_desired_actual_frequency_ps3000(double desired_freq, double actual_freq)
+void validate_desired_actual_frequency_ps4000(double desired_freq, double actual_freq)
 {
     // In order to prevent exceptions/exit due to rounding errors, we dont directly
     // compare actual_freq to desired_freq, but instead allow a difference up to 0.001%
     double max_diff_percentage = 0.001;
     double diff_percent = (actual_freq - desired_freq) * 100 / desired_freq;
     if (abs(diff_percent) > max_diff_percentage) {
-        const auto message = fmt::format("Critical Error in {}:{}: Desired and actual "
-                                   "frequency do not match. desired: {} actual: {}",
-                                   __FILE__,
-                                   __LINE__,
-                                   desired_freq,
-                                   actual_freq);
+        const auto message = fmt::format("Critical Error in {}:{}: Desired and actual frequency do not match. desired: {} actual: {}", __FILE__, __LINE__, desired_freq, actual_freq);
 #ifdef PORT_DISABLED // TODO can't access d_logger from free function
         GR_LOG_ERROR(d_logger, message);
 #endif
@@ -129,7 +121,7 @@ void validate_desired_actual_frequency_ps3000(double desired_freq, double actual
  * Note this function has to be called after the call to the ps3000aSetChannel function,
  * that is just befor the arm!!!
  */
-uint32_t picoscope_3000a_impl::convert_frequency_to_ps3000a_timebase(double desired_freq,
+uint32_t picoscope_5000a_impl::convert_frequency_to_ps5000a_timebase(double desired_freq,
                                                                      double& actual_freq)
 {
     // It is assumed that the timebase is calculated like this:
@@ -149,13 +141,16 @@ uint32_t picoscope_3000a_impl::convert_frequency_to_ps3000a_timebase(double desi
     std::array<float, 2> time_interval_ns_34;
 
     for (auto i = 0; i < 2; i++) {
-        auto status = ps3000aGetTimebase2(
-            d_handle, 3 + i, 1024, &time_interval_ns_34[i], 0, &dummy, 0);
+        auto status = ps5000aGetTimebase2(
+            d_handle, 3 + i, 1024, &time_interval_ns_34[i], &dummy, 0);
         if (status != PICO_OK) {
-            d_logger->notice("timebase cannot be obtained: {}    estimated timebase will be used...", detail::get_error_message(status));
+            d_logger->notice(
+                "timebase cannot be obtained: {}    estimated timebase will be used...",
+                detail::get_error_message(status));
+
             float time_interval_ns;
-            status = ps3000aGetTimebase2(
-                d_handle, timebase_estimate, 1024, &time_interval_ns, 0, &dummy, 0);
+            status = ps5000aGetTimebase2(
+                d_handle, timebase_estimate, 1024, &time_interval_ns, &dummy, 0);
             if (status != PICO_OK) {
                 throw std::runtime_error(
                     fmt::format("Exception in {}:{}: local time {} Error: {}",
@@ -166,7 +161,7 @@ uint32_t picoscope_3000a_impl::convert_frequency_to_ps3000a_timebase(double desi
             }
 
             actual_freq = 1000000000.0 / time_interval_ns;
-            validate_desired_actual_frequency_ps3000(desired_freq, actual_freq);
+            validate_desired_actual_frequency_ps4000(desired_freq, actual_freq);
             return timebase_estimate;
         }
     }
@@ -191,8 +186,8 @@ uint32_t picoscope_3000a_impl::convert_frequency_to_ps3000a_timebase(double desi
 
     for (auto i = 0; i < search_space; i++) {
         float obtained_time_interval_ns;
-        auto status = ps3000aGetTimebase2(
-            d_handle, start_timebase + i, 1024, &obtained_time_interval_ns, 0, &dummy, 0);
+        auto status = ps5000aGetTimebase2(
+            d_handle, start_timebase + i, 1024, &obtained_time_interval_ns, &dummy, 0);
         if (status != PICO_OK) {
             // this timebase can't be used, lets set error estimate to something big
             timebases[i] = -1;
@@ -211,133 +206,109 @@ uint32_t picoscope_3000a_impl::convert_frequency_to_ps3000a_timebase(double desi
     assert(distance < search_space);
 
     // update actual update rate and return timebase number
-    actual_freq = 1000000000.0 / timebases[distance];
-    validate_desired_actual_frequency_ps3000(desired_freq, actual_freq);
+    actual_freq = 1000000000.0 / double(timebases[distance]);
+    validate_desired_actual_frequency_ps4000(desired_freq, actual_freq);
     return start_timebase + distance;
 }
 
-ps3000a_unit_interval_t
-convert_frequency_to_ps3000a_time_units_and_interval(double desired_freq,
+ps5000a_unit_interval_t
+convert_frequency_to_ps5000a_time_units_and_interval(double desired_freq,
                                                      double& actual_freq)
 {
-    ps3000a_unit_interval_t unint;
+    ps5000a_unit_interval_t unint;
     auto interval = 1.0 / desired_freq;
 
     if (interval < 0.000001) {
-        unint.unit = PS3000A_PS;
+        unint.unit = PS5000A_PS;
         unint.interval = static_cast<uint32_t>(1000000000000.0 / desired_freq);
         actual_freq = 1000000000000.0 / static_cast<double>(unint.interval);
     }
     else if (interval < 0.001) {
-        unint.unit = PS3000A_NS;
+        unint.unit = PS5000A_NS;
         unint.interval = static_cast<uint32_t>(1000000000.0 / desired_freq);
         actual_freq = 1000000000.0 / static_cast<double>(unint.interval);
     }
     else if (interval < 0.1) {
-        unint.unit = PS3000A_US;
+        unint.unit = PS5000A_US;
         unint.interval = static_cast<uint32_t>(1000000.0 / desired_freq);
         actual_freq = 1000000.0 / static_cast<double>(unint.interval);
     }
     else {
-        unint.unit = PS3000A_MS;
+        unint.unit = PS5000A_MS;
         unint.interval = static_cast<uint32_t>(1000.0 / desired_freq);
         actual_freq = 1000.0 / static_cast<double>(unint.interval);
     }
-
-    validate_desired_actual_frequency_ps3000(desired_freq, actual_freq);
+    validate_desired_actual_frequency_ps4000(desired_freq, actual_freq);
     return unint;
 }
 
-static PS3000A_RATIO_MODE convert_to_ps3000a_ratio_mode(downsampling_mode_t mode)
+static PS5000A_RATIO_MODE convert_to_ps5000a_ratio_mode(downsampling_mode_t mode)
 {
     switch (mode) {
     case downsampling_mode_t::MIN_MAX_AGG:
-        return PS3000A_RATIO_MODE_AGGREGATE;
+        return PS5000A_RATIO_MODE_AGGREGATE;
     case downsampling_mode_t::DECIMATE:
-        return PS3000A_RATIO_MODE_DECIMATE;
+        return PS5000A_RATIO_MODE_DECIMATE;
     case downsampling_mode_t::AVERAGE:
-        return PS3000A_RATIO_MODE_AVERAGE;
+        return PS5000A_RATIO_MODE_AVERAGE;
     case downsampling_mode_t::NONE:
     default:
-        return PS3000A_RATIO_MODE_NONE;
+        return PS5000A_RATIO_MODE_NONE;
     }
 }
 
-PS3000A_THRESHOLD_DIRECTION
-convert_to_ps3000a_threshold_direction(trigger_direction_t direction)
+PS5000A_THRESHOLD_DIRECTION
+convert_to_ps5000a_threshold_direction(trigger_direction_t direction)
 {
     switch (direction) {
     case trigger_direction_t::RISING:
-        return PS3000A_RISING;
+        return PS5000A_RISING;
     case trigger_direction_t::FALLING:
-        return PS3000A_FALLING;
+        return PS5000A_FALLING;
     case trigger_direction_t::LOW:
-        return PS3000A_BELOW;
+        return PS5000A_BELOW;
     case trigger_direction_t::HIGH:
-        return PS3000A_ABOVE;
+        return PS5000A_ABOVE;
     default:
-        throw std::runtime_error(fmt::format("{}:{}: unsuppored trigger direction: {}",
-                                             __FILE__,
-                                             __LINE__,
-                                             static_cast<int>(direction)));
+        throw std::runtime_error(fmt::format("Exception in {}:{}: unsupported trigger direction: {}",
+                                 __FILE__,
+                                 __LINE__,
+                                 static_cast<int>(direction)));
     }
 };
 
-PS3000A_DIGITAL_DIRECTION
-convert_to_ps3000a_digital_direction(trigger_direction_t direction)
-{
-    switch (direction) {
-    case trigger_direction_t::RISING:
-        return PS3000A_DIGITAL_DIRECTION_RISING;
-    case trigger_direction_t::FALLING:
-        return PS3000A_DIGITAL_DIRECTION_FALLING;
-    case trigger_direction_t::LOW:
-        return PS3000A_DIGITAL_DIRECTION_LOW;
-    case trigger_direction_t::HIGH:
-        return PS3000A_DIGITAL_DIRECTION_HIGH;
-    default:
-        throw std::runtime_error(fmt::format("{}:{}: unsuppored trigger direction: {}",
-                                             __FILE__,
-                                             __LINE__,
-                                             static_cast<int>(direction)));
-    }
-};
-
-int16_t convert_voltage_to_ps3000a_raw_logic_value(double value)
+int16_t convert_voltage_to_ps5000a_raw_logic_value(double value)
 {
     double max_logical_voltage = 5.0;
 
     if (value > max_logical_voltage) {
-        throw std::invalid_argument(fmt::format("Exception in {}:{}: max logical level is: {}",
-                                    __FILE__,
-                                    __LINE__,
-                                    max_logical_voltage));
+        throw std::invalid_argument(fmt::format("Exception in {}:{}: max logical level is: {}", __FILE__, __LINE__, max_logical_voltage));
     }
-
-    return (int16_t)((value / max_logical_voltage) * (double)PS3000A_MAX_LOGIC_LEVEL);
+    // Note max channel value not provided with PicoScope API, we use ext max value
+    return (int16_t)((value / max_logical_voltage) * (double)PS5000A_EXT_MAX_VALUE);
 }
 
-PS3000A_CHANNEL
-convert_to_ps3000a_channel(const std::string& source)
+PS5000A_CHANNEL
+convert_to_ps5000a_channel(const std::string& source)
 {
     if (source == "A") {
-        return PS3000A_CHANNEL_A;
+        return PS5000A_CHANNEL_A;
     }
     else if (source == "B") {
-        return PS3000A_CHANNEL_B;
+        return PS5000A_CHANNEL_B;
     }
     else if (source == "C") {
-        return PS3000A_CHANNEL_C;
+        return PS5000A_CHANNEL_C;
     }
     else if (source == "D") {
-        return PS3000A_CHANNEL_D;
+        return PS5000A_CHANNEL_D;
     }
     else if (source == "EXTERNAL") {
-        return PS3000A_EXTERNAL;
+        return PS5000A_EXTERNAL;
     }
     else {
         // return invalid value
-        return PS3000A_MAX_TRIGGER_SOURCES;
+        return PS5000A_MAX_TRIGGER_SOURCES;
     }
 }
 
@@ -345,12 +316,14 @@ convert_to_ps3000a_channel(const std::string& source)
  * Structors
  *********************************************************************/
 
-picoscope_3000a_impl::picoscope_3000a_impl(const digitizers::digitizer_args& args,
+picoscope_5000a_impl::picoscope_5000a_impl(const digitizers::digitizer_args& args,
+                                           digitizer_resolution_t resolution,
                                            std::string serial_number,
                                            logger_ptr logger)
-    : digitizers::picoscope_impl(args, serial_number, 255, 0.03, logger),
+    : digitizers::picoscope_impl(args, serial_number, 255, 0.01, logger),
       d_handle(-1),
-      d_overflow(0)
+      d_overflow(0),
+      d_resolution(resolution)
 {
     d_ranges.push_back(range_t(0.01));
     d_ranges.push_back(range_t(0.02));
@@ -364,20 +337,22 @@ picoscope_3000a_impl::picoscope_3000a_impl(const digitizers::digitizer_args& arg
     d_ranges.push_back(range_t(10));
     d_ranges.push_back(range_t(20));
     d_ranges.push_back(range_t(50));
+    d_ranges.push_back(range_t(100));
+    d_ranges.push_back(range_t(200));
 }
 
-picoscope_3000a_impl::~picoscope_3000a_impl() { driver_close(); }
+picoscope_5000a_impl::~picoscope_5000a_impl() { driver_close(); }
 
 /**********************************************************************
  * Driver implementation
  *********************************************************************/
 
-std::string picoscope_3000a_impl::get_unit_info_topic(PICO_INFO info) const
+std::string picoscope_5000a_impl::get_unit_info_topic(PICO_INFO info) const
 {
     char line[40];
     int16_t required_size;
 
-    auto status = ps3000aGetUnitInfo(
+    auto status = ps5000aGetUnitInfo(
         d_handle, reinterpret_cast<int8_t*>(line), sizeof(line), &required_size, info);
     if (status == PICO_OK) {
         return std::string(line, required_size);
@@ -387,9 +362,9 @@ std::string picoscope_3000a_impl::get_unit_info_topic(PICO_INFO info) const
     }
 }
 
-std::string picoscope_3000a_impl::get_driver_version() const
+std::string picoscope_5000a_impl::get_driver_version() const
 {
-    const std::string prefix = "PS3000A Linux Driver, ";
+    const std::string prefix = "PS5000A Linux Driver, ";
     auto version = get_unit_info_topic(PICO_DRIVER_VERSION);
 
     auto i = version.find(prefix);
@@ -399,288 +374,238 @@ std::string picoscope_3000a_impl::get_driver_version() const
     return version;
 }
 
-std::string picoscope_3000a_impl::get_hardware_version() const
+std::string picoscope_5000a_impl::get_hardware_version() const
 {
     if (!d_initialized)
         return "NA";
     return get_unit_info_topic(PICO_HARDWARE_VERSION);
 }
 
-std::error_code picoscope_3000a_impl::driver_initialize()
+static constexpr PS5000A_DEVICE_RESOLUTION map_resolution(digitizer_resolution_t r)
+{
+    switch (r) {
+    case digitizer_resolution_t::R_8BIT:
+        return PS5000A_DR_8BIT;
+    case digitizer_resolution_t::R_12BIT:
+        return PS5000A_DR_12BIT;
+    case digitizer_resolution_t::R_14BIT:
+        return PS5000A_DR_14BIT;
+    case digitizer_resolution_t::R_15BIT:
+        return PS5000A_DR_15BIT;
+    case digitizer_resolution_t::R_16BIT:
+        return PS5000A_DR_16BIT;
+    }
+
+    return PS5000A_DR_8BIT;
+}
+
+std::error_code picoscope_5000a_impl::driver_initialize()
 {
     PICO_STATUS status;
 
     // Required to force sequence execution of open unit calls...
     boost::mutex::scoped_lock init_guard(g_init_mutex);
 
+    const auto resolution = map_resolution(d_resolution);
+
     // take any if serial number is not provided (usefull for testing purposes)
     if (d_serial_number.empty()) {
-        status = ps3000aOpenUnit(&(d_handle), NULL);
+        status = ps5000aOpenUnit(&(d_handle), NULL, resolution);
     }
     else {
-        status = ps3000aOpenUnit(&(d_handle), (int8_t*)d_serial_number.c_str());
+        status = ps5000aOpenUnit(&(d_handle), (int8_t*)d_serial_number.c_str(), resolution);
     }
 
     // ignore ext. power not connected error/warning
     if (status == PICO_POWER_SUPPLY_NOT_CONNECTED ||
         status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
-        status = ps3000aChangePowerSource(d_handle, status);
+        status = ps5000aChangePowerSource(d_handle, status);
         if (status == PICO_POWER_SUPPLY_NOT_CONNECTED ||
             status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
-            status = ps3000aChangePowerSource(d_handle, status);
+            status = ps5000aChangePowerSource(d_handle, status);
         }
     }
 
     if (status != PICO_OK) {
-        d_logger->error("open unit failed: {}", detail::get_error_message(status));
-        return make_pico_3000a_error_code(status);
+        d_logger->error("open unit failed: {} ", detail::get_error_message(status));
+        return make_pico_5000a_error_code(status);
     }
 
     // maximum value is used for conversion to volts
-    status = ps3000aMaximumValue(d_handle, &d_max_value);
+    status = ps5000aMaximumValue(d_handle, &d_max_value);
     if (status != PICO_OK) {
-        ps3000aCloseUnit(d_handle);
-        d_logger->error("ps3000aMaximumValue: {}", detail::get_error_message(status));
-        return make_pico_3000a_error_code(status);
-    }
-
-    char line[40];
-    int16_t required_size;
-
-    // It would be nicer if the number of channels is communicated to the base driver in
-    // the form of function call or something similar.
-    status = ps3000aGetUnitInfo(d_handle,
-                                reinterpret_cast<int8_t*>(line),
-                                sizeof(line),
-                                &required_size,
-                                PICO_VARIANT_INFO);
-    if (status != PICO_OK) {
-        // this error is ignored
-        d_logger->info("ps3000aGetUnitInfo failed: {}    \nassuming device with 4 analog "
-                       "channels, and 2 digital ports",detail::get_error_message(status));
-    }
-    else {
-        if (line[1] == '4') {
-            d_ai_channels = 4;
-        }
-        else {
-            d_ai_channels = 2;
-        }
-
-        // Check if MSO device
-        if (strnlen(line, sizeof(line)) >= 7) {
-            if (strncmp(line + 4, "MSO", 3) == 0 || strncmp(line + 5, "MSO", 3) == 0) {
-                d_ports = 2;
-            }
-            else {
-                d_ports = 0;
-            }
-        }
+        ps5000aCloseUnit(d_handle);
+        d_logger->error("ps5000aMaximumValue: {}", detail::get_error_message(status));
+        return make_pico_5000a_error_code(status);
     }
 
     return std::error_code{};
 }
 
-std::error_code picoscope_3000a_impl::driver_configure()
+std::error_code picoscope_5000a_impl::driver_configure()
 {
-    assert(d_ai_channels <= PS3000A_MAX_CHANNELS);
-    assert(d_ports <= PS3000A_MAX_DIGITAL_PORTS);
+    assert(d_ai_channels <= PS5000A_MAX_CHANNELS);
 
-    PICO_STATUS status;
+    int32_t max_samples;
+    PICO_STATUS status = ps5000aMemorySegments(d_handle, d_nr_captures, &max_samples);
+    if (status != PICO_OK) {
+        d_logger->error("ps5000aMemorySegments: {}", detail::get_error_message(status));
+        return make_pico_5000a_error_code(status);
+    }
 
     if (d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
-        int32_t max_samples;
-        status = ps3000aMemorySegments(d_handle, d_nr_captures, &max_samples);
+        status = ps5000aSetNoOfCaptures(d_handle, d_nr_captures);
         if (status != PICO_OK) {
-            d_logger->error("ps3000aMemorySegments: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
-        }
-
-        status = ps3000aSetNoOfCaptures(d_handle, d_nr_captures);
-        if (status != PICO_OK) {
-            d_logger->error("ps3000aSetNoOfCaptures: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
+            d_logger->error("ps5000aSetNoOfCaptures: {}",
+                            detail::get_error_message(status));
+            return make_pico_5000a_error_code(status);
         }
     }
 
     // configure analog channels
     for (auto i = 0; i < d_ai_channels; i++) {
         auto enabled = d_channel_settings[i].enabled;
-        auto coupling = convert_to_ps3000a_coupling(d_channel_settings[i].coupling);
-        auto range = convert_to_ps3000a_range(d_channel_settings[i].range);
+        auto coupling = convert_to_ps5000a_coupling(d_channel_settings[i].coupling);
+        auto range = convert_to_ps5000a_range(d_channel_settings[i].range);
         auto offset = d_channel_settings[i].offset;
 
-        status = ps3000aSetChannel(
-            d_handle, static_cast<PS3000A_CHANNEL>(i), enabled, coupling, range, offset);
+        status = ps5000aSetChannel(d_handle,
+                                   static_cast<PS5000A_CHANNEL>(i),
+                                   enabled,
+                                   coupling,
+                                   range,
+                                   offset);
         if (status != PICO_OK) {
-            d_logger->error("ps3000aSetChannel (chan {}): {}", i, detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
-        }
-    }
-
-    // and digital ports
-    for (auto port = 0; port < d_ports; port++) {
-        status = ps3000aSetDigitalPort(
-            d_handle,
-            static_cast<PS3000A_DIGITAL_PORT>(PS3000A_DIGITAL_PORT0 + port),
-            d_port_settings[port].enabled,
-            convert_voltage_to_ps3000a_raw_logic_value(
-                d_port_settings[port].logic_level));
-        if (status != PICO_OK) {
-            d_logger->error("ps3000aSetDigitalPort (port {}): {}", port, detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
+            d_logger->error(
+                "ps5000aSetChannel (chan {}): {}", i, detail::get_error_message(status));
+            return make_pico_5000a_error_code(status);
         }
     }
 
     // apply trigger configuration
     if (d_trigger_settings.is_analog() &&
         d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
-        status = ps3000aSetSimpleTrigger(
+        status = ps5000aSetSimpleTrigger(
             d_handle,
             true, // enable
-            convert_to_ps3000a_channel(d_trigger_settings.source),
-            convert_voltage_to_ps3000a_raw_logic_value(d_trigger_settings.threshold),
-            convert_to_ps3000a_threshold_direction(d_trigger_settings.direction),
+            convert_to_ps5000a_channel(d_trigger_settings.source),
+            convert_voltage_to_ps5000a_raw_logic_value(d_trigger_settings.threshold),
+            convert_to_ps5000a_threshold_direction(d_trigger_settings.direction),
             0,   // delay
             -1); // auto trigger
         if (status != PICO_OK) {
-            d_logger->error("ps3000aSetSimpleTrigger: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
-        }
-    }
-    else if (d_trigger_settings.is_digital() &&
-             d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
-        PS3000A_DIGITAL_CHANNEL_DIRECTIONS pinTrig;
-        pinTrig.channel =
-            static_cast<PS3000A_DIGITAL_CHANNEL>(d_trigger_settings.pin_number);
-        pinTrig.direction =
-            convert_to_ps3000a_digital_direction(d_trigger_settings.direction);
-
-        status = ps3000aSetTriggerDigitalPortProperties(d_handle, &pinTrig, 1);
-        if (status != PICO_OK) {
-            d_logger->error("ps3000aSetTriggerDigitalPortProperties: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
-        }
-
-        PS3000A_TRIGGER_CONDITIONS_V2 conds = {
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE,
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE,
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE,
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_TRUE
-        };
-        status = ps3000aSetTriggerChannelConditionsV2(d_handle, &conds, 1);
-        if (status != PICO_OK) {
-            d_logger->error("ps3000aSetTriggerChannelConditionsV2: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
+            d_logger->error("ps5000aSetSimpleTrigger: {}",
+                            detail::get_error_message(status));
+            return make_pico_5000a_error_code(status);
         }
     }
     else {
         // disable triggers...
-        PS3000A_TRIGGER_CONDITIONS_V2 conds = {
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE,
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE,
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE,
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE
-        };
-        status = ps3000aSetTriggerChannelConditionsV2(d_handle, &conds, 1);
-        if (status != PICO_OK) {
-            d_logger->error("ps3000aSetTriggerChannelConditionsV2: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
+        for (int i = 0; i < PS5000A_MAX_CHANNELS; i++) {
+            PS5000A_CONDITION cond;
+            cond.source = static_cast<PS5000A_CHANNEL>(i);
+            cond.condition = PS5000A_CONDITION_DONT_CARE;
+            status =
+                ps5000aSetTriggerChannelConditionsV2(d_handle, &cond, 1, PS5000A_CLEAR);
+            if (status != PICO_OK) {
+                d_logger->error("ps5000aSetTriggerChannelConditionsV2: {}",
+                                detail::get_error_message(status));
+                return make_pico_5000a_error_code(status);
+            }
         }
     }
 
     // In order to validate desired frequency before startup
     double actual_freq;
-    convert_frequency_to_ps3000a_timebase(d_samp_rate, actual_freq);
+    convert_frequency_to_ps5000a_timebase(d_samp_rate, actual_freq);
 
     return std::error_code{};
 }
 
-void rapid_block_callback_redirector_3000a(int16_t handle, PICO_STATUS status, void* vobj)
+void rapid_block_callback_redirector_5000a(int16_t handle, PICO_STATUS status, void* vobj)
 {
-    static_cast<picoscope_3000a_impl*>(vobj)->rapid_block_callback(handle, status);
+    static_cast<picoscope_5000a_impl*>(vobj)->rapid_block_callback(handle, status);
 }
 
-void picoscope_3000a_impl::rapid_block_callback(int16_t handle, PICO_STATUS status)
+void picoscope_5000a_impl::rapid_block_callback(int16_t handle, PICO_STATUS status)
 {
-    auto errc = make_pico_3000a_error_code(status);
+    auto errc = make_pico_5000a_error_code(status);
     notify_data_ready(errc);
 }
 
-std::error_code picoscope_3000a_impl::driver_arm()
+std::error_code picoscope_5000a_impl::driver_arm()
 {
     if (d_acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
         uint32_t timebase =
-            convert_frequency_to_ps3000a_timebase(d_samp_rate, d_actual_samp_rate);
+            convert_frequency_to_ps5000a_timebase(d_samp_rate, d_actual_samp_rate);
 
         auto status =
-            ps3000aRunBlock(d_handle,
+            ps5000aRunBlock(d_handle,
                             d_pre_samples,  // pre-triggersamples
                             d_post_samples, // post-trigger samples
                             timebase,       // timebase
-                            0,              // oversample
                             NULL,           // time indispossed
                             0,              // segment index
-                            (ps3000aBlockReady)rapid_block_callback_redirector_3000a,
+                            (ps5000aBlockReady)rapid_block_callback_redirector_5000a,
                             this);
         if (status != PICO_OK) {
-            d_logger->error("ps3000aRunBlock: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
+            d_logger->error("ps5000aRunBlock: {}", detail::get_error_message(status));
+            return make_pico_5000a_error_code(status);
         }
     }
     else {
         set_buffers(d_driver_buffer_size, 0);
 
-        ps3000a_unit_interval_t unit_int =
-            convert_frequency_to_ps3000a_time_units_and_interval(d_samp_rate,
+        ps5000a_unit_interval_t unit_int =
+            convert_frequency_to_ps5000a_time_units_and_interval(d_samp_rate,
                                                                  d_actual_samp_rate);
 
         auto status =
-            ps3000aRunStreaming(d_handle,
+            ps5000aRunStreaming(d_handle,
                                 &(unit_int.interval), // sample interval
                                 unit_int.unit,        // time unit of sample interval
                                 0,                    // pre-triggersamples (unused)
                                 d_driver_buffer_size,
                                 false,
                                 d_downsampling_factor,
-                                convert_to_ps3000a_ratio_mode(d_downsampling_mode),
+                                convert_to_ps5000a_ratio_mode(d_downsampling_mode),
                                 d_driver_buffer_size);
 
         if (status != PICO_OK) {
-            d_logger->error("ps3000aRunStreaming: {}", detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
+            d_logger->error("ps5000aRunStreaming: {}", detail::get_error_message(status));
+            return make_pico_5000a_error_code(status);
         }
     }
 
     return std::error_code{};
 }
 
-std::error_code picoscope_3000a_impl::driver_disarm()
+std::error_code picoscope_5000a_impl::driver_disarm()
 {
-    auto status = ps3000aStop(d_handle);
+    auto status = ps5000aStop(d_handle);
     if (status != PICO_OK) {
-        d_logger->error("ps3000aStop: {}", detail::get_error_message(status));
+        d_logger->error("ps5000aStop: {}", detail::get_error_message(status));
     }
 
-    return make_pico_3000a_error_code(status);
+    return make_pico_5000a_error_code(status);
 }
 
-std::error_code picoscope_3000a_impl::driver_close()
+std::error_code picoscope_5000a_impl::driver_close()
 {
     if (d_handle == -1) {
         return std::error_code{};
     }
 
-    auto status = ps3000aCloseUnit(d_handle);
+    auto status = ps5000aCloseUnit(d_handle);
     if (status != PICO_OK) {
-        d_logger->error("ps3000aCloseUnit: {}", detail::get_error_message(status));
+        d_logger->error("ps5000aCloseUnit: {}", detail::get_error_message(status));
     }
 
     d_handle = -1;
-    return make_pico_3000a_error_code(status);
+    return make_pico_5000a_error_code(status);
 }
 
-std::error_code picoscope_3000a_impl::set_buffers(size_t samples, uint32_t block_number)
+std::error_code picoscope_5000a_impl::set_buffers(size_t samples, uint32_t block_number)
 {
     PICO_STATUS status;
 
@@ -693,56 +618,38 @@ std::error_code picoscope_3000a_impl::set_buffers(size_t samples, uint32_t block
             d_buffers_min[aichan].reserve(samples);
 
             status =
-                ps3000aSetDataBuffers(d_handle,
-                                      static_cast<PS3000A_CHANNEL>(aichan),
+                ps5000aSetDataBuffers(d_handle,
+                                      static_cast<PS5000A_CHANNEL>(aichan),
                                       &d_buffers[aichan][0],
                                       &d_buffers_min[aichan][0],
                                       samples,
                                       block_number,
-                                      convert_to_ps3000a_ratio_mode(d_downsampling_mode));
+                                      convert_to_ps5000a_ratio_mode(d_downsampling_mode));
         }
         else {
             d_buffers[aichan].reserve(samples);
 
             status =
-                ps3000aSetDataBuffer(d_handle,
-                                     static_cast<PS3000A_CHANNEL>(aichan),
+                ps5000aSetDataBuffer(d_handle,
+                                     static_cast<PS5000A_CHANNEL>(aichan),
                                      &d_buffers[aichan][0],
                                      samples,
                                      block_number,
-                                     convert_to_ps3000a_ratio_mode(d_downsampling_mode));
+                                     convert_to_ps5000a_ratio_mode(d_downsampling_mode));
         }
 
         if (status != PICO_OK) {
-            d_logger->error("ps3000aSetDataBuffer (chan {}): {}", aichan, detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
-        }
-    }
-
-    for (auto port = 0; port < d_ports; port++) {
-        if (!d_port_settings[port].enabled) {
-            continue;
-        }
-
-        d_port_buffers[port].reserve(samples);
-
-        status = ps3000aSetDataBuffer(
-            d_handle,
-            static_cast<PS3000A_CHANNEL>(PS3000A_DIGITAL_PORT0 + port),
-            &d_port_buffers[port][0],
-            samples,
-            block_number,
-            convert_to_ps3000a_ratio_mode(d_downsampling_mode));
-        if (status != PICO_OK) {
-            d_logger->error("ps3000aSetDataBuffer (port {}): {}", port, detail::get_error_message(status));
-            return make_pico_3000a_error_code(status);
+            d_logger->error("ps5000aSetDataBuffer (chan {}): {}",
+                            aichan,
+                            detail::get_error_message(status));
+            return make_pico_5000a_error_code(status);
         }
     }
 
     return std::error_code{};
 }
 
-std::error_code picoscope_3000a_impl::driver_prefetch_block(size_t samples,
+std::error_code picoscope_5000a_impl::driver_prefetch_block(size_t samples,
                                                             size_t block_number)
 {
     auto erc = set_buffers(samples, block_number);
@@ -751,22 +658,22 @@ std::error_code picoscope_3000a_impl::driver_prefetch_block(size_t samples,
     }
 
     uint32_t nr_samples = samples;
-    auto status = ps3000aGetValues(d_handle,
+    auto status = ps5000aGetValues(d_handle,
                                    0, // offset
                                    &nr_samples,
                                    d_downsampling_factor,
-                                   convert_to_ps3000a_ratio_mode(d_downsampling_mode),
+                                   convert_to_ps5000a_ratio_mode(d_downsampling_mode),
                                    block_number,
                                    &d_overflow);
     if (status != PICO_OK) {
-        d_logger->error("ps3000aGetValues: {}", detail::get_error_message(status));
+        d_logger->error("ps5000aGetValues: {}", detail::get_error_message(status));
     }
 
-    return make_pico_3000a_error_code(status);
+    return make_pico_5000a_error_code(status);
 }
 
 std::error_code
-picoscope_3000a_impl::driver_get_rapid_block_data(size_t offset,
+picoscope_5000a_impl::driver_get_rapid_block_data(size_t offset,
                                                   size_t length,
                                                   size_t waveform,
                                                   work_io& wio,
@@ -799,7 +706,7 @@ picoscope_3000a_impl::driver_get_rapid_block_data(size_t offset,
                 out[i] = (voltage_multiplier * (float)in[i]);
             }
             // According to specs
-            auto error_estimate = d_channel_settings[chan_idx].range * 0.03;
+            auto error_estimate = d_channel_settings[chan_idx].range * 0.01;
             for (size_t i = 0; i < length; i++) {
                 err_out[i] = error_estimate;
             }
@@ -821,8 +728,8 @@ picoscope_3000a_impl::driver_get_rapid_block_data(size_t offset,
                 out[i] = (voltage_multiplier * (float)in[i]);
             }
             // According to specs
-            auto error_estimate_single = d_channel_settings[chan_idx].range * 0.03;
-            auto error_estimate =
+            float error_estimate_single = d_channel_settings[chan_idx].range * 0.01;
+            float error_estimate =
                 error_estimate_single / std::sqrt((float)d_downsampling_factor);
             for (size_t i = 0; i < length; i++) {
                 err_out[i] = error_estimate;
@@ -833,36 +740,22 @@ picoscope_3000a_impl::driver_get_rapid_block_data(size_t offset,
         }
     }
 
-    for (auto port = 0; port < d_ports; port++, vec_index++) {
-        if (!d_port_settings[port].enabled) {
-            continue;
-        }
-
-        uint8_t* out = wio.outputs()[vec_index].items<uint8_t>();
-        int16_t* in = &d_port_buffers[port][0] + offset;
-
-        for (size_t i = 0; i < length; i++) {
-            out[i] = static_cast<uint8_t>(0x00ff & in[i]);
-        }
-    }
-
     return std::error_code{};
 }
 
-std::error_code picoscope_3000a_impl::driver_poll()
+std::error_code picoscope_5000a_impl::driver_poll()
 {
-    auto status = ps3000aGetStreamingLatestValues(
+    auto status = ps5000aGetStreamingLatestValues(
         d_handle,
-        (ps3000aStreamingReady)digitizers::invoke_streaming_callback,
+        (ps5000aStreamingReady)digitizers::invoke_streaming_callback,
         &d_streaming_callback);
     if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
         return std::error_code{};
     }
-
-    return make_pico_3000a_error_code(status);
+    return make_pico_5000a_error_code(status);
 }
 
-picoscope3000a_cpu::picoscope3000a_cpu(block_args args)
+picoscope5000a_cpu::picoscope5000a_cpu(block_args args)
     : INHERITED_CONSTRUCTORS,
       d_impl(
           { .sample_rate = args.sample_rate,
@@ -880,22 +773,23 @@ picoscope3000a_cpu::picoscope3000a_cpu(block_args args)
             .downsampling_factor = args.downsampling_factor,
             .auto_arm = args.auto_arm,
             .trigger_once = args.trigger_once,
-            .ai_channels = PS3000A_MAX_CHANNELS,
+            .ai_channels = PS5000A_MAX_CHANNELS,
             .ports = 0 },
+          args.resolution,
           args.serial_number,
           d_logger)
 {
     set_output_multiple(args.buffer_size);
 }
 
-bool picoscope3000a_cpu::start() { return d_impl.start(); }
+bool picoscope5000a_cpu::start() { return d_impl.start(); }
 
-bool picoscope3000a_cpu::stop() { return d_impl.stop(); }
+bool picoscope5000a_cpu::stop() { return d_impl.stop(); }
 
-work_return_t picoscope3000a_cpu::work(work_io& wio) { return d_impl.work(wio); }
+work_return_t picoscope5000a_cpu::work(work_io& wio) { return d_impl.work(wio); }
 
-void picoscope3000a_cpu::initialize() { d_impl.initialize(); }
+void picoscope5000a_cpu::initialize() { d_impl.initialize(); }
 
-void picoscope3000a_cpu::close() { d_impl.close(); }
+void picoscope5000a_cpu::close() { d_impl.close(); }
 
-} // namespace gr::picoscope3000a
+} // namespace gr::picoscope5000a

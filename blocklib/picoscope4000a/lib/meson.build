@@ -1,5 +1,5 @@
 picoscope4000a_sources += []
-picoscope4000a_deps += [gnuradio_blocklib_digitizers_dep, libpicoscope4000a_dep]
+picoscope4000a_deps += [gnuradio_blocklib_digitizers_dep, libpicoscope4000a_dep, picoscopeimpl_dep]
 
 block_cpp_args = ['-DHAVE_CPU']
 

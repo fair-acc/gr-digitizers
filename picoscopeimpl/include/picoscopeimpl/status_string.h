@@ -1,10 +1,17 @@
-#ifndef LIB_PS_6000_DEFS_H_
-#define LIB_PS_6000_DEFS_H_
+#pragma once
 
 #include <PicoStatus.h>
 #include <string>
 
-inline std::string ps6000_status_to_string(PICO_STATUS status)
+#include <fmt/format.h>
+
+// Helper functions to get readable messages from PICO_STATUS values. Assumes
+// that PICO_STATUS is identical for all psXXXX implementations, which is 
+// currently the case.
+
+namespace gr::picoscope::detail {
+
+inline constexpr std::string_view status_to_string(PICO_STATUS status)
 {
     switch (status) {
     case PICO_OK:
@@ -394,7 +401,7 @@ inline std::string ps6000_status_to_string(PICO_STATUS status)
     }
 }
 
-inline std::string ps6000_status_to_string_verbose(PICO_STATUS status)
+inline constexpr std::string_view status_to_string_verbose(PICO_STATUS status)
 {
     switch (status) {
     case PICO_OK:
@@ -797,7 +804,7 @@ inline std::string ps6000_status_to_string_verbose(PICO_STATUS status)
         return "failed to set the callback function, as currently in current callback "
                "function";
     case PICO_UNKNOWN_INTELLIGENT_PROBE:
-        return "the probe has been verified but not know on this driver";
+        return "the probe has been verified but is not known on this driver";
     case PICO_INTELLIGENT_PROBE_CORRUPT:
         return "the intelligent probe cannot be verified";
     case PICO_PROBE_COLLECTION_NOT_STARTED:
@@ -811,7 +818,7 @@ inline std::string ps6000_status_to_string_verbose(PICO_STATUS status)
     case PICO_DEVICE_TIME_STAMP_RESET:
         return "The time stamp per waveform segment has been reset.";
     case PICO_WATCHDOGTIMER:
-        return "An internal erorr has occurred and a watchdog timer has been called.";
+        return "An internal error has occurred and a watchdog timer has been called.";
     case PICO_IPP_NOT_FOUND:
         return "The picoipp.dll has not been found.";
     case PICO_IPP_NO_FUNCTION:
@@ -833,10 +840,9 @@ inline std::string ps6000_status_to_string_verbose(PICO_STATUS status)
     }
 }
 
-inline std::string ps6000_get_error_message(PICO_STATUS status)
+inline std::string get_error_message(PICO_STATUS status)
 {
-    return std::string(ps6000_status_to_string(status) + " - " +
-                       ps6000_status_to_string_verbose(status));
+    return fmt::format("{} - {}", status_to_string(status), status_to_string_verbose(status));
 }
 
-#endif /* LIB_PS_6000_DEFS_H_ */
+} // namespace gr::picoscope::detail

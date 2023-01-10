@@ -1,5 +1,5 @@
 picoscope6000_sources += []
-picoscope6000_deps += [gnuradio_blocklib_digitizers_dep, libpicoscope6000_dep]
+picoscope6000_deps += [gnuradio_blocklib_digitizers_dep, libpicoscope6000_dep, picoscopeimpl_dep]
 
 block_cpp_args = ['-DHAVE_CPU']
 
