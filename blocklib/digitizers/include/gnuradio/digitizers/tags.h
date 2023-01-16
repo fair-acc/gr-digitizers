@@ -173,7 +173,7 @@ inline trigger_t decode_trigger_tag(const gr::tag_t& tag)
                         tag::TRIGGER_OFFSET.key()));
     }
 
-    return { .name = pmtf::get_as<std::string>(name->get()),
+    return { .name = std::get<std::string>(name->get()),
              .timestamp = detail::convert_to_ns(std::get<int64_t>(timestamp->get())),
              .offset = detail::convert_to_ns(std::get<double>(offset->get())) };
 }

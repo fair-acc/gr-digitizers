@@ -32,21 +32,21 @@ public:
     bool start() override
     {
         _stop_requested = false;
-        const auto trigger_name = pmtf::get_as<std::string>(*this->param_trigger_name);
-        const auto offset = pmtf::get_as<int64_t>(*this->param_trigger_offset);
-        const auto mode =
-            pmtf::get_as<timing_receiver_simulation_mode_t>(*this->param_simulation_mode);
+        const auto trigger_name = std::get<std::string>(*this->param_trigger_name);
+        const auto offset = std::get<double>(*this->param_trigger_offset);
+        const auto mode = static_cast<timing_receiver_simulation_mode_t>(
+            std::get<int>(*this->param_simulation_mode));
 
         if (mode == timing_receiver_simulation_mode_t::PERIODIC_INTERVAL) {
-            const auto interval = std::chrono::milliseconds{ pmtf::get_as<int64_t>(
+            const auto interval = std::chrono::milliseconds{ std::get<int64_t>(
                 *this->param_tag_time_interval) };
             _thread = std::jthread([this, trigger_name, interval, offset] {
                 periodical_loop(trigger_name, interval, offset);
             });
         }
         else if (mode == timing_receiver_simulation_mode_t::ZEROMQ) {
-            const auto endpoint = pmtf::get_as<std::string>(*this->param_zmq_endpoint);
-            const auto group = pmtf::get_as<std::string>(*this->param_zmq_group);
+            const auto endpoint = std::get<std::string>(*this->param_zmq_endpoint);
+            const auto group = std::get<std::string>(*this->param_zmq_group);
             _thread = std::jthread([this, endpoint, group, trigger_name, offset] {
                 zmq_loop(endpoint, group, trigger_name, offset);
             });
@@ -65,7 +65,7 @@ public:
 
     void post_timing_message(std::string name, int64_t timestamp_ns, double offset)
     {
-        std::map<std::string, pmtf::pmt> msg = { { tag::TRIGGER_NAME, name },
+        std::map<std::string, pmtv::pmt> msg = { { tag::TRIGGER_NAME, name },
                                                  { tag::TRIGGER_OFFSET, offset },
                                                  { tag::TRIGGER_TIME, timestamp_ns } };
 
@@ -83,7 +83,7 @@ private:
                 std::chrono::duration_cast<std::chrono::nanoseconds>(
                     now.time_since_epoch())
                     .count();
-            std::map<std::string, pmtf::pmt> msg = {
+            std::map<std::string, pmtv::pmt> msg = {
                 { tag::TRIGGER_NAME, trigger_name },
                 { tag::TRIGGER_OFFSET, trigger_offset },
                 { tag::TRIGGER_TIME, static_cast<int64_t>(now_ns_since_epoch) }
@@ -170,7 +170,7 @@ private:
                     timestamp_ns += reinterpret_cast<unsigned char&>(buf[n]);
                 }
 
-                std::map<std::string, pmtf::pmt> msg = {
+                std::map<std::string, pmtv::pmt> msg = {
                     { tag::TRIGGER_NAME, trigger_name },
                     { tag::TRIGGER_OFFSET, trigger_offset },
                     { tag::TRIGGER_TIME, timestamp_ns }

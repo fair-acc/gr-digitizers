@@ -269,7 +269,7 @@ public:
     // Where all the action really happens
     work_return_t work(work_io& wio);
 
-    void handle_msg_timing(pmtf::pmt msg);
+    void handle_msg_timing(pmtv::pmt msg);
 
     std::string getConfigureExceptionMessage();
 

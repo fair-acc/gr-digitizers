@@ -111,7 +111,7 @@ public:
     }
 
 private:
-    void handle_msg_timing(pmtf::pmt msg) { d_impl.handle_msg_timing(std::move(msg)); }
+    void handle_msg_timing(pmtv::pmt msg) { d_impl.handle_msg_timing(std::move(msg)); }
 
     picoscope_4000a_impl d_impl;
 };

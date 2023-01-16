@@ -60,7 +60,7 @@ void simulation_source_cpu::set_di_trigger(uint8_t pin, trigger_direction_t dire
 
 work_return_t simulation_source_cpu::work(work_io& wio) { return d_impl.work(wio); }
 
-void simulation_source_cpu::handle_msg_timing(pmtf::pmt msg)
+void simulation_source_cpu::handle_msg_timing(pmtv::pmt msg)
 {
     d_impl.handle_msg_timing(std::move(msg));
 }

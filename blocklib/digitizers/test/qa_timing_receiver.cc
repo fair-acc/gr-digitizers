@@ -54,16 +54,16 @@ void qa_timing_receiver::periodic_interval()
 
     for (std::size_t i = 0; i < num_messages_expected; ++i) {
         const auto message =
-            pmtf::get_as<std::map<std::string, pmtf::pmt>>(sink->get_message(i));
-        CPPUNIT_ASSERT_EQUAL(
-            trigger_name, pmtf::get_as<std::string>(message.at(gr::tag::TRIGGER_NAME)));
+            std::get<std::map<std::string, pmtv::pmt>>(sink->get_message(i));
+        CPPUNIT_ASSERT_EQUAL(trigger_name,
+                             std::get<std::string>(message.at(gr::tag::TRIGGER_NAME)));
         CPPUNIT_ASSERT_EQUAL(trigger_offset,
-                             pmtf::get_as<double>(message.at(gr::tag::TRIGGER_OFFSET)));
+                             std::get<double>(message.at(gr::tag::TRIGGER_OFFSET)));
 
         const auto expected_timestamp_ns =
             static_cast<int64_t>(start_ns_since_epoch + i * interval * 1000000);
         const auto actual_timestamp_ns =
-            pmtf::get_as<int64_t>(message.at(gr::tag::TRIGGER_TIME));
+            std::get<int64_t>(message.at(gr::tag::TRIGGER_TIME));
         // allow < 15 ms inaccuracy
         CPPUNIT_ASSERT(std::abs(expected_timestamp_ns - actual_timestamp_ns) <
                        15 * 1000000);
@@ -126,13 +126,13 @@ void qa_timing_receiver::basic_zmq()
 
     for (std::size_t i = 0; i < timestamps.size(); ++i) {
         const auto message =
-            pmtf::get_as<std::map<std::string, pmtf::pmt>>(sink->get_message(i));
-        CPPUNIT_ASSERT_EQUAL(
-            trigger_name, pmtf::get_as<std::string>(message.at(gr::tag::TRIGGER_NAME)));
+            std::get<std::map<std::string, pmtv::pmt>>(sink->get_message(i));
+        CPPUNIT_ASSERT_EQUAL(trigger_name,
+                             std::get<std::string>(message.at(gr::tag::TRIGGER_NAME)));
         CPPUNIT_ASSERT_EQUAL(trigger_offset,
-                             pmtf::get_as<double>(message.at(gr::tag::TRIGGER_OFFSET)));
+                             std::get<double>(message.at(gr::tag::TRIGGER_OFFSET)));
         CPPUNIT_ASSERT_EQUAL(timestamps[i].first,
-                             pmtf::get_as<int64_t>(message.at(gr::tag::TRIGGER_TIME)));
+                             std::get<int64_t>(message.at(gr::tag::TRIGGER_TIME)));
     }
 }
 

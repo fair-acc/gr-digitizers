@@ -1167,9 +1167,9 @@ constexpr static std::chrono::nanoseconds convert_to_ns(T ns)
     return round<nanoseconds>(duration<T, std::nano>{ ns });
 }
 
-void digitizer_block_impl::handle_msg_timing(pmtf::pmt msg)
+void digitizer_block_impl::handle_msg_timing(pmtv::pmt msg)
 {
-    const auto map = pmtf::get_as<std::map<std::string, pmtf::pmt>>(msg);
+    const auto map = std::get<std::map<std::string, pmtv::pmt>>(msg);
 
     try {
         if (!d_trigger_settings.is_enabled()) {
@@ -1177,10 +1177,9 @@ void digitizer_block_impl::handle_msg_timing(pmtf::pmt msg)
         }
 
         d_timing_messages.push_back(
-            { .name = pmtf::get_as<std::string>(map.at(tag::TRIGGER_NAME)),
-              .timestamp =
-                  convert_to_ns(pmtf::get_as<int64_t>(map.at(tag::TRIGGER_TIME))),
-              .offset = convert_to_ns(pmtf::get_as<double>(map.at(tag::TRIGGER_OFFSET)) *
+            { .name = std::get<std::string>(map.at(tag::TRIGGER_NAME)),
+              .timestamp = convert_to_ns(std::get<int64_t>(map.at(tag::TRIGGER_TIME))),
+              .offset = convert_to_ns(std::get<double>(map.at(tag::TRIGGER_OFFSET)) *
                                       1000000000) });
 
         const auto last = d_timing_messages.back();

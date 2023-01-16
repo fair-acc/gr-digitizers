@@ -189,7 +189,7 @@ public:
     void set_di_trigger(uint8_t pin, trigger_direction_t direction) override;
 
 private:
-    void handle_msg_timing(pmtf::pmt msg);
+    void handle_msg_timing(pmtv::pmt msg);
 
     simulation_impl d_impl;
 };
