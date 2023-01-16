@@ -80,7 +80,7 @@ SCRIPTS_DIR = join_paths(share_dir, 'utils','blockbuilder','scripts' )
 volk_dep = dependency('volk', version : '>=2.2')
 fmt_dep = dependency('fmt', method: 'cmake', modules: ['fmt::fmt'])
 spdlog_dep = dependency('spdlog')
-pmtf_dep = dependency('pmtf', version : '>= 0.0.2')
+pmt_dep = dependency('pmt', version : '>= 0.0.2')
 boost_dep = dependency('boost', modules: ['chrono', 'thread']) # TODO(PORT) add all used modules/port away from them
 cppunit_dep = dependency('cppunit')
 
