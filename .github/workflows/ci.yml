@@ -44,10 +44,12 @@ jobs:
           cd .local
           wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
           pwd
-      - name: Install gr-digitizer dependencies
+      - name: Install gr-digitizer dependencies, enable gcc 12
         run: |
           su -c "apt-get update"
-          su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev" || true
+          su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev gcc-12 g++-12" || true
+          su -c "update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12"
+          su -c "update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12"
       - name: Meson Setup
         shell: bash
         run: |
