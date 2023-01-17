@@ -153,6 +153,12 @@ void qa_digitizer_block::rapid_block_basics()
 
 void qa_digitizer_block::rapid_block_correct_tags()
 {
+    using namespace std::chrono_literals;
+
+    const std::string trigger_name = "PPS";
+    const auto trigger_timestamp = 123456789ns;
+    const double trigger_offset = 0.;
+
     int samples = 2000;
     int presamples = 200;
     fill_data(samples, presamples);
@@ -164,16 +170,42 @@ void qa_digitizer_block::rapid_block_correct_tags()
     args.rapid_block_nr_captures = 1;
     args.acquisition_mode = digitizer_acquisition_mode_t::RAPID_BLOCK;
 
-    auto fg = make_test_flowgraph(args);
+    timing_receiver_simulated::block_args timing_receiver_args = {
+        .simulation_mode = timing_receiver_simulation_mode_t::MANUAL
+    };
+
+    auto fg = make_test_flowgraph(args, timing_receiver_args);
     auto source = fg.source;
 
     fg.source->set_data(d_cha_vec, d_chb_vec, d_port_vec);
 
-    fg.top->run();
+
+    fg.top->start();
+    fg.timing_receiver->post_timing_message(
+        trigger_name, trigger_timestamp.count(), trigger_offset);
+    std::this_thread::sleep_for(1s);
+    fg.top->stop();
+    fg.top->wait();
 
     auto data_tags = fg.sink_sig_a->tags();
 
-    for (auto& tag : data_tags) {
+    auto trigger_tags = data_tags;
+    std::erase_if(trigger_tags, [](const auto& tag) {
+        return !tag.get(tag::TRIGGER_TIME.key()).has_value();
+    });
+    CPPUNIT_ASSERT_EQUAL(std::size_t{ 1 }, trigger_tags.size());
+
+    const auto trigger_data = decode_trigger_tag(trigger_tags[0]);
+    CPPUNIT_ASSERT_EQUAL(trigger_name, trigger_data.name);
+    CPPUNIT_ASSERT_EQUAL(trigger_timestamp, trigger_data.timestamp);
+    CPPUNIT_ASSERT_EQUAL(0ns, trigger_data.offset);
+
+    auto other_tags = data_tags;
+    std::erase_if(other_tags, [](const auto& tag) {
+        return tag.get(tag::TRIGGER_TIME.key()).has_value();
+    });
+
+    for (auto& tag : other_tags) {
         CPPUNIT_ASSERT_EQUAL(tag.map().size(), std::size_t{ 1 });
         const auto key = tag.map().begin()->first;
 
@@ -330,7 +362,6 @@ void qa_digitizer_block::streaming_timing_no_signal()
         CPPUNIT_ASSERT_EQUAL(std::size_t{ 0 }, tag.offset() % buffer_size);
     }
 }
-
 
 void qa_digitizer_block::streaming_timing_analog_input()
 {
