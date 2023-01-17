@@ -439,8 +439,6 @@ protected:
     double d_samp_rate;
     double d_actual_samp_rate;
 
-    double d_time_per_sample_ns;
-
     // Number of pre- and post-trigger samples the user wants to see on the outputs.
     // Note when calculating actual number of pre- and post-trigger samples one should
     // take into account the user delay and realignment delay.

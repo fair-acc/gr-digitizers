@@ -60,7 +60,6 @@ digitizer_block_impl::digitizer_block_impl(const digitizer_args& args,
     : d_logger{ std::move(logger) },
       d_samp_rate(args.sample_rate),
       d_actual_samp_rate(d_samp_rate),
-      d_time_per_sample_ns(1000000000. / d_samp_rate),
       d_pre_samples(args.pre_samples),
       d_post_samples(args.post_samples),
       d_nr_captures(args.rapid_block_nr_captures),
@@ -724,19 +723,11 @@ work_return_t digitizer_block_impl::work_rapid_block(work_io& wio)
             auto vec_idx = 0;
             const uint32_t pre_trigger_samples_with_downsampling =
                 get_pre_trigger_samples_with_downsampling();
-            const double time_per_sample_with_downsampling_ns =
-                d_time_per_sample_ns * d_downsampling_factor;
 
-            // TODO do we need this timestamp adjustment for pre_samples?
-            const auto timestamp =
-                timing.timestamp + std::chrono::nanoseconds(static_cast<int64_t>(
-                                       (pre_trigger_samples_with_downsampling *
-                                        time_per_sample_with_downsampling_ns)));
-            const auto tag_offset =
-                wio.outputs()[0].nitems_written() + pre_trigger_samples_with_downsampling;
+            const auto tag_offset = wio.outputs()[0].nitems_written();
 
-            auto trigger_tag =
-                make_trigger_tag(tag_offset, timing.name, timestamp, timing.offset);
+            auto trigger_tag = make_trigger_tag(
+                tag_offset, timing.name, timing.timestamp, timing.offset);
 
             for (auto i = 0; i < d_ai_channels && vec_idx < (int)wio.outputs().size();
                  i++, vec_idx += 2) {
