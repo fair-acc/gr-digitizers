@@ -175,6 +175,11 @@ public:
         d_data_rdy_cv.notify_one();
     }
 
+    /*!
+     * Returns the next chunk of available data. The the chunk can be stored for delayed
+     * processing and is automatically returned to the pool when the ptr is
+     * destroyed/released.
+     */
     data_chunk_ptr get_data_chunk()
     {
         if (d_data_rdy_errc || d_data_chunks.empty()) {

@@ -500,8 +500,10 @@ protected:
 
     struct timing_message_t {
         std::string name;
-        std::chrono::nanoseconds timestamp;
-        std::chrono::nanoseconds offset;
+        std::chrono::nanoseconds timestamp; ///< timestamp from the timing receiver
+        std::chrono::nanoseconds
+            offset; ///< delay of the sample w.r.t.the trigger in seconds
+                    ///< (e.g.compensating analog group delays, default '0')
     };
 
     std::deque<timing_message_t> d_timing_messages;

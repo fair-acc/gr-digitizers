@@ -104,9 +104,10 @@ inline acq_info_t decode_acq_info_tag(const gr::tag_t& tag)
 // ################################################################################################################
 
 struct DIGITIZERS_API trigger_t {
-    std::string name;
-    std::chrono::nanoseconds timestamp;
-    std::chrono::nanoseconds offset;
+    std::string name;                   ///< trigger name (e.g. "PPS")
+    std::chrono::nanoseconds timestamp; ///< timestamp reported by the timing receiver
+    std::chrono::nanoseconds ///< delay of the sample w.r.t. the trigger in seconds
+                             ///< (e.g.compensating analog group delays, default '0')
 };
 
 inline gr::tag_t make_trigger_tag(uint64_t tag_offset,
