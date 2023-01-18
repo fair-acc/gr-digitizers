@@ -107,7 +107,7 @@ struct DIGITIZERS_API trigger_t {
     std::string name;                   ///< trigger name (e.g. "PPS")
     std::chrono::nanoseconds timestamp; ///< timestamp reported by the timing receiver
     std::chrono::nanoseconds
-        offset; ///< delay of the sample w.r.t. the trigger in seconds
+        offset; ///< timing hardware offset condition for the timestamp in seconds
                 ///< (e.g.compensating analog group delays, default '0')
 };
 
