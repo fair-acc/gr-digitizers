@@ -50,6 +50,13 @@ jobs:
           su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev gcc-12 g++-12" || true
           su -c "update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12"
           su -c "update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12"
+      - name: "Fix broken gnuradio pkgconfig file"
+        run: |
+          su -c "bash -c 'echo \"Libs: -L${libdir} -lgnuradio-kernel-fft\" >> /usr/lib/pkgconfig/gnuradio-kernel-fft'"
+          su -c "bash -c 'echo \"Requires.private: gnuradio-runtime, gnuradio-kernel-math, volk >= 2.2, fftw3f, yaml-cpp >= 0.6, spdlog, fmt, nlohmann_json, python3, python3-embed, pybind11\" >> /usr/lib/pkgconfig/gnuradio-kernel-fft'"
+          su -c "bash -c 'echo \"Libs.private: -pthread -lrt -ldl -lzmq -lsodium\" >> /usr/lib/pkgconfig/gnuradio-kernel-fft'"
+          cat /usr/lib/pkgconfig/gnuradio-kernel-fft
+          cat /usr/lib/pkgconfig/gnuradio-runtime
       - name: Meson Setup
         shell: bash
         run: |

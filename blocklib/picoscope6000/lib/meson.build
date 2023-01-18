@@ -14,7 +14,6 @@ gnuradio_blocklib_picoscope6000_lib = library('gnuradio-blocklib-picoscope6000',
     install : true,
     link_language: 'cpp',
     dependencies : picoscope6000_deps,
-    link_args : ['-lgnuradio-runtime'],
     cpp_args : block_cpp_args)
 
 gnuradio_blocklib_picoscope6000_dep = declare_dependency(include_directories : ['../include/gnuradio', '../include', '../lib'], # TODO see above for ../lib
