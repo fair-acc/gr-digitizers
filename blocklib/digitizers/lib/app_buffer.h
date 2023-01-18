@@ -11,6 +11,7 @@
 #include <fmt/format.h>
 
 #include <system_error>
+#include <chrono>
 #include <cstring>
 #include <memory>
 #include <sstream>
