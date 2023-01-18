@@ -2,8 +2,8 @@
 #    QA
 ###################################################
 
-testdeps = [cppunit_dep, gnuradio_blocklib_digitizers_dep]
-linklibs = ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-blocklib-streamops']
+testdeps = [cppunit_dep, gnuradio_blocklib_digitizers_dep, gr_blocklib_blocks, gr_blocklib_math, gr_blocklib_streamops, gr_kernel_math]
+linklibs = []
 
 qa_block_demux = executable('qa_block_demux', 'qa_block_demux.cc',
                             dependencies: testdeps,
@@ -53,10 +53,10 @@ qa_post_mortem_sink = executable('qa_post_mortem_sink', 'qa_post_mortem_sink.cc'
 qa_signal_averager = executable('qa_signal_averager', 'qa_signal_averager.cc', dependencies: testdeps, link_args: linklibs)
 qa_stft_goertzl_dynamic = executable('qa_stft_goertzl_dynamic', 'qa_stft_goertzl_dynamic.cc',
                                      dependencies: testdeps,
-                                     link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-kernel-math'])
+                                     link_args: [])
 qa_stft_goertzl_dynamic_decimated = executable('qa_stft_goertzl_dynamic_decimated', 'qa_stft_goertzl_dynamic_decimated.cc',
                                                dependencies: testdeps,
-                                               link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-kernel-math'])
+                                               link_args: [])
 qa_stream_to_vector_overlay = executable('qa_stream_to_vector_overlay', 'qa_stream_to_vector_overlay.cc',
                                          dependencies: testdeps,
                                          link_args: linklibs)
@@ -68,7 +68,7 @@ qa_timing_receiver = executable('qa_timing_receiver', 'qa_timing_receiver.cc',
                                 link_args: linklibs)
 qa_wr_receiver = executable('qa_wr_receiver', 'qa_wr_receiver.cc',
                             dependencies: testdeps,
-                            link_args: ['-lgnuradio-runtime', '-lgnuradio-blocklib-blocks', '-lgnuradio-blocklib-math'])
+                            link_args: [])
 
 test('Block Demux', qa_block_demux)
 test('Block Scaling Offset', qa_block_scaling_offset)
