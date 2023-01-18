@@ -69,12 +69,6 @@ IMPLEMENT_CPU = true
 # gnuradio-runtime already here
 ###############################################################################
 gnuradio_gr_dep = dependency('gnuradio-runtime')
-gr_kernel_fft = dependency('gnuradio-kernel-fft')
-gr_kernel_math = dependency('gnuradio-kernel-math')
-gr_blocklib_blocks = dependency('gnuradio-blocks')
-gr_blocklib_streamops = dependency('gnuradio-streamops')
-gr_blocklib_math = dependency('gnuradio-math')
-
 ###############################################################################
 # IF Out of Tree Module
 # The script dir is part of the gnuradio installation, not of the oot tree,
