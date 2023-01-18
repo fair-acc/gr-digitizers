@@ -194,6 +194,7 @@ void qa_digitizer_block::rapid_block_correct_tags()
         return !tag.get(tag::TRIGGER_TIME.key()).has_value();
     });
     CPPUNIT_ASSERT_EQUAL(std::size_t{ 1 }, trigger_tags.size());
+    CPPUNIT_ASSERT_EQUAL(std::size_t{ presamples }, trigger_tags[0].offset());
 
     const auto trigger_data = decode_trigger_tag(trigger_tags[0]);
     CPPUNIT_ASSERT_EQUAL(trigger_name, trigger_data.name);

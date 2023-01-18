@@ -724,7 +724,8 @@ work_return_t digitizer_block_impl::work_rapid_block(work_io& wio)
             const uint32_t pre_trigger_samples_with_downsampling =
                 get_pre_trigger_samples_with_downsampling();
 
-            const auto tag_offset = wio.outputs()[0].nitems_written();
+            const auto tag_offset =
+                wio.outputs()[0].nitems_written() + pre_trigger_samples_with_downsampling;
 
             auto trigger_tag = make_trigger_tag(
                 tag_offset, timing.name, timing.timestamp, timing.offset);
