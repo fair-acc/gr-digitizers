@@ -1,5 +1,5 @@
 digitizers_sources += ['digitizer_block_impl.cc', 'picoscope_impl.cc']
-digitizers_deps += [gnuradio_gr_dep, volk_dep, fmt_dep, spdlog_dep, boost_dep, pmt_dep, python3_embed_dep, json_dep, root_dep]
+digitizers_deps += [gnuradio_gr_dep, volk_dep, fmt_dep, spdlog_dep, boost_dep, libzmq_dep, pmt_dep, python3_embed_dep, json_dep, root_dep]
 
 block_cpp_args = ['-DHAVE_CPU']
 

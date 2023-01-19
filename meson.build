@@ -30,6 +30,14 @@ endif
 py3 = import('python').find_installation('python3')
 json_dep = dependency('nlohmann_json')
 
+cmake = import('cmake')
+opt_var = cmake.subproject_options()
+# need draft features enabled for RADIO/DISH
+# This also prevents us from relying on distro packages
+opt_var.add_cmake_defines({'ENABLE_DRAFTS': true})
+libzmq = cmake.subproject('libzmq', options: opt_var)
+libzmq_dep = libzmq.dependency('libzmq')
+
 enable_picoscope = get_option('enable_picoscope')
 
 if (get_option('enable_testing'))
@@ -88,6 +96,8 @@ libroot_prefix = get_option('libroot_prefix')
 root_dep = dependency('ROOT', method : 'cmake', components : ['MathCore', 'Graf'], modules : ['ROOT::Graf', 'ROOT::MathCore'], cmake_module_path : libroot_prefix + '/cmake')
 
 if enable_picoscope
+  zlib_dep = dependency('zlib')
+  libusb_dep = dependency('libusb-1.0')
   libpicoscope_prefix = get_option('libpicoscope_prefix')
   libpicoscope_includedir = join_paths(libpicoscope_prefix, 'include')
   libpicoscope_libdir = join_paths(libpicoscope_prefix, 'lib')
@@ -95,9 +105,9 @@ if enable_picoscope
   # TODO(PORT) do at least some basic checks whether these includes/libs exist
   # HACK: ps4000aApi.h includes PicoCallback.h, which is only in libps5000a and libps6000a
   callback_includedir = join_paths(libpicoscope_includedir, 'libps6000a')
-  libpicoscope3000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps3000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps3000a'])
-  libpicoscope4000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps4000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps4000a'])
-  libpicoscope6000_dep = declare_dependency(include_directories : join_paths(libpicoscope_includedir, 'libps6000'), link_args : ['-L' + libpicoscope_libdir, '-lps6000'])
+  libpicoscope3000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps3000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps3000a'], dependencies : [ libusb_dep, zlib_dep ])
+  libpicoscope4000a_dep = declare_dependency(include_directories : [join_paths(libpicoscope_includedir, 'libps4000a'), callback_includedir], link_args : ['-L' + libpicoscope_libdir, '-lps4000a'], dependencies : [ libusb_dep, zlib_dep ])
+  libpicoscope6000_dep = declare_dependency(include_directories : join_paths(libpicoscope_includedir, 'libps6000'), link_args : ['-L' + libpicoscope_libdir, '-lps6000'], dependencies : [ libusb_dep, zlib_dep ])
 endif
 
 if GR_ENABLE_PYTHON

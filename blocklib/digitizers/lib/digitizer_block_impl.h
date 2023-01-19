@@ -15,6 +15,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include <system_error>
+#include <span>
 
 namespace gr::digitizers {
 
@@ -268,6 +269,8 @@ public:
     // Where all the action really happens
     work_return_t work(work_io& wio);
 
+    void handle_msg_timing(pmtv::pmt msg);
+
     std::string getConfigureExceptionMessage();
 
     /**********************************************************************
@@ -378,10 +381,15 @@ protected:
      * \brief This function searches for an edge (trigger) in the streaming buffer. It
      * returns relative offsets of all detected edges.
      */
-    std::vector<int> find_analog_triggers(float const* const samples, int nsamples);
+    std::vector<std::size_t> find_analog_triggers(std::span<const float> samples);
 
-    std::vector<int>
-    find_digital_triggers(uint8_t const* const samples, int nsamples, uint8_t pin_mask);
+    std::vector<std::size_t> find_digital_triggers(std::span<const uint8_t> samples,
+                                                   uint8_t pin_mask);
+
+    void dissect_data_chunk(std::span<const uint8_t> chunk_data,
+                            std::vector<std::span<const float>>& ai_buffers,
+                            std::vector<std::span<const float>>& ai_error_buffers,
+                            std::vector<std::span<const uint8_t>>& port_buffers);
 
     /*!
      * \brief Poll worker function. The thread exits if stop is requested or call to
@@ -430,8 +438,6 @@ protected:
     // Sample rate in Hz
     double d_samp_rate;
     double d_actual_samp_rate;
-
-    double d_time_per_sample_ns;
 
     // Number of pre- and post-trigger samples the user wants to see on the outputs.
     // Note when calculating actual number of pre- and post-trigger samples one should
@@ -486,14 +492,21 @@ protected:
     bool d_was_triggered_once;
     bool d_timebase_published;
 
-    // copy analog channel data array addresses to local application reference for enabled
-    // channels
-    std::vector<float*> ai_buffers;
-    std::vector<float*> ai_error_buffers;
+    // data held while waiting for timing messages needed to create trigger tags
+    struct {
+        app_buffer_t::data_chunk_ptr data_chunk;
+        std::vector<std::size_t> trigger_offsets;
+    } d_pending_data;
 
-    // copy digital channel data array addresses to local application reference for
-    // enabled ports
-    std::vector<uint8_t*> port_buffers;
+    struct timing_message_t {
+        std::string name;
+        std::chrono::nanoseconds timestamp; ///< timestamp from the timing receiver
+        std::chrono::nanoseconds
+            offset; ///< timing hardware offset condition for the timestamp in seconds
+                    ///< (e.g.compensating analog group delays, default '0')
+    };
+
+    std::deque<timing_message_t> d_timing_messages;
 
 private:
     // Acquisition, note boost constructs are used in order for the GR

@@ -92,19 +92,27 @@ public:
         d_impl.set_aichan(id, enabled, range, coupling, range_offset);
     }
 
-    void set_diport(std::string id, bool enabled, double thresh_voltage)
+    void set_diport(std::string id, bool enabled, double thresh_voltage) override
     {
         d_impl.set_diport(id, enabled, thresh_voltage);
     }
 
     void set_aichan_trigger(std::string id,
                             digitizers::trigger_direction_t trigger_direction,
-                            double threshold)
+                            double threshold) override
     {
         d_impl.set_aichan_trigger(id, trigger_direction, threshold);
     }
 
+    void set_di_trigger(uint8_t pin,
+                        digitizers::trigger_direction_t trigger_direction) override
+    {
+        d_impl.set_di_trigger(pin, trigger_direction);
+    }
+
 private:
+    void handle_msg_timing(pmtv::pmt msg) { d_impl.handle_msg_timing(std::move(msg)); }
+
     picoscope_4000a_impl d_impl;
 };
 

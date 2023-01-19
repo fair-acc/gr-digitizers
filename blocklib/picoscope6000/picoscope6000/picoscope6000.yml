@@ -106,12 +106,20 @@ callbacks:
    - id: set_aichan_trigger
      return: void
      args:
-       - id: id
+       - id: channel_id
          dtype: string
        - id: trigger_direction
          dtype: gr::digitizers::trigger_direction_t
        - id: threshold
          dtype: rf64
+   - id: set_di_trigger
+     return: void
+     args:
+       - id: pin
+         dtype: uint8_t
+       - id: trigger_direction
+         dtype: gr::digitizers::trigger_direction_t
+
 ports:
 -   domain: stream
     id: out

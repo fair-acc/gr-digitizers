@@ -46,6 +46,23 @@ void simulation_source_cpu::set_data(std::vector<float> channel_a_data,
     d_impl.d_port_data = std::move(port_data);
 }
 
+void simulation_source_cpu::set_aichan_trigger(std::string channel_id,
+                                               trigger_direction_t direction,
+                                               double threshold)
+{
+    d_impl.set_aichan_trigger(channel_id, direction, threshold);
+}
+
+void simulation_source_cpu::set_di_trigger(uint8_t pin, trigger_direction_t direction)
+{
+    d_impl.set_di_trigger(pin, direction);
+}
+
 work_return_t simulation_source_cpu::work(work_io& wio) { return d_impl.work(wio); }
+
+void simulation_source_cpu::handle_msg_timing(pmtv::pmt msg)
+{
+    d_impl.handle_msg_timing(std::move(msg));
+}
 
 } // namespace gr::digitizers

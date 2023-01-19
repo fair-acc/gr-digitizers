@@ -182,7 +182,15 @@ public:
 
     work_return_t work(work_io& wio) override;
 
+    void set_aichan_trigger(std::string channel_id,
+                            trigger_direction_t direction,
+                            double threshold) override;
+
+    void set_di_trigger(uint8_t pin, trigger_direction_t direction) override;
+
 private:
+    void handle_msg_timing(pmtv::pmt msg);
+
     simulation_impl d_impl;
 };
 

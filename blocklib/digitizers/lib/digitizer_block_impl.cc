@@ -60,7 +60,6 @@ digitizer_block_impl::digitizer_block_impl(const digitizer_args& args,
     : d_logger{ std::move(logger) },
       d_samp_rate(args.sample_rate),
       d_actual_samp_rate(d_samp_rate),
-      d_time_per_sample_ns(1000000000. / d_samp_rate),
       d_pre_samples(args.pre_samples),
       d_post_samples(args.post_samples),
       d_nr_captures(args.rapid_block_nr_captures),
@@ -87,9 +86,6 @@ digitizer_block_impl::digitizer_block_impl(const digitizer_args& args,
       d_trigger_once(args.trigger_once),
       d_was_triggered_once(false),
       d_timebase_published(false),
-      ai_buffers(args.ai_channels),
-      ai_error_buffers(args.ai_channels),
-      port_buffers(args.ports),
       d_data_rdy(false),
       d_trigger_state(0),
       d_read_idx(0),
@@ -201,14 +197,12 @@ double digitizer_block_impl::get_timebase_with_downsampling() const
 
 void digitizer_block_impl::add_error_code(std::error_code ec) { d_errors.push(ec); }
 
-std::vector<int> digitizer_block_impl::find_analog_triggers(float const* const samples,
-                                                            int nsamples)
+std::vector<std::size_t>
+digitizer_block_impl::find_analog_triggers(std::span<const float> samples)
 {
-    std::vector<int> trigger_offsets; // relative offset of detected triggers
+    std::vector<std::size_t> trigger_offsets; // relative offset of detected triggers
 
-    assert(nsamples >= 0);
-
-    if (!d_trigger_settings.is_enabled() || nsamples == 0) {
+    if (!d_trigger_settings.is_enabled() || samples.empty()) {
         return trigger_offsets;
     }
 
@@ -221,7 +215,7 @@ std::vector<int> digitizer_block_impl::find_analog_triggers(float const* const s
         float band = d_channel_settings[aichan].range / 100.0;
         float lo = static_cast<float>(d_trigger_settings.threshold - band);
 
-        for (auto i = 0; i < nsamples; i++) {
+        for (std::size_t i = 0; i < samples.size(); i++) {
             if (!d_trigger_state && samples[i] >= d_trigger_settings.threshold) {
                 d_trigger_state = 1;
                 trigger_offsets.push_back(i);
@@ -236,7 +230,7 @@ std::vector<int> digitizer_block_impl::find_analog_triggers(float const* const s
         float band = d_channel_settings[aichan].range / 100.0;
         float hi = static_cast<float>(d_trigger_settings.threshold + band);
 
-        for (auto i = 0; i < nsamples; i++) {
+        for (std::size_t i = 0; i < samples.size(); i++) {
             if (d_trigger_state && samples[i] <= d_trigger_settings.threshold) {
                 d_trigger_state = 0;
                 trigger_offsets.push_back(i);
@@ -250,15 +244,15 @@ std::vector<int> digitizer_block_impl::find_analog_triggers(float const* const s
     return trigger_offsets;
 }
 
-std::vector<int> digitizer_block_impl::find_digital_triggers(uint8_t const* const samples,
-                                                             int nsamples,
-                                                             uint8_t mask)
+std::vector<std::size_t>
+digitizer_block_impl::find_digital_triggers(std::span<const uint8_t> samples,
+                                            uint8_t mask)
 {
-    std::vector<int> trigger_offsets;
+    std::vector<std::size_t> trigger_offsets;
 
     if (d_trigger_settings.direction == trigger_direction_t::RISING ||
         d_trigger_settings.direction == trigger_direction_t::HIGH) {
-        for (auto i = 0; i < nsamples; i++) {
+        for (std::size_t i = 0; i < samples.size(); i++) {
             if (!d_trigger_state && (samples[i] & mask)) {
                 d_trigger_state = 1;
                 trigger_offsets.push_back(i);
@@ -270,7 +264,7 @@ std::vector<int> digitizer_block_impl::find_digital_triggers(uint8_t const* cons
     }
     else if (d_trigger_settings.direction == trigger_direction_t::FALLING ||
              d_trigger_settings.direction == trigger_direction_t::LOW) {
-        for (auto i = 0; i < nsamples; i++) {
+        for (std::size_t i = 0; i < samples.size(); i++) {
             if (d_trigger_state && !(samples[i] & mask)) {
                 d_trigger_state = 0;
                 trigger_offsets.push_back(i);
@@ -508,9 +502,6 @@ void digitizer_block_impl::arm()
             num_enabled_di_ports++;
         }
     }
-    ai_buffers.resize(num_enabled_ai_channels);
-    ai_error_buffers.resize(num_enabled_ai_channels);
-    port_buffers.resize(num_enabled_di_ports);
 }
 
 bool digitizer_block_impl::is_armed() { return d_armed; }
@@ -715,10 +706,6 @@ work_return_t digitizer_block_impl::work_rapid_block(work_io& wio)
         // and adjust the waveform index.
         d_bstate.set_waveform_params(0, downsampled_samples);
 
-        timespec start_time;
-        clock_gettime(CLOCK_REALTIME, &start_time);
-        uint64_t timestamp_now_ns_utc =
-            (start_time.tv_sec * 1000000000) + (start_time.tv_nsec);
         // We are good to read first batch of samples
         noutput_items = std::min(noutput_items, d_bstate.samples_left);
 
@@ -729,41 +716,33 @@ work_return_t digitizer_block_impl::work_rapid_block(work_io& wio)
             return work_return_t::ERROR; // TODO(PORT) was -1
         }
 
-        // Attach trigger info to value outputs and to all ports
-        auto vec_idx = 0;
-        uint32_t pre_trigger_samples_with_downsampling =
-            get_pre_trigger_samples_with_downsampling();
-        double time_per_sample_with_downsampling_ns =
-            d_time_per_sample_ns * d_downsampling_factor;
+        if (!d_timing_messages.empty()) {
+            const auto timing = d_timing_messages.front();
 
-        for (auto i = 0; i < d_ai_channels && vec_idx < (int)wio.outputs().size();
-             i++, vec_idx += 2) {
-            if (!d_channel_settings[i].enabled) {
-                continue;
-            }
+            // Attach trigger info to value outputs and to all ports
+            auto vec_idx = 0;
+            const uint32_t pre_trigger_samples_with_downsampling =
+                get_pre_trigger_samples_with_downsampling();
+
+            const auto tag_offset =
+                wio.outputs()[0].nitems_written() + pre_trigger_samples_with_downsampling;
 
             auto trigger_tag = make_trigger_tag(
-                d_downsampling_factor,
-                timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling *
-                                        time_per_sample_with_downsampling_ns),
-                wio.outputs()[0].nitems_written() + pre_trigger_samples_with_downsampling,
-                d_status[i]);
+                tag_offset, timing.name, timing.timestamp, timing.offset);
 
-            wio.outputs()[vec_idx].add_tag(trigger_tag);
-        }
+            for (auto i = 0; i < d_ai_channels && vec_idx < (int)wio.outputs().size();
+                 i++, vec_idx += 2) {
+                if (d_channel_settings[i].enabled) {
+                    wio.outputs()[vec_idx].add_tag(trigger_tag);
+                }
+            }
 
-        auto trigger_tag = make_trigger_tag(
-            d_downsampling_factor,
-            timestamp_now_ns_utc + (pre_trigger_samples_with_downsampling *
-                                    time_per_sample_with_downsampling_ns),
-            wio.outputs()[0].nitems_written() + pre_trigger_samples_with_downsampling,
-            0); // status
-
-        // Add tags to digital port
-        for (auto i = 0; i < d_ports && vec_idx < (int)wio.outputs().size();
-             i++, vec_idx++) {
-            if (d_port_settings[i].enabled)
-                wio.outputs()[vec_idx].add_tag(trigger_tag);
+            // Add tags to digital port
+            for (auto i = 0; i < d_ports && vec_idx < (int)wio.outputs().size();
+                 i++, vec_idx++) {
+                if (d_port_settings[i].enabled)
+                    wio.outputs()[vec_idx].add_tag(trigger_tag);
+            }
         }
 
         // update state
@@ -932,6 +911,30 @@ void digitizer_block_impl::transit_poll_thread_to_running()
     d_poller_state = poller_state_t::RUNNING;
 }
 
+void digitizer_block_impl::dissect_data_chunk(
+    std::span<const uint8_t> chunk_data,
+    std::vector<std::span<const float>>& ai_buffers,
+    std::vector<std::span<const float>>& ai_error_buffers,
+    std::vector<std::span<const uint8_t>>& port_buffers)
+{
+    const float* read_ptr = reinterpret_cast<const float*>(chunk_data.data());
+
+    // Create views on individual channels
+    for (size_t chan_idx = 0; chan_idx < ai_buffers.size(); chan_idx++) {
+        ai_buffers[chan_idx] = std::span(read_ptr, d_buffer_size);
+        read_ptr += d_buffer_size;
+        ai_error_buffers[chan_idx] = std::span(read_ptr, d_buffer_size);
+        read_ptr += d_buffer_size;
+    }
+
+    const uint8_t* di_read_ptr = reinterpret_cast<const uint8_t*>(read_ptr);
+
+    for (size_t port_idx = 0; port_idx < port_buffers.size(); port_idx++) {
+        port_buffers[port_idx] = std::span(di_read_ptr, d_buffer_size);
+        di_read_ptr += d_buffer_size;
+    }
+}
+
 work_return_t digitizer_block_impl::work_stream(work_io& wio)
 {
     // used for debugging in order to see how often gr calls this block
@@ -947,65 +950,133 @@ work_return_t digitizer_block_impl::work_stream(work_io& wio)
     // process only one buffer per iteration
     noutput_items = d_buffer_size;
 
-    // wait data on application buffer
-    auto ec = d_app_buffer.wait_data_ready();
+    // get previous chunk if any (if we were waiting for timing messages), or try to
+    // obtain a new one
+    app_buffer_t::data_chunk_ptr chunk;
+    std::vector<std::size_t> trigger_offsets;
+    std::swap(chunk, d_pending_data.data_chunk);
+    std::swap(trigger_offsets, d_pending_data.trigger_offsets);
 
-    if (ec) {
-        add_error_code(ec);
+    if (!chunk) {
+        // wait data on application buffer
+        auto ec = d_app_buffer.wait_data_ready();
+
+        if (ec) {
+            add_error_code(ec);
+        }
+
+        if (ec == digitizer_block_errc::Stopped) {
+            d_logger->info("stop requested");
+            return work_return_t::DONE; // stop // TODO(PORT) was -1;
+        }
+        else if (ec == digitizer_block_errc::Watchdog) {
+            d_logger->error("Watchdog triggered, rearming device...");
+            // Rearm device
+            disarm();
+            arm();
+            return work_return_t::OK; // TODO(PORT) was: 0; // work will be called again
+        }
+        if (ec) {
+            d_logger->error("Error reading stream data: {}", ec);
+            return work_return_t::ERROR; // stop // TODO(PORT) was -1;
+        }
+
+        chunk = d_app_buffer.get_data_chunk();
     }
 
-    if (ec == digitizer_block_errc::Stopped) {
-        d_logger->info("stop requested");
-        return work_return_t::DONE; // stop // TODO(PORT) was -1;
+    // Search data for timing triggers
+
+    const auto timestamp_now_ns_utc = chunk->d_local_timestamp;
+    const auto lost_count = chunk->d_lost_count;
+    const auto channel_status = chunk->d_status;
+
+    const auto enabled_aichan_count = get_enabled_aichan_count();
+    const auto enabled_diport_count = get_enabled_diport_count();
+    std::vector<std::span<const float>> ai_buffer_views(enabled_aichan_count);
+    std::vector<std::span<const float>> ai_error_buffer_views(enabled_aichan_count);
+    std::vector<std::span<const uint8_t>> port_buffer_views(enabled_diport_count);
+
+    dissect_data_chunk(
+        chunk->d_data, ai_buffer_views, ai_error_buffer_views, port_buffer_views);
+
+    std::vector<tag_t> trigger_tags;
+
+    if (d_trigger_settings.is_enabled()) {
+        if (trigger_offsets.empty()) {
+            // if we don't have the offsets from the pending data, search for triggers now
+            if (d_trigger_settings.is_analog()) {
+                // TODO: improve, check selected trigger on arm
+                const auto aichan = convert_to_aichan_idx(d_trigger_settings.source);
+                trigger_offsets = find_analog_triggers(ai_buffer_views[aichan]);
+            }
+            else if (d_trigger_settings.is_digital()) {
+                auto port = d_trigger_settings.pin_number / 8;
+                auto pin = d_trigger_settings.pin_number % 8;
+                auto mask = 1 << pin;
+                trigger_offsets = find_digital_triggers(port_buffer_views[port], mask);
+            }
+        }
+
+        if (trigger_offsets.size() > d_timing_messages.size()) {
+            // not enough timing messages received to process trigger, abort for now and
+            // wait
+            d_pending_data.data_chunk = std::move(chunk);
+            d_pending_data.trigger_offsets = trigger_offsets;
+            return work_return_t::OK;
+        }
+
+        // pair timing messages with trigger offsets and create tags
+        trigger_tags.reserve(trigger_offsets.size());
+        for (const auto& trigger_offset : trigger_offsets) {
+            const auto timing = d_timing_messages.front();
+            d_timing_messages.pop_front();
+            trigger_tags.push_back(
+                make_trigger_tag(wio.outputs()[0].nitems_written() + trigger_offset,
+                                 timing.name,
+                                 timing.timestamp,
+                                 timing.offset));
+        }
     }
-    else if (ec == digitizer_block_errc::Watchdog) {
-        d_logger->error("Watchdog triggered, rearming device...");
-        // Rearm device
-        disarm();
-        arm();
-        return work_return_t::OK; // TODO(PORT) was: 0; // work will be called again
-    }
-    if (ec) {
-        d_logger->error("Error reading stream data: {}", ec);
-        return work_return_t::ERROR; // stop // TODO(PORT) was -1;
+    else {
+        // no trigger channels, use the last timing message to tag the first sample
+        if (!d_timing_messages.empty()) {
+            const auto timing = d_timing_messages[0];
+            trigger_tags.push_back(make_trigger_tag(wio.outputs()[0].nitems_written(),
+                                                    timing.name,
+                                                    timing.timestamp,
+                                                    timing.offset));
+        }
     }
 
-    int output_items_idx = 0;
-    int buff_idx = 0;
-    int port_idx = 0;
-
+    // copy data to output buffers and pass trigger tags
     for (auto i = 0; i < d_ai_channels; i++) {
         if (d_channel_settings[i].enabled) {
-            ai_buffers[buff_idx] = wio.outputs()[output_items_idx].items<float>();
-            output_items_idx++;
-            ai_error_buffers[buff_idx] = wio.outputs()[output_items_idx].items<float>();
-            output_items_idx++;
-            buff_idx++;
-        }
-        else {
-            output_items_idx += 2; // Skip disabled channels
+            const auto in = ai_buffer_views[i];
+            const auto in_error = ai_error_buffer_views[i];
+            auto out = wio.outputs()[2 * i].items<float>();
+            auto out_error = wio.outputs()[2 * i + 1].items<float>();
+
+            std::copy(in.begin(), in.end(), out);
+            std::copy(in_error.begin(), in_error.end(), out_error);
+
+            for (auto& trigger_tag : trigger_tags) {
+                wio.outputs()[2 * i].add_tag(trigger_tag);
+            }
         }
     }
+
+    const auto port_offset = d_ai_channels * 2;
 
     for (auto i = 0; i < d_ports; i++) {
         if (d_port_settings[i].enabled) {
-            port_buffers[port_idx] = wio.outputs()[output_items_idx].items<uint8_t>();
-            output_items_idx++;
-            port_idx++;
-        }
-        else {
-            output_items_idx++;
+            auto out = wio.outputs()[port_offset + i];
+            auto outbuf = out.items<uint8_t>();
+            std::copy(port_buffer_views[i].begin(), port_buffer_views[i].end(), outbuf);
+            for (auto& trigger_tag : trigger_tags) {
+                out.add_tag(trigger_tag);
+            }
         }
     }
-
-    // This will write samples directly into GR output buffers
-    std::vector<uint32_t> channel_status;
-
-    int64_t timestamp_now_ns_utc;
-    auto lost_count = d_app_buffer.get_data_chunk(
-        ai_buffers, ai_error_buffers, port_buffers, channel_status, timestamp_now_ns_utc);
-    // std::cout << "timestamp_now_ns_utc: " << int64_t(timestamp_now_ns_utc) <<
-    // std::endl;
 
     if (lost_count) {
         d_logger->error("{} digitizer data buffers lost. Usually the cause of this error "
@@ -1016,9 +1087,10 @@ work_return_t digitizer_block_impl::work_stream(work_io& wio)
     }
 
     // Compile acquisition info tag
+    // TODO check what to do with these, they still rely on the old timestamp_now_ns_utc
     acq_info_t tag_info{};
 
-    tag_info.timestamp = timestamp_now_ns_utc;
+    tag_info.timestamp = timestamp_now_ns_utc.count();
     tag_info.timebase = get_timebase_with_downsampling();
     tag_info.user_delay = 0.0;
     tag_info.actual_delay = 0.0;
@@ -1049,69 +1121,6 @@ work_return_t digitizer_block_impl::work_stream(work_io& wio)
         output_idx++;
     }
 
-    // Software-based trigger detection
-    std::vector<int> trigger_offsets;
-
-    if (d_trigger_settings.is_analog()) {
-        // TODO: improve, check selected trigger on arm
-        const auto aichan = convert_to_aichan_idx(d_trigger_settings.source);
-        auto output_idx = aichan * 2; // ignore error outputs
-
-        auto buffer = static_cast<const float*>(wio.outputs()[output_idx].raw_items());
-        trigger_offsets = find_analog_triggers(buffer, d_buffer_size);
-    }
-    else if (d_trigger_settings.is_digital()) {
-        auto port = d_trigger_settings.pin_number / 8;
-        auto pin = d_trigger_settings.pin_number % 8;
-        auto mask = 1 << pin;
-
-        auto buffer =
-            wio.outputs()[wio.outputs().size() - d_ports + port].items<uint8_t>();
-        trigger_offsets = find_digital_triggers(buffer, d_buffer_size, mask);
-    }
-
-    double time_per_sample_with_downsampling_ns =
-        d_time_per_sample_ns * d_downsampling_factor;
-
-    // Attach trigger tags
-    for (auto trigger_offset : trigger_offsets) {
-        //       std::cout << "trigger_offset       : " << trigger_offset<<std::endl;
-        //       std::cout << "noutput_items        : " << noutput_items <<std::endl;
-        //       std::cout << "d_time_per_sample_ns : " <<
-        //       time_per_sample_with_downsampling_ns <<std::endl; std::cout <<
-        //       "local_timstamp        : " << local_timstamp << std::endl; std::cout <<
-        //       "another now           :" << now << std::endl; std::cout <<
-        //       "timestamp_now_ns_utc  : " << timestamp_now_ns_utc<<std::endl; std::cout
-        //       << "diff[ns]             : " << uint64_t((noutput_items - trigger_offset
-        //       ) * time_per_sample_with_downsampling_ns )<<std::endl; std::cout <<
-        //       "stamp added           : " << uint64_t(timestamp_now_ns_utc - ((
-        //       noutput_items - trigger_offset ) * time_per_sample_with_downsampling_ns
-        //       )) <<std::endl; std::cout << "tag offset: " << nitems_written(0) +
-        //       trigger_offset <<std::endl;
-        auto trigger_tag = make_trigger_tag(
-            d_downsampling_factor,
-            timestamp_now_ns_utc - uint64_t((noutput_items - trigger_offset) *
-                                            time_per_sample_with_downsampling_ns),
-            wio.outputs()[0].nitems_written() + trigger_offset,
-            0); // status
-
-        int output_idx = 0;
-
-        for (auto i = 0; i < d_ai_channels; i++) {
-            if (d_channel_settings[i].enabled) {
-                wio.outputs()[output_idx].add_tag(trigger_tag);
-            }
-            output_idx += 2;
-        }
-
-        for (auto i = 0; i < d_ports; i++) {
-            if (d_port_settings[i].enabled) {
-                wio.outputs()[output_idx].add_tag(trigger_tag);
-            }
-            output_idx++;
-        }
-    }
-
     wio.produce_each(noutput_items);
     return work_return_t::OK;
 }
@@ -1127,18 +1136,54 @@ work_return_t digitizer_block_impl::work(work_io& wio)
         retval = work_rapid_block(wio);
     }
 
-    if (retval == work_return_t::OK && !d_timebase_published) {
-        auto timebase_tag = make_timebase_info_tag(get_timebase_with_downsampling());
-        timebase_tag.set_offset(wio.outputs()[0].nitems_written());
+    if (retval == work_return_t::OK) {
+        if (!d_timebase_published) {
+            auto timebase_tag = make_timebase_info_tag(get_timebase_with_downsampling());
+            timebase_tag.set_offset(wio.outputs()[0].nitems_written());
 
-        for (std::size_t i = 0; i < wio.outputs().size(); i++) {
-            wio.outputs()[i].add_tag(timebase_tag);
+            for (std::size_t i = 0; i < wio.outputs().size(); i++) {
+                wio.outputs()[i].add_tag(timebase_tag);
+            }
+
+            d_timebase_published = true;
         }
-
-        d_timebase_published = true;
     }
 
     return retval;
+}
+
+template <typename T>
+constexpr static std::chrono::nanoseconds convert_to_ns(T ns)
+{
+    using namespace std::chrono;
+    return round<nanoseconds>(duration<T, std::nano>{ ns });
+}
+
+void digitizer_block_impl::handle_msg_timing(pmtv::pmt msg)
+{
+    const auto map = std::get<std::map<std::string, pmtv::pmt>>(msg);
+
+    try {
+        if (!d_trigger_settings.is_enabled()) {
+            d_timing_messages.clear();
+        }
+
+        d_timing_messages.push_back(
+            { .name = std::get<std::string>(map.at(tag::TRIGGER_NAME)),
+              .timestamp = convert_to_ns(std::get<int64_t>(map.at(tag::TRIGGER_TIME))),
+              .offset = convert_to_ns(std::get<double>(map.at(tag::TRIGGER_OFFSET)) *
+                                      1000000000) });
+
+        const auto last = d_timing_messages.back();
+        d_logger->debug("Received timing message: name='{}', timestamp={}, offset={}, "
+                        "Already Queued={}",
+                        last.name,
+                        last.timestamp,
+                        last.offset,
+                        d_timing_messages.size() - 1);
+    } catch (const std::out_of_range& e) {
+        d_logger->error("Could not decode timing message: {}", e.what());
+    }
 }
 
 } // namespace gr::digitizers

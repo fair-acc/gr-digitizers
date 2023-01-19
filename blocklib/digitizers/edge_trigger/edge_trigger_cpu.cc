@@ -76,7 +76,7 @@ work_return_t edge_trigger_cpu::work(work_io& wio)
     }
 
     // Detect all triggers
-    const auto triggers = filter_tags(std::vector<tag_t>(all_tags), trigger_tag_name);
+    const auto triggers = filter_tags(std::vector<tag_t>(all_tags), tag::TRIGGER_TIME);
     for (const auto& tag : triggers) {
         d_triggers.push_back(tag.offset());
     }

@@ -20,3 +20,9 @@ digitizer_downsampling_mode_t:
   - id: MIN_MAX_AGG
   - id: DECIMATE
   - id: AVERAGE
+
+timing_receiver_simulation_mode_t:
+  enumerators:
+  - id: MANUAL
+  - id: PERIODIC_INTERVAL
+  - id: ZEROMQ

@@ -8,7 +8,10 @@
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
 
+#include <fmt/format.h>
+
 #include <system_error>
+#include <chrono>
 #include <cstring>
 #include <memory>
 #include <sstream>
@@ -62,9 +65,12 @@ public:
 
         std::vector<uint8_t> d_data;
         std::vector<uint32_t> d_status; // see channel_status_t enum definition
-        uint64_t d_local_timestamp;     // UTC nanoseconds
-        int d_lost_count;               // number of buffers lost
+        std::chrono::nanoseconds d_local_timestamp; // UTC nanoseconds
+        int d_lost_count;                           // number of buffers lost
     };
+
+    using data_chunk_ptr =
+        std::unique_ptr<data_chunk_t, std::function<void(data_chunk_t*)>>;
 
 private:
     using data_chunk_sptr = std::shared_ptr<data_chunk_t>;
@@ -171,67 +177,31 @@ public:
     }
 
     /*!
-     * \brief This method follows the GR's work method signature/approach, that is the
-     * pointers to the GR output buffers should be passed in.
-     *
-     * NOTE, clients MUST call wait_data_ready before attempting to invoke this method.
-     *
-     * Returns number of data chunks lost from the last call.
+     * Returns the next chunk of available data. The the chunk can be stored for delayed
+     * processing and is automatically returned to the pool when the ptr is
+     * destroyed/released.
      */
-    int get_data_chunk(std::vector<float*>& ai_buffers,
-                       std::vector<float*>& ai_error_buffers,
-                       std::vector<uint8_t*>& port_buffers,
-                       std::vector<uint32_t>& status,
-                       int64_t& local_timestamp)
+    data_chunk_ptr get_data_chunk()
     {
         if (d_data_rdy_errc || d_data_chunks.empty()) {
             // by the contract the work method must wait data being ready before calling
             // this method
-            std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__
-                    << ":  Use wait_data_ready!!!";
-            throw std::runtime_error(message.str());
+            throw std::runtime_error(fmt::format(
+                "Exception in {}:{}:  Use wait_data_ready!!!", __FILE__, __LINE__));
         }
+
+        auto releaser = [this](data_chunk_t* chunk) {
+            // instead of delete, return chunk to the pool for reuse
+            if (chunk) {
+                d_free_data_chunks.push(chunk);
+            }
+        };
 
         // get the oldest data chunk
         data_chunk_t* data_chunk = nullptr;
         d_data_chunks.pop(data_chunk);
         assert(data_chunk != nullptr);
-
-        auto retval = data_chunk->d_lost_count;
-
-        // check invariants/arguments
-        assert(ai_buffers.size() == static_cast<size_t>(d_nr_channels));
-        assert(ai_error_buffers.size() == static_cast<size_t>(d_nr_channels));
-        assert(port_buffers.size() == static_cast<size_t>(d_nr_ports));
-
-        // copy over the data chunk
-        float* read_ptr = reinterpret_cast<float*>(&data_chunk->d_data[0]);
-
-        for (size_t chan_idx = 0; chan_idx < ai_buffers.size(); chan_idx++) {
-            std::memcpy(ai_buffers[chan_idx], read_ptr, d_chunk_size * sizeof(float));
-            read_ptr += d_chunk_size;
-            std::memcpy(
-                ai_error_buffers[chan_idx], read_ptr, d_chunk_size * sizeof(float));
-            read_ptr += d_chunk_size;
-        }
-
-        uint8_t* di_read_ptr = reinterpret_cast<uint8_t*>(read_ptr);
-
-        for (size_t port_idx = 0; port_idx < port_buffers.size(); port_idx++) {
-            std::memcpy(
-                port_buffers[port_idx], di_read_ptr, d_chunk_size * sizeof(uint8_t));
-            di_read_ptr += d_chunk_size;
-        }
-
-        // copy status & timestamp
-        local_timestamp = data_chunk->d_local_timestamp;
-        status = data_chunk->d_status;
-
-        // This data chunk/buffer is free to be used again
-        d_free_data_chunks.push(data_chunk);
-
-        return retval;
+        return data_chunk_ptr{ data_chunk, releaser };
     }
 
     /*!
