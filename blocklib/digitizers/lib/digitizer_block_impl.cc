@@ -600,6 +600,8 @@ bool digitizer_block_impl::stop()
         disarm();
     }
 
+    close();
+
     if (d_acquisition_mode == acquisition_mode_t::STREAMING) {
         stop_poll_thread();
     }
