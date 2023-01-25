@@ -121,6 +121,10 @@ callbacks:
          dtype: gr::digitizers::trigger_direction_t
 
 ports:
+-   domain: message
+    id: timing
+    direction: input
+    optional: true
 -   domain: stream
     id: out
     direction: out

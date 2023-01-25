@@ -834,7 +834,7 @@ picoscope6000_cpu::picoscope6000_cpu(block_args args)
             .auto_arm = args.auto_arm,
             .trigger_once = args.trigger_once,
             .ai_channels = PS6000_MAX_CHANNELS,
-            .ports = 0 },
+            .ports = 2 },
           args.serial_number,
           d_logger)
 {
