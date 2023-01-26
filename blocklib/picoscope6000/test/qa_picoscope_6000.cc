@@ -341,10 +341,10 @@ void qa_picoscope_6000::rapid_block_tags()
     top->run();
 
     auto data_tags = sink->tags();
-    CPPUNIT_ASSERT_EQUAL(3, (int)data_tags.size());
+    CPPUNIT_ASSERT_EQUAL(1, (int)data_tags.size());
 
     for (auto& tag : data_tags) {
-        CPPUNIT_ASSERT_EQUAL(tag.map().size(), std::size_t{ 1 });
+        CPPUNIT_ASSERT_EQUAL(false, tag.map().empty());
         const auto key = tag.map().begin()->first;
 
         if (key == digitizers::timebase_info_tag_name) {

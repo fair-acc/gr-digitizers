@@ -351,15 +351,14 @@ void qa_picoscope_3000a::rapid_block_tags()
     top->run();
 
     auto data_tags = sink->tags();
-    CPPUNIT_ASSERT_EQUAL(3, (int)data_tags.size());
+    CPPUNIT_ASSERT_EQUAL(1, (int)data_tags.size());
 
     for (auto& tag : data_tags) {
-        CPPUNIT_ASSERT_EQUAL(tag.map().size(), std::size_t{ 1 });
+        CPPUNIT_ASSERT_EQUAL(false, tag.map().empty());
         const auto key = tag.map().begin()->first;
-        const auto is_trigger_tag = tag.get(tag::TRIGGER_TIME.key()).has_value();
 
         CPPUNIT_ASSERT(key == digitizers::acq_info_tag_name ||
-                       key == digitizers::timebase_info_tag_name || is_trigger_tag);
+                       key == digitizers::timebase_info_tag_name);
 
         if (key == digitizers::timebase_info_tag_name) {
             double timebase = digitizers::decode_timebase_info_tag(tag);
