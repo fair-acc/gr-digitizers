@@ -25,6 +25,16 @@ using gr::digitizers::trigger_direction_t;
 
 namespace gr::picoscope4000a {
 
+void connect_remaining_outputs_to_null_sinks(flowgraph_sptr fg,
+                                             block_sptr ps,
+                                             std::size_t first)
+{
+    for (auto i = first; i <= 15u; ++i) {
+        auto ns = blocks::null_sink::make({ .itemsize = sizeof(float) });
+        fg->connect(ps, i, ns, 0);
+    }
+}
+
 void qa_picoscope_4000a::open_close()
 {
     auto ps = picoscope4000a::make({});
@@ -66,17 +76,10 @@ void qa_picoscope_4000a::rapid_block_basics()
     auto sink = blocks::vector_sink_f::make({ 1 });
     auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
-    auto make_null_sink = [] {
-        return blocks::null_sink::make({ .itemsize = sizeof(float) });
-    };
-
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
-    for (std::size_t i = 2; i < 16; ++i) { // TODO(PORT) investigate why it crashes in the
-                                           // GR scheduler if we don't connect all ports
-        top->connect(ps, i, make_null_sink(), 0);
-    }
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data = sink->data();
@@ -154,7 +157,7 @@ void qa_picoscope_4000a::rapid_block_channels()
     top->connect(ps, 5, errsinkC, 0);
     top->connect(ps, 6, sinkD, 0);
     top->connect(ps, 7, errsinkD, 0);
-
+    connect_remaining_outputs_to_null_sinks(top, ps, 8);
     top->run();
 
     CPPUNIT_ASSERT_EQUAL(1050, (int)sinkA->data().size());
@@ -190,6 +193,7 @@ void qa_picoscope_4000a::rapid_block_continuous()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
 
     // We explicitly open unit because it takes quite some time
     // and we don't want to time this part
@@ -236,6 +240,7 @@ void qa_picoscope_4000a::rapid_block_downsampling_basics()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data = sink->data();
@@ -300,7 +305,7 @@ void qa_picoscope_4000a::run_rapid_block_downsampling(digitizer_downsampling_mod
     top->connect(ps, 5, errsinkC, 0);
     top->connect(ps, 6, sinkD, 0);
     top->connect(ps, 7, errsinkD, 0);
-
+    connect_remaining_outputs_to_null_sinks(top, ps, 8);
     top->run();
 
     CPPUNIT_ASSERT_EQUAL(1100, (int)sinkA->data().size());
@@ -353,6 +358,7 @@ void qa_picoscope_4000a::rapid_block_tags()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data_tags = sink->tags();

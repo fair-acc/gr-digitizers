@@ -21,6 +21,22 @@ using gr::digitizers::trigger_direction_t;
 
 namespace gr::picoscope3000a {
 
+void connect_remaining_outputs_to_null_sinks(flowgraph_sptr fg,
+                                             block_sptr ps,
+                                             std::size_t first_analog,
+                                             std::size_t first_digital = 0)
+{
+    for (auto i = first_analog; i <= 7u; ++i) {
+        auto ns = blocks::null_sink::make({ .itemsize = sizeof(float) });
+        fg->connect(ps, i, ns, 0);
+    }
+
+    for (auto i = first_digital; i <= 2u; ++i) {
+        auto ns = blocks::null_sink::make({ .itemsize = sizeof(uint8_t) });
+        fg->connect(ps, 8 + i, ns, 0);
+    }
+}
+
 void qa_picoscope_3000a::open_close()
 {
     auto ps = picoscope3000a::make({});
@@ -65,6 +81,7 @@ void qa_picoscope_3000a::rapid_block_basics()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data = sink->data();
@@ -186,6 +203,7 @@ void qa_picoscope_3000a::rapid_block_continuous()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
 
     // We explicitly open unit because it takes quite some time
     // and we don't want to time this part
@@ -348,6 +366,7 @@ void qa_picoscope_3000a::rapid_block_tags()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data_tags = sink->tags();
@@ -416,6 +435,7 @@ void qa_picoscope_3000a::rapid_block_trigger()
     top->connect(ps, 6, dsink, 0);
     top->connect(ps, 7, derrsink, 0);
     top->connect(ps, 8, port0, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 8 /*none*/, 1);
     top->run();
 
     auto data = sink->data();
@@ -439,6 +459,7 @@ void qa_picoscope_3000a::streaming_basics()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
 
     // Explicitly open unit because it takes quite some time
     CPPUNIT_ASSERT_NO_THROW(ps->initialize());
