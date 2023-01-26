@@ -17,6 +17,7 @@ public:
     CPPUNIT_TEST(rapid_block_downsampling_basics);
     CPPUNIT_TEST(rapid_block_downsampling);
     CPPUNIT_TEST(rapid_block_tags);
+    // CPPUNIT_TEST(streaming_basics);
     CPPUNIT_TEST_SUITE_END();
 
 private:
@@ -30,8 +31,6 @@ private:
     void rapid_block_downsampling_basics();
     void rapid_block_downsampling();
     void rapid_block_tags();
-    void rapid_block_trigger();
-
     void streaming_basics();
 };
 
