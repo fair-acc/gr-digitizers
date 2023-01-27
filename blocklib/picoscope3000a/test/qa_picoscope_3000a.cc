@@ -360,6 +360,13 @@ void qa_picoscope_3000a::rapid_block_tags()
           .auto_arm = true,
           .trigger_once = true });
 
+    ps->set_aichan("A",
+                   true,
+                   5.0,
+                   coupling_t::AC_1M,
+                   0); // TODO(PORT) remove last arg (double_range) when default values
+                       // work in the code generation;
+
     auto sink = blocks::vector_sink_f::make({ 1 });
     auto errsink = blocks::vector_sink_f::make({ 1 });
 
