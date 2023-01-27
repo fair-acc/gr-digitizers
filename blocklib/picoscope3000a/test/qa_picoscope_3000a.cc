@@ -31,7 +31,7 @@ void connect_remaining_outputs_to_null_sinks(flowgraph_sptr fg,
         fg->connect(ps, i, ns, 0);
     }
 
-    for (auto i = first_digital; i <= 2u; ++i) {
+    for (auto i = first_digital; i <= 1u; ++i) {
         auto ns = blocks::null_sink::make({ .itemsize = sizeof(uint8_t) });
         fg->connect(ps, 8 + i, ns, 0);
     }
