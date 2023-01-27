@@ -250,6 +250,7 @@ void qa_picoscope_3000a::rapid_block_downsampling_basics()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data = sink->data();
