@@ -485,6 +485,7 @@ protected:
 
     // Flags
     bool d_initialized;
+    bool d_configured = false;
     bool d_closed;
     bool d_armed;
     bool d_auto_arm;

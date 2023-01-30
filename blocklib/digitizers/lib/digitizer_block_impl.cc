@@ -453,6 +453,7 @@ void digitizer_block_impl::configure()
                             get_enabled_diport_count(),
                             d_buffer_size,
                             d_nr_buffers);
+    d_configured = true;
 }
 
 void digitizer_block_impl::arm()
@@ -534,6 +535,7 @@ void digitizer_block_impl::close()
     }
     d_closed = true;
     d_initialized = false;
+    d_configured = false;
 }
 
 std::vector<error_info_t> digitizer_block_impl::get_errors() { return d_errors.get(); }
@@ -1129,6 +1131,14 @@ work_return_t digitizer_block_impl::work_stream(work_io& wio)
 
 work_return_t digitizer_block_impl::work(work_io& wio)
 {
+    if (!d_configured) {
+        // TODO This seems currently the only way to handle an issue during configuration
+        // (in start()), because errors in start() are ignored by GR. Otherwise work()
+        // would bne called forever, and fail each time in arm()
+        d_logger->error("Device not configured correctly, abort");
+        return work_return_t::DONE;
+    }
+
     work_return_t retval;
 
     if (d_acquisition_mode == acquisition_mode_t::STREAMING) {
