@@ -1133,8 +1133,8 @@ work_return_t digitizer_block_impl::work(work_io& wio)
 {
     if (!d_configured) {
         // TODO This seems currently the only way to handle an issue during configuration
-        // (in start()), because errors in start() are ignored by GR. Otherwise work()
-        // would bne called forever, and fail each time in arm()
+        // (in start()), because start() returning false is ignored by GR. Otherwise
+        // work() would be called forever, and fail each time in arm()
         d_logger->error("Device not configured correctly, abort");
         return work_return_t::DONE;
     }
