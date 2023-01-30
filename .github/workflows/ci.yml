@@ -24,6 +24,12 @@ jobs:
       options: --cpus 2
     steps:
       - uses: actions/checkout@v3
+      - name: Install gcovr
+        shell: bash
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          python3 -m pip install gcovr --user --no-warn-script-location
+          gcovr --version
       - name: Install picoscope
         run: |
           su -c "apt-get update"
@@ -50,14 +56,16 @@ jobs:
           su -c "update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12"
       - name: "Fix broken gnuradio pkgconfig file"
         run: |
-          su -c "bash -c 'echo \"Libs: -L${libdir} -lgnuradio-kernel-fft\" >> /usr/lib/pkgconfig/gnuradio-kernel-fft'"
-          su -c "bash -c 'echo \"Requires.private: gnuradio-runtime, gnuradio-kernel-math, volk >= 2.2, fftw3f, yaml-cpp >= 0.6, spdlog, fmt, nlohmann_json, python3, python3-embed, pybind11\" >> /usr/lib/pkgconfig/gnuradio-kernel-fft'"
-          su -c "bash -c 'echo \"Libs.private: -pthread -lrt -ldl -lzmq -lsodium\" >> /usr/lib/pkgconfig/gnuradio-kernel-fft'"
-          cat /usr/lib/pkgconfig/gnuradio-kernel-fft
-          cat /usr/lib/pkgconfig/gnuradio-runtime
+          pkg-config gnuradio-runtime --debug
+          pkg-config gnuradio-kernel-fft --debug
+          su -c "bash -c 'echo \"Libs: -L${libdir} -lgnuradio-kernel-fft\" >> /usr/local/lib/x86_64-linux-gnu/pkgconfig/gnuradio-kernel-fft.pc'"
+          su -c "bash -c 'echo \"Requires.private: gnuradio-runtime, gnuradio-kernel-math, volk >= 2.2, fftw3f, yaml-cpp >= 0.6, spdlog, fmt, python3, python3-embed\" >> /usr/local/lib/x86_64-linux-gnu/pkgconfig/gnuradio-kernel-fft.pc'"
+          su -c "bash -c 'echo \"Libs.private: -pthread -lrt -ldl /usr/lib/x86_64-linux-gnu/libzmq.so /usr/lib/x86_64-linux-gnu/libsodium.so\" >> /usr/local/lib/x86_64-linux-gnu/pkgconfig/gnuradio-kernel-fft.pc'"
+          pkg-config gnuradio-kernel-fft --debug
       - name: Meson Setup
         shell: bash
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           source .local/root/bin/thisroot.sh
           meson setup build -Db_coverage=true --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
       - name: Make
@@ -74,11 +82,12 @@ jobs:
           ninja test
       - name: "Build coverage report"
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           cd build
-          ninja coverage_xml
+          ninja coverage-xml
       - uses: codecov/codecov-action@v3
         with:
-          files: ${{runner.workspace}}/build/coverage.xml
+          files: ${{runner.workspace}}/gr-digitizers/build/meson-logs/coverage.xml
       - uses: actions/upload-artifact@v3
         if: failure()
         with:
