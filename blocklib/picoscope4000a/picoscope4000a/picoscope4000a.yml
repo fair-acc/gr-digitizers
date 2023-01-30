@@ -130,7 +130,6 @@ ports:
     direction: out
     type: rf32
     multiplicity: '16'
-    optional: true # TODO(PORT) check what's actually needed here, old impl says 16..16, but that doesn't match usage qa_picoscope_4000a.cc
 
 implementations:
 -   id: cpu

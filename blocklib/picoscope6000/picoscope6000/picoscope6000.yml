@@ -121,12 +121,21 @@ callbacks:
          dtype: gr::digitizers::trigger_direction_t
 
 ports:
+-   domain: message
+    id: timing
+    direction: input
+    optional: true
 -   domain: stream
     id: out
     direction: out
     type: rf32
     multiplicity: '8'
     optional: true
+-   domain: stream
+    id: ports
+    direction: out
+    type: ri8
+    multiplicity: '2'
 
 implementations:
 -   id: cpu

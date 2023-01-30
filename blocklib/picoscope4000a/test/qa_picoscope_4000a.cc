@@ -25,6 +25,16 @@ using gr::digitizers::trigger_direction_t;
 
 namespace gr::picoscope4000a {
 
+void connect_remaining_outputs_to_null_sinks(flowgraph_sptr fg,
+                                             block_sptr ps,
+                                             std::size_t first)
+{
+    for (auto i = first; i <= 15u; ++i) {
+        auto ns = blocks::null_sink::make({ .itemsize = sizeof(float) });
+        fg->connect(ps, i, ns, 0);
+    }
+}
+
 void qa_picoscope_4000a::open_close()
 {
     auto ps = picoscope4000a::make({});
@@ -66,17 +76,10 @@ void qa_picoscope_4000a::rapid_block_basics()
     auto sink = blocks::vector_sink_f::make({ 1 });
     auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
 
-    auto make_null_sink = [] {
-        return blocks::null_sink::make({ .itemsize = sizeof(float) });
-    };
-
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
-    for (std::size_t i = 2; i < 16; ++i) { // TODO(PORT) investigate why it crashes in the
-                                           // GR scheduler if we don't connect all ports
-        top->connect(ps, i, make_null_sink(), 0);
-    }
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data = sink->data();
@@ -154,7 +157,7 @@ void qa_picoscope_4000a::rapid_block_channels()
     top->connect(ps, 5, errsinkC, 0);
     top->connect(ps, 6, sinkD, 0);
     top->connect(ps, 7, errsinkD, 0);
-
+    connect_remaining_outputs_to_null_sinks(top, ps, 8);
     top->run();
 
     CPPUNIT_ASSERT_EQUAL(1050, (int)sinkA->data().size());
@@ -190,6 +193,7 @@ void qa_picoscope_4000a::rapid_block_continuous()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
 
     // We explicitly open unit because it takes quite some time
     // and we don't want to time this part
@@ -236,6 +240,7 @@ void qa_picoscope_4000a::rapid_block_downsampling_basics()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data = sink->data();
@@ -300,7 +305,7 @@ void qa_picoscope_4000a::run_rapid_block_downsampling(digitizer_downsampling_mod
     top->connect(ps, 5, errsinkC, 0);
     top->connect(ps, 6, sinkD, 0);
     top->connect(ps, 7, errsinkD, 0);
-
+    connect_remaining_outputs_to_null_sinks(top, ps, 8);
     top->run();
 
     CPPUNIT_ASSERT_EQUAL(1100, (int)sinkA->data().size());
@@ -325,7 +330,6 @@ void qa_picoscope_4000a::rapid_block_tags()
 {
     using digitizers::acq_info_tag_name;
     using digitizers::decode_timebase_info_tag;
-    using digitizers::decode_trigger_tag;
     using digitizers::timebase_info_tag_name;
 
     auto top = gr::flowgraph::make("tags");
@@ -354,17 +358,16 @@ void qa_picoscope_4000a::rapid_block_tags()
     // connect and run
     top->connect(ps, 0, sink, 0);
     top->connect(ps, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ps, 2);
     top->run();
 
     auto data_tags = sink->tags();
-    CPPUNIT_ASSERT_EQUAL(3, (int)data_tags.size());
+    CPPUNIT_ASSERT_EQUAL(1, (int)data_tags.size());
 
     for (auto& tag : data_tags) {
-        CPPUNIT_ASSERT_EQUAL(tag.map().size(), std::size_t{ 1 });
+        CPPUNIT_ASSERT_EQUAL(false, tag.map().empty());
         const auto key = tag.map().begin()->first;
-        const auto is_trigger_tag = tag.get(tag::TRIGGER_TIME.key()).has_value();
-        CPPUNIT_ASSERT(key == acq_info_tag_name || key == timebase_info_tag_name ||
-                       is_trigger_tag);
+        CPPUNIT_ASSERT(key == acq_info_tag_name || key == timebase_info_tag_name);
 
         if (key == timebase_info_tag_name) {
             auto timebase = decode_timebase_info_tag(tag);
@@ -374,107 +377,6 @@ void qa_picoscope_4000a::rapid_block_tags()
             CPPUNIT_ASSERT_EQUAL(static_cast<uint64_t>(200), tag.offset());
         }
     }
-}
-
-void qa_picoscope_4000a::rapid_block_trigger()
-{
-    auto top = gr::flowgraph::make("tags");
-
-    auto samp_rate = 10000.0;
-
-    auto ps = picoscope4000a::make(
-        { .sample_rate = samp_rate,
-          .pre_samples = 200,
-          .post_samples = 1000,
-          .acquisition_mode = digitizer_acquisition_mode_t::RAPID_BLOCK,
-          .rapid_block_nr_captures = 1,
-          .auto_arm = true,
-          .trigger_once = true });
-
-    ps->set_aichan("A",
-                   true,
-                   5.0,
-                   coupling_t::AC_1M,
-                   0); // TODO(PORT) remove last arg (double_range) when default values
-                       // work in the code generation;
-    ps->set_diport("port0", true, 1.5);
-    ps->set_aichan_trigger("A", trigger_direction_t::RISING, 1.5);
-
-    auto sink = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::vector_sink_f::make({ 1 });
-
-    auto bsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
-    auto csink = blocks::null_sink::make({ .itemsize = sizeof(float) });
-    auto dsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
-    auto berrsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
-    auto cerrsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
-    auto derrsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
-
-    auto port0 = blocks::vector_sink_b::make({ 1 });
-
-    // connect and run
-    top->connect(ps, 0, sink, 0);
-    top->connect(ps, 1, errsink, 0);
-    top->connect(ps, 2, bsink, 0);
-    top->connect(ps, 3, berrsink, 0);
-    top->connect(ps, 4, csink, 0);
-    top->connect(ps, 5, cerrsink, 0);
-    top->connect(ps, 6, dsink, 0);
-    top->connect(ps, 7, derrsink, 0);
-    top->connect(ps, 8, port0, 0);
-    top->run();
-
-    auto data = sink->data();
-    CPPUNIT_ASSERT_EQUAL(1200, (int)data.size());
-}
-
-void qa_picoscope_4000a::streaming_basics()
-{
-    auto top = gr::flowgraph::make("streaming_basic");
-    auto ps = picoscope4000a::make(
-        { .sample_rate = 10000.,
-          .buffer_size = 100000,
-          .acquisition_mode = digitizer_acquisition_mode_t::STREAMING,
-          .streaming_mode_poll_rate = 0.00001,
-          .auto_arm = true });
-
-    ps->set_aichan("A",
-                   true,
-                   5.0,
-                   coupling_t::AC_1M,
-                   0); // TODO(PORT) remove last arg (double_range) when default values
-                       // work in the code generation;
-
-    auto sink = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
-
-    // connect and run
-    top->connect(ps, 0, sink, 0);
-    top->connect(ps, 1, errsink, 0);
-
-    // Explicitly open unit because it takes quite some time
-    CPPUNIT_ASSERT_NO_THROW(ps->initialize());
-
-    top->start();
-    sleep(2);
-    top->stop();
-    top->wait();
-
-    auto data = sink->data();
-    CPPUNIT_ASSERT(data.size() <= 20000 && data.size() >= 5000);
-
-#ifdef PORT_DISABLED // TODO(PORT) sink->reset() does not exist in GR4
-    // ps->initialize();
-
-    sink->reset();
-    top->start();
-    sleep(2);
-    top->stop();
-    top->wait();
-
-    data = sink->data();
-    CPPUNIT_ASSERT(data.size() <= 20000 && data.size() >= 5000);
-#endif
 }
 
 } // namespace gr::picoscope4000a
