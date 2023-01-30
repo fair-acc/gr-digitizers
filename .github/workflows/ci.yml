@@ -24,7 +24,6 @@ jobs:
       options: --cpus 2
     steps:
       - uses: actions/checkout@v3
-        name: Checkout Project
       - name: Install picoscope
         run: |
           su -c "apt-get update"
@@ -43,7 +42,6 @@ jobs:
           mkdir .local
           cd .local
           wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
-          pwd
       - name: Install gr-digitizer dependencies, enable gcc 12
         run: |
           su -c "apt-get update"
@@ -61,7 +59,7 @@ jobs:
         shell: bash
         run: |
           source .local/root/bin/thisroot.sh
-          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
+          meson setup build -Db_coverage=true --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
       - name: Make
         shell: bash
         run: |
@@ -74,6 +72,13 @@ jobs:
           source .local/root/bin/thisroot.sh
           cd build
           ninja test
+      - name: "Build coverage report"
+        run: |
+          cd build
+          ninja coverage_xml
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ${{runner.workspace}}/build/coverage.xml
       - uses: actions/upload-artifact@v3
         if: failure()
         with:
