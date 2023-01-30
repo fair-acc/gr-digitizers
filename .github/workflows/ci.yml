@@ -3,7 +3,7 @@ on: [pull_request]
 
 jobs:
   linux-docker:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # The GH default is 360 minutes (it's also the max as of Feb-2021). However we should fail sooner.
     # The only reason to exceed this time is if a test hangs.
     timeout-minutes: 120
@@ -23,7 +23,7 @@ jobs:
         - build_data:/build
       options: --cpus 2
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         name: Checkout Project
       - name: Install picoscope
         run: |
@@ -37,8 +37,8 @@ jobs:
       - name: Install root
         run: |
           su -c "apt-get update"
-          # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev 
-          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev" || true 
+          # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev
+          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev" || true
           # https://root.cern/install/#download-a-pre-compiled-binary-distribution
           mkdir .local
           cd .local
@@ -74,8 +74,8 @@ jobs:
           source .local/root/bin/thisroot.sh
           cd build
           ninja test
-      - uses: actions/upload-artifact@v1
+      - uses: actions/upload-artifact@v3
         if: failure()
         with:
           name: Linux_Meson_Testlog
-          path: build/meson-logs/testlog.txt
+          path: build/meson-logs/*.txt
