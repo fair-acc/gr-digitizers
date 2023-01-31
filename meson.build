@@ -120,6 +120,7 @@ run_command('python3', join_paths(SCRIPTS_DIR,'gen_meson.py'),
 endif
   
 subdir('blocklib/digitizers')
+subdir('blocklib/limesdr')
 
 if enable_picoscope
   subdir('blocklib/picoscope3000a')
