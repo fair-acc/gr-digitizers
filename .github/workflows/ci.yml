@@ -46,6 +46,7 @@ jobs:
           pwd
       - name: Install LimeSuite
         run: |
+          su -c "apt-get --yes install libsqlite3-dev"
           git clone https://github.com/myriadrf/LimeSuite.git $HOME/LimeSuite
           cd $HOME/LimeSuite
           git checkout 41ad26b6 # We use an old revision using Gateware 2.15
@@ -53,7 +54,7 @@ jobs:
           cd $HOME/LimeSuite/build-ninja
           cmake -GNinja -DCMAKE_INSTALL_PREFIX=$HOME/.local/lime ..
           ninja
-          su -c 'ninja install'
+          su -c "ninja install"
       - name: Install gr-digitizer dependencies, enable gcc 12
         run: |
           su -c "apt-get update"
