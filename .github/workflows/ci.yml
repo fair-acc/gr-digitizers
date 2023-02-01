@@ -65,7 +65,7 @@ jobs:
         shell: bash
         run: |
           source .local/root/bin/thisroot.sh
-          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root -Dlimewire_prefix=./.local/lime
+          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root -Dlimesuite_prefix=./.local/lime
       - name: Make
         shell: bash
         run: |
