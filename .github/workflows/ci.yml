@@ -44,6 +44,16 @@ jobs:
           cd .local
           wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
           pwd
+      - name: Install LimeSuite
+        run: |
+          git clone https://github.com/myriadrf/LimeSuite.git $HOME/LimeSuite
+          cd $HOME/LimeSuite
+          git checkout 41ad26b6 # We use an old revision using Gateware 2.15
+          mkdir -p $HOME/LimeSuite/build-ninja
+          cd $HOME/LimeSuite/build-ninja
+          cmake -GNinja -DCMAKE_INSTALL_PREFIX=$HOME/.local/lime ..
+          ninja
+          su -c 'ninja install'
       - name: Install gr-digitizer dependencies, enable gcc 12
         run: |
           su -c "apt-get update"
@@ -54,7 +64,7 @@ jobs:
         shell: bash
         run: |
           source .local/root/bin/thisroot.sh
-          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
+          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root -Dlimewire_prefix=./.local/lime
       - name: Make
         shell: bash
         run: |
