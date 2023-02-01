@@ -30,6 +30,17 @@ const LimeSdrErrc theErrCategory{};
 
 namespace gr::limesdr {
 
+limesdr_impl::limesdr_impl(const digitizers::digitizer_args& args,
+                           std::string serial_number,
+                           logger_ptr logger) : digitizer_block_impl(args, logger)
+{
+}
+
+limesdr_impl::~limesdr_impl()
+{
+    // TODO make sure the device is closed
+}
+
 std::vector<std::string> limesdr_impl::get_aichan_ids()
 {
     return {};
