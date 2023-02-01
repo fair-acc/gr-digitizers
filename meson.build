@@ -39,6 +39,7 @@ libzmq = cmake.subproject('libzmq', options: opt_var)
 libzmq_dep = libzmq.dependency('libzmq')
 
 enable_picoscope = get_option('enable_picoscope')
+enable_limesdr = get_option('enable_limesdr')
 
 if (get_option('enable_testing'))
     TEST_ENV = environment()
@@ -111,6 +112,13 @@ if enable_picoscope
   libpicoscope6000_dep = declare_dependency(include_directories : join_paths(libpicoscope_includedir, 'libps6000'), link_args : ['-L' + libpicoscope_libdir, '-lps6000'], dependencies : [ libusb_dep, zlib_dep ])
 endif
 
+if enable_limesdr
+  limesuite_prefix = get_option('limesuite_prefix')
+  limesuite_includedir = join_paths(limesuite_prefix, 'include')
+  limesuite_libdir = join_paths(limesuite_prefix, 'lib')
+  limesuite_dep = declare_dependency(include_directories : limesuite_includedir, link_args : ['-L'+ limesuite_libdir, '-lLimeSuite'])
+endif
+
 if GR_ENABLE_PYTHON
 run_command('python3', join_paths(SCRIPTS_DIR,'gen_meson.py'), 
   join_paths(meson.project_source_root(),'blocklib'), '--enable_python', check: true)
@@ -120,7 +128,10 @@ run_command('python3', join_paths(SCRIPTS_DIR,'gen_meson.py'),
 endif
   
 subdir('blocklib/digitizers')
-subdir('blocklib/limesdr')
+
+if enable_limesdr
+  subdir('blocklib/limesdr')
+endif
 
 if enable_picoscope
   subdir('blocklib/picoscope3000a')

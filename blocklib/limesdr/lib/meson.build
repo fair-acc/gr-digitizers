@@ -1,5 +1,5 @@
 limesdr_sources += []
-limesdr_deps += [gnuradio_blocklib_digitizers_dep] # TODO add dep to drivers
+limesdr_deps += [gnuradio_blocklib_digitizers_dep, limesuite_dep]
 
 block_cpp_args = ['-DHAVE_CPU']
 
