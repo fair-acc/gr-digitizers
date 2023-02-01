@@ -37,8 +37,8 @@ jobs:
           # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev 
           su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev"
           # https://root.cern/install/#download-a-pre-compiled-binary-distribution
-          mkdir .local
-          cd .local
+          mkdir $HOME/local
+          cd $HOME/local
           wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
           pwd
       - name: Install LimeSuite
@@ -49,7 +49,7 @@ jobs:
           git checkout 41ad26b6 # We use an old revision using Gateware 2.15
           mkdir -p $HOME/LimeSuite/build-ninja
           cd $HOME/LimeSuite/build-ninja
-          cmake -GNinja -DCMAKE_INSTALL_PREFIX=$HOME/.local/lime ..
+          cmake -GNinja -DCMAKE_INSTALL_PREFIX=$HOME/local/lime ..
           ninja
           su -c "ninja install"
       - name: Install picoscope
@@ -64,18 +64,18 @@ jobs:
       - name: Meson Setup
         shell: bash
         run: |
-          source .local/root/bin/thisroot.sh
-          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root -Dlimesuite_prefix=./.local/lime
+          source $HOME/local/root/bin/thisroot.sh
+          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=$HOME/local/root -Dlimesuite_prefix=$HOME/local/lime
       - name: Make
         shell: bash
         run: |
-          source .local/root/bin/thisroot.sh
+          source $HOME/local/root/bin/thisroot.sh
           cd build
           ninja
       - name: Make Test
         shell: bash
         run: |
-          source .local/root/bin/thisroot.sh
+          source $HOME/local/root/bin/thisroot.sh
           cd build
           ninja test
       - uses: actions/upload-artifact@v1
