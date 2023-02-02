@@ -6,12 +6,30 @@
 #include "utils.h"
 
 #include <system_error>
+#include <memory>
+
+#include <lime/LimeSuite.h>
 
 namespace gr::limesdr {
 
 class limesdr_impl : public digitizers::digitizer_block_impl
 {
-    bool d_infoPrinted = false;
+private:
+    struct device_handle {
+        lms_device_t* device = nullptr;
+
+        explicit device_handle(lms_device_t* dev) : device(dev) {}
+
+        ~device_handle()
+        {
+            if (device) {
+                LMS_Close(device);
+            }
+        }
+    };
+
+    std::unique_ptr<device_handle> d_handle;
+    std::string d_serial_number;
 
 public:
     limesdr_impl(const digitizers::digitizer_args& args,
@@ -47,9 +65,6 @@ public:
                                                 std::vector<uint32_t>& status) override;
 
     std::error_code driver_poll() override;
-
-private:
-    void printInfo();
 };
 
 class limesdr_cpu : public virtual limesdr

@@ -39,7 +39,7 @@ void qa_limesdr::open_close()
     }
 }
 
-} // namespace gr::picoscope3000a
+} // namespace gr::limesdr
 
 int main(int, char**)
 {
