@@ -76,6 +76,7 @@ jobs:
         shell: bash
         run: |
           source $HOME/local/root/bin/thisroot.sh
+          export LD_LIBRARY_PATH=/opt/lime/lib:$LD_LIBRARY_PATH
           cd build
           ninja test
       - uses: actions/upload-artifact@v1
