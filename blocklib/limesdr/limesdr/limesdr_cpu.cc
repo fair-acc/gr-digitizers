@@ -24,7 +24,8 @@ const char* LimeSdrErrc::name() const noexcept { return "LimeSDR"; }
 
 std::string LimeSdrErrc::message(int ev) const
 {
-    // As I see it, LMS doesn't give us any details
+    // TODO for details, we would have to register a log handler via
+    // LMS_RegisterLogHandler
     return "Unknown error";
 }
 
@@ -41,9 +42,7 @@ limesdr_impl::limesdr_impl(const digitizers::digitizer_args& args,
 {
 }
 
-limesdr_impl::~limesdr_impl()
-{
-}
+limesdr_impl::~limesdr_impl() {}
 
 std::vector<std::string> limesdr_impl::get_aichan_ids() { return {}; }
 
@@ -56,9 +55,7 @@ std::string limesdr_impl::get_driver_version() const
 
 std::string limesdr_impl::get_hardware_version() const
 {
-    if (!d_initialized)
-        return "NA";
-    return ""; // TODO
+    return d_device ? d_device->hardware_version : "NA";
 }
 
 static std::optional<std::string_view> parse_serial(std::string_view s)
@@ -134,14 +131,20 @@ std::error_code limesdr_impl::driver_initialize()
         return make_error_code(1);
     }
 
-    auto handle = std::make_unique<device_handle>(address);
-    const auto init_rc = LMS_Init(handle->device);
+    auto dev = std::make_unique<device>(address);
+    const auto init_rc = LMS_Init(dev->handle);
     if (init_rc != LMS_SUCCESS) {
         d_logger->error("Could not initialize device '{}'", serial_number);
         return make_error_code(1);
     }
 
-    d_handle = std::move(handle);
+    const auto dev_info = LMS_GetDeviceInfo(dev->handle);
+    assert(dev_info);
+    dev->hardware_version = fmt::format("Hardware: {} Firmware: {}",
+                                        dev_info->hardwareVersion,
+                                        dev_info->firmwareVersion);
+
+    d_device = std::move(dev);
     return std::error_code{};
 }
 
@@ -153,7 +156,7 @@ std::error_code limesdr_impl::driver_disarm() { return std::error_code{}; }
 
 std::error_code limesdr_impl::driver_close()
 {
-    d_handle.release();
+    d_device.release();
     return std::error_code{};
 }
 

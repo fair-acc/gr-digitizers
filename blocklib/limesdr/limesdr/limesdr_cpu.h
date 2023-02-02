@@ -15,20 +15,21 @@ namespace gr::limesdr {
 class limesdr_impl : public digitizers::digitizer_block_impl
 {
 private:
-    struct device_handle {
-        lms_device_t* device = nullptr;
+    struct device {
+        lms_device_t* handle = nullptr;
+        std::string hardware_version;
 
-        explicit device_handle(lms_device_t* dev) : device(dev) {}
+        explicit device(lms_device_t* h) : handle(h) {}
 
-        ~device_handle()
+        ~device()
         {
-            if (device) {
-                LMS_Close(device);
+            if (handle) {
+                LMS_Close(handle);
             }
         }
     };
 
-    std::unique_ptr<device_handle> d_handle;
+    std::unique_ptr<device> d_device;
     std::string d_serial_number;
 
 public:
