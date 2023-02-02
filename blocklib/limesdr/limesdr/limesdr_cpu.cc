@@ -156,7 +156,7 @@ std::error_code limesdr_impl::driver_disarm() { return std::error_code{}; }
 
 std::error_code limesdr_impl::driver_close()
 {
-    d_device.release();
+    d_device.reset();
     return std::error_code{};
 }
 

@@ -29,10 +29,10 @@ void qa_limesdr::open_close()
     for (auto i = 0; i < 3; i++) {
         CPPUNIT_ASSERT_NO_THROW(ps->initialize(););
 
-        auto driver_version = ps->driver_version();
+        const auto driver_version = ps->driver_version();
         CPPUNIT_ASSERT(!driver_version.empty());
 
-        auto hw_version = ps->hardware_version();
+        const auto hw_version = ps->hardware_version();
         CPPUNIT_ASSERT(!hw_version.empty());
 
         CPPUNIT_ASSERT_NO_THROW(ps->close(););
