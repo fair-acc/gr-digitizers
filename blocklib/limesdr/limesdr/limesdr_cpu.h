@@ -11,6 +11,8 @@ namespace gr::limesdr {
 
 class limesdr_impl : public digitizers::digitizer_block_impl
 {
+    bool d_infoPrinted = false;
+
 public:
     limesdr_impl(const digitizers::digitizer_args& args,
                  std::string serial_number,
@@ -45,6 +47,9 @@ public:
                                                 std::vector<uint32_t>& status) override;
 
     std::error_code driver_poll() override;
+
+private:
+    void printInfo();
 };
 
 class limesdr_cpu : public virtual limesdr

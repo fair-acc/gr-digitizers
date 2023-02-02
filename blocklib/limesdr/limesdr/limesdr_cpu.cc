@@ -3,6 +3,9 @@
 
 #include "utils.h"
 #include <digitizers/status.h>
+
+#include <lime/LimeSuite.h>
+
 #include <cstring>
 
 using gr::digitizers::acquisition_mode_t;
@@ -65,7 +68,7 @@ std::string limesdr_impl::get_hardware_version() const
 
 std::error_code limesdr_impl::driver_initialize()
 {
-
+    printInfo();
     return std::error_code{};
 }
 
@@ -108,6 +111,31 @@ limesdr_impl::driver_get_rapid_block_data(size_t offset,
 std::error_code limesdr_impl::driver_poll()
 {
     return std::error_code{};
+}
+
+void limesdr_impl::printInfo()
+{
+    if (d_infoPrinted) {
+        return;
+    }
+
+    d_logger->info("LimeSuite version: {}", LMS_GetLibraryVersion());
+
+    std::array<lms_info_str_t, 20> list;
+
+    const auto device_count = LMS_GetDeviceList(list.data());
+    if (device_count < 1) {
+        d_logger->error("No Lime devices found");
+        return;
+    }
+
+    d_logger->info("Device list:");
+    for (int i = 0; i < device_count; i++) {
+        d_logger->info("Nr.: {} device: {}", i, list[i]);
+        //device_vector.push_back(device());
+    }
+
+    d_infoPrinted = true;
 }
 
 limesdr_cpu::limesdr_cpu(block_args args)
