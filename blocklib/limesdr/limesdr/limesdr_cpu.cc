@@ -206,7 +206,7 @@ limesdr_cpu::limesdr_cpu(block_args args)
             .downsampling_factor = args.downsampling_factor,
             .auto_arm = args.auto_arm,
             .trigger_once = args.trigger_once,
-            .ai_channels = 10, // TODO
+            .ai_channels = 8, // TODO
             .ports = 2 },      // TODO
           args.serial_number,
           d_logger)

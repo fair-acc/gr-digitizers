@@ -21,6 +21,22 @@ using gr::digitizers::trigger_direction_t;
 
 namespace gr::limesdr {
 
+static void connect_remaining_outputs_to_null_sinks(flowgraph_sptr fg,
+                                                    block_sptr ls,
+                                                    std::size_t first_analog,
+                                                    std::size_t first_digital = 0)
+{
+    for (auto i = first_analog; i <= 7u; ++i) {
+        auto ns = blocks::null_sink::make({ .itemsize = sizeof(float) });
+        fg->connect(ls, i, ns, 0);
+    }
+
+    for (auto i = first_digital; i <= 1u; ++i) {
+        auto ns = blocks::null_sink::make({ .itemsize = sizeof(uint8_t) });
+        fg->connect(ls, 8 + i, ns, 0);
+    }
+}
+
 void qa_limesdr::open_close()
 {
     auto ps = limesdr::make({});
@@ -37,6 +53,50 @@ void qa_limesdr::open_close()
 
         CPPUNIT_ASSERT_NO_THROW(ps->close(););
     }
+}
+
+void qa_limesdr::streaming_basics()
+{
+    auto top = flowgraph::make("streaming_basics");
+
+    auto ls = limesdr::make(
+        { .sample_rate = 1000.,
+          .buffer_size = 100000,
+          .acquisition_mode = digitizer_acquisition_mode_t::STREAMING,
+          .streaming_mode_poll_rate = 0.00001,
+          .auto_arm = true });
+
+    auto sink = blocks::vector_sink_f::make({ 1 });
+    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
+
+    // connect and run
+    top->connect(ls, 0, sink, 0);
+    top->connect(ls, 1, errsink, 0);
+    connect_remaining_outputs_to_null_sinks(top, ls, 2);
+
+    // Explicitly open unit because it takes quite some time
+    CPPUNIT_ASSERT_NO_THROW(ls->initialize());
+
+    top->start();
+    sleep(2);
+    top->stop();
+    top->wait();
+
+    auto data = sink->data();
+    CPPUNIT_ASSERT(data.size() <= 20000 && data.size() >= 5000);
+
+#ifdef PORT_DISABLED // TODO(PORT) sink->reset() does not exist in GR4
+    // ps->initialize();
+
+    sink->reset();
+    top->start();
+    sleep(2);
+    top->stop();
+    top->wait();
+
+    data = sink->data();
+    CPPUNIT_ASSERT(data.size() <= 20000 && data.size() >= 5000);
+#endif
 }
 
 } // namespace gr::limesdr
