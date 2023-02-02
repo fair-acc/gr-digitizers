@@ -43,7 +43,6 @@ limesdr_impl::limesdr_impl(const digitizers::digitizer_args& args,
 
 limesdr_impl::~limesdr_impl()
 {
-    // TODO make sure the device is closed
 }
 
 std::vector<std::string> limesdr_impl::get_aichan_ids() { return {}; }
