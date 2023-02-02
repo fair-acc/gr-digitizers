@@ -72,8 +72,8 @@ static std::optional<std::string_view> parse_serial(std::string_view s)
 
     s.remove_prefix(prefix_pos + serial_prefix.size());
     const auto comma_pos = s.find(",");
-    if (comma_pos == std::string_view::npos) {
-        return std::nullopt;
+    if (comma_pos == std::string_view::npos) { // serial is last entry
+        return s;
     }
 
     s.remove_suffix(s.size() - comma_pos - 1);
