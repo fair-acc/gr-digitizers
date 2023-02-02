@@ -95,7 +95,7 @@ std::error_code limesdr_impl::driver_initialize()
     }
 
     std::size_t device_index = 0;
-    std::string_view serial_number = d_serial_number;
+    std::string serial_number = d_serial_number;
 
     if (serial_number.empty()) {
         const auto parsed = parse_serial(list[0]);
@@ -105,7 +105,7 @@ std::error_code limesdr_impl::driver_initialize()
                 list[0]);
             return make_error_code(1);
         }
-        serial_number = *parsed;
+        serial_number = std::string(*parsed);
         d_logger->info("No serial number given, using first device found: '{}'",
                        serial_number);
     }
@@ -131,7 +131,7 @@ std::error_code limesdr_impl::driver_initialize()
         return make_error_code(1);
     }
 
-    auto dev = std::make_unique<device>(address);
+    auto dev = std::make_unique<device>(address, serial_number);
     const auto init_rc = LMS_Init(dev->handle);
     if (init_rc != LMS_SUCCESS) {
         d_logger->error("Could not initialize device '{}'", serial_number);
@@ -148,7 +148,19 @@ std::error_code limesdr_impl::driver_initialize()
     return std::error_code{};
 }
 
-std::error_code limesdr_impl::driver_configure() { return std::error_code{}; }
+std::error_code limesdr_impl::driver_configure()
+{
+    const auto num_channels = LMS_GetNumChannels(d_device->handle, LMS_CH_RX);
+    if (num_channels < 0) {
+        d_logger->error("Could not retrieve number of channels for '{}'",
+                        d_device->serial_number);
+        return make_error_code(1);
+    }
+
+    d_logger->info("Number of channels: {}", num_channels);
+
+    return std::error_code{};
+}
 
 std::error_code limesdr_impl::driver_arm() { return std::error_code{}; }
 

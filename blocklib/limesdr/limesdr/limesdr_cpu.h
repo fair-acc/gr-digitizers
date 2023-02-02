@@ -17,9 +17,13 @@ class limesdr_impl : public digitizers::digitizer_block_impl
 private:
     struct device {
         lms_device_t* handle = nullptr;
+        std::string serial_number;
         std::string hardware_version;
 
-        explicit device(lms_device_t* h) : handle(h) {}
+        explicit device(lms_device_t* h, std::string sn)
+            : handle(h), serial_number{ std::move(sn) }
+        {
+        }
 
         ~device()
         {
