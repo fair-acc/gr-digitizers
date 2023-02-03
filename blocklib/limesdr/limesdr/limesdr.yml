@@ -129,7 +129,7 @@ ports:
     id: channels
     direction: out
     type: rf32
-    multiplicity: '8'
+    multiplicity: '2'
 -   domain: stream
     id: ports
     direction: out

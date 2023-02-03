@@ -44,7 +44,7 @@ limesdr_impl::limesdr_impl(const digitizers::digitizer_args& args,
 
 limesdr_impl::~limesdr_impl() {}
 
-std::vector<std::string> limesdr_impl::get_aichan_ids() { return {}; }
+std::vector<std::string> limesdr_impl::get_aichan_ids() { return {"A", "B"}; }
 
 meta_range_t limesdr_impl::get_aichan_ranges() { return {}; }
 
@@ -150,14 +150,46 @@ std::error_code limesdr_impl::driver_initialize()
 
 std::error_code limesdr_impl::driver_configure()
 {
-    const auto num_channels = LMS_GetNumChannels(d_device->handle, LMS_CH_RX);
-    if (num_channels < 0) {
+    const auto num_device_channels = LMS_GetNumChannels(d_device->handle, LMS_CH_RX);
+    if (num_device_channels < 0) {
         d_logger->error("Could not retrieve number of channels for '{}'",
                         d_device->serial_number);
         return make_error_code(1);
     }
+    d_logger->info("Number of channels: {}", num_device_channels);
 
-    d_logger->info("Number of channels: {}", num_channels);
+    lms_range_t sr_range;
+    const auto sample_range_rc = LMS_GetSampleRateRange(d_device->handle, LMS_CH_RX, &sr_range);
+    if (sample_range_rc == LMS_SUCCESS) {
+        d_logger->info("Sample rate range: Min: {} Max: {}, Step: {}", sr_range.min, sr_range.max, sr_range.step);
+    }
+
+    const auto sample_rate = static_cast<float>(get_samp_rate());
+    const auto set_samp_rc = LMS_SetSampleRate(d_device->handle, sample_rate, 0);
+    if (set_samp_rc != LMS_SUCCESS) {
+        d_logger->error("Could not set sample rate ({})", sample_rate);
+        return make_error_code(1);
+    }
+    d_logger->info("Set sample rate {}", sample_rate);
+
+    if (num_device_channels > d_ai_channels) {
+        d_logger->warn("Device has more channels than block allows! ({} vs {})", num_device_channels, d_ai_channels);
+    }
+    const auto n_channels = static_cast<std::size_t>(std::min(num_device_channels, d_ai_channels));
+
+    for (std::size_t channel_idx = 0; channel_idx < n_channels; channel_idx++) {
+        const auto enable = d_channel_settings[channel_idx].enabled;
+        const auto enable_channel_rc = LMS_EnableChannel(d_device->handle, LMS_CH_RX, channel_idx, enable);
+        if (enable_channel_rc != LMS_SUCCESS) {
+            d_logger->error("Could not enable/disable channel {} (enable: {})", channel_idx, enable);
+            return make_error_code(1);
+        }
+        d_logger->info("Enabled/disabled channel {} (enabled: {})", channel_idx, enable);
+
+        if (enable) {
+            // TODO apply channel settings, such as range, offset, coupling (if applicable)
+        }
+    }
 
     return std::error_code{};
 }
