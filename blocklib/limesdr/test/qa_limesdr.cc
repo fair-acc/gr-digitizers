@@ -26,14 +26,14 @@ static void connect_remaining_outputs_to_null_sinks(flowgraph_sptr fg,
                                                     std::size_t first_analog,
                                                     std::size_t first_digital = 0)
 {
-    for (auto i = first_analog; i <= 7u; ++i) {
+    for (auto i = first_analog; i <= 1u; ++i) {
         auto ns = blocks::null_sink::make({ .itemsize = sizeof(float) });
         fg->connect(ls, i, ns, 0);
     }
 
     for (auto i = first_digital; i <= 1u; ++i) {
         auto ns = blocks::null_sink::make({ .itemsize = sizeof(uint8_t) });
-        fg->connect(ls, 8 + i, ns, 0);
+        fg->connect(ls, 2 + i, ns, 0);
     }
 }
 
@@ -60,11 +60,18 @@ void qa_limesdr::streaming_basics()
     auto top = flowgraph::make("streaming_basics");
 
     auto ls = limesdr::make(
-        { .sample_rate = 1000.,
+        { .sample_rate = 100000.,
           .buffer_size = 100000,
           .acquisition_mode = digitizer_acquisition_mode_t::STREAMING,
           .streaming_mode_poll_rate = 0.00001,
           .auto_arm = true });
+
+    ls->set_aichan("A",
+                   true,
+                   5.0,
+                   coupling_t::AC_1M,
+                   0); // TODO(PORT) remove last arg (double_range) when default values
+                       // work in the code generation;
 
     auto sink = blocks::vector_sink_f::make({ 1 });
     auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
@@ -83,20 +90,7 @@ void qa_limesdr::streaming_basics()
     top->wait();
 
     auto data = sink->data();
-    CPPUNIT_ASSERT(data.size() <= 20000 && data.size() >= 5000);
-
-#ifdef PORT_DISABLED // TODO(PORT) sink->reset() does not exist in GR4
-    // ps->initialize();
-
-    sink->reset();
-    top->start();
-    sleep(2);
-    top->stop();
-    top->wait();
-
-    data = sink->data();
-    CPPUNIT_ASSERT(data.size() <= 20000 && data.size() >= 5000);
-#endif
+    CPPUNIT_ASSERT(data.size() <= 200000 && data.size() >= 150000);
 }
 
 } // namespace gr::limesdr
