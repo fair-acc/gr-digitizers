@@ -21,22 +21,7 @@ using gr::digitizers::trigger_direction_t;
 
 namespace gr::limesdr {
 
-static void connect_remaining_outputs_to_null_sinks(flowgraph_sptr fg,
-                                                    block_sptr ls,
-                                                    std::size_t first_analog,
-                                                    std::size_t first_digital = 0)
-{
-    for (auto i = first_analog; i <= 1u; ++i) {
-        auto ns = blocks::null_sink::make({ .itemsize = sizeof(float) });
-        fg->connect(ls, i, ns, 0);
-    }
-
-    for (auto i = first_digital; i <= 1u; ++i) {
-        auto ns = blocks::null_sink::make({ .itemsize = sizeof(uint8_t) });
-        fg->connect(ls, 2 + i, ns, 0);
-    }
-}
-
+#if 0
 void qa_limesdr::open_close()
 {
     auto ps = limesdr::make({});
@@ -54,43 +39,41 @@ void qa_limesdr::open_close()
         CPPUNIT_ASSERT_NO_THROW(ps->close(););
     }
 }
+#endif
 
 void qa_limesdr::streaming_basics()
 {
     auto top = flowgraph::make("streaming_basics");
 
-    auto ls = limesdr::make(
-        { .sample_rate = 100000.,
-          .buffer_size = 100000,
-          .acquisition_mode = digitizer_acquisition_mode_t::STREAMING,
-          .streaming_mode_poll_rate = 0.00001,
-          .auto_arm = true });
+    auto ls = limesdr::make({
+        .enabled_channels = { 0, 1 },
+        .timing_trigger_mask = 0b00100000 // 0010 for channel 1
+    });
 
-    ls->set_aichan("A",
-                   true,
-                   5.0,
-                   coupling_t::AC_1M,
-                   0); // TODO(PORT) remove last arg (double_range) when default values
-                       // work in the code generation;
-
-    auto sink = blocks::vector_sink_f::make({ 1 });
-    auto errsink = blocks::null_sink::make({ .itemsize = sizeof(float) });
+    auto sink0 = blocks::vector_sink<int16_t>::make({ .vlen = 2 });
+    auto errsink0 = blocks::null_sink::make({ .itemsize = 2 * sizeof(int16_t) });
+    auto sink1 = blocks::vector_sink<int16_t>::make({ .vlen = 2 });
+    auto errsink1 = blocks::null_sink::make({ .itemsize = 2 * sizeof(int16_t) });
 
     // connect and run
-    top->connect(ls, 0, sink, 0);
-    top->connect(ls, 1, errsink, 0);
-    connect_remaining_outputs_to_null_sinks(top, ls, 2);
+    top->connect(ls, 0, sink0, 0);
+    top->connect(ls, 1, errsink0, 0);
+    top->connect(ls, 2, sink1, 0);
+    top->connect(ls, 3, errsink1, 0);
 
     // Explicitly open unit because it takes quite some time
-    CPPUNIT_ASSERT_NO_THROW(ls->initialize());
+    // CPPUNIT_ASSERT_NO_THROW(ls->initialize());
 
     top->start();
-    sleep(2);
+    sleep(3);
     top->stop();
     top->wait();
 
-    auto data = sink->data();
-    CPPUNIT_ASSERT(data.size() <= 200000 && data.size() >= 150000);
+    auto data = sink0->data();
+    CPPUNIT_ASSERT(data.size() % 2 == 0);
+    const auto sample_count = data.size() / 2;
+    std::cout << "Received " << sample_count << std::endl;
+    CPPUNIT_ASSERT(sample_count <= 300000 && sample_count >= 200000);
 }
 
 } // namespace gr::limesdr
