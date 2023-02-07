@@ -151,6 +151,40 @@ void qa_digitizer_block::rapid_block_basics()
         d_port_vec.begin(), d_port_vec.end(), reinterpret_cast<uint8_t*>(&datap[0]));
 }
 
+void qa_digitizer_block::rapid_block_channel_b_only()
+{
+    int samples = 1000;
+    int presamples = 50;
+    fill_data(samples, presamples);
+
+    auto args = default_args();
+    args.trigger_once = true;
+    args.rapid_block_nr_captures = 1;
+    args.acquisition_mode = digitizer_acquisition_mode_t::RAPID_BLOCK;
+    args.pre_samples = presamples;
+    args.post_samples = samples;
+
+    auto fg = make_test_flowgraph(args);
+    auto source = fg.source;
+
+    // make sure we can leave gaps in the enabled channels
+    fg.source->set_data({}, d_chb_vec, d_port_vec);
+
+    fg.top->run();
+
+    auto dataa = fg.sink_sig_a->data();
+    CPPUNIT_ASSERT_EQUAL(samples + presamples, (int)dataa.size());
+
+    auto datab = fg.sink_sig_b->data();
+    CPPUNIT_ASSERT_EQUAL(samples + presamples, (int)datab.size());
+    ASSERT_VECTOR_EQUAL(d_chb_vec.begin(), d_chb_vec.end(), datab.begin());
+
+    auto datap = fg.sink_port->data();
+    CPPUNIT_ASSERT_EQUAL(samples + presamples, (int)datap.size());
+    ASSERT_VECTOR_EQUAL(
+        d_port_vec.begin(), d_port_vec.end(), reinterpret_cast<uint8_t*>(&datap[0]));
+}
+
 void qa_digitizer_block::rapid_block_correct_tags()
 {
     using namespace std::chrono_literals;

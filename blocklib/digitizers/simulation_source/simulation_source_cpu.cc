@@ -26,11 +26,6 @@ simulation_source_cpu::simulation_source_cpu(block_args args)
           d_logger)
 {
     set_output_multiple(args.buffer_size);
-
-    // Enable all channels and ports
-    d_impl.set_aichan("A", true, 20.0, coupling_t::AC_1M);
-    d_impl.set_aichan("B", true, 20.0, coupling_t::AC_1M);
-    d_impl.set_diport("port0", true, 0.7);
 }
 
 bool simulation_source_cpu::start() { return d_impl.start(); }
@@ -44,6 +39,17 @@ void simulation_source_cpu::set_data(std::vector<float> channel_a_data,
     d_impl.d_ch_a_data = std::move(channel_a_data);
     d_impl.d_ch_b_data = std::move(channel_b_data);
     d_impl.d_port_data = std::move(port_data);
+
+    // Enable channels with data set
+    if (!d_impl.d_ch_a_data.empty()) {
+        d_impl.set_aichan("A", true, 20.0, coupling_t::AC_1M);
+    }
+    if (!d_impl.d_ch_b_data.empty()) {
+        d_impl.set_aichan("B", true, 20.0, coupling_t::AC_1M);
+    }
+    if (!d_impl.d_port_data.empty()) {
+        d_impl.set_diport("port0", true, 0.7);
+    }
 }
 
 void simulation_source_cpu::set_aichan_trigger(std::string channel_id,

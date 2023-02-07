@@ -16,6 +16,7 @@ class qa_digitizer_block : public CppUnit::TestCase
 public:
     CPPUNIT_TEST_SUITE(qa_digitizer_block);
     CPPUNIT_TEST(rapid_block_basics);
+    CPPUNIT_TEST(rapid_block_channel_b_only);
     CPPUNIT_TEST(rapid_block_correct_tags);
     CPPUNIT_TEST(streaming_basics);
     CPPUNIT_TEST(streaming_correct_tags);
@@ -27,6 +28,7 @@ public:
 private:
     void fill_data(unsigned samples, unsigned presamples);
     void rapid_block_basics();
+    void rapid_block_channel_b_only();
     void rapid_block_correct_tags();
     void streaming_basics();
     void streaming_correct_tags();

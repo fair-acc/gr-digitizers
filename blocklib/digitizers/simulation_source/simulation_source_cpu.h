@@ -77,18 +77,25 @@ public:
                                                 work_io& wio,
                                                 std::vector<uint32_t>& status) override
     {
-        if (offset + length > d_ch_a_data.size()) {
-            std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__
-                    << ": cannot fetch rapid block data, out of bounds";
-            throw std::runtime_error(message.str());
+        if (!d_ch_a_data.empty() && offset + length > d_ch_a_data.size()) {
+            throw std::runtime_error(fmt::format("Exception in {}:{}: cannot fetch rapid "
+                                                 "block data (Ch. A), out of bounds",
+                                                 __FILE__,
+                                                 __LINE__));
+        }
+        if (!d_ch_b_data.empty() && offset + length > d_ch_b_data.size()) {
+            throw std::runtime_error(fmt::format("Exception in {}:{}: cannot fetch rapid "
+                                                 "block data (Ch. B), out of bounds",
+                                                 __FILE__,
+                                                 __LINE__));
         }
 
-        if (wio.outputs().size() != 5) {
-            std::ostringstream message;
-            message << "Exception in " << __FILE__ << ":" << __LINE__
-                    << ": all channels should be passed in";
-            throw std::runtime_error(message.str());
+        if (!d_port_data.empty() && offset + length > d_port_data.size()) {
+            throw std::runtime_error(
+                fmt::format("Exception in {}:{}: cannot fetch rapid "
+                            "block data (digital port), out of bounds",
+                            __FILE__,
+                            __LINE__));
         }
 
         // Update status first
@@ -96,21 +103,30 @@ public:
             s = 0;
         };
 
-        // Copy over the data
-        float* val_a = wio.outputs()[0].items<float>();
-        float* err_a = wio.outputs()[1].items<float>();
-        float* val_b = wio.outputs()[2].items<float>();
-        float* err_b = wio.outputs()[3].items<float>();
-        uint8_t* port = wio.outputs()[4].items<uint8_t>();
+        // Copy over data for enabled channels
+        if (!d_ch_a_data.empty()) {
+            const auto begin = d_ch_a_data.begin() + offset;
+            const auto end = begin + length;
+            auto val = wio.outputs()[0].items<float>();
+            auto err = wio.outputs()[1].items<float>();
+            std::copy(begin, end, val);
+            std::fill(err, err + length, 0.005);
+        }
 
-        for (size_t i = 0; i < length; i++) {
-            val_a[i] = d_ch_a_data[offset + i];
-            err_a[i] = 0.005;
+        if (!d_ch_b_data.empty()) {
+            const auto begin = d_ch_b_data.begin() + offset;
+            const auto end = begin + length;
+            auto val = wio.outputs()[2].items<float>();
+            auto err = wio.outputs()[3].items<float>();
+            std::copy(begin, end, val);
+            std::fill(err, err + length, 0.005);
+        }
 
-            val_b[i] = d_ch_b_data[offset + i];
-            err_b[i] = 0.005;
-
-            port[i] = d_port_data[offset + i];
+        if (!d_port_data.empty()) {
+            const auto begin = d_port_data.begin() + offset;
+            const auto end = begin + length;
+            auto val = wio.outputs()[4].items<uint8_t>();
+            std::copy(begin, end, val);
         }
 
         return std::error_code{};
