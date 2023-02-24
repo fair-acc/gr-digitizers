@@ -38,10 +38,6 @@ ports:
     type: ri16 # Two shorts per sample (complex I/Q)
     shape: '2'
     multiplicity: '4'
--   domain: stream
-    id: digital
-    direction: out
-    type: ri8
 
 implementations:
 -   id: cpu
