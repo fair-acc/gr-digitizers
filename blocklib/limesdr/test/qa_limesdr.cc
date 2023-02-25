@@ -65,7 +65,7 @@ void qa_limesdr::streaming_basics()
     // CPPUNIT_ASSERT_NO_THROW(ls->initialize());
 
     top->start();
-    sleep(3);
+    sleep(5);
     top->stop();
     top->wait();
 
@@ -73,7 +73,7 @@ void qa_limesdr::streaming_basics()
     CPPUNIT_ASSERT(data.size() % 2 == 0);
     const auto sample_count = data.size() / 2;
     std::cout << "Received " << sample_count << std::endl;
-    CPPUNIT_ASSERT(sample_count <= 300000 && sample_count >= 200000);
+    CPPUNIT_ASSERT(sample_count >= 300000 && sample_count <= 400000);
 }
 
 } // namespace gr::limesdr

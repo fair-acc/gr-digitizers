@@ -194,10 +194,7 @@ public:
         }
 
         if (available == 0) {
-            // TODO fix: shouldn't produce anything here, but returning 0
-            // initially makes the block never be called again
-            wio.produce_each(std::max(wio.outputs()[0].n_produced, std::size_t{ 1 }));
-            return work_return_t::OK;
+            return work_return_t::ERROR;
         }
 
         for (std::size_t i = 0; i < d_device->streams.size(); ++i) {
@@ -528,7 +525,7 @@ private:
                                      .throughputVsLatency =
                                          0.5, // TODO what is wanted here? 0 is lowest
                                               // latency, 1 highest throughput
-                                     .dataFmt = lms_stream_t::LMS_FMT_I12 };
+                                     .dataFmt = lms_stream_t::LMS_FMT_I16 };
 
             const auto setup_rc = LMS_SetupStream(d_device->handle, &stream_cfg);
             if (setup_rc != LMS_SUCCESS) {
