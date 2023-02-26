@@ -194,7 +194,8 @@ public:
         }
 
         if (available == 0) {
-            return work_return_t::ERROR;
+            wio.produce_each(produced);
+            return produced == 0 ? work_return_t::ERROR : work_return_t::OK;
         }
 
         for (std::size_t i = 0; i < d_device->streams.size(); ++i) {
