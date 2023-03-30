@@ -217,7 +217,8 @@ public:
 
 #if 0
             for (std::size_t j = 0; j < available * 2; j += 2) {
-                std::cout << fmt::format("{:16b} {:16b}\n",
+                std::cout << fmt::format("{} {:16b} {:16b}\n",
+                                         i,
                                          stream->read_buffer[j],
                                          stream->read_buffer[j + 1]);
             }
@@ -291,12 +292,16 @@ private:
                 return std::nullopt;
             }
 
-            auto out = wio.outputs()[channel_idx * 2].items<int16_t>();
+            auto out = wio.outputs()[channel_idx * 2].items<uint16_t>();
             assert(!produced || *produced == stream->samples_read);
             produced = stream->samples_read;
             memcpy(out + offset * 2,
                    stream->read_buffer.data(),
-                   *produced * 2 * sizeof(int16_t));
+                   *produced * 2 * sizeof(uint16_t));
+            // Right-shift by 4 to get the analog 12-bit values and drop the digital 4 bit (LSBs)
+            for (std::size_t i = 0; i < *produced * 2; ++i) {
+                out[offset * 2 + i] >>= 4;
+            }
             stream->samples_read = 0;
         }
 
@@ -366,11 +371,10 @@ private:
 
             std::vector<std::size_t> triggers;
             for (std::size_t sample = 0; sample < stream->samples_read; ++sample) {
-                // TODO check for trigger
-                const auto has_trigger_set = false;
+                const auto has_trigger_set = (stream->read_buffer[sample * 2] & stream->trigger_mask) == stream->trigger_mask;
                 if (has_trigger_set) {
                     if (!d_last_sample_had_trigger_set) {
-                        triggers.push_back(sample * 2);
+                        triggers.push_back(sample);
                     }
                 }
 
@@ -448,6 +452,8 @@ private:
         dev->hardware_version = fmt::format("Hardware: {} Firmware: {}",
                                             dev_info->hardwareVersion,
                                             dev_info->firmwareVersion);
+
+        d_logger->info("Versions: {}", dev->hardware_version);
 
         d_device = std::move(dev);
     }
