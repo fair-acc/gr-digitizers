@@ -13,9 +13,6 @@
 
 #include <lime/LimeSuite.h>
 
-// TODO remove
-#include <iostream>
-
 namespace gr::limesdr {
 
 namespace detail {
@@ -63,9 +60,6 @@ private:
                         std::size_t buffer_size)
             : device_handle(device), handle{ std::move(s) }, read_buffer(buffer_size * 2)
         {
-            // TODO remove
-            constexpr uint16_t v = 0b0101010101010101;
-            std::fill(read_buffer.begin(), read_buffer.end(), v);
         }
 
         ~stream() { LMS_DestroyStream(device_handle, &handle); }
@@ -214,15 +208,6 @@ public:
                 assert(received >= 0);
                 stream->samples_read += received;
             }
-
-#if 0
-            for (std::size_t j = 0; j < available * 2; j += 2) {
-                std::cout << fmt::format("{} {:16b} {:16b}\n",
-                                         i,
-                                         stream->read_buffer[j],
-                                         stream->read_buffer[j + 1]);
-            }
-#endif
         }
 
         std::vector<std::size_t> triggers;
