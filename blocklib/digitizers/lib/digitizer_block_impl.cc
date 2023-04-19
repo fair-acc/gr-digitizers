@@ -1005,23 +1005,6 @@ work_return_t digitizer_block_impl::work_stream(work_io& wio)
 
     std::vector<tag_t> trigger_tags;
 
-    std::vector<std::size_t> enabled_channel_idx(d_ai_channels, 0);
-    std::vector<std::size_t> enabled_port_idx(d_ports, 0);
-
-    for (std::size_t i = 0, enabled_idx = 0; i < d_ai_channels; ++i) {
-        if (d_channel_settings[i].enabled) {
-            enabled_channel_idx[i] = enabled_idx;
-            enabled_idx++;
-        }
-    }
-
-    for (std::size_t i = 0, enabled_idx = 0; i < d_ports; ++i) {
-        if (d_port_settings[i].enabled) {
-            enabled_port_idx[i] = enabled_idx;
-            enabled_idx++;
-        }
-    }
-
     if (d_trigger_settings.is_enabled()) {
         if (trigger_offsets.empty()) {
             // if we don't have the offsets from the pending data, search for triggers now
