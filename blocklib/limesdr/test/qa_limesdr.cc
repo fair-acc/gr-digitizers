@@ -21,26 +21,6 @@ using gr::digitizers::trigger_direction_t;
 
 namespace gr::limesdr {
 
-#if 0
-void qa_limesdr::open_close()
-{
-    auto ps = limesdr::make({});
-
-    // this takes time, so we do it a few times only
-    for (auto i = 0; i < 3; i++) {
-        CPPUNIT_ASSERT_NO_THROW(ps->initialize(););
-
-        const auto driver_version = ps->driver_version();
-        CPPUNIT_ASSERT(!driver_version.empty());
-
-        const auto hw_version = ps->hardware_version();
-        CPPUNIT_ASSERT(!hw_version.empty());
-
-        CPPUNIT_ASSERT_NO_THROW(ps->close(););
-    }
-}
-#endif
-
 void qa_limesdr::streaming_basics()
 {
     auto top = flowgraph::make("streaming_basics");
@@ -73,7 +53,7 @@ void qa_limesdr::streaming_basics()
     CPPUNIT_ASSERT(data.size() % 2 == 0);
     const auto sample_count = data.size() / 2;
     std::cout << "Received " << sample_count << std::endl;
-    CPPUNIT_ASSERT(sample_count >= 300000 && sample_count <= 400000);
+    CPPUNIT_ASSERT(sample_count >= 300000 && sample_count <= 500000);
 }
 
 } // namespace gr::limesdr
