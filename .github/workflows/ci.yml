@@ -25,46 +25,58 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         name: Checkout Project
+      - name: Install gr-digitizer dependencies, enable gcc 12
+        run: |
+          su -c "apt-get update"
+          su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev gcc-12 g++-12 wget"
+          su -c "update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12"
+          su -c "update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12"
+      - name: Install root
+        run: |
+          su -c "apt-get update"
+          # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev 
+          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev"
+          # https://root.cern/install/#download-a-pre-compiled-binary-distribution
+          mkdir $HOME/local
+          cd $HOME/local
+          wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
+          pwd
+      - name: Install LimeSuite
+        run: |
+          su -c "apt-get --yes install libsqlite3-dev"
+          git clone https://github.com/myriadrf/LimeSuite.git $HOME/LimeSuite
+          cd $HOME/LimeSuite
+          git checkout 41ad26b6 # We use an old revision using Gateware 2.15
+          mkdir -p $HOME/LimeSuite/build-ninja
+          cd $HOME/LimeSuite/build-ninja
+          cmake -GNinja -DCMAKE_INSTALL_PREFIX=$HOME/local/lime ..
+          ninja
+          su -c "ninja install"
       - name: Install picoscope
         run: |
           su -c "apt-get update"
-          su -c "apt-get --yes install wget gnupg2 apt-utils udev libusb-1.0-0-dev"
+          su -c "apt-get --yes install gnupg2 apt-utils udev libusb-1.0-0-dev"
           # https://www.picotech.com/downloads/linux
           wget -qO - https://labs.picotech.com/Release.gpg.key | su -c "apt-key add -"
           su -c "bash -c 'echo \"deb https://labs.picotech.com/rc/picoscope7/debian/ picoscope main\" >/etc/apt/sources.list.d/picoscope7.list'"
           su -c "apt-get update"
           su -c "apt-get --yes install libps3000a libps4000a libps5000a libps6000 libps6000a" || true # ignore udev errors in post install because of udev in container
-      - name: Install root
-        run: |
-          su -c "apt-get update"
-          # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev 
-          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev" || true 
-          # https://root.cern/install/#download-a-pre-compiled-binary-distribution
-          mkdir .local
-          cd .local
-          wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
-          pwd
-      - name: Install gr-digitizer dependencies, enable gcc 12
-        run: |
-          su -c "apt-get update"
-          su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev gcc-12 g++-12" || true
-          su -c "update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12"
-          su -c "update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12"
       - name: Meson Setup
         shell: bash
         run: |
-          source .local/root/bin/thisroot.sh
-          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=./.local/root
+          source $HOME/local/root/bin/thisroot.sh
+          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=$HOME/local/root -Dlimesuite_prefix=$HOME/local/lime
       - name: Make
         shell: bash
         run: |
-          source .local/root/bin/thisroot.sh
+          source $HOME/local/root/bin/thisroot.sh
           cd build
           ninja
       - name: Make Test
         shell: bash
         run: |
-          source .local/root/bin/thisroot.sh
+          source $HOME/local/root/bin/thisroot.sh
+          export LD_LIBRARY_PATH=$HOME/local/lime/lib:$LD_LIBRARY_PATH
           cd build
           ninja test
       - uses: actions/upload-artifact@v1

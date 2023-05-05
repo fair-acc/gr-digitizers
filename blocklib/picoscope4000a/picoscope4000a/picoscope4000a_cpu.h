@@ -110,9 +110,9 @@ public:
         d_impl.set_di_trigger(pin, trigger_direction);
     }
 
-private:
-    void handle_msg_timing(pmtv::pmt msg) { d_impl.handle_msg_timing(std::move(msg)); }
+    void handle_msg_timing(pmtv::pmt msg) override { d_impl.handle_msg_timing(std::move(msg)); }
 
+private:
     picoscope_4000a_impl d_impl;
 };
 
