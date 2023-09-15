@@ -1,45 +1,9 @@
 #include <boost/ut.hpp>
 
 #include <block_scaling_offset.h>
+#include <helper_blocks.h>
 
 #include <scheduler.hpp>
-
-template <typename T>
-struct vector_source : public fair::graph::node<vector_source<T>> {
-    fair::graph::OUT<T> out;
-
-    std::vector<T> data;
-    std::size_t _produced = 0;
-
-    explicit vector_source(std::vector<T> data_) : data{ std::move(data_) } {}
-
-    constexpr std::make_signed_t<std::size_t>
-    available_samples(const vector_source&) noexcept
-    {
-        const auto v =
-            static_cast<std::make_signed_t<std::size_t>>(data.size()) - _produced;
-        return v > 0 ? v : -1;
-    }
-
-    T process_one() noexcept
-    {
-        const auto n = _produced;
-        _produced++;
-        return data[n];
-    }
-};
-
-ENABLE_REFLECTION_FOR_TEMPLATE(vector_source, out, data);
-
-template <typename T>
-struct vector_sink : public fair::graph::node<vector_sink<T>> {
-    fair::graph::IN<T> in;
-    std::vector<T> data;
-
-    void process_one(T v) { data.push_back(v); }
-};
-
-ENABLE_REFLECTION_FOR_TEMPLATE(vector_sink, in, data);
 
 namespace gr::digitizers::block_scaling_offset_test {
 
@@ -47,6 +11,7 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
     using namespace boost::ut;
     using namespace fair::graph;
     using namespace gr::digitizers;
+    using namespace gr::helpers;
 
     "scale and offset"_test = [] {
         double scale = 1.5;

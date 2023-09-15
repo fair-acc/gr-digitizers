@@ -834,6 +834,5 @@ inline std::string ps4000a_status_to_string_verbose(PICO_STATUS status)
 
 inline std::string ps4000a_get_error_message(PICO_STATUS status)
 {
-    return std::string(ps4000a_status_to_string(status) + " - " +
-                       ps4000a_status_to_string_verbose(status));
+    return ps4000a_status_to_string(status) + " - " + ps4000a_status_to_string_verbose(status);
 }

@@ -3,12 +3,14 @@ cmake_minimum_required(VERSION 3.12)
 project(gr-digitizers CXX)
 set(CMAKE_CXX_STANDARD 20)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
+
 include(FetchContent)
 
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-    GIT_TAG 39c680c37d1a7a79bde8a5098dc42fb5efe03c02
+    GIT_TAG 27aac9208152ccd61b34197f30f95e9d094a698b
 )
 
 FetchContent_Declare(
@@ -24,6 +26,11 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(graph-prototype zeromq ut)
+
+option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
+set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
+
+find_package(Volk REQUIRED)
 
 add_subdirectory(blocklib)
 
