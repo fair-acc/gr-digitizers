@@ -32,6 +32,7 @@ set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # T
 
 find_package(Volk REQUIRED)
 
+add_subdirectory(gr-picoscope)
 add_subdirectory(blocklib)
 
 option(ENABLE_TESTING "Enable Test Builds" ON)

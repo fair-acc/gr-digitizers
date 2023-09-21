@@ -11,6 +11,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
     using namespace boost::ut;
     using namespace fair::graph;
     using namespace gr::helpers;
+    using namespace gr::picoscope;
     using namespace gr::picoscope4000a;
 
     "open and close"_test = [] {
@@ -33,7 +34,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
                                     { .range = 5., .coupling = coupling_t::AC_1M } } },
             .sample_rate = 10000.,
             .driver_buffer_size = 50000,
-            .acquisition_mode = digitizer_acquisition_mode_t::STREAMING,
+            .acquisition_mode = acquisition_mode_t::STREAMING,
             .streaming_mode_poll_rate = 0.00001,
             .auto_arm = true });
 

@@ -5,6 +5,10 @@
 
 #include <mutex>
 
+using gr::picoscope::acquisition_mode_t;
+using gr::picoscope::coupling_t;
+using gr::picoscope::trigger_direction_t;
+
 namespace gr::picoscope4000a {
 
 struct PicoStatus4000aErrc : std::error_category {
@@ -48,10 +52,6 @@ std::string get_unit_info_topic(int16_t handle, PICO_INFO info)
 
     return {};
 }
-
-/**********************************************************************
- * Converters - helper functions
- *********************************************************************/
 
 PS4000A_COUPLING convert_to_ps4000a_coupling(coupling_t coupling)
 {
@@ -322,7 +322,7 @@ uint32_t convert_frequency_to_ps4000a_timebase(int16_t handle,
 
 } // namespace
 
-std::string Picoscope4000a::driver_version() const
+std::string Picoscope4000a::driver_driver_version() const
 {
     const std::string prefix = "PS4000A Linux Driver, ";
     auto version = get_unit_info_topic(state.handle, PICO_DRIVER_VERSION);
@@ -333,7 +333,7 @@ std::string Picoscope4000a::driver_version() const
     return version;
 }
 
-std::string Picoscope4000a::hardware_version() const
+std::string Picoscope4000a::driver_hardware_version() const
 {
     if (!state.initialized)
         return {};
@@ -384,8 +384,8 @@ std::error_code Picoscope4000a::driver_initialize()
     return {};
 }
 
-std::error_code Picoscope4000a::driver_set_buffers(std::size_t samples,
-                                                   uint32_t block_number)
+std::error_code Picoscope4000a::set_buffers(std::size_t samples,
+                                            uint32_t block_number)
 {
     for (auto& channel : state.channels) {
         const auto aichan = convert_to_ps4000a_channel(channel.id);
@@ -442,7 +442,7 @@ std::error_code Picoscope4000a::driver_configure()
         return make_pico_4000a_error_code(status);
     }
 
-    if (ps_settings.acquisition_mode == digitizer_acquisition_mode_t::RAPID_BLOCK) {
+    if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
         status = ps4000aSetNoOfCaptures(
             state.handle, static_cast<uint32_t>(ps_settings.rapid_block_nr_captures));
         if (status != PICO_OK) {
@@ -477,7 +477,7 @@ std::error_code Picoscope4000a::driver_configure()
 
     // apply trigger configuration
     if (ps_settings.trigger.is_analog() &&
-        ps_settings.acquisition_mode == digitizer_acquisition_mode_t::RAPID_BLOCK) {
+        ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
         const auto channel = convert_to_ps4000a_channel(ps_settings.trigger.source);
         // TODO handle error (maybe check validity of IDs upfront in ctor)
         if (channel) {
@@ -524,7 +524,7 @@ std::error_code Picoscope4000a::driver_configure()
 
 std::error_code Picoscope4000a::driver_arm()
 {
-    if (ps_settings.acquisition_mode == digitizer_acquisition_mode_t::RAPID_BLOCK) {
+    if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
 #if 0
         uint32_t timebase =
             convert_frequency_to_ps4000a_timebase(ps_settings.sample_rate, state.actual_sample_rate);
@@ -545,7 +545,7 @@ std::error_code Picoscope4000a::driver_arm()
 #endif
     }
     else {
-        driver_set_buffers(ps_settings.driver_buffer_size, 0);
+        set_buffers(ps_settings.driver_buffer_size, 0);
 
         ps4000a_unit_interval_t unit_int =
             convert_frequency_to_ps4000a_time_units_and_interval(
@@ -591,7 +591,7 @@ std::error_code Picoscope4000a::driver_poll()
 {
     const auto status = ps4000aGetStreamingLatestValues(
         state.handle,
-        static_cast<ps4000aStreamingReady>(detail::invoke_streaming_callback),
+        static_cast<ps4000aStreamingReady>(gr::picoscope::detail::invoke_streaming_callback),
         &_streaming_callback);
     if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
         return {};
