@@ -7,6 +7,45 @@
 
 namespace gr::picoscope4000a::test {
 
+void test_rapid_block_basic(std::size_t nr_captures) {
+    using namespace boost::ut;
+    using namespace fair::graph;
+    using namespace gr::helpers;
+    using namespace gr::picoscope;
+    using namespace gr::picoscope4000a;
+
+    constexpr std::size_t pre_samples = 33;
+    constexpr std::size_t post_samples = 1000;
+    const auto total_samples = nr_captures * (pre_samples + post_samples);
+
+    graph flow_graph;
+    auto& ps = flow_graph.make_node<Picoscope4000a>(Settings{
+        .enabled_channels = {{"A", {.range = 5., .coupling = coupling_t::AC_1M}}},
+        .sample_rate = 10000.,
+        .pre_samples = pre_samples,
+        .post_samples = post_samples,
+        .acquisition_mode = acquisition_mode_t::RAPID_BLOCK,
+        .rapid_block_nr_captures = nr_captures,
+        .auto_arm = true,
+        .trigger_once = true });
+
+    auto &sink = flow_graph.make_node<count_sink<float>>();
+    auto &errsink = flow_graph.make_node<count_sink<float>>();
+
+    expect(eq(connection_result_t::SUCCESS,
+                flow_graph.connect<"values0">(ps).template to<"in">(sink)));
+    expect(eq(connection_result_t::SUCCESS,
+                flow_graph.connect<"errors0">(ps).template to<"in">(errsink)));
+
+    ps.start(); // TODO should be done by scheduler
+
+    scheduler::simple sched{ std::move(flow_graph) };
+    sched.run_and_wait();
+
+    expect(eq(sink.samples_seen, total_samples));
+    expect(eq(errsink.samples_seen, total_samples));
+}
+
 const boost::ut::suite Picoscope4000aTests = [] {
     using namespace boost::ut;
     using namespace fair::graph;
@@ -66,52 +105,13 @@ const boost::ut::suite Picoscope4000aTests = [] {
         expect(le(sink.samples_seen, std::size_t{ 20000 }));
     };
 
+
     "rapid block basics"_test = [] {
-#if 0
-        graph flow_graph;
-        auto& ps = flow_graph.make_node<Picoscope4000a>({
-  //          .enabled_channels = {{"A", {.range = 5., .offset = 0.f, .coupling = coupling_t::AC_1M}}},
-            .sample_rate = 10000.,
-            .pre_samples = 33,
-            .post_samples = 1000,
-            .acquisition_mode = digitizer_acquisition_mode_t::RapidBlock,
-            .rapid_block_nr_captures = 1,
-            .auto_arm = true,
-            .trigger_once = true });
+        test_rapid_block_basic(1);
+    };
 
-        auto &sink = flow_graph.make_node<vector_sink<float>>();
-        auto &sink1 = flow_graph.make_node<null_sink<float>>();
-        auto &sink2 = flow_graph.make_node<null_sink<float>>();
-
-        expect(eq(connection_result_t::SUCCESS,
-                  flow_graph.connect<"out0">(ps).template to<"in">(sink)));
-        expect(eq(connection_result_t::SUCCESS,
-                  flow_graph.connect<"out1">(ps).template to<"in">(sink1)));
-        expect(eq(connection_result_t::SUCCESS,
-                  flow_graph.connect<"out2">(ps).template to<"in">(sink2)));
-
-        scheduler::simple sched{ std::move(flow_graph) };
-        sched.run_and_wait();
-
-        expect(eq(sink.data.size(), std::size_t{1033}));
-
-#ifdef PORT_DISABLED // TODO(PORT) these are currently not settable after creation, is
-                        // this needed?
-        // run once more, note configuration is applied at start
-        sink->reset();
-        ps->set_samples(200, 800);
-        top->run();
-
-        data = sink->data();
-        CPPUNIT_ASSERT_EQUAL(size_t{ 1000 }, data.size());
-#endif
-
-#if 0
-        // check actual sample rate
-        auto actual_samp_rate = ps.actual_sample_rate();
-        CPPUNIT_ASSERT_DOUBLES_EQUAL(10000.0, actual_samp_rate, 0.0001);
-#endif
-#endif
+    "rapid block multiple captures"_test = [] {
+        test_rapid_block_basic(3);
     };
 };
 

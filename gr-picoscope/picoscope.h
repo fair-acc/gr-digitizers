@@ -110,6 +110,7 @@ struct Channel {
 struct State {
     std::vector<Channel> channels;
     std::atomic<std::size_t> data_available = 0;
+    std::atomic<bool> data_finished = false;
     bool initialized = false;
     bool configured = false;
     bool closed = false;
@@ -168,6 +169,10 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             return -1;
         }
 
+        if (state.data_finished && state.data_available == 0) {
+            return -1;
+        }
+
         if (state.forced_quit) {
             return -1;
         }
@@ -187,6 +192,9 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             return fair::graph::work_return_status_t::ERROR;
         }
         if (state.forced_quit) {
+            return fair::graph::work_return_status_t::DONE;
+        }
+        if (state.data_finished && state.data_available == 0) {
             return fair::graph::work_return_status_t::DONE;
         }
 
@@ -224,10 +232,10 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         try {
             initialize();
             configure();
+            if (ps_settings.auto_arm) {
+                arm();
+            }
             if (ps_settings.acquisition_mode == acquisition_mode_t::STREAMING) {
-                if (ps_settings.auto_arm) {
-                    arm();
-                }
                 start_poll_thread();
             }
             state.started = true;
@@ -365,7 +373,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
     }
 
-    void disarm()
+    void disarm() noexcept
     {
         if (!state.armed) {
             return;

@@ -320,6 +320,12 @@ uint32_t convert_frequency_to_ps4000a_timebase(int16_t handle,
     return static_cast<uint32_t>(start_timebase + distance);
 }
 
+void rapid_block_callback_redirector(int16_t handle, PICO_STATUS status, void* vobj)
+{
+    std::ignore = handle;
+    static_cast<Picoscope4000a*>(vobj)->rapid_block_callback(make_pico_4000a_error_code(status));
+}
+
 } // namespace
 
 std::string Picoscope4000a::driver_driver_version() const
@@ -383,13 +389,70 @@ std::error_code Picoscope4000a::driver_initialize()
     return {};
 }
 
+void Picoscope4000a::rapid_block_callback(std::error_code ec) {
+    if (ec) {
+        // TODO handle error
+        return;
+    }
+    const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
+    for (std::size_t capture = 0; capture < ps_settings.rapid_block_nr_captures; ++capture) {
+        ec = set_buffers(samples, static_cast<uint32_t>(capture));
+
+        if (ec) {
+            // TODO handle error
+            return;
+        }
+
+        auto nr_samples = static_cast<uint32_t>(samples);
+        int16_t overflow = 0;
+        auto status = ps4000aGetValues(state.handle,
+                                    0, // offset
+                                    &nr_samples,
+                                    1,
+                                    PS4000A_RATIO_MODE_NONE,
+                                    static_cast<uint32_t>(capture),
+                                    &overflow);
+        if (status != PICO_OK) {
+            fmt::println(std::cerr, "ps4000aGetValues: {}", ps4000a_get_error_message(status));
+            // TODO handle error
+            return;
+        }
+        // TODO move to picoscope.h, share with streaming
+        for (auto &channel : state.channels) {
+            const auto channel_index = convert_to_ps4000a_channel(channel.id);
+            // TODO check validity of channel.id upfront in ctor
+
+            if (overflow & (1 << *channel_index)) {
+                // TODO report overflow for this channel
+            } else {
+                // TODO report all good for this channel
+            }
+
+            const auto voltage_multiplier = static_cast<float>(channel.settings.range / state.max_value);
+            // TODO what if data_buffer full, should be block or drop here?
+            auto write_data = channel.data_writer.reserve_output_range(channel.driver_buffer.size());
+            // TODO the old impl uses simply float_output = voltage_multiplier * static_cast<float>(int32_input),
+            // but this volk call for streaming. Should we use volk in both situations, or remove the volk dependency alltogether??
+            volk_16i_s32f_convert_32f(write_data.data(),
+                                    channel.driver_buffer.data(),
+                                    1.0f / voltage_multiplier,
+                                    static_cast<uint>(write_data.size()));
+            write_data.publish(write_data.size());
+        }
+
+        state.data_available += samples;
+    }
+
+    if (ps_settings.trigger_once) {
+        state.data_finished = true;
+    }
+}
+
 std::error_code Picoscope4000a::set_buffers(std::size_t samples, uint32_t block_number)
 {
     for (auto& channel : state.channels) {
         const auto aichan = convert_to_ps4000a_channel(channel.id);
-        if (!aichan) { // TODO test upfront and assert
-            continue;
-        }
+        assert(aichan); // TODO test upfront
 
         channel.driver_buffer.resize(samples);
         const auto status = ps4000aSetDataBuffer(state.handle,
@@ -523,24 +586,22 @@ std::error_code Picoscope4000a::driver_configure()
 std::error_code Picoscope4000a::driver_arm()
 {
     if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
-#if 0
         uint32_t timebase =
-            convert_frequency_to_ps4000a_timebase(ps_settings.sample_rate, state.actual_sample_rate);
+            convert_frequency_to_ps4000a_timebase(state.handle, ps_settings.sample_rate, state.actual_sample_rate);
 
         auto status =
             ps4000aRunBlock(state.handle,
-                            ps_settings.pre_samples,  // pre-triggersamples
-                            ps_settings.post_samples, // post-trigger samples
+                            static_cast<int32_t>(ps_settings.pre_samples),
+                            static_cast<int32_t>(ps_settings.post_samples),
                             timebase,       // timebase
-                            NULL,           // time indispossed
+                            nullptr,           // time indispossed
                             0,              // segment index
-                            (ps4000aBlockReady)rapid_block_callback_redirector_4000a,
+                            static_cast<ps4000aBlockReady>(rapid_block_callback_redirector),
                             this);
         if (status != PICO_OK) {
-            d_logger->error("ps4000aRunBlock: {}", ps4000a_get_error_message(status));
+            fmt::println(std::cerr, "ps4000aRunBlock: {}", ps4000a_get_error_message(status));
             return make_pico_4000a_error_code(status);
         }
-#endif
     }
     else {
         set_buffers(ps_settings.driver_buffer_size, 0);
@@ -573,7 +634,7 @@ std::error_code Picoscope4000a::driver_arm()
     return {};
 }
 
-std::error_code Picoscope4000a::driver_disarm()
+std::error_code Picoscope4000a::driver_disarm() noexcept
 {
     if (const auto status = ps4000aStop(state.handle); status != PICO_OK) {
         fmt::println(std::cerr, "ps4000aStop: {}", ps4000a_get_error_message(status));
