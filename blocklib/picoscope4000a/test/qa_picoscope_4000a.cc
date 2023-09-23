@@ -45,11 +45,6 @@ const boost::ut::suite Picoscope4000aTests = [] {
                   flow_graph.connect<"values0">(ps).template to<"in">(sink)));
         expect(eq(connection_result_t::SUCCESS,
                   flow_graph.connect<"errors0">(ps).template to<"in">(errsink)));
-        for (std::size_t i = 0; i < 14; ++i) {
-            auto &ns = flow_graph.make_node<null_sink<float>>();
-            expect(eq(connection_result_t::SUCCESS,
-                      flow_graph.dynamic_connect(ps, 2 + i, ns, 0)));
-        }
 
         // Explicitly open unit because it takes quite some time
         expect(nothrow([&ps] { ps.initialize(); }));
