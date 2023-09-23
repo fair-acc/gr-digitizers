@@ -327,8 +327,7 @@ std::string Picoscope4000a::driver_driver_version() const
     const std::string prefix = "PS4000A Linux Driver, ";
     auto version = get_unit_info_topic(state.handle, PICO_DRIVER_VERSION);
 
-    auto i = version.find(prefix);
-    if (i != std::string::npos)
+    if (auto i = version.find(prefix); i != std::string::npos)
         version.erase(i, prefix.length());
     return version;
 }
@@ -461,7 +460,7 @@ std::error_code Picoscope4000a::driver_configure()
         const auto range = convert_to_ps4000a_range(channel.settings.range);
 
         status = ps4000aSetChannel(state.handle,
-                                   static_cast<PS4000A_CHANNEL>(*maybe_idx),
+                                   *maybe_idx,
                                    true,
                                    coupling,
                                    static_cast<PICO_CONNECT_PROBE_RANGE>(range),
@@ -577,9 +576,7 @@ std::error_code Picoscope4000a::driver_arm()
 
 std::error_code Picoscope4000a::driver_disarm()
 {
-    const auto status = ps4000aStop(state.handle);
-
-    if (status != PICO_OK) {
+    if (const auto status = ps4000aStop(state.handle); status != PICO_OK) {
         fmt::println(std::cerr, "ps4000aStop: {}", ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
     }

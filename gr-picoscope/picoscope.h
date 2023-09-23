@@ -315,7 +315,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
         const auto ec = self().driver_initialize();
         if (ec) {
-            throw std::runtime_error(fmt::format("Initialisation failed"));
+            throw std::runtime_error(fmt::format("Initialization failed"));
         }
 
         state.initialized = true;
@@ -336,7 +336,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
 
         if (state.armed) {
-            throw std::runtime_error("Cannot configured armed device");
+            throw std::runtime_error("Cannot configure armed device");
         }
 
         auto ec = self().driver_configure();
@@ -356,7 +356,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         // arm the driver
         auto ec = self().driver_arm();
         if (ec) {
-            throw std::runtime_error(fmt::format("Arm failed"));
+            throw std::runtime_error("Arming failed");
         }
 
         state.armed = true;
