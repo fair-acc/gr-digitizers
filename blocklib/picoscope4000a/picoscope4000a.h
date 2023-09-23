@@ -23,7 +23,10 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     fair::graph::OUT<float> values7;
     fair::graph::OUT<float> errors7;
 
-    explicit Picoscope4000a(gr::picoscope::Settings settings = {}) : gr::picoscope::Picoscope<Picoscope4000a>(std::move(settings)) {}
+    explicit Picoscope4000a(gr::picoscope::Settings settings = {})
+        : gr::picoscope::Picoscope<Picoscope4000a>(std::move(settings))
+    {
+    }
 
     fair::graph::work_return_status_t process_bulk(std::span<float> v0,
                                                    std::span<float> e0,
@@ -42,11 +45,17 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
                                                    std::span<float> v7,
                                                    std::span<float> e7) noexcept
     {
-        return this->process_bulk_impl<8>({{{v0, e0}, {v1, e1}, {v2, e2}, {v3, e3}, {v4, e4}, {v5, e5}, {v6, e6}, {v7, e7}}});
+        return this->process_bulk_impl<8>({ { { v0, e0 },
+                                              { v1, e1 },
+                                              { v2, e2 },
+                                              { v3, e3 },
+                                              { v4, e4 },
+                                              { v5, e5 },
+                                              { v6, e6 },
+                                              { v7, e7 } } });
     }
 
-    std::make_signed_t<std::size_t>
-    available_samples(const Picoscope&) const noexcept
+    std::make_signed_t<std::size_t> available_samples(const Picoscope&) const noexcept
     {
         return this->available_samples_impl();
     }
@@ -67,6 +76,22 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
 
 } // namespace gr::picoscope4000a
 
-ENABLE_REFLECTION(gr::picoscope4000a::Picoscope4000a, values0, errors0, values1, errors1, values2, errors2, values3, errors3, values4, errors4, values5, errors5, values6, errors6, values7, errors7);
+ENABLE_REFLECTION(gr::picoscope4000a::Picoscope4000a,
+                  values0,
+                  errors0,
+                  values1,
+                  errors1,
+                  values2,
+                  errors2,
+                  values3,
+                  errors3,
+                  values4,
+                  errors4,
+                  values5,
+                  errors5,
+                  values6,
+                  errors6,
+                  values7,
+                  errors7);
 
 #endif

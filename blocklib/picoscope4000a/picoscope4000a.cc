@@ -383,8 +383,7 @@ std::error_code Picoscope4000a::driver_initialize()
     return {};
 }
 
-std::error_code Picoscope4000a::set_buffers(std::size_t samples,
-                                            uint32_t block_number)
+std::error_code Picoscope4000a::set_buffers(std::size_t samples, uint32_t block_number)
 {
     for (auto& channel : state.channels) {
         const auto aichan = convert_to_ps4000a_channel(channel.id);
@@ -588,7 +587,8 @@ std::error_code Picoscope4000a::driver_poll()
 {
     const auto status = ps4000aGetStreamingLatestValues(
         state.handle,
-        static_cast<ps4000aStreamingReady>(gr::picoscope::detail::invoke_streaming_callback),
+        static_cast<ps4000aStreamingReady>(
+            gr::picoscope::detail::invoke_streaming_callback),
         &_streaming_callback);
     if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
         return {};
