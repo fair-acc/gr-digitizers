@@ -46,10 +46,12 @@ struct vector_sink : public fair::graph::node<vector_sink<T>> {
 };
 
 template <typename T>
-struct null_sink : public fair::graph::node<null_sink<T>> {
+struct count_sink : public fair::graph::node<count_sink<T>> {
     fair::graph::IN<T> in;
+    std::size_t samples_seen = 0;
 
-    fair::graph::work_return_status_t process_bulk(std::span<const T>) const noexcept {
+    fair::graph::work_return_status_t process_bulk(std::span<const T> input) noexcept {
+        samples_seen += input.size();
         return fair::graph::work_return_status_t::OK;
     }
 };
@@ -58,6 +60,6 @@ struct null_sink : public fair::graph::node<null_sink<T>> {
 
 ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::vector_source, out, data);
 ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::vector_sink, in, data);
-ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::null_sink, in);
+ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::count_sink, in);
 
 #endif

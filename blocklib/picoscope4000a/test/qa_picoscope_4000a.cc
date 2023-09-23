@@ -38,8 +38,8 @@ const boost::ut::suite Picoscope4000aTests = [] {
             .streaming_mode_poll_rate = 0.00001,
             .auto_arm = true });
 
-        auto& sink = flow_graph.make_node<vector_sink<float>>();
-        auto& errsink = flow_graph.make_node<vector_sink<float>>();
+        auto& sink = flow_graph.make_node<count_sink<float>>();
+        auto& errsink = flow_graph.make_node<count_sink<float>>();
 
         expect(eq(connection_result_t::SUCCESS,
                   flow_graph.connect<"values0">(ps).template to<"in">(sink)));
@@ -61,8 +61,9 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
         sched.run_and_wait();
 
-        expect(ge(sink.data.size(), std::size_t{ 5000 }));
-        expect(le(sink.data.size(), std::size_t{ 20000 }));
+        expect(eq(sink.samples_seen, errsink.samples_seen));
+        expect(ge(sink.samples_seen, std::size_t{ 5000 }));
+        expect(le(sink.samples_seen, std::size_t{ 20000 }));
     };
 
     "rapid block basics"_test = [] {
