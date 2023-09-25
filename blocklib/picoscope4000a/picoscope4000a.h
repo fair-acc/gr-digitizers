@@ -24,11 +24,6 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     AnalogPort values7;
     AnalogPort errors7;
 
-    explicit Picoscope4000a(gr::picoscope::Settings settings = {})
-        : gr::picoscope::Picoscope<Picoscope4000a>(std::move(settings))
-    {
-    }
-
     fair::graph::work_return_status_t process_bulk(std::span<float> v0,
                                                    std::span<float> e0,
                                                    std::span<float> v1,
@@ -96,6 +91,15 @@ ENABLE_REFLECTION(gr::picoscope4000a::Picoscope4000a,
                   values6,
                   errors6,
                   values7,
-                  errors7);
+                  errors7,
+                  serial_number,
+                  sample_rate,
+                  pre_samples,
+                  post_samples,
+                  acquisition_mode_string,
+                  rapid_block_nr_captures,
+                  streaming_mode_poll_rate,
+                  auto_arm,
+                  trigger_once);
 
 #endif

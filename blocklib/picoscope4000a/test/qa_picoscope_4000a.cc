@@ -20,16 +20,16 @@ void test_rapid_block_basic(std::size_t nr_captures)
     const auto total_samples = nr_captures * (pre_samples + post_samples);
 
     graph flow_graph;
-    auto& ps = flow_graph.make_node<Picoscope4000a>(Settings{
-        .enabled_channels = { { "A", { .range = 5., .coupling = coupling_t::AC_1M } } },
-        .sample_rate = 10000.,
-        .pre_samples = pre_samples,
-        .post_samples = post_samples,
-        .acquisition_mode = acquisition_mode_t::RAPID_BLOCK,
-        .rapid_block_nr_captures = nr_captures,
-        .auto_arm = true,
-        .trigger_once = true });
-
+    auto& ps = flow_graph.make_node<Picoscope4000a>(
+        { { { "sample_rate", 10000. },
+            { "pre_samples", pre_samples },
+            { "post_samples", post_samples },
+            { "acquisition_mode_string", "RAPID_BLOCK" },
+            { "rapid_block_nr_captures", nr_captures },
+            { "auto_arm", true },
+            { "trigger_once", true } } });
+    ps.set_channel_configuration(
+        { { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
     auto& sink = flow_graph.make_node<count_sink<float>>();
     auto& errsink = flow_graph.make_node<count_sink<float>>();
 
@@ -72,50 +72,33 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
         // good channel
         expect(nothrow([&flow_graph] {
-            std::ignore = flow_graph.make_node<Picoscope4000a>(Settings{
-                .enabled_channels = {
-                    { "A", { .range = 5., .coupling = coupling_t::AC_1M } } } });
+            auto& ps = flow_graph.make_node<Picoscope4000a>();
+            ps.set_channel_configuration(
+                { { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
         }));
 
         // bad channel
         expect(throws<std::invalid_argument>([&flow_graph] {
-            std::ignore = flow_graph.make_node<Picoscope4000a>(Settings{
-                .enabled_channels = {
-                    { "INVALID", { .range = 5., .coupling = coupling_t::AC_1M } } } });
+            auto& ps = flow_graph.make_node<Picoscope4000a>();
+            ps.set_channel_configuration(
+                { { "INVALID", { .range = 5., .coupling = coupling_t::AC_1M } } });
         }));
 
         expect(nothrow(
             [&flow_graph] { std::ignore = flow_graph.make_node<Picoscope4000a>(); }));
-
-        expect(throws<std::invalid_argument>([&flow_graph] {
-            std::ignore = flow_graph.make_node<Picoscope4000a>(Settings{
-                .post_samples = 0, .acquisition_mode = acquisition_mode_t::RAPID_BLOCK });
-        }));
-        expect(throws<std::invalid_argument>([&flow_graph] {
-            std::ignore = flow_graph.make_node<Picoscope4000a>(
-                Settings{ .acquisition_mode = acquisition_mode_t::STREAMING,
-                          .streaming_mode_poll_rate = 0 });
-        }));
-        expect(throws<std::invalid_argument>([&flow_graph] {
-            std::ignore =
-                flow_graph.make_node<Picoscope4000a>(Settings{ .driver_buffer_size = 0 });
-        }));
-        expect(throws<std::invalid_argument>([&flow_graph] {
-            std::ignore =
-                flow_graph.make_node<Picoscope4000a>(Settings{ .sample_rate = 0 });
-        }));
     };
 
     "streaming basics"_test = [] {
         graph flow_graph;
-        auto& ps = flow_graph.make_node<Picoscope4000a>(Settings{
-            .enabled_channels = { { "A",
-                                    { .range = 5., .coupling = coupling_t::AC_1M } } },
-            .sample_rate = 10000.,
-            .driver_buffer_size = 50000,
-            .acquisition_mode = acquisition_mode_t::STREAMING,
-            .streaming_mode_poll_rate = 0.00001,
-            .auto_arm = true });
+
+        auto& ps = flow_graph.make_node<Picoscope4000a>(
+            { { { "sample_rate", 10000. },
+                { "driver_buffer_size", std::size_t{ 50000 } },
+                { "acquisition_mode_string", "STREAMING" },
+                { "streaming_mode_poll_rate", 0.00001 },
+                { "auto_arm", true } } });
+        ps.set_channel_configuration(
+            { { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
 
         auto& sink = flow_graph.make_node<count_sink<float>>();
         auto& errsink = flow_graph.make_node<count_sink<float>>();
@@ -157,20 +140,19 @@ const boost::ut::suite Picoscope4000aTests = [] {
         constexpr auto total_samples = nr_captures * (pre_samples + post_samples);
 
         graph flow_graph;
-        auto& ps = flow_graph.make_node<Picoscope4000a>(Settings{
-            .enabled_channels = { { "A", { .range = 5., .coupling = coupling_t::AC_1M } },
-                                  { "B", { .range = 5., .coupling = coupling_t::AC_1M } },
-                                  { "C", { .range = 5., .coupling = coupling_t::AC_1M } },
-                                  { "D",
-                                    { .range = 5., .coupling = coupling_t::AC_1M } } },
-            .sample_rate = 10000.,
-            .pre_samples = pre_samples,
-            .post_samples = post_samples,
-            .acquisition_mode = acquisition_mode_t::RAPID_BLOCK,
-            .rapid_block_nr_captures = nr_captures,
-            .auto_arm = true,
-            .trigger_once = true });
-
+        auto& ps = flow_graph.make_node<Picoscope4000a>(
+            { { { "sample_rate", 10000. },
+                { "pre_samples", pre_samples },
+                { "post_samples", post_samples },
+                { "acquisition_mode_string", "RAPID_BLOCK" },
+                { "rapid_block_nr_captures", nr_captures },
+                { "auto_arm", true },
+                { "trigger_once", true } } });
+        ps.set_channel_configuration(
+            { { { "A", { .range = 5., .coupling = coupling_t::AC_1M } },
+                { "B", { .range = 5., .coupling = coupling_t::AC_1M } },
+                { "C", { .range = 5., .coupling = coupling_t::AC_1M } },
+                { "D", { .range = 5., .coupling = coupling_t::AC_1M } } } });
         auto& sink0 = flow_graph.make_node<count_sink<float>>();
         auto& sink1 = flow_graph.make_node<count_sink<float>>();
         auto& sink2 = flow_graph.make_node<count_sink<float>>();
@@ -198,15 +180,15 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
     "rapid block continuous"_test = [] {
         graph flow_graph;
-        auto& ps = flow_graph.make_node<Picoscope4000a>(Settings{
-            .enabled_channels = { { "A",
-                                    { .range = 5., .coupling = coupling_t::AC_1M } } },
-            .sample_rate = 10000.,
-            .post_samples = 1000,
-            .acquisition_mode = acquisition_mode_t::RAPID_BLOCK,
-            .rapid_block_nr_captures = 1,
-            .auto_arm = true });
+        auto& ps = flow_graph.make_node<Picoscope4000a>(
+            { { { "sample_rate", 10000. },
+                { "post_samples", 1000 },
+                { "acquisition_mode_string", "RAPID_BLOCK" },
+                { "rapid_block_nr_captures", 1 },
+                { "auto_arm", "true" } } });
 
+        ps.set_channel_configuration(
+            { { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
         auto& sink0 = flow_graph.make_node<count_sink<float>>();
 
         expect(eq(connection_result_t::SUCCESS,

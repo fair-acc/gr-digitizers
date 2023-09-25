@@ -389,13 +389,13 @@ std::error_code Picoscope4000a::driver_initialize()
     std::lock_guard init_guard{ g_init_mutex };
 
     // take any if serial number is not provided (useful for testing purposes)
-    if (ps_settings.serial_number.empty()) {
+    if (serial_number.value.empty()) {
         status = ps4000aOpenUnit(&state.handle, nullptr);
     }
     else {
         status = ps4000aOpenUnit(&state.handle,
                                  const_cast<int8_t*>(reinterpret_cast<const int8_t*>(
-                                     ps_settings.serial_number.data())));
+                                     serial_number.value.data())));
     }
 
     // ignore ext. power not connected error/warning
@@ -471,19 +471,17 @@ std::error_code Picoscope4000a::driver_close()
 std::error_code Picoscope4000a::driver_configure()
 {
     int32_t max_samples;
-    auto status =
-        ps4000aMemorySegments(state.handle,
-                              static_cast<uint32_t>(ps_settings.rapid_block_nr_captures),
-                              &max_samples);
+    auto status = ps4000aMemorySegments(
+        state.handle, static_cast<uint32_t>(rapid_block_nr_captures), &max_samples);
     if (status != PICO_OK) {
         fmt::println(
             std::cerr, "ps4000aMemorySegments: {}", ps4000a_get_error_message(status));
         return make_pico_4000a_error_code(status);
     }
 
-    if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
-        status = ps4000aSetNoOfCaptures(
-            state.handle, static_cast<uint32_t>(ps_settings.rapid_block_nr_captures));
+    if (acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
+        status = ps4000aSetNoOfCaptures(state.handle,
+                                        static_cast<uint32_t>(rapid_block_nr_captures));
         if (status != PICO_OK) {
             fmt::println(std::cerr,
                          "ps4000aSetNoOfCaptures: {}",
@@ -515,16 +513,16 @@ std::error_code Picoscope4000a::driver_configure()
     }
 
     // apply trigger configuration
-    if (ps_settings.trigger.is_analog() &&
-        ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
-        const auto channel = convert_to_ps4000a_channel(ps_settings.trigger.source);
+    if (trigger.value.is_analog() &&
+        acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
+        const auto channel = convert_to_ps4000a_channel(trigger.value.source);
         assert(channel);
         status = ps4000aSetSimpleTrigger(
             state.handle,
             true, // enable
             *channel,
-            convert_voltage_to_ps4000a_raw_logic_value(ps_settings.trigger.threshold),
-            convert_to_ps4000a_threshold_direction(ps_settings.trigger.direction),
+            convert_voltage_to_ps4000a_raw_logic_value(trigger.value.threshold),
+            convert_to_ps4000a_threshold_direction(trigger.value.direction),
             0,   // delay
             -1); // auto trigger
         if (status != PICO_OK) {
@@ -553,22 +551,21 @@ std::error_code Picoscope4000a::driver_configure()
 
     // In order to validate desired frequency before startup
     double actual_freq;
-    convert_frequency_to_ps4000a_timebase(
-        state.handle, ps_settings.sample_rate, actual_freq);
+    convert_frequency_to_ps4000a_timebase(state.handle, sample_rate, actual_freq);
 
     return std::error_code{};
 }
 
 std::error_code Picoscope4000a::driver_arm()
 {
-    if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
+    if (acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
         uint32_t timebase = convert_frequency_to_ps4000a_timebase(
-            state.handle, ps_settings.sample_rate, state.actual_sample_rate);
+            state.handle, sample_rate, state.actual_sample_rate);
 
         auto status = ps4000aRunBlock(
             state.handle,
-            static_cast<int32_t>(ps_settings.pre_samples),
-            static_cast<int32_t>(ps_settings.post_samples),
+            static_cast<int32_t>(pre_samples),
+            static_cast<int32_t>(post_samples),
             timebase, // timebase
             nullptr,  // time indispossed
             0,        // segment index
@@ -581,25 +578,22 @@ std::error_code Picoscope4000a::driver_arm()
         }
     }
     else {
-        set_buffers(ps_settings.driver_buffer_size, 0);
+        set_buffers(driver_buffer_size, 0);
 
         ps4000a_unit_interval_t unit_int =
             convert_frequency_to_ps4000a_time_units_and_interval(
-                ps_settings.sample_rate, state.actual_sample_rate);
-
-        const auto driver_buffer_size =
-            static_cast<uint32_t>(ps_settings.driver_buffer_size);
+                sample_rate, state.actual_sample_rate);
 
         auto status = ps4000aRunStreaming(
             state.handle,
             &unit_int.interval, // sample interval
             unit_int.unit,      // time unit of sample interval
             0,                  // pre-triggersamples (unused)
-            driver_buffer_size,
+            static_cast<uint32_t>(driver_buffer_size),
             false,
             1, // downsampling factor // TODO reconsider if we need downsampling support
             PS4000A_RATIO_MODE_NONE,
-            driver_buffer_size);
+            static_cast<uint32_t>(driver_buffer_size));
 
         if (status != PICO_OK) {
             fmt::println(
