@@ -404,7 +404,7 @@ std::error_code Picoscope4000a::driver_initialize()
 void Picoscope4000a::rapid_block_callback(std::error_code ec)
 {
     if (ec) {
-        // TODO handle error
+        report_error(ec);
         return;
     }
     const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
@@ -413,7 +413,7 @@ void Picoscope4000a::rapid_block_callback(std::error_code ec)
         ec = set_buffers(samples, static_cast<uint32_t>(capture));
 
         if (ec) {
-            // TODO handle error
+            report_error(ec);
             return;
         }
 
@@ -429,7 +429,7 @@ void Picoscope4000a::rapid_block_callback(std::error_code ec)
         if (status != PICO_OK) {
             fmt::println(
                 std::cerr, "ps4000aGetValues: {}", ps4000a_get_error_message(status));
-            // TODO handle error
+            report_error(ec);
             return;
         }
         // TODO move to picoscope.h, share with streaming
@@ -448,7 +448,7 @@ void Picoscope4000a::rapid_block_callback(std::error_code ec)
                 static_cast<float>(channel.settings.range / state.max_value);
             // TODO what if data_buffer full, should be block or drop here?
             auto write_data =
-                channel.data_writer.reserve_output_range(channel.driver_buffer.size());
+                channel.data.writer.reserve_output_range(channel.driver_buffer.size());
             // TODO the old impl uses simply float_output = voltage_multiplier *
             // static_cast<float>(int32_input), but this volk call for streaming. Should
             // we use volk in both situations, or remove the volk dependency alltogether??
@@ -460,6 +460,7 @@ void Picoscope4000a::rapid_block_callback(std::error_code ec)
         }
 
         state.data_available += samples;
+        state.produced_worker += samples;
     }
 
     if (ps_settings.trigger_once) {
