@@ -3,7 +3,7 @@ function(add_ut_test TEST_NAME)
     target_compile_options(${TEST_NAME} PRIVATE -Wall)
     target_link_options(${TEST_NAME} PRIVATE -Wall)
     target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-    target_link_libraries(${TEST_NAME} PRIVATE graph-prototype gr-picoscope4000a ut)
+    target_link_libraries(${TEST_NAME} PRIVATE graph-prototype gr-picoscope4000a gr-helpers ut)
     add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()
 

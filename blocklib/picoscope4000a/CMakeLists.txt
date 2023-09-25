@@ -15,7 +15,7 @@ target_include_directories(ps4000a INTERFACE ${PICOSCOPE_PREFIX}/include/libps40
 add_library(gr-picoscope4000a SHARED ${PICOSCOPE4000A_SOURCES})
 target_include_directories(gr-picoscope4000a INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include/>)
 
-target_link_libraries(gr-picoscope4000a ps4000a gr-helpers gr-picoscope volk refl-cpp fmt)
+target_link_libraries(gr-picoscope4000a ps4000a gr-picoscope volk refl-cpp fmt)
 set_target_properties(gr-digitizers PROPERTIES PUBLIC_HEADER "${PICOSCOPE4000A_HEADERS}")
 
 if (ENABLE_TESTING)
