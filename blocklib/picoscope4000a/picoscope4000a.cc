@@ -356,6 +356,31 @@ std::string Picoscope4000a::driver_hardware_version() const
     return get_unit_info_topic(state.handle, PICO_HARDWARE_VERSION);
 }
 
+gr::picoscope::GetValuesResult
+Picoscope4000a::driver_rapid_block_get_values(std::size_t capture, std::size_t samples)
+{
+    if (const auto ec = set_buffers(samples, static_cast<uint32_t>(capture)); ec) {
+        return { ec, 0, 0 };
+    }
+
+    auto nr_samples = static_cast<uint32_t>(samples);
+    int16_t overflow = 0;
+    const auto status = ps4000aGetValues(state.handle,
+                                         0, // offset
+                                         &nr_samples,
+                                         1,
+                                         PS4000A_RATIO_MODE_NONE,
+                                         static_cast<uint32_t>(capture),
+                                         &overflow);
+    if (status != PICO_OK) {
+        fmt::println(
+            std::cerr, "ps4000aGetValues: {}", ps4000a_get_error_message(status));
+        return { make_pico_4000a_error_code(status), 0, 0 };
+    }
+
+    return { {}, static_cast<std::size_t>(nr_samples), overflow };
+}
+
 std::error_code Picoscope4000a::driver_initialize()
 {
     PICO_STATUS status;
@@ -399,73 +424,6 @@ std::error_code Picoscope4000a::driver_initialize()
     }
 
     return {};
-}
-
-void Picoscope4000a::rapid_block_callback(std::error_code ec)
-{
-    if (ec) {
-        report_error(ec);
-        return;
-    }
-    const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
-    for (std::size_t capture = 0; capture < ps_settings.rapid_block_nr_captures;
-         ++capture) {
-        ec = set_buffers(samples, static_cast<uint32_t>(capture));
-
-        if (ec) {
-            report_error(ec);
-            return;
-        }
-
-        auto nr_samples = static_cast<uint32_t>(samples);
-        int16_t overflow = 0;
-        auto status = ps4000aGetValues(state.handle,
-                                       0, // offset
-                                       &nr_samples,
-                                       1,
-                                       PS4000A_RATIO_MODE_NONE,
-                                       static_cast<uint32_t>(capture),
-                                       &overflow);
-        if (status != PICO_OK) {
-            fmt::println(
-                std::cerr, "ps4000aGetValues: {}", ps4000a_get_error_message(status));
-            report_error(ec);
-            return;
-        }
-        // TODO move to picoscope.h, share with streaming
-        for (auto& channel : state.channels) {
-            const auto channel_index = driver_channel_id_to_index(channel.id);
-            assert(channel_index);
-
-            if (overflow & (1 << *channel_index)) {
-                // TODO report overflow for this channel
-            }
-            else {
-                // TODO report all good for this channel
-            }
-
-            const auto voltage_multiplier =
-                static_cast<float>(channel.settings.range / state.max_value);
-            // TODO what if data_buffer full, should be block or drop here?
-            auto write_data =
-                channel.data.writer.reserve_output_range(channel.driver_buffer.size());
-            // TODO the old impl uses simply float_output = voltage_multiplier *
-            // static_cast<float>(int32_input), but this volk call for streaming. Should
-            // we use volk in both situations, or remove the volk dependency alltogether??
-            volk_16i_s32f_convert_32f(write_data.data(),
-                                      channel.driver_buffer.data(),
-                                      1.0f / voltage_multiplier,
-                                      static_cast<uint>(write_data.size()));
-            write_data.publish(write_data.size());
-        }
-
-        state.data_available += samples;
-        state.produced_worker += samples;
-    }
-
-    if (ps_settings.trigger_once) {
-        state.data_finished = true;
-    }
 }
 
 std::error_code Picoscope4000a::set_buffers(std::size_t samples, uint32_t block_number)

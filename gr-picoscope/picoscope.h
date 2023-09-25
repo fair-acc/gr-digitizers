@@ -96,6 +96,14 @@ struct Settings {
     bool trigger_once = false;
 };
 
+struct GetValuesResult {
+    std::error_code error;
+    std::size_t samples;
+    int16_t overflow;
+};
+
+namespace detail {
+
 template <typename T, std::size_t InitialSize = 1>
 struct BufferHelper {
     gr::circular_buffer<T> buffer = gr::circular_buffer<T>(InitialSize);
@@ -103,7 +111,6 @@ struct BufferHelper {
     decltype(buffer.new_writer()) writer = buffer.new_writer();
 };
 
-namespace detail {
 struct Channel {
     std::string id;
     channel_setting_t settings;
@@ -135,9 +142,10 @@ struct State {
     std::atomic<poller_state_t> poller_state = poller_state_t::IDLE;
     std::atomic<bool> forced_quit = false; // TODO transitional until we found out what
                                            // goes wrong with multithreaded scheduler
-    std::size_t produced_worker = 0; // poller/callback thread
-    std::size_t produced_block = 0; // "main" thread
+    std::size_t produced_worker = 0;       // poller/callback thread
+    std::size_t produced_block = 0;        // "main" thread
 };
+
 } // namespace detail
 
 template <typename PSImpl>
@@ -222,11 +230,13 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             return -1;
         }
 
-        // if there's an error, allow the block to read all data that was written before the error, then finish
+        // if there's an error, allow the block to read all data that was written before
+        // the error, then finish
         if (state.errors.reader.available() > 0) {
             const auto error_sample = state.errors.reader.get(1)[0].sample;
             if (error_sample > state.produced_block) {
-                return std::make_signed_t<std::size_t>(error_sample - state.produced_block);
+                return std::make_signed_t<std::size_t>(error_sample -
+                                                       state.produced_block);
             }
 
             return -1;
@@ -448,6 +458,23 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         state.armed = false;
     }
 
+    void process_driver_data(std::size_t nr_samples, std::size_t offset)
+    {
+        for (auto& channel : state.channels) {
+            const auto voltage_multiplier =
+                static_cast<float>(channel.settings.range / state.max_value);
+            auto write_data = channel.data.writer.reserve_output_range(nr_samples);
+            volk_16i_s32f_convert_32f(write_data.data(),
+                                      channel.driver_buffer.data() + offset,
+                                      1.0f / voltage_multiplier,
+                                      static_cast<uint>(nr_samples));
+            write_data.publish(nr_samples);
+        }
+
+        state.data_available += nr_samples;
+        state.produced_worker += nr_samples;
+    }
+
     void
     streaming_callback(int32_t nr_samples_signed, uint32_t start_index, int16_t overflow)
     {
@@ -474,23 +501,38 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             return;
         }
 
-        for (auto& channel : state.channels) {
-
-            const auto voltage_multiplier =
-                static_cast<float>(channel.settings.range / state.max_value);
-            auto write_data = channel.data.writer.reserve_output_range(can_write);
-            volk_16i_s32f_convert_32f(write_data.data(),
-                                      channel.driver_buffer.data() + start_index,
-                                      1.0f / voltage_multiplier,
-                                      static_cast<uint>(can_write));
-            write_data.publish(can_write);
-        }
-
-        state.data_available += can_write;
-        state.produced_worker += can_write;
+        process_driver_data(can_write, start_index);
     }
 
-    void report_error(std::error_code ec) {
+    void rapid_block_callback(std::error_code ec)
+    {
+        if (ec) {
+            report_error(ec);
+            return;
+        }
+        const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
+        for (std::size_t capture = 0; capture < ps_settings.rapid_block_nr_captures;
+             ++capture) {
+
+            const auto get_values_result =
+                self().driver_rapid_block_get_values(capture, samples);
+            if (get_values_result.error) {
+                report_error(ec);
+                return;
+            }
+
+            // TODO handle overflow for individual channels?
+
+            process_driver_data(get_values_result.samples, 0);
+        }
+
+        if (ps_settings.trigger_once) {
+            state.data_finished = true;
+        }
+    }
+
+    void report_error(std::error_code ec)
+    {
         auto out = state.errors.writer.reserve_output_range(1);
         out[0] = { state.produced_worker, ec };
         out.publish(1);

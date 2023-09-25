@@ -60,7 +60,6 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
         return this->available_samples_impl();
     }
 
-    void rapid_block_callback(std::error_code ec);
     std::error_code set_buffers(size_t samples, uint32_t block_number);
 
     static constexpr float DRIVER_VERTICAL_PRECISION = 0.01f;
@@ -68,6 +67,8 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     static std::optional<std::size_t> driver_channel_id_to_index(std::string_view id);
     std::string driver_driver_version() const;
     std::string driver_hardware_version() const;
+    gr::picoscope::GetValuesResult driver_rapid_block_get_values(std::size_t capture,
+                                                                 std::size_t nr_samples);
     std::error_code driver_initialize();
     std::error_code driver_close();
     std::error_code driver_configure();
