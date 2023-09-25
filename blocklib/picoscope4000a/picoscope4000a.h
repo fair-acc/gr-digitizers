@@ -65,6 +65,7 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
 
     static constexpr float DRIVER_VERTICAL_PRECISION = 0.01f;
 
+    static std::optional<std::size_t> driver_channel_id_to_index(std::string_view id);
     std::string driver_driver_version() const;
     std::string driver_hardware_version() const;
     std::error_code driver_initialize();

@@ -57,7 +57,7 @@ struct trigger_setting_t {
     static constexpr std::string_view TRIGGER_DIGITAL_SOURCE =
         "DI"; // DI is as well used as "AUX" for p6000 scopes
 
-    bool is_enabled() const { return source.empty(); }
+    bool is_enabled() const { return !source.empty(); }
 
     bool is_digital() const { return is_enabled() && source == TRIGGER_DIGITAL_SOURCE; }
 
@@ -89,8 +89,7 @@ struct Settings {
     std::size_t driver_buffer_size = 100000;
     std::size_t pre_samples = 1000;
     std::size_t post_samples = 9000;
-    acquisition_mode_t acquisition_mode =
-        acquisition_mode_t::STREAMING;
+    acquisition_mode_t acquisition_mode = acquisition_mode_t::STREAMING;
     std::size_t rapid_block_nr_captures = 1;
     double streaming_mode_poll_rate = 0.001;
     bool auto_arm = true;
@@ -125,12 +124,14 @@ struct State {
     std::atomic<poller_state_t> poller_state = poller_state_t::IDLE;
     std::atomic<bool> forced_quit = false; // TODO transitional until we found out what
                                            // goes wrong with multithreaded scheduler
+
+    std::size_t produced_worker = 0;
 };
 } // namespace detail
 
 template <typename PSImpl>
 struct Picoscope : public fair::graph::node<PSImpl> {
-    Settings ps_settings;
+    const Settings ps_settings;
     detail::State state;
     detail::streaming_callback_function_t _streaming_callback;
 
@@ -141,7 +142,41 @@ struct Picoscope : public fair::graph::node<PSImpl> {
                   streaming_callback(noSamples, startIndex, overflow);
               })
     {
-        // TODO do sanity checks on settings values like the old impl
+        if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
+            if (ps_settings.post_samples == 0) {
+                throw std::invalid_argument("Post-trigger samples cannot be zero");
+            }
+            if (ps_settings.rapid_block_nr_captures == 0) {
+                throw std::invalid_argument("Number of captures cannot be zero");
+            }
+        }
+        else { // streaming mode
+            if (ps_settings.streaming_mode_poll_rate <= 0.0) {
+                throw std::invalid_argument("Poll rate must be greater than zero");
+            }
+        }
+        if (ps_settings.sample_rate <= 0) {
+            throw std::invalid_argument("Sample rate has to be greater than zero");
+        }
+        if (ps_settings.driver_buffer_size == 0) {
+            throw std::invalid_argument("Driver buffer size cannot be zero");
+        }
+
+        // TODO maybe also check (at the end of configure()) that the configured channels
+        // actually exist on the given device
+        for (const auto& [id, _] : ps_settings.enabled_channels) {
+            if (!PSImpl::driver_channel_id_to_index(id)) {
+                throw std::invalid_argument(fmt::format("Unknown channel '{}'", id));
+            }
+        }
+
+        if (ps_settings.trigger.is_enabled()) {
+            if (!PSImpl::driver_channel_id_to_index(ps_settings.trigger.source)) {
+                throw std::invalid_argument(fmt::format("Unknown trigger channel '{}'",
+                                                        ps_settings.trigger.source));
+            }
+        }
+
         state.actual_sample_rate = ps_settings.sample_rate;
 
         state.channels.resize(ps_settings.enabled_channels.size());
@@ -162,8 +197,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
 
     ~Picoscope() { stop(); }
 
-    std::make_signed_t<std::size_t>
-    available_samples_impl() const noexcept
+    std::make_signed_t<std::size_t> available_samples_impl() const noexcept
     {
         if (state.channels.empty()) {
             return -1;
@@ -186,7 +220,8 @@ struct Picoscope : public fair::graph::node<PSImpl> {
     };
 
     template <std::size_t ChannelCount>
-    inline fair::graph::work_return_status_t process_bulk_impl(const std::array<ChannelOutput, ChannelCount> &channel_outputs) noexcept
+    inline fair::graph::work_return_status_t process_bulk_impl(
+        const std::array<ChannelOutput, ChannelCount>& channel_outputs) noexcept
     {
         if (state.channels.empty()) {
             return fair::graph::work_return_status_t::ERROR;
@@ -202,17 +237,19 @@ struct Picoscope : public fair::graph::node<PSImpl> {
 
         const auto data_available = state.data_available.load();
 
-        for (std::size_t channel_index = 0; channel_index < state.channels.size(); ++channel_index) {
-            auto &channel = state.channels[channel_index];
-            auto &values = channel_outputs[channel_index].values;
-            auto &errors = channel_outputs[channel_index].errors;
+        for (std::size_t channel_index = 0; channel_index < state.channels.size();
+             ++channel_index) {
+            auto& channel = state.channels[channel_index];
+            auto& values = channel_outputs[channel_index].values;
+            auto& errors = channel_outputs[channel_index].errors;
             assert(values.size() == errors.size());
             assert(data_available >= values.size());
 
             const auto data = channel.data_reader.get(values.size());
             std::ignore = std::copy(data.begin(), data.end(), values.begin());
-            const auto error_estimate = channel.settings.range *
-                                        static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
+            const auto error_estimate =
+                channel.settings.range *
+                static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
             std::fill(errors.begin(), errors.end(), error_estimate);
             std::ignore = channel.data_reader.consume(data.size());
         }
@@ -308,13 +345,9 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
     }
 
-    std::string driver_version() const {
-        return self().driver_driver_version();
-    }
+    std::string driver_version() const { return self().driver_driver_version(); }
 
-    std::string hardware_version() const {
-        return self().driver_hardware_version();
-    }
+    std::string hardware_version() const { return self().driver_hardware_version(); }
 
     void initialize()
     {
@@ -433,14 +466,11 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         state.data_available += can_write;
     }
 
-    [[nodiscard]] constexpr auto &
-    self() noexcept {
-        return *static_cast<PSImpl *>(this);
-    }
+    [[nodiscard]] constexpr auto& self() noexcept { return *static_cast<PSImpl*>(this); }
 
-    [[nodiscard]] constexpr const auto &
-    self() const noexcept {
-        return *static_cast<const PSImpl *>(this);
+    [[nodiscard]] constexpr const auto& self() const noexcept
+    {
+        return *static_cast<const PSImpl*>(this);
     }
 };
 

@@ -67,6 +67,45 @@ const boost::ut::suite Picoscope4000aTests = [] {
         }
     };
 
+    "invalid settings"_test = [] {
+        graph flow_graph;
+
+        // good channel
+        expect(nothrow([&flow_graph] {
+            std::ignore = flow_graph.make_node<Picoscope4000a>(Settings{
+                .enabled_channels = {
+                    { "A", { .range = 5., .coupling = coupling_t::AC_1M } } } });
+        }));
+
+        // bad channel
+        expect(throws<std::invalid_argument>([&flow_graph] {
+            std::ignore = flow_graph.make_node<Picoscope4000a>(Settings{
+                .enabled_channels = {
+                    { "INVALID", { .range = 5., .coupling = coupling_t::AC_1M } } } });
+        }));
+
+        expect(nothrow(
+            [&flow_graph] { std::ignore = flow_graph.make_node<Picoscope4000a>(); }));
+
+        expect(throws<std::invalid_argument>([&flow_graph] {
+            std::ignore = flow_graph.make_node<Picoscope4000a>(Settings{
+                .post_samples = 0, .acquisition_mode = acquisition_mode_t::RAPID_BLOCK });
+        }));
+        expect(throws<std::invalid_argument>([&flow_graph] {
+            std::ignore = flow_graph.make_node<Picoscope4000a>(
+                Settings{ .acquisition_mode = acquisition_mode_t::STREAMING,
+                          .streaming_mode_poll_rate = 0 });
+        }));
+        expect(throws<std::invalid_argument>([&flow_graph] {
+            std::ignore =
+                flow_graph.make_node<Picoscope4000a>(Settings{ .driver_buffer_size = 0 });
+        }));
+        expect(throws<std::invalid_argument>([&flow_graph] {
+            std::ignore =
+                flow_graph.make_node<Picoscope4000a>(Settings{ .sample_rate = 0 });
+        }));
+    };
+
     "streaming basics"_test = [] {
         graph flow_graph;
         auto& ps = flow_graph.make_node<Picoscope4000a>(Settings{
