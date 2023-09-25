@@ -28,7 +28,7 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
         auto& src1 = flow_graph.make_node<vector_source<float>>(data);
         auto& snk0 = flow_graph.make_node<vector_sink<float>>();
         auto& snk1 = flow_graph.make_node<vector_sink<float>>();
-        auto& bso = flow_graph.make_node<block_scaling_offset<float>>(scale, offset);
+        auto& bso = flow_graph.make_node<block_scaling_offset<float>>({{{"scale", scale}, {"offset", offset}}});
 
         expect(eq(connection_result_t::SUCCESS,
                   flow_graph.connect<"out">(src0).template to<"in_signal">(bso)));

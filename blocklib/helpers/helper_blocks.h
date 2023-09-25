@@ -11,7 +11,7 @@ namespace gr::helpers {
 
 template <typename T>
 struct vector_source : public fair::graph::node<vector_source<T>> {
-    fair::graph::OUT<T> out;
+    fair::graph::PortOut<T> out;
 
     std::vector<T> data;
     std::size_t _produced = 0;
@@ -36,7 +36,7 @@ struct vector_source : public fair::graph::node<vector_source<T>> {
 
 template <typename T>
 struct vector_sink : public fair::graph::node<vector_sink<T>> {
-    fair::graph::IN<T> in;
+    fair::graph::PortIn<T> in;
     std::vector<T> data;
 
     fair::graph::work_return_status_t process_bulk(std::span<const T> input) {
@@ -47,7 +47,7 @@ struct vector_sink : public fair::graph::node<vector_sink<T>> {
 
 template <typename T>
 struct count_sink : public fair::graph::node<count_sink<T>> {
-    fair::graph::IN<T> in;
+    fair::graph::PortIn<T> in;
     std::size_t samples_seen = 0;
 
     fair::graph::work_return_status_t process_bulk(std::span<const T> input) noexcept {

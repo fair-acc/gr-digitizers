@@ -14,17 +14,12 @@ namespace gr::digitizers {
  */
 template <typename T>
 struct block_scaling_offset : public fair::graph::node<block_scaling_offset<T>> {
-    fair::graph::IN<T> in_signal;
-    fair::graph::IN<T> in_error;
-    fair::graph::OUT<T> out_signal;
-    fair::graph::OUT<T> out_error;
-    double scale = 1.;
-    double offset = 0.;
-
-    explicit block_scaling_offset(double scale_, double offset_)
-        : scale(scale_), offset(offset_)
-    {
-    }
+    fair::graph::PortIn<T> in_signal;
+    fair::graph::PortIn<T> in_error;
+    fair::graph::PortOut<T> out_signal;
+    fair::graph::PortOut<T> out_error;
+    fair::graph::Annotated<double, "scale", fair::graph::Visible> scale = 1.;
+    fair::graph::Annotated<double, "offset", fair::graph::Visible> offset= 0.;
 
     std::tuple<T, T> process_one(T sig, T error) noexcept
     {

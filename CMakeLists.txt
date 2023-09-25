@@ -10,7 +10,7 @@ include(FetchContent)
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-    GIT_TAG 27aac9208152ccd61b34197f30f95e9d094a698b
+    GIT_TAG ed71b4cde6e4116c25da0ff99c4842f1f1fdc349
 )
 
 FetchContent_Declare(

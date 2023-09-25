@@ -6,22 +6,23 @@
 namespace gr::picoscope4000a {
 
 struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
-    fair::graph::OUT<float> values0;
-    fair::graph::OUT<float> errors0;
-    fair::graph::OUT<float> values1;
-    fair::graph::OUT<float> errors1;
-    fair::graph::OUT<float> values2;
-    fair::graph::OUT<float> errors2;
-    fair::graph::OUT<float> values3;
-    fair::graph::OUT<float> errors3;
-    fair::graph::OUT<float> values4;
-    fair::graph::OUT<float> errors4;
-    fair::graph::OUT<float> values5;
-    fair::graph::OUT<float> errors5;
-    fair::graph::OUT<float> values6;
-    fair::graph::OUT<float> errors6;
-    fair::graph::OUT<float> values7;
-    fair::graph::OUT<float> errors7;
+    using AnalogPort = fair::graph::PortOut<float>;
+    AnalogPort values0;
+    AnalogPort errors0;
+    AnalogPort values1;
+    AnalogPort errors1;
+    AnalogPort values2;
+    AnalogPort errors2;
+    AnalogPort values3;
+    AnalogPort errors3;
+    AnalogPort values4;
+    AnalogPort errors4;
+    AnalogPort values5;
+    AnalogPort errors5;
+    AnalogPort values6;
+    AnalogPort errors6;
+    AnalogPort values7;
+    AnalogPort errors7;
 
     explicit Picoscope4000a(gr::picoscope::Settings settings = {})
         : gr::picoscope::Picoscope<Picoscope4000a>(std::move(settings))
