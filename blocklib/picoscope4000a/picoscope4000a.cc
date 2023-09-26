@@ -432,7 +432,7 @@ std::error_code Picoscope4000a::set_buffers(std::size_t samples, uint32_t block_
         const auto channel_index = convert_to_ps4000a_channel(channel.id);
         assert(channel_index);
 
-        channel.driver_buffer.resize(samples);
+        channel.driver_buffer.resize(std::max(samples, channel.driver_buffer.size()));
         const auto status = ps4000aSetDataBuffer(state.handle,
                                                  *channel_index,
                                                  channel.driver_buffer.data(),

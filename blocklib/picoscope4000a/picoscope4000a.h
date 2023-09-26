@@ -5,8 +5,6 @@
 
 namespace gr::picoscope4000a {
 
-using fair::graph::PublishableSpan;
-
 struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     using AnalogPort = fair::graph::PortOut<float>;
 
@@ -27,32 +25,23 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     AnalogPort values7;
     AnalogPort errors7;
 
-    template <PublishableSpan AnalogSpan>
-    fair::graph::work_return_status_t process_bulk(AnalogSpan& v0,
-                                                   AnalogSpan& e0,
-                                                   AnalogSpan& v1,
-                                                   AnalogSpan& e1,
-                                                   AnalogSpan& v2,
-                                                   AnalogSpan& e2,
-                                                   AnalogSpan& v3,
-                                                   AnalogSpan& e3,
-                                                   AnalogSpan& v4,
-                                                   AnalogSpan& e4,
-                                                   AnalogSpan& v5,
-                                                   AnalogSpan& e5,
-                                                   AnalogSpan& v6,
-                                                   AnalogSpan& e6,
-                                                   AnalogSpan& v7,
-                                                   AnalogSpan& e7) noexcept
+    auto channel_outputs()
     {
-        return this->process_bulk_impl<AnalogSpan, 8>({ { { v0, e0 },
-                                                          { v1, e1 },
-                                                          { v2, e2 },
-                                                          { v3, e3 },
-                                                          { v4, e4 },
-                                                          { v5, e5 },
-                                                          { v6, e6 },
-                                                          { v7, e7 } } });
+        return std::array<std::pair<AnalogPort&, AnalogPort&>, 8>{ { { values0, errors0 },
+                                                                     { values1, errors1 },
+                                                                     { values2, errors2 },
+                                                                     { values3, errors3 },
+                                                                     { values4, errors4 },
+                                                                     { values5, errors5 },
+                                                                     { values6, errors6 },
+                                                                     { values7,
+                                                                       errors7 } } };
+    }
+
+    fair::graph::work_return_t work(std::size_t requested_work = 0)
+    {
+        std::ignore = requested_work;
+        return this->work_impl();
     }
 
     std::error_code set_buffers(size_t samples, uint32_t block_number);

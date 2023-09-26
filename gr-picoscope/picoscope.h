@@ -1,3 +1,6 @@
+#ifndef GR_PICOSCOPE_PICOSCOPE_H
+#define GR_PICOSCOPE_PICOSCOPE_H
+
 #include <node.hpp>
 
 #include <volk/volk.h>
@@ -95,10 +98,12 @@ struct BufferHelper {
 };
 
 struct Channel {
+    using WriterType = decltype(std::declval<gr::circular_buffer<float>>().new_writer());
     std::string id;
     channel_setting_t settings;
     std::vector<int16_t> driver_buffer;
-    BufferHelper<float> data;
+    WriterType data_writer;
+    WriterType error_writer;
 };
 
 struct Error {
@@ -126,18 +131,9 @@ struct State {
     std::atomic<bool> forced_quit = false; // TODO transitional until we found out what
                                            // goes wrong with multithreaded scheduler
     std::size_t produced_worker = 0;       // poller/callback thread
-    std::size_t produced_block = 0;        // "main" thread
 };
 
 } // namespace detail
-
-using fair::graph::PublishableSpan;
-
-template <PublishableSpan T>
-struct ChannelPair {
-    T& values;
-    T& errors;
-};
 
 // optional shortening
 template <typename T, fair::meta::fixed_string description = "", typename... Arguments>
@@ -211,17 +207,23 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         enabled_ports = std::move(ports);
         trigger = std::move(trigger_);
 
-        state.channels.resize(enabled_channels.value.size());
+        auto channel_outputs = self().channel_outputs();
+        state.channels.reserve(enabled_channels.value.size());
+
         std::size_t channel_idx = 0;
         for (const auto& [id, settings] : enabled_channels.value) {
-            auto& ch = state.channels[channel_idx];
-            ch.id = id;
-            ch.settings = settings;
-            ch.data.buffer = gr::circular_buffer<float>(
-                driver_buffer_size); // TODO think about what a sensible
-                                     // buffer size would be
-            ch.data.reader = ch.data.buffer.new_reader();
-            ch.data.writer = ch.data.buffer.new_writer();
+            state.channels.emplace_back(detail::Channel{
+                .id = id,
+                .settings = settings,
+                .driver_buffer = std::vector<int16_t>(driver_buffer_size),
+                .data_writer = channel_outputs[channel_idx]
+                                   .first.streamWriter()
+                                   .buffer()
+                                   .new_writer(),
+                .error_writer = channel_outputs[channel_idx]
+                                    .second.streamWriter()
+                                    .buffer()
+                                    .new_writer() });
             channel_idx++;
         }
 
@@ -242,68 +244,22 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
     }
 
-    template <PublishableSpan AnalogSpan, std::size_t ChannelCount>
-    inline fair::graph::work_return_status_t
-    process_bulk_impl(const std::array<ChannelPair<AnalogSpan>, ChannelCount>&
-                          channel_outputs) noexcept
+    fair::graph::work_return_t work_impl() noexcept
     {
-        for (std::size_t channel_index = 0; channel_index < ChannelCount;
-             ++channel_index) {
-            channel_outputs[channel_index].values.publish(0);
-            channel_outputs[channel_index].errors.publish(0);
-        }
+        using enum fair::graph::work_return_status_t;
+        start(); // TODO should be done by scheduler
 
         if (state.channels.empty()) {
-            return fair::graph::work_return_status_t::ERROR;
+            return { 0, 0, ERROR };
         }
         if (state.forced_quit) {
-            return fair::graph::work_return_status_t::DONE;
+            return { 0, 0, DONE };
+        }
+        if (state.data_finished) {
+            return { 0, 0, DONE };
         }
 
-        if (state.data_finished && state.data_available == 0) {
-            return fair::graph::work_return_status_t::DONE;
-        }
-
-        assert(state.channels.size() <= ChannelCount);
-
-        auto noutput_items = state.data_available.load();
-
-        if (noutput_items == 0) {
-            return fair::graph::work_return_status_t::OK;
-        }
-
-        for (std::size_t channel_index = 0; channel_index < state.channels.size();
-             ++channel_index) {
-            noutput_items = std::min({ noutput_items,
-                                       channel_outputs[channel_index].values.size(),
-                                       channel_outputs[channel_index].errors.size() });
-        }
-
-        if (noutput_items == 0) {
-            return fair::graph::work_return_status_t::INSUFFICIENT_OUTPUT_ITEMS;
-        }
-
-        for (std::size_t channel_index = 0; channel_index < state.channels.size();
-             ++channel_index) {
-            auto& channel = state.channels[channel_index];
-            auto& values = channel_outputs[channel_index].values;
-            auto& errors = channel_outputs[channel_index].errors;
-
-            const auto data = channel.data.reader.get(noutput_items);
-            std::ignore = std::copy(data.begin(), data.end(), values.begin());
-            const auto error_estimate =
-                channel.settings.range *
-                static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
-            std::fill(errors.begin(), errors.end(), error_estimate);
-            std::ignore = channel.data.reader.consume(data.size());
-            values.publish(noutput_items);
-            errors.publish(noutput_items);
-            ;
-        }
-
-        state.data_available -= noutput_items;
-        state.produced_block += noutput_items;
-        return fair::graph::work_return_status_t::OK;
+        return { 0, 0, OK };
     }
 
     void force_quit() { state.forced_quit = true; }
@@ -475,14 +431,25 @@ struct Picoscope : public fair::graph::node<PSImpl> {
     void process_driver_data(std::size_t nr_samples, std::size_t offset)
     {
         for (auto& channel : state.channels) {
+            const auto error_estimate =
+                channel.settings.range *
+                static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
+
             const auto voltage_multiplier =
                 static_cast<float>(channel.settings.range / state.max_value);
-            auto write_data = channel.data.writer.reserve_output_range(nr_samples);
-            volk_16i_s32f_convert_32f(write_data.data(),
+
+            auto write_values = channel.data_writer.reserve_output_range(nr_samples);
+            // TODO for T = int16_t, memcpy. for double/float, do manual conversion (using
+            // SIMD), drop Volk dependency
+            volk_16i_s32f_convert_32f(write_values.data(),
                                       channel.driver_buffer.data() + offset,
                                       1.0f / voltage_multiplier,
                                       static_cast<uint>(nr_samples));
-            write_data.publish(nr_samples);
+            auto write_errors = channel.error_writer.reserve_output_range(nr_samples);
+            std::fill(write_errors.begin(), write_errors.end(), error_estimate);
+
+            write_values.publish(nr_samples);
+            write_errors.publish(nr_samples);
         }
 
         state.data_available += nr_samples;
@@ -502,7 +469,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
         auto can_write = nr_samples;
         for (const auto& channel : state.channels) {
-            can_write = std::min(can_write, channel.data.writer.available());
+            can_write = std::min(can_write, channel.data_writer.available());
         }
 
         if (can_write < nr_samples) {
@@ -535,7 +502,6 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             }
 
             // TODO handle overflow for individual channels?
-
             process_driver_data(get_values_result.samples, 0);
         }
 
@@ -560,3 +526,5 @@ struct Picoscope : public fair::graph::node<PSImpl> {
 };
 
 } // namespace gr::picoscope
+
+#endif

@@ -38,8 +38,6 @@ void test_rapid_block_basic(std::size_t nr_captures)
     expect(eq(connection_result_t::SUCCESS,
               flow_graph.connect<"errors0">(ps).template to<"in">(errsink)));
 
-    ps.start(); // TODO should be done by scheduler
-
     scheduler::simple sched{ std::move(flow_graph) };
     sched.run_and_wait();
 
@@ -111,8 +109,6 @@ const boost::ut::suite Picoscope4000aTests = [] {
         // Explicitly open unit because it takes quite some time
         expect(nothrow([&ps] { ps.initialize(); }));
 
-        ps.start(); // TODO should be done by scheduler
-
         // TODO tried multi_threaded scheduler with start(); sleep; stop(), something goes
         // wrong there (scheduler doesn't shovel data reliably)
         scheduler::simple sched{ std::move(flow_graph) };
@@ -167,8 +163,6 @@ const boost::ut::suite Picoscope4000aTests = [] {
         expect(eq(connection_result_t::SUCCESS,
                   flow_graph.connect<"values3">(ps).template to<"in">(sink3)));
 
-        ps.start(); // TODO should be done by scheduler
-
         scheduler::simple sched{ std::move(flow_graph) };
         sched.run_and_wait();
 
@@ -193,8 +187,6 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
         expect(eq(connection_result_t::SUCCESS,
                   flow_graph.connect<"values0">(ps).template to<"in">(sink0)));
-
-        ps.start(); // TODO should be done by scheduler
 
         // TODO tried multi_threaded scheduler with start(); sleep; stop(), something goes
         // wrong there (scheduler doesn't shovel data reliably)
