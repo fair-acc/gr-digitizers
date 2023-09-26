@@ -178,29 +178,6 @@ struct Picoscope : public fair::graph::node<PSImpl> {
                   streaming_callback(noSamples, startIndex, overflow);
               })
     {
-#if 0
-        if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
-            if (ps_settings.post_samples == 0) {
-                throw std::invalid_argument("Post-trigger samples cannot be zero");
-            }
-            if (ps_settings.rapid_block_nr_captures == 0) {
-                throw std::invalid_argument("Number of captures cannot be zero");
-            }
-        }
-        else { // streaming mode
-            if (ps_settings.streaming_mode_poll_rate <= 0.0) {
-                throw std::invalid_argument("Poll rate must be greater than zero");
-            }
-        }
-        if (ps_settings.sample_rate <= 0) {
-            throw std::invalid_argument("Sample rate has to be greater than zero");
-        }
-        if (ps_settings.driver_buffer_size == 0) {
-            throw std::invalid_argument("Driver buffer size cannot be zero");
-        }
-
-        state.actual_sample_rate = ps_settings.sample_rate;
-#endif
     }
 
     ~Picoscope() { stop(); }
