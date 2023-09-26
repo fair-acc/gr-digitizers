@@ -5,8 +5,11 @@
 
 namespace gr::picoscope4000a {
 
+using fair::graph::PublishableSpan;
+
 struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     using AnalogPort = fair::graph::PortOut<float>;
+
     AnalogPort values0;
     AnalogPort errors0;
     AnalogPort values1;
@@ -24,36 +27,32 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     AnalogPort values7;
     AnalogPort errors7;
 
-    fair::graph::work_return_status_t process_bulk(std::span<float> v0,
-                                                   std::span<float> e0,
-                                                   std::span<float> v1,
-                                                   std::span<float> e1,
-                                                   std::span<float> v2,
-                                                   std::span<float> e2,
-                                                   std::span<float> v3,
-                                                   std::span<float> e3,
-                                                   std::span<float> v4,
-                                                   std::span<float> e4,
-                                                   std::span<float> v5,
-                                                   std::span<float> e5,
-                                                   std::span<float> v6,
-                                                   std::span<float> e6,
-                                                   std::span<float> v7,
-                                                   std::span<float> e7) noexcept
+    template <PublishableSpan AnalogSpan>
+    fair::graph::work_return_status_t process_bulk(AnalogSpan& v0,
+                                                   AnalogSpan& e0,
+                                                   AnalogSpan& v1,
+                                                   AnalogSpan& e1,
+                                                   AnalogSpan& v2,
+                                                   AnalogSpan& e2,
+                                                   AnalogSpan& v3,
+                                                   AnalogSpan& e3,
+                                                   AnalogSpan& v4,
+                                                   AnalogSpan& e4,
+                                                   AnalogSpan& v5,
+                                                   AnalogSpan& e5,
+                                                   AnalogSpan& v6,
+                                                   AnalogSpan& e6,
+                                                   AnalogSpan& v7,
+                                                   AnalogSpan& e7) noexcept
     {
-        return this->process_bulk_impl<8>({ { { v0, e0 },
-                                              { v1, e1 },
-                                              { v2, e2 },
-                                              { v3, e3 },
-                                              { v4, e4 },
-                                              { v5, e5 },
-                                              { v6, e6 },
-                                              { v7, e7 } } });
-    }
-
-    std::make_signed_t<std::size_t> available_samples(const Picoscope&) const noexcept
-    {
-        return this->available_samples_impl();
+        return this->process_bulk_impl<AnalogSpan, 8>({ { { v0, e0 },
+                                                          { v1, e1 },
+                                                          { v2, e2 },
+                                                          { v3, e3 },
+                                                          { v4, e4 },
+                                                          { v5, e5 },
+                                                          { v6, e6 },
+                                                          { v7, e7 } } });
     }
 
     std::error_code set_buffers(size_t samples, uint32_t block_number);

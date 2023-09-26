@@ -10,12 +10,11 @@ namespace gr::picoscope {
 
 namespace detail {
 
+using streaming_callback_function_t = std::function<void(int32_t, uint32_t, int16_t)>;
 /*!
  * \brief The state of the poller worker function.
  */
 enum class poller_state_t { IDLE = 0, RUNNING, EXIT };
-
-using streaming_callback_function_t = std::function<void(int32_t, uint32_t, int16_t)>;
 
 inline void invoke_streaming_callback(int16_t handle,
                                       int32_t noOfSamples,
@@ -131,6 +130,14 @@ struct State {
 };
 
 } // namespace detail
+
+using fair::graph::PublishableSpan;
+
+template <PublishableSpan T>
+struct ChannelPair {
+    T& values;
+    T& errors;
+};
 
 // optional shortening
 template <typename T, fair::meta::fixed_string description = "", typename... Arguments>
@@ -258,79 +265,67 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
     }
 
-    std::make_signed_t<std::size_t> available_samples_impl() const noexcept
+    template <PublishableSpan AnalogSpan, std::size_t ChannelCount>
+    inline fair::graph::work_return_status_t
+    process_bulk_impl(const std::array<ChannelPair<AnalogSpan>, ChannelCount>&
+                          channel_outputs) noexcept
     {
-        if (state.channels.empty()) {
-            return -1;
+        for (std::size_t channel_index = 0; channel_index < ChannelCount;
+             ++channel_index) {
+            channel_outputs[channel_index].values.publish(0);
+            channel_outputs[channel_index].errors.publish(0);
         }
 
-        if (state.data_finished && state.data_available == 0) {
-            return -1;
-        }
-
-        if (state.forced_quit) {
-            return -1;
-        }
-
-        // if there's an error, allow the block to read all data that was written before
-        // the error, then finish
-        if (state.errors.reader.available() > 0) {
-            const auto error_sample = state.errors.reader.get(1)[0].sample;
-            if (error_sample > state.produced_block) {
-                return std::make_signed_t<std::size_t>(error_sample -
-                                                       state.produced_block);
-            }
-
-            return -1;
-        }
-
-        return std::make_signed_t<std::size_t>(state.data_available);
-    }
-
-    struct ChannelOutput {
-        std::span<float> values;
-        std::span<float> errors;
-    };
-
-    template <std::size_t ChannelCount>
-    inline fair::graph::work_return_status_t process_bulk_impl(
-        const std::array<ChannelOutput, ChannelCount>& channel_outputs) noexcept
-    {
         if (state.channels.empty()) {
             return fair::graph::work_return_status_t::ERROR;
         }
         if (state.forced_quit) {
             return fair::graph::work_return_status_t::DONE;
         }
+
         if (state.data_finished && state.data_available == 0) {
             return fair::graph::work_return_status_t::DONE;
         }
 
         assert(state.channels.size() <= ChannelCount);
 
-        const auto data_available = state.data_available.load();
+        auto noutput_items = state.data_available.load();
+
+        if (noutput_items == 0) {
+            return fair::graph::work_return_status_t::OK;
+        }
+
+        for (std::size_t channel_index = 0; channel_index < state.channels.size();
+             ++channel_index) {
+            noutput_items = std::min({ noutput_items,
+                                       channel_outputs[channel_index].values.size(),
+                                       channel_outputs[channel_index].errors.size() });
+        }
+
+        if (noutput_items == 0) {
+            return fair::graph::work_return_status_t::INSUFFICIENT_OUTPUT_ITEMS;
+        }
 
         for (std::size_t channel_index = 0; channel_index < state.channels.size();
              ++channel_index) {
             auto& channel = state.channels[channel_index];
             auto& values = channel_outputs[channel_index].values;
             auto& errors = channel_outputs[channel_index].errors;
-            assert(values.size() == errors.size());
-            assert(data_available >= values.size());
 
-            const auto data = channel.data.reader.get(values.size());
+            const auto data = channel.data.reader.get(noutput_items);
             std::ignore = std::copy(data.begin(), data.end(), values.begin());
             const auto error_estimate =
                 channel.settings.range *
                 static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
             std::fill(errors.begin(), errors.end(), error_estimate);
             std::ignore = channel.data.reader.consume(data.size());
+            values.publish(noutput_items);
+            errors.publish(noutput_items);
+            ;
         }
 
-        const auto n_written = channel_outputs[0].values.size();
-        state.data_available -= n_written;
-        state.produced_block += n_written;
-
+        state.data_available -= noutput_items;
+        state.produced_block += noutput_items;
         return fair::graph::work_return_status_t::OK;
     }
 
