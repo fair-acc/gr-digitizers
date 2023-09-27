@@ -250,9 +250,17 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         if (state.channels.empty()) {
             return { 0, 0, ERROR };
         }
+
+        if (const auto errors_available = state.errors.reader.available(); errors_available > 0) {
+            auto errors = state.errors.reader.get(errors_available);
+            std::ignore = state.errors.reader.consume(errors_available);
+            return { 0, 0, ERROR };
+        }
+
         if (state.forced_quit) {
             return { 0, 0, DONE };
         }
+
         if (state.data_finished) {
             return { 0, 0, DONE };
         }
