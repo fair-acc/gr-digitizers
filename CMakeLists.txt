@@ -30,8 +30,6 @@ FetchContent_MakeAvailable(graph-prototype zeromq ut)
 option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
 set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
 
-find_package(Volk REQUIRED)
-
 add_subdirectory(gr-picoscope)
 add_subdirectory(blocklib)
 

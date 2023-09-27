@@ -3,8 +3,6 @@
 
 #include <node.hpp>
 
-#include <volk/volk.h>
-
 #include <fmt/format.h>
 
 #include <functional>
@@ -439,12 +437,10 @@ struct Picoscope : public fair::graph::node<PSImpl> {
                 static_cast<float>(channel.settings.range / state.max_value);
 
             auto write_values = channel.data_writer.reserve_output_range(nr_samples);
-            // TODO for T = int16_t, memcpy. for double/float, do manual conversion (using
-            // SIMD), drop Volk dependency
-            volk_16i_s32f_convert_32f(write_values.data(),
-                                      channel.driver_buffer.data() + offset,
-                                      1.0f / voltage_multiplier,
-                                      static_cast<uint>(nr_samples));
+            // use SIMD
+            for (std::size_t i = 0; i < nr_samples; ++i) {
+                write_values[i] = voltage_multiplier * channel.driver_buffer[offset + i];
+            }
             auto write_errors = channel.error_writer.reserve_output_range(nr_samples);
             std::fill(write_errors.begin(), write_errors.end(), error_estimate);
 
