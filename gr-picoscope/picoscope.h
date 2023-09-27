@@ -75,10 +75,14 @@ struct channel_setting_t {
     coupling_t coupling = coupling_t::AC_1M;
 };
 
+using ChannelMap = std::map<std::string, channel_setting_t, std::less<>>;
+
 struct port_setting_t {
     float logic_level = 1.5;
     bool enabled = false;
 };
+
+using PortMap = std::map<std::string, port_setting_t, std::less<>>;
 
 struct GetValuesResult {
     std::error_code error;
@@ -107,6 +111,22 @@ struct Channel {
 struct Error {
     std::size_t sample;
     std::error_code error;
+};
+
+struct Settings {
+    std::string serial_number;
+    double sample_rate = 10000.;
+    acquisition_mode_t acquisition_mode = acquisition_mode_t::STREAMING;
+    std::size_t pre_samples = 1000;
+    std::size_t post_samples = 9000;
+    std::size_t rapid_block_nr_captures = 1;
+    bool trigger_once = false;
+    double streaming_mode_poll_rate = 0.001;
+    std::size_t driver_buffer_size = 100000;
+    bool auto_arm = true;
+    ChannelMap enabled_channels;
+    PortMap enabled_ports;
+    trigger_setting_t trigger;
 };
 
 struct State {
@@ -141,13 +161,8 @@ using fair::graph::Visible;
 
 template <typename PSImpl>
 struct Picoscope : public fair::graph::node<PSImpl> {
-    using ChannelMap = std::map<std::string, channel_setting_t, std::less<>>;
-    using PortMap = std::map<std::string, port_setting_t, std::less<>>;
-
     A<std::string, "serial number", Visible> serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
-    A<acquisition_mode_t, "acquisition mode", Visible> acquisition_mode =
-        acquisition_mode_t::STREAMING;
     // TODO any way to get custom enums into pmtv??
     A<std::string, "acquisition mode as string", Visible> acquisition_mode_string =
         std::string("STREAMING");
@@ -164,6 +179,8 @@ struct Picoscope : public fair::graph::node<PSImpl> {
     A<trigger_setting_t, "trigger settings", Visible> trigger;
 
     detail::State state;
+    detail::Settings ps_settings;
+
     detail::streaming_callback_function_t _streaming_callback;
 
     explicit Picoscope()
@@ -201,9 +218,9 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             }
         }
 
-        enabled_channels = std::move(channels);
-        enabled_ports = std::move(ports);
-        trigger = std::move(trigger_);
+        ps_settings.enabled_channels = enabled_channels = std::move(channels);
+        ps_settings.enabled_ports = enabled_ports = std::move(ports);
+        ps_settings.trigger = trigger = std::move(trigger_);
 
         auto channel_outputs = self().channel_outputs();
         state.channels.reserve(enabled_channels.value.size());
@@ -233,11 +250,29 @@ struct Picoscope : public fair::graph::node<PSImpl> {
     void settings_changed(const fair::graph::property_map& /*old_settings*/,
                           const fair::graph::property_map& /*new_settings*/)
     {
-        acquisition_mode = acquisition_mode_string == "STREAMING"
-                               ? acquisition_mode_t::STREAMING
-                               : acquisition_mode_t::RAPID_BLOCK;
-        if (state.started) {
+        const auto was_started = state.started;
+        if (was_started) {
             stop();
+        }
+        auto s = detail::Settings{
+            .serial_number = serial_number,
+            .sample_rate = sample_rate,
+            .acquisition_mode = acquisition_mode_string == "STREAMING"
+                               ? acquisition_mode_t::STREAMING
+                               : acquisition_mode_t::RAPID_BLOCK,
+            .pre_samples = pre_samples,
+            .post_samples = post_samples,
+            .rapid_block_nr_captures = rapid_block_nr_captures,
+            .trigger_once = trigger_once,
+            .streaming_mode_poll_rate = streaming_mode_poll_rate,
+            .driver_buffer_size = driver_buffer_size,
+            .auto_arm = auto_arm,
+            .enabled_channels = enabled_channels,
+            .enabled_ports = enabled_ports,
+            .trigger = trigger
+        };
+        std::swap(ps_settings, s);
+        if (was_started) {
             start();
         }
     }
@@ -278,10 +313,10 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         try {
             initialize();
             configure();
-            if (auto_arm) {
+            if (ps_settings.auto_arm) {
                 arm();
             }
-            if (acquisition_mode == acquisition_mode_t::STREAMING) {
+            if (ps_settings.acquisition_mode == acquisition_mode_t::STREAMING) {
                 start_poll_thread();
             }
             state.started = true;
@@ -305,7 +340,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         disarm();
         close();
 
-        if (acquisition_mode == acquisition_mode_t::STREAMING) {
+        if (ps_settings.acquisition_mode == acquisition_mode_t::STREAMING) {
             stop_poll_thread();
         }
     }
@@ -316,7 +351,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             return;
         }
         const auto poll_duration =
-            std::chrono::seconds(1) * streaming_mode_poll_rate.value;
+            std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
 
         if (state.poller_state == detail::poller_state_t::EXIT) {
             state.poller_state = detail::poller_state_t::IDLE;
@@ -410,7 +445,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         }
 
         state.armed = true;
-        if (acquisition_mode == acquisition_mode_t::STREAMING) {
+        if (ps_settings.acquisition_mode == acquisition_mode_t::STREAMING) {
             state.poller_state = detail::poller_state_t::RUNNING;
         }
     }
@@ -421,7 +456,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             return;
         }
 
-        if (acquisition_mode == acquisition_mode_t::STREAMING) {
+        if (ps_settings.acquisition_mode == acquisition_mode_t::STREAMING) {
             state.poller_state = detail::poller_state_t::IDLE;
         }
 
@@ -495,8 +530,8 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             report_error(ec);
             return;
         }
-        const auto samples = pre_samples + post_samples;
-        for (std::size_t capture = 0; capture < rapid_block_nr_captures; ++capture) {
+        const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
+        for (std::size_t capture = 0; capture < ps_settings.rapid_block_nr_captures; ++capture) {
 
             const auto get_values_result =
                 self().driver_rapid_block_get_values(capture, samples);
@@ -509,7 +544,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             process_driver_data(get_values_result.samples, 0);
         }
 
-        if (trigger_once) {
+        if (ps_settings.trigger_once) {
             state.data_finished = true;
         }
     }
