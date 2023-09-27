@@ -179,7 +179,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
                 { "post_samples", 1000 },
                 { "acquisition_mode_string", "RAPID_BLOCK" },
                 { "rapid_block_nr_captures", 1 },
-                { "auto_arm", "true" } } });
+                { "auto_arm", true } } });
 
         ps.set_channel_configuration(
             { { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
@@ -188,16 +188,17 @@ const boost::ut::suite Picoscope4000aTests = [] {
         expect(eq(connection_result_t::SUCCESS,
                   flow_graph.connect<"values0">(ps).template to<"in">(sink0)));
 
+        ps.start();
+
         // TODO tried multi_threaded scheduler with start(); sleep; stop(), something goes
         // wrong there (scheduler doesn't shovel data reliably)
         scheduler::simple sched{ std::move(flow_graph) };
         auto quitter = std::async([&ps] {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::seconds(3));
             ps.force_quit();
         });
 
         sched.run_and_wait();
-
         expect(ge(sink0.samples_seen, std::size_t{ 3000 }));
         expect(le(sink0.samples_seen, std::size_t{ 15000 }));
     };
