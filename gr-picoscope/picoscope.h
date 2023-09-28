@@ -315,6 +315,10 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         return { 0, 0, OK };
     }
 
+    std::size_t lost_count() const {
+        return state.lost_count.load();
+    }
+
     void force_quit() { state.forced_quit = true; }
     void start() noexcept
     {
@@ -527,7 +531,6 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         if (can_write < nr_samples) {
             const auto lost = nr_samples - can_write;
             state.lost_count += lost;
-            fmt::println(std::cerr, "Dropped {} samples", lost);
         }
 
         if (can_write == 0) {
