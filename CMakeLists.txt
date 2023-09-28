@@ -14,18 +14,12 @@ FetchContent_Declare(
 )
 
 FetchContent_Declare(
-    zeromq
-    GIT_REPOSITORY https://github.com/zeromq/libzmq.git
-    GIT_TAG v4.3.4 # latest v4.3.4
-)
-
-FetchContent_Declare(
     ut
     GIT_REPOSITORY https://github.com/boost-ext/ut.git
     GIT_TAG bf8388f61103571dee3061a4ef23292a320d9dbf # head as of 2023-08-21
 )
 
-FetchContent_MakeAvailable(graph-prototype zeromq ut)
+FetchContent_MakeAvailable(graph-prototype ut)
 
 option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
 set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
