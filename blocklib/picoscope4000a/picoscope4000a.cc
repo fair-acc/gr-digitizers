@@ -491,6 +491,15 @@ std::error_code Picoscope4000a::driver_configure()
     }
 
     // configure analog channels
+    for (std::size_t i = 0; i <= PS4000A_MAX_CHANNELS; ++i) {
+        ps4000aSetChannel(state.handle,
+                         static_cast<PS4000A_CHANNEL>(i),
+                         false,
+                         PS4000A_AC,
+                         PICO_X10_ACTIVE_PROBE_100MV,
+                         0.);
+    }
+
     for (const auto& channel : state.channels) {
         const auto idx = convert_to_ps4000a_channel(channel.id);
         assert(idx);
