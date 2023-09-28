@@ -94,6 +94,8 @@ struct GetValuesResult {
 
 namespace detail {
 
+constexpr std::size_t driver_buffer_size = 65536;
+
 template <typename T, std::size_t InitialSize = 1>
 struct BufferHelper {
     gr::circular_buffer<T> buffer = gr::circular_buffer<T>(InitialSize);
@@ -124,7 +126,6 @@ struct Settings {
     std::size_t rapid_block_nr_captures = 1;
     bool trigger_once = false;
     double streaming_mode_poll_rate = 0.001;
-    std::size_t driver_buffer_size = 65536;
     bool auto_arm = true;
     ChannelMap enabled_channels;
     PortMap enabled_ports;
@@ -174,7 +175,6 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         1;
     A<bool, "trigger once (rapid block mode)", Visible> trigger_once = false;
     A<double, "poll rate (streaming mode)", Visible> streaming_mode_poll_rate = 0.001;
-    A<std::size_t, "driver buffer size", Visible> driver_buffer_size = 65536;
     A<bool, "auto-arm", Visible> auto_arm = true;
     A<ChannelMap, "enabled analog channels", Visible> enabled_channels;
     A<PortMap, "enabled digital ports", Visible> enabled_ports;
@@ -232,7 +232,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             state.channels.emplace_back(detail::Channel{
                 .id = id,
                 .settings = settings,
-                .driver_buffer = std::vector<int16_t>(driver_buffer_size),
+                .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
                 .data_writer = channel_outputs[channel_idx]
                                    .first.streamWriter()
                                    .buffer()
@@ -267,7 +267,6 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             .rapid_block_nr_captures = rapid_block_nr_captures,
             .trigger_once = trigger_once,
             .streaming_mode_poll_rate = streaming_mode_poll_rate,
-            .driver_buffer_size = driver_buffer_size,
             .auto_arm = auto_arm,
             .enabled_channels = enabled_channels,
             .enabled_ports = enabled_ports,

@@ -87,7 +87,6 @@ ENABLE_REFLECTION(gr::picoscope4000a::Picoscope4000a,
                   acquisition_mode_string,
                   rapid_block_nr_captures,
                   streaming_mode_poll_rate,
-                  driver_buffer_size,
                   auto_arm,
                   trigger_once);
 

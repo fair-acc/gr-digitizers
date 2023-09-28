@@ -587,7 +587,8 @@ std::error_code Picoscope4000a::driver_arm()
         }
     }
     else {
-        set_buffers(ps_settings.driver_buffer_size, 0);
+        using gr::picoscope::detail::driver_buffer_size;
+        set_buffers(driver_buffer_size, 0);
 
         ps4000a_unit_interval_t unit_int =
             convert_frequency_to_ps4000a_time_units_and_interval(
@@ -598,11 +599,11 @@ std::error_code Picoscope4000a::driver_arm()
             &unit_int.interval, // sample interval
             unit_int.unit,      // time unit of sample interval
             0,                  // pre-triggersamples (unused)
-            static_cast<uint32_t>(ps_settings.driver_buffer_size),
+            static_cast<uint32_t>(driver_buffer_size),
             false,
             1, // downsampling factor // TODO reconsider if we need downsampling support
             PS4000A_RATIO_MODE_NONE,
-            static_cast<uint32_t>(ps_settings.driver_buffer_size));
+            static_cast<uint32_t>(driver_buffer_size));
 
         if (status != PICO_OK) {
             fmt::println(
