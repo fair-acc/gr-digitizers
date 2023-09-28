@@ -18,8 +18,8 @@ struct block_scaling_offset : public fair::graph::node<block_scaling_offset<T>> 
     fair::graph::PortIn<T> in_error;
     fair::graph::PortOut<T> out_signal;
     fair::graph::PortOut<T> out_error;
-    fair::graph::Annotated<double, "scale", fair::graph::Visible> scale = 1.;
-    fair::graph::Annotated<double, "offset", fair::graph::Visible> offset= 0.;
+    fair::graph::Annotated<T, "scale", fair::graph::Visible> scale = 1.;
+    fair::graph::Annotated<T, "offset", fair::graph::Visible> offset = 0.;
 
     std::tuple<T, T> process_one(T sig, T error) noexcept
     {
