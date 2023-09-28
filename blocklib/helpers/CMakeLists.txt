@@ -2,7 +2,7 @@
 add_library(gr-helpers INTERFACE)
 
 set(HELPERS_HEADERS
-    helper_blocks.h
+    helper_blocks.hpp
 )
 
 target_include_directories(gr-helpers INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include/>)

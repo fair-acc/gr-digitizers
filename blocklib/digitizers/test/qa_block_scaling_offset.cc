@@ -1,7 +1,7 @@
 #include <boost/ut.hpp>
 
-#include <block_scaling_offset.h>
-#include <helper_blocks.h>
+#include <block_scaling_offset.hpp>
+#include <helper_blocks.hpp>
 
 #include <scheduler.hpp>
 
@@ -14,9 +14,9 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
     using namespace gr::helpers;
 
     "scale and offset"_test = [] {
-        double scale = 1.5;
-        double offset = 2;
-        int n = 30;
+        double             scale  = 1.5;
+        double             offset = 2;
+        int                n      = 30;
         std::vector<float> data;
         for (int i = 0; i < n; i++) {
             data.push_back(i);
@@ -24,20 +24,16 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
 
         graph flow_graph;
 
-        auto& src0 = flow_graph.make_node<vector_source<float>>(data);
-        auto& src1 = flow_graph.make_node<vector_source<float>>(data);
-        auto& snk0 = flow_graph.make_node<vector_sink<float>>();
-        auto& snk1 = flow_graph.make_node<vector_sink<float>>();
-        auto& bso = flow_graph.make_node<block_scaling_offset<float>>({{{"scale", scale}, {"offset", offset}}});
+        auto &src0 = flow_graph.make_node<vector_source<float>>(data);
+        auto &src1 = flow_graph.make_node<vector_source<float>>(data);
+        auto &snk0 = flow_graph.make_node<vector_sink<float>>();
+        auto &snk1 = flow_graph.make_node<vector_sink<float>>();
+        auto &bso  = flow_graph.make_node<block_scaling_offset<float>>({ { { "scale", scale }, { "offset", offset } } });
 
-        expect(eq(connection_result_t::SUCCESS,
-                  flow_graph.connect<"out">(src0).template to<"in_signal">(bso)));
-        expect(eq(connection_result_t::SUCCESS,
-                  flow_graph.connect<"out">(src1).template to<"in_error">(bso)));
-        expect(eq(connection_result_t::SUCCESS,
-                  flow_graph.connect<"out_signal">(bso).template to<"in">(snk0)));
-        expect(eq(connection_result_t::SUCCESS,
-                  flow_graph.connect<"out_error">(bso).template to<"in">(snk1)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out">(src0).template to<"in_signal">(bso)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out">(src1).template to<"in_error">(bso)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out_signal">(bso).template to<"in">(snk0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out_error">(bso).template to<"in">(snk1)));
 
         scheduler::simple sched{ std::move(flow_graph) };
         sched.run_and_wait();
@@ -58,6 +54,6 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
 
 } // namespace gr::digitizers::block_scaling_offset_test
 
-int main()
-{ /* tests are statically executed */
+int
+main() { /* tests are statically executed */
 }

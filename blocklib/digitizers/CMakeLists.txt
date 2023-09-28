@@ -2,7 +2,7 @@
 add_library(gr-digitizers INTERFACE)
 
 set(DIGITIZERS_HEADERS
-    block_scaling_offset.h
+    block_scaling_offset.hpp
 )
 
 target_include_directories(gr-digitizers INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include/>)

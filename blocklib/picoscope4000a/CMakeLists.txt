@@ -3,14 +3,14 @@ set(PICOSCOPE4000A_SOURCES
 )
 
 set(PICOSCOPE4000A_HEADERS
-    picoscope4000a.h
+    picoscope4000a.hpp
 )
 
 # TODO do not hardcode
 add_library(ps4000a SHARED IMPORTED)
 set_property(TARGET ps4000a PROPERTY
              IMPORTED_LOCATION ${PICOSCOPE_PREFIX}/lib/libps4000a.so)
-target_include_directories(ps4000a INTERFACE ${PICOSCOPE_PREFIX}/include/libps4000a ${PICOSCOPE_PREFIX}/include/libps5000a) # TODO PicoCallback.h is missing in libps4000a/
+target_include_directories(ps4000a INTERFACE ${PICOSCOPE_PREFIX}/include/libps4000a ${PICOSCOPE_PREFIX}/include/libps5000a) # Hack: PicoCallback.h is missing in libps4000a/
 
 add_library(gr-picoscope4000a SHARED ${PICOSCOPE4000A_SOURCES})
 target_include_directories(gr-picoscope4000a INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include/>)

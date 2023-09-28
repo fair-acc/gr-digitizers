@@ -1,7 +1,7 @@
 add_library(gr-picoscope INTERFACE)
 
 set(GR_PICOSCOPE_HEADERS
-    picoscope.h
+    picoscope.hpp
 )
 
 target_include_directories(gr-picoscope INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include/>)
