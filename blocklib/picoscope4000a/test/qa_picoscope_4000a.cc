@@ -89,9 +89,11 @@ const boost::ut::suite Picoscope4000aTests = [] {
     "streaming basics"_test = [] {
         graph flow_graph;
 
+        constexpr double sample_rate = 80000.;
+        constexpr auto duration_ms = 2 * 1000;
+
         auto& ps = flow_graph.make_node<Picoscope4000a>(
-            { { { "sample_rate", 10000. },
-                { "driver_buffer_size", std::size_t{ 50000 } },
+            { { { "sample_rate", sample_rate },
                 { "acquisition_mode_string", "STREAMING" },
                 { "streaming_mode_poll_rate", 0.00001 },
                 { "auto_arm", true } } });
@@ -106,22 +108,26 @@ const boost::ut::suite Picoscope4000aTests = [] {
         expect(eq(connection_result_t::SUCCESS,
                   flow_graph.connect<"errors0">(ps).template to<"in">(errsink)));
 
-        // Explicitly open unit because it takes quite some time
-        expect(nothrow([&ps] { ps.initialize(); }));
+        // Explicitly start unit because it takes quite some time
+        expect(nothrow([&ps] { ps.start(); }));
 
         // TODO tried multi_threaded scheduler with start(); sleep; stop(), something goes
         // wrong there (scheduler doesn't shovel data reliably)
         scheduler::simple sched{ std::move(flow_graph) };
-        auto quitter = std::async([&ps] {
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+        auto quitter = std::async([&ps, duration_ms] {
+            std::this_thread::sleep_for(std::chrono::milliseconds(duration_ms));
             ps.force_quit();
         });
 
         sched.run_and_wait();
 
+        const auto total_samples = ps.lost_count() + sink.samples_seen;
+        fmt::println("Configured rate: {}, Measured rate: {}, Duration: {} ms", sample_rate, total_samples * 1000 / duration_ms, duration_ms);
+        fmt::println("Total: {} Lost: {} ({:.2f}%)", total_samples, ps.lost_count(),  static_cast<double>(ps.lost_count()) / static_cast<double>(total_samples) * 100);
+
         expect(eq(sink.samples_seen, errsink.samples_seen));
-        expect(ge(sink.samples_seen, std::size_t{ 5000 }));
-        expect(le(sink.samples_seen, std::size_t{ 20000 }));
+        expect(ge(sink.samples_seen, std::size_t{ 80000 }));
+        expect(le(sink.samples_seen, std::size_t{ 160000 }));
     };
 
 
