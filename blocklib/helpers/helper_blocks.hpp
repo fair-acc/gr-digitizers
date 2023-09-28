@@ -20,7 +20,7 @@ struct vector_source : public fair::graph::node<vector_source<T>> {
 
     constexpr std::make_signed_t<std::size_t>
     available_samples(const vector_source &) noexcept {
-        const auto v = static_cast<std::make_signed_t<std::size_t>>(data.size()) - _produced;
+        const auto v = static_cast<std::make_signed_t<std::size_t>>(data.size() - _produced);
         return v > 0 ? v : -1;
     }
 

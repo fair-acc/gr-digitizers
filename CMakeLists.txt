@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.25)
 
 project(gr-digitizers CXX)
 set(CMAKE_CXX_STANDARD 20)
@@ -21,14 +21,29 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(graph-prototype ut)
 
-option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
-set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
+add_library(gr-digitizers-options INTERFACE)
+include(cmake/CompilerWarnings.cmake)
+set_project_warnings(gr-digitizers-options)
 
-add_subdirectory(gr-picoscope)
-add_subdirectory(blocklib)
+if(CMAKE_CXX_COMPILER MATCHES "/em\\+\\+(-[a-zA-Z0-9.])?$") # if this hasn't been set before via e.g. emcmake
+    message(" Transpiling to WASM: using: Emscripten (${CMAKE_CXX_COMPILER})")
+    set(EMSCRIPTEN true)
+endif()
+
+if(NOT EMSCRIPTEN)
+    option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
+    set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
+endif()
 
 option(ENABLE_TESTING "Enable Test Builds" ON)
 if (ENABLE_TESTING AND UNIX AND NOT APPLE)
     list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
     enable_testing()
 endif ()
+
+if(ENABLE_PICOSCOPE)
+    add_subdirectory(gr-picoscope)
+endif()
+
+add_subdirectory(blocklib)
+

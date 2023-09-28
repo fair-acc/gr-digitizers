@@ -14,13 +14,11 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
     using namespace gr::helpers;
 
     "scale and offset"_test = [] {
-        double             scale  = 1.5;
-        double             offset = 2;
-        int                n      = 30;
-        std::vector<float> data;
-        for (int i = 0; i < n; i++) {
-            data.push_back(i);
-        }
+        constexpr float       scale  = 1.5;
+        constexpr float       offset = 2;
+        constexpr std::size_t n      = 30;
+        std::vector<float>    data(n);
+        std::iota(data.begin(), data.end(), 0);
 
         graph flow_graph;
 
@@ -38,16 +36,12 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
         scheduler::simple sched{ std::move(flow_graph) };
         sched.run_and_wait();
 
-        auto result0 = snk0.data;
-        auto result1 = snk1.data;
-        expect(eq(data.size(), result0.size()));
-        expect(eq(data.size(), result1.size()));
+        expect(eq(data.size(), snk0.data.size()));
+        expect(eq(data.size(), snk1.data.size()));
 
-        for (int i = 0; i < n; i++) {
-            float should_be0 = ((data.at(i) * scale) - offset);
-            float should_be1 = (data.at(i) * scale);
-            expect(should_be0 == result0.at(i)) << "epsilon=0.0001";
-            expect(should_be1 == result1.at(i)) << "epsilon=0.0001";
+        for (std::size_t i = 0; i < n; i++) {
+            expect(data[i] * scale - offset == snk0.data[i]) << "epsilon=0.0001";
+            expect(data[i] * scale == snk1.data[i]) << "epsilon=0.0001";
         }
     };
 };
