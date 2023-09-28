@@ -7,6 +7,8 @@
 
 #include <functional>
 
+#define GR_PICOSCOPE_POLLER_THREAD 1
+
 namespace gr::picoscope {
 
 namespace detail {
@@ -300,6 +302,16 @@ struct Picoscope : public fair::graph::node<PSImpl> {
             return { 0, 0, DONE };
         }
 
+#ifndef GR_PICOSCOPE_POLLER_THREAD
+        if (ps_settings.acquisition_mode == acquisition_mode_t::STREAMING) {
+            if (auto ec = self().driver_poll()) {
+                // TODO tolerate or return ERROR
+                report_error(ec);
+                fmt::println(std::cerr, "poll failed");
+            }
+        }
+#endif
+
         return { 0, 0, OK };
     }
 
@@ -356,7 +368,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         if (state.poller_state == detail::poller_state_t::EXIT) {
             state.poller_state = detail::poller_state_t::IDLE;
         }
-
+#ifdef GR_PICOSCOPE_POLLER_THREAD
         state.poller = std::thread([this, poll_duration] {
             while (state.poller_state != detail::poller_state_t::EXIT) {
                 if (state.poller_state == detail::poller_state_t::IDLE) {
@@ -379,6 +391,7 @@ struct Picoscope : public fair::graph::node<PSImpl> {
                 }
             }
         });
+#endif
     }
 
     void stop_poll_thread()
