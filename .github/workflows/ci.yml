@@ -1,58 +1,91 @@
-name: build and run tests
-on: [pull_request]
+name: CMake
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
 
 jobs:
-  linux-docker:
-    runs-on: ubuntu-20.04
-    # The GH default is 360 minutes (it's also the max as of Feb-2021). However we should fail sooner.
-    # The only reason to exceed this time is if a test hangs.
-    timeout-minutes: 120
+  build:
+    name: "${{ matrix.configurations.name }} | ${{ matrix.cmake-build-type }}"
+    environment: configure coverage
+    runs-on: ${{ matrix.configurations.os }}
     strategy:
-      # Enabling fail-fast would kill all Dockers if one of them fails. We want maximum output.
       fail-fast: false
       matrix:
-        # For every distro we want to test here, add one key 'distro' with a descriptive name, and one key
-        # 'containerId' with the name of the container (i.e., what you want to docker-pull)
-        include:
-          - distro: 'Ubuntu 22.04'
-            containerId: 'mormj/gr4-runtime-docker:ubuntu-22.04'
-    name: ${{ matrix.distro }}
-    container:
-      image: ${{ matrix.containerId }}
-      volumes:
-        - build_data:/build
-      options: --cpus 2
+        configurations:
+          - name: Ubuntu gcc12
+            os: ubuntu-22.04
+            compiler: gcc12
+          - name: Ubuntu gcc13
+            os: ubuntu-22.04
+            compiler: gcc13
+          - name: Ubuntu Latest clang16
+            os: ubuntu-22.04
+            compiler: clang16
+          - name: Ubuntu Latest emscripten
+            os: ubuntu-22.04
+            compiler: emscripten
+        cmake-build-type: [ Release, Debug ]
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
+
     steps:
-      - uses: actions/checkout@v2
-        name: Checkout Project
-      - name: Install gr-digitizer dependencies, enable gcc 12
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Cache
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-fetchContent-cache
+        with:
+          path: ${{runner.workspace}}/build/_deps
+          key: ${{ runner.os }}-${{ matrix.configurations.compiler }}-${{ matrix.cmake-build-type }}-${{ hashFiles('CMakeLists.txt') }}
+
+      - name: Install gcc-12
+        if: matrix.configurations.compiler == 'gcc12'
         run: |
-          su -c "apt-get update"
-          su -c "apt-get --yes install libboost-dev libboost-chrono-dev libboost-thread-dev libsndfile1-dev libcppunit-dev gcc-12 g++-12 wget"
-          su -c "update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12"
-          su -c "update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12"
-      - name: Install root
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa # provides newer gcc 12.2.0 instead of 12.1.0
+          sudo apt-get install -y gcc-12 g++-12 gcovr
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 110 --slave /usr/bin/g++ g++ /usr/bin/g++-12 --slave /usr/bin/gcov gcov /usr/bin/gcov-12
+
+      - name: Install gcc-13
+        if: matrix.configurations.compiler == 'gcc13'
         run: |
-          su -c "apt-get update"
-          # https://root.cern/install/dependencies/, removed X dependencies: libx11-dev libxpm-dev libxft-dev libxext-dev 
-          su -c "apt-get --yes install dpkg-dev cmake g++ gcc binutils python3 libssl-dev"
-          # https://root.cern/install/#download-a-pre-compiled-binary-distribution
-          mkdir $HOME/local
-          cd $HOME/local
-          wget -qO - https://root.cern/download/root_v6.26.10.Linux-ubuntu22-x86_64-gcc11.3.tar.gz | tar -xzv
-          pwd
-      - name: Install LimeSuite
+          sudo apt-get install -y gcc-13 g++-13 gcovr
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 110 --slave /usr/bin/g++ g++ /usr/bin/g++-13 --slave /usr/bin/gcov gcov /usr/bin/gcov-13
+
+      - name: Install clang-16
+        if: matrix.configurations.compiler == 'clang16'
         run: |
-          su -c "apt-get --yes install libsqlite3-dev"
-          git clone https://github.com/myriadrf/LimeSuite.git $HOME/LimeSuite
-          cd $HOME/LimeSuite
-          git checkout 41ad26b6 # We use an old revision using Gateware 2.15
-          mkdir -p $HOME/LimeSuite/build-ninja
-          cd $HOME/LimeSuite/build-ninja
-          cmake -GNinja -DCMAKE_INSTALL_PREFIX=$HOME/local/lime ..
-          ninja
-          su -c "ninja install"
-      - name: Install picoscope
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+          sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main'
+          sudo apt update
+          sudo apt upgrade -y # update clang14 to fix packaging conflicts
+          sudo apt install -y clang-16 libc++-16-dev libc++abi-16-dev
+          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-16 110
+
+      - name: Install emscripten
+        if: matrix.configurations.compiler == 'emscripten'
+        shell: bash
+        run: |
+          cd
+          git clone --depth=1 https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          # Download and install the latest SDK tools.
+          ./emsdk install releases-bf3c159888633d232c0507f4c76cc156a43c32dc-64bit
+          # Make the "latest" SDK "active" for the current user. (writes .emscripten file)
+          ./emsdk activate releases-bf3c159888633d232c0507f4c76cc156a43c32dc-64bit
+
+      - name: Install sonar-scanner and build-wrapper
+        if: matrix.configurations.compiler == 'gcc12' && matrix.cmake-build-type == 'Debug'
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
+
+      - name: Install picoscope libraries
         run: |
           su -c "apt-get update"
           su -c "apt-get --yes install gnupg2 apt-utils udev libusb-1.0-0-dev"
@@ -61,26 +94,64 @@ jobs:
           su -c "bash -c 'echo \"deb https://labs.picotech.com/rc/picoscope7/debian/ picoscope main\" >/etc/apt/sources.list.d/picoscope7.list'"
           su -c "apt-get update"
           su -c "apt-get --yes install libps3000a libps4000a libps5000a libps6000 libps6000a" || true # ignore udev errors in post install because of udev in container
-      - name: Meson Setup
+
+      - name: Configure CMake
+        if: matrix.configurations.compiler != 'emscripten'
         shell: bash
         run: |
-          source $HOME/local/root/bin/thisroot.sh
-          meson setup build --buildtype=debugoptimized -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=$HOME/local/root -Dlimesuite_prefix=$HOME/local/lime
-      - name: Make
+          cmake -S . -B ../build -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} -DENABLE_COVERAGE=${{ matrix.configurations.compiler == 'gcc12' &&  matrix.cmake-build-type == 'Debug'}}
+
+      - name: Configure CMake Emscripten
+        if: matrix.configurations.compiler == 'emscripten'
         shell: bash
         run: |
-          source $HOME/local/root/bin/thisroot.sh
-          cd build
-          ninja
-      - name: Make Test
+          source ~/emsdk/emsdk_env.sh
+          emcmake cmake -S . -B ../build -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} -DENABLE_COVERAGE=OFF
+
+      - name: Build
+        if: matrix.configurations.compiler != 'gcc12' || matrix.cmake-build-type != 'Debug'
         shell: bash
         run: |
-          source $HOME/local/root/bin/thisroot.sh
-          export LD_LIBRARY_PATH=$HOME/local/lime/lib:$LD_LIBRARY_PATH
-          cd build
-          ninja test
-      - uses: actions/upload-artifact@v1
-        if: failure()
-        with:
-          name: Linux_Meson_Testlog
-          path: build/meson-logs/testlog.txt
+          test -f ~/emsdk/emsdk_env.sh && source ~/emsdk/emsdk_env.sh
+          cmake --build ../build
+
+      - name: Build with Coverage and SonarCube
+        if: matrix.configurations.compiler == 'gcc12' && matrix.cmake-build-type == 'Debug'
+        shell: bash
+        run: build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build ../build
+
+      - name: execute tests
+        if: matrix.configurations.compiler != 'gcc12' || matrix.cmake-build-type != 'Debug'
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: ctest --output-on-failure
+
+      - name: execute tests with coverage
+        if: matrix.configurations.compiler == 'gcc12' && matrix.cmake-build-type == 'Debug'
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: cmake --build . --target coverage
+
+      - name: execute native main binary
+        if: matrix.configurations.compiler != 'emscripten'
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: ./src/main
+
+      - name: execute wasm main binary with nodejs
+        if: matrix.configurations.compiler == 'emscripten'
+        working-directory: ${{runner.workspace}}/build
+        shell: bash
+        run: |
+          node --experimental-wasm-threads ./src/main.js
+
+      - name: Run sonar-scanner
+        if: matrix.configurations.compiler == 'gcc12' && matrix.cmake-build-type == 'Debug'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          test -f ~/emsdk/emsdk_env.sh && source ~/emsdk/emsdk_env.sh
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+        # Consult https://docs.sonarcloud.io/advanced-setup/ci-based-analysis/sonarscanner-cli/ for more information and options
