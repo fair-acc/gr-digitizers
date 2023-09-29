@@ -145,7 +145,6 @@ struct State {
     int16_t                     overflow           = 0;     ///< status returned from getValues
     int16_t                     max_value          = 0;     ///< maximum ADC count used for ADC conversion
     double                      actual_sample_rate = 0;
-    std::atomic<std::size_t>    lost_count         = 0;
     std::thread                 poller;
     BufferHelper<Error>         errors;
     std::atomic<poller_state_t> poller_state = poller_state_t::IDLE;
@@ -163,7 +162,7 @@ using A = fair::graph::Annotated<T, description, Arguments...>;
 using fair::graph::Visible;
 
 template<typename PSImpl>
-struct Picoscope : public fair::graph::node<PSImpl> {
+struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true>> {
     A<std::string, "serial number", Visible> serial_number;
     A<double, "sample rate", Visible>        sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
@@ -183,7 +182,13 @@ struct Picoscope : public fair::graph::node<PSImpl> {
 
     detail::streaming_callback_function_t                      _streaming_callback;
 
-    explicit Picoscope() : _streaming_callback([this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); }) {}
+    explicit Picoscope() : _streaming_callback([this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); }) {
+        const auto outputs = self().channel_outputs();
+        for (auto &output : outputs) {
+            std::ignore = output.first.resize_buffer(detail::driver_buffer_size * 5);
+            std::ignore = output.second.resize_buffer(detail::driver_buffer_size * 5);
+        }
+    }
 
     ~Picoscope() { stop(); }
 
@@ -291,9 +296,10 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         return { 0, 0, OK };
     }
 
+    // TODO only for debugging, maybe remove
     std::size_t
-    lost_count() const {
-        return state.lost_count.load();
+    produced_worker() const {
+        return state.produced_worker;
     }
 
     void
@@ -504,21 +510,12 @@ struct Picoscope : public fair::graph::node<PSImpl> {
         if (static_cast<uint16_t>(overflow) == 0xffff) {
             fmt::println(std::cerr, "Buffer overrun detected, continue...");
         }
-        auto can_write = nr_samples;
-        for (const auto &channel : state.channels) {
-            can_write = std::min({ can_write, channel.data_writer.available(), channel.error_writer.available() });
-        }
 
-        if (can_write < nr_samples) {
-            const auto lost = nr_samples - can_write;
-            state.lost_count += lost;
-        }
-
-        if (can_write == 0) {
+        if (nr_samples == 0) {
             return;
         }
 
-        process_driver_data(can_write, start_index);
+        process_driver_data(nr_samples, start_index);
     }
 
     void

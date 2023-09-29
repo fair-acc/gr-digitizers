@@ -83,7 +83,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
         graph            flow_graph;
 
         constexpr double sample_rate = 80000.;
-        constexpr auto   duration_ms = 2 * 1000;
+        constexpr auto   duration_ms = 2000;
 
         auto            &ps          = flow_graph.make_node<Picoscope4000a>(
                 { { { "sample_rate", sample_rate }, { "acquisition_mode_string", "STREAMING" }, { "streaming_mode_poll_rate", 0.00001 }, { "auto_arm", true } } });
@@ -98,19 +98,19 @@ const boost::ut::suite Picoscope4000aTests = [] {
         // Explicitly start unit because it takes quite some time
         expect(nothrow([&ps] { ps.start(); }));
 
-        // TODO tried multi_threaded scheduler with start(); sleep; stop(), something goes
-        // wrong there (scheduler doesn't shovel data reliably)
-        scheduler::simple sched{ std::move(flow_graph) };
-        auto              quitter = std::async([&ps, duration_ms] {
-            std::this_thread::sleep_for(std::chrono::milliseconds(duration_ms));
-            ps.force_quit();
-        });
+        // This either hangs or terminates without producing anything if I increase the number of threads
+        constexpr std::size_t min_threads = 2;
+        constexpr std::size_t max_threads = 2;
+        scheduler::simple<scheduler::multi_threaded> sched{ std::move(flow_graph), std::make_shared<fair::thread_pool::BasicThreadPool>("simple-scheduler-pool", fair::thread_pool::CPU_BOUND, min_threads, max_threads) };
+        sched.start();
+        std::this_thread::sleep_for(std::chrono::milliseconds(duration_ms));
+        ps.force_quit(); // needed, otherwise stop() doesn't terminate (no matter if the PS works blocking or not)
+        sched.stop();
 
-        sched.run_and_wait();
-
-        const auto total_samples = ps.lost_count() + sink.samples_seen;
-        fmt::println("Configured rate: {}, Measured rate: {}, Duration: {} ms", sample_rate, total_samples * 1000 / duration_ms, duration_ms);
-        fmt::println("Total: {} Lost: {} ({:.2f}%)", total_samples, ps.lost_count(), static_cast<double>(ps.lost_count()) / static_cast<double>(total_samples) * 100);
+        const auto measured_rate = static_cast<double>(sink.samples_seen) * 1000. / duration_ms;
+        fmt::println("Produced in worker: {}", ps.produced_worker());
+        fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", sample_rate, static_cast<std::size_t>(measured_rate), measured_rate / sample_rate * 100., duration_ms);
+        fmt::println("Total: {}", sink.samples_seen);
 
         expect(eq(sink.samples_seen, errsink.samples_seen));
         expect(ge(sink.samples_seen, std::size_t{ 80000 }));
