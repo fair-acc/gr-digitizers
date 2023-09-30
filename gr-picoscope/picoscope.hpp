@@ -183,11 +183,6 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
     detail::streaming_callback_function_t                      _streaming_callback;
 
     explicit Picoscope() : _streaming_callback([this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); }) {
-        const auto outputs = self().channel_outputs();
-        for (auto &output : outputs) {
-            std::ignore = output.first.resize_buffer(detail::driver_buffer_size * 5);
-            std::ignore = output.second.resize_buffer(detail::driver_buffer_size * 5);
-        }
     }
 
     ~Picoscope() { stop(); }
