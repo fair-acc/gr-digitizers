@@ -19,7 +19,7 @@ test_rapid_block_basic(std::size_t nr_captures) {
     constexpr std::size_t post_samples  = 1000;
     const auto            total_samples = nr_captures * (pre_samples + post_samples);
 
-    graph::graph          flow_graph;
+    fair::graph::graph    flow_graph;
     auto                 &ps = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
                                                                         { "pre_samples", pre_samples },
                                                                         { "post_samples", post_samples },
@@ -33,7 +33,7 @@ test_rapid_block_basic(std::size_t nr_captures) {
 
     // TODO move back to static connect() once it can handle arrays
     expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink, 0)));
-    expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/8, errsink, 0)));
+    expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/ 8, errsink, 0)));
 
     scheduler::simple sched{ std::move(flow_graph) };
     sched.run_and_wait();
@@ -50,8 +50,8 @@ const boost::ut::suite Picoscope4000aTests = [] {
     using namespace fair::picoscope4000a;
 
     "open and close"_test = [] {
-        graph::graph flow_graph;
-        auto &ps = flow_graph.make_node<Picoscope4000a>();
+        fair::graph::graph flow_graph;
+        auto              &ps = flow_graph.make_node<Picoscope4000a>();
 
         // this takes time, so we do it a few times only
         for (auto i = 0; i < 3; i++) {
@@ -63,7 +63,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "invalid settings"_test = [] {
-        graph::graph flow_graph;
+        fair::graph::graph flow_graph;
 
         // good channel
         expect(nothrow([&flow_graph] {
@@ -81,12 +81,12 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "streaming basics"_test = [] {
-        graph::graph     flow_graph;
+        fair::graph::graph flow_graph;
 
-        constexpr double sample_rate = 80000.;
-        constexpr auto   duration_ms = 2000;
+        constexpr double   sample_rate = 80000.;
+        constexpr auto     duration_ms = 2000;
 
-        auto            &ps          = flow_graph.make_node<Picoscope4000a>(
+        auto              &ps          = flow_graph.make_node<Picoscope4000a>(
                 { { { "sample_rate", sample_rate }, { "acquisition_mode_string", "STREAMING" }, { "streaming_mode_poll_rate", 0.00001 }, { "auto_arm", true } } });
         ps.set_channel_configuration({ { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
 
@@ -95,15 +95,16 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
         // TODO move back to static connect() once it can handle arrays
         expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink, 0)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/8, errsink, 0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/ 8, errsink, 0)));
 
         // Explicitly start unit because it takes quite some time
         expect(nothrow([&ps] { ps.start(); }));
 
         // This either hangs or terminates without producing anything if I increase the number of threads
-        constexpr std::size_t min_threads = 2;
-        constexpr std::size_t max_threads = 2;
-        scheduler::simple<scheduler::multi_threaded> sched{ std::move(flow_graph), std::make_shared<fair::thread_pool::BasicThreadPool>("simple-scheduler-pool", fair::thread_pool::CPU_BOUND, min_threads, max_threads) };
+        constexpr std::size_t                        min_threads = 2;
+        constexpr std::size_t                        max_threads = 2;
+        scheduler::simple<scheduler::multi_threaded> sched{ std::move(flow_graph),
+                                                            std::make_shared<fair::thread_pool::BasicThreadPool>("simple-scheduler-pool", fair::thread_pool::CPU_BOUND, min_threads, max_threads) };
         sched.start();
         std::this_thread::sleep_for(std::chrono::milliseconds(duration_ms));
         ps.force_quit(); // needed, otherwise stop() doesn't terminate (no matter if the PS works blocking or not)
@@ -129,7 +130,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
         constexpr std::size_t nr_captures   = 2;
         constexpr auto        total_samples = nr_captures * (pre_samples + post_samples);
 
-        graph::graph          flow_graph;
+        fair::graph::graph    flow_graph;
         auto                 &ps = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
                                                                             { "pre_samples", pre_samples },
                                                                             { "post_samples", post_samples },
@@ -162,9 +163,12 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "rapid block continuous"_test = [] {
-        graph::graph flow_graph;
-        auto &ps = flow_graph.make_node<Picoscope4000a>(
-                { { { "sample_rate", 10000. }, { "post_samples", std::size_t{1000} }, { "acquisition_mode_string", "RAPID_BLOCK" }, { "rapid_block_nr_captures", std::size_t{1} }, { "auto_arm", true } } });
+        fair::graph::graph flow_graph;
+        auto              &ps = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
+                                                                         { "post_samples", std::size_t{ 1000 } },
+                                                                         { "acquisition_mode_string", "RAPID_BLOCK" },
+                                                                         { "rapid_block_nr_captures", std::size_t{ 1 } },
+                                                                         { "auto_arm", true } } });
 
         ps.set_channel_configuration({ { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
         auto &sink0 = flow_graph.make_node<count_sink<float>>();
