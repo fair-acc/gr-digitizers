@@ -13,21 +13,15 @@ namespace gr::picoscope4000a {
 
 struct PicoStatus4000aErrc : std::error_category {
     const char *
-    name() const noexcept override;
+    name() const noexcept override {
+        return "Ps4000a";
+    }
     std::string
-    message(int ev) const override;
+    message(int ev) const override {
+        const auto status = static_cast<PICO_STATUS>(ev);
+        return ps4000a_get_error_message(status);
+    }
 };
-
-const char *
-PicoStatus4000aErrc::name() const noexcept {
-    return "Ps4000a";
-}
-
-std::string
-PicoStatus4000aErrc::message(int ev) const {
-    const auto status = static_cast<PICO_STATUS>(ev);
-    return ps4000a_get_error_message(status);
-}
 
 const PicoStatus4000aErrc thePsErrCategory{};
 
