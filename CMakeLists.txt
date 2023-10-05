@@ -35,6 +35,12 @@ if(NOT EMSCRIPTEN)
     set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
 endif()
 
+if(ENABLE_PICOSCOPE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(zlib REQUIRED IMPORTED_TARGET zlib)
+    pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+endif()
+
 option(ENABLE_TESTING "Enable Test Builds" ON)
 if (ENABLE_TESTING AND UNIX AND NOT APPLE)
     list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")

@@ -2,6 +2,7 @@
 add_library(ps4000a SHARED IMPORTED)
 set_property(TARGET ps4000a PROPERTY
              IMPORTED_LOCATION ${PICOSCOPE_PREFIX}/lib/libps4000a.so)
+target_link_libraries(ps4000a INTERFACE PkgConfig::zlib PkgConfig::libusb)
 target_include_directories(ps4000a INTERFACE ${PICOSCOPE_PREFIX}/include/libps4000a ${PICOSCOPE_PREFIX}/include/libps5000a) # Hack: PicoCallback.h is missing in libps4000a/
 
 add_library(fair-picoscope4000a SHARED picoscope4000a.cc)
