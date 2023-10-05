@@ -130,19 +130,6 @@ jobs:
         shell: bash
         run: cmake --build . --target coverage
 
-      - name: execute native main binary
-        if: matrix.configurations.compiler != 'emscripten'
-        working-directory: ${{runner.workspace}}/build
-        shell: bash
-        run: ./src/main
-
-      - name: execute wasm main binary with nodejs
-        if: matrix.configurations.compiler == 'emscripten'
-        working-directory: ${{runner.workspace}}/build
-        shell: bash
-        run: |
-          node --experimental-wasm-threads ./src/main.js
-
       - name: Run sonar-scanner
         if: matrix.configurations.compiler == 'gcc12' && matrix.cmake-build-type == 'Debug'
         shell: bash
