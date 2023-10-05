@@ -180,10 +180,7 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
     detail::State                                              state;
     detail::Settings                                           ps_settings;
 
-    detail::streaming_callback_function_t                      _streaming_callback;
-
-    explicit Picoscope() : _streaming_callback([this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); }) {
-    }
+    detail::streaming_callback_function_t                      _streaming_callback = [this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); };
 
     ~Picoscope() { stop(); }
 
