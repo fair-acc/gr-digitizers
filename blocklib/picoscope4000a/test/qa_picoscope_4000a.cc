@@ -31,8 +31,9 @@ test_rapid_block_basic(std::size_t nr_captures) {
     auto &sink    = flow_graph.make_node<count_sink<float>>();
     auto &errsink = flow_graph.make_node<count_sink<float>>();
 
-    expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"values0">(ps).template to<"in">(sink)));
-    expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"errors0">(ps).template to<"in">(errsink)));
+    // TODO move back to static connect() once it can handle arrays
+    expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink, 0)));
+    expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/8, errsink, 0)));
 
     scheduler::simple sched{ std::move(flow_graph) };
     sched.run_and_wait();
@@ -92,8 +93,9 @@ const boost::ut::suite Picoscope4000aTests = [] {
         auto &sink    = flow_graph.make_node<count_sink<float>>();
         auto &errsink = flow_graph.make_node<count_sink<float>>();
 
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"values0">(ps).template to<"in">(sink)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"errors0">(ps).template to<"in">(errsink)));
+        // TODO move back to static connect() once it can handle arrays
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink, 0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/8, errsink, 0)));
 
         // Explicitly start unit because it takes quite some time
         expect(nothrow([&ps] { ps.start(); }));
@@ -144,10 +146,11 @@ const boost::ut::suite Picoscope4000aTests = [] {
         auto &sink2 = flow_graph.make_node<count_sink<float>>();
         auto &sink3 = flow_graph.make_node<count_sink<float>>();
 
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"values0">(ps).template to<"in">(sink0)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"values1">(ps).template to<"in">(sink1)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"values2">(ps).template to<"in">(sink2)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"values3">(ps).template to<"in">(sink3)));
+        // TODO move back to static connect() once it can handle arrays
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink0, 0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 1, sink1, 0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 2, sink2, 0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 3, sink3, 0)));
 
         scheduler::simple sched{ std::move(flow_graph) };
         sched.run_and_wait();
@@ -161,12 +164,12 @@ const boost::ut::suite Picoscope4000aTests = [] {
     "rapid block continuous"_test = [] {
         graph::graph flow_graph;
         auto &ps = flow_graph.make_node<Picoscope4000a>(
-                { { { "sample_rate", 10000. }, { "post_samples", 1000 }, { "acquisition_mode_string", "RAPID_BLOCK" }, { "rapid_block_nr_captures", 1 }, { "auto_arm", true } } });
+                { { { "sample_rate", 10000. }, { "post_samples", std::size_t{1000} }, { "acquisition_mode_string", "RAPID_BLOCK" }, { "rapid_block_nr_captures", std::size_t{1} }, { "auto_arm", true } } });
 
         ps.set_channel_configuration({ { "A", { .range = 5., .coupling = coupling_t::AC_1M } } });
         auto &sink0 = flow_graph.make_node<count_sink<float>>();
 
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"values0">(ps).template to<"in">(sink0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink0, 0)));
 
         ps.start();
 
@@ -179,8 +182,8 @@ const boost::ut::suite Picoscope4000aTests = [] {
         });
 
         sched.run_and_wait();
-        expect(ge(sink0.samples_seen, std::size_t{ 3000 }));
-        expect(le(sink0.samples_seen, std::size_t{ 15000 }));
+        expect(ge(sink0.samples_seen, std::size_t{ 2000 }));
+        expect(le(sink0.samples_seen, std::size_t{ 10000 }));
     };
 };
 

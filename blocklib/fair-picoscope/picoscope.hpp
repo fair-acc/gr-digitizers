@@ -210,7 +210,6 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
         ps_settings.enabled_ports = enabled_ports = std::move(ports);
         ps_settings.trigger = trigger = std::move(trigger_);
 
-        auto channel_outputs          = self().channel_outputs();
         state.channels.reserve(enabled_channels.value.size());
 
         std::size_t channel_idx = 0;
@@ -218,8 +217,8 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
             state.channels.emplace_back(detail::Channel{ .id            = id,
                                                          .settings      = settings,
                                                          .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
-                                                         .data_writer   = channel_outputs[channel_idx].first.streamWriter().buffer().new_writer(),
-                                                         .error_writer  = channel_outputs[channel_idx].second.streamWriter().buffer().new_writer() });
+                                                         .data_writer   = self().values[channel_idx].streamWriter().buffer().new_writer(),
+                                                         .error_writer  = self().errors[channel_idx].streamWriter().buffer().new_writer() });
             channel_idx++;
         }
 
