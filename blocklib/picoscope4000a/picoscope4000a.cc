@@ -5,11 +5,11 @@
 
 #include <mutex>
 
-using gr::picoscope::acquisition_mode_t;
-using gr::picoscope::coupling_t;
-using gr::picoscope::trigger_direction_t;
+using fair::picoscope::acquisition_mode_t;
+using fair::picoscope::coupling_t;
+using fair::picoscope::trigger_direction_t;
 
-namespace gr::picoscope4000a {
+namespace fair::picoscope4000a {
 
 struct PicoStatus4000aErrc : std::error_category {
     const char *
@@ -290,7 +290,7 @@ Picoscope4000a::driver_hardware_version() const {
     return get_unit_info_topic(state.handle, PICO_HARDWARE_VERSION);
 }
 
-gr::picoscope::GetValuesResult
+fair::picoscope::GetValuesResult
 Picoscope4000a::driver_rapid_block_get_values(std::size_t capture, std::size_t samples) {
     if (const auto ec = set_buffers(samples, static_cast<uint32_t>(capture)); ec) {
         return { ec, 0, 0 };
@@ -464,7 +464,7 @@ Picoscope4000a::driver_arm() {
             return make_pico_4000a_error_code(status);
         }
     } else {
-        using gr::picoscope::detail::driver_buffer_size;
+        using fair::picoscope::detail::driver_buffer_size;
         set_buffers(driver_buffer_size, 0);
 
         ps4000a_unit_interval_t unit_int = convert_frequency_to_ps4000a_time_units_and_interval(ps_settings.sample_rate, state.actual_sample_rate);
@@ -498,11 +498,11 @@ Picoscope4000a::driver_disarm() noexcept {
 
 std::error_code
 Picoscope4000a::driver_poll() {
-    const auto status = ps4000aGetStreamingLatestValues(state.handle, static_cast<ps4000aStreamingReady>(gr::picoscope::detail::invoke_streaming_callback), &_streaming_callback);
+    const auto status = ps4000aGetStreamingLatestValues(state.handle, static_cast<ps4000aStreamingReady>(fair::picoscope::detail::invoke_streaming_callback), &_streaming_callback);
     if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
         return {};
     }
     return make_pico_4000a_error_code(status);
 }
 
-} // namespace gr::picoscope4000a
+} // namespace fair::picoscope4000a

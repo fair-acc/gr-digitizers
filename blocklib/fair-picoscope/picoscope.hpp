@@ -1,5 +1,5 @@
-#ifndef GR_PICOSCOPE_PICOSCOPE_HPP
-#define GR_PICOSCOPE_PICOSCOPE_HPP
+#ifndef FAIR_PICOSCOPE_PICOSCOPE_HPP
+#define FAIR_PICOSCOPE_PICOSCOPE_HPP
 
 #include <node.hpp>
 
@@ -9,7 +9,7 @@
 
 // #define GR_PICOSCOPE_POLLER_THREAD 1
 
-namespace gr::picoscope {
+namespace fair::picoscope {
 
 namespace detail {
 
@@ -551,6 +551,6 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
     }
 };
 
-} // namespace gr::picoscope
+} // namespace fair::picoscope
 
 #endif

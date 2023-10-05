@@ -5,21 +5,21 @@
 
 #include <scheduler.hpp>
 
-namespace gr::picoscope4000a::test {
+namespace fair::picoscope4000a::test {
 
 void
 test_rapid_block_basic(std::size_t nr_captures) {
     using namespace boost::ut;
     using namespace fair::graph;
     using namespace gr::helpers;
-    using namespace gr::picoscope;
-    using namespace gr::picoscope4000a;
+    using namespace fair::picoscope;
+    using namespace fair::picoscope4000a;
 
     constexpr std::size_t pre_samples   = 33;
     constexpr std::size_t post_samples  = 1000;
     const auto            total_samples = nr_captures * (pre_samples + post_samples);
 
-    graph                 flow_graph;
+    graph::graph          flow_graph;
     auto                 &ps = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
                                                                         { "pre_samples", pre_samples },
                                                                         { "post_samples", post_samples },
@@ -45,11 +45,11 @@ const boost::ut::suite Picoscope4000aTests = [] {
     using namespace boost::ut;
     using namespace fair::graph;
     using namespace gr::helpers;
-    using namespace gr::picoscope;
-    using namespace gr::picoscope4000a;
+    using namespace fair::picoscope;
+    using namespace fair::picoscope4000a;
 
     "open and close"_test = [] {
-        graph flow_graph;
+        graph::graph flow_graph;
         auto &ps = flow_graph.make_node<Picoscope4000a>();
 
         // this takes time, so we do it a few times only
@@ -62,7 +62,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "invalid settings"_test = [] {
-        graph flow_graph;
+        graph::graph flow_graph;
 
         // good channel
         expect(nothrow([&flow_graph] {
@@ -80,7 +80,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "streaming basics"_test = [] {
-        graph            flow_graph;
+        graph::graph     flow_graph;
 
         constexpr double sample_rate = 80000.;
         constexpr auto   duration_ms = 2000;
@@ -127,7 +127,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
         constexpr std::size_t nr_captures   = 2;
         constexpr auto        total_samples = nr_captures * (pre_samples + post_samples);
 
-        graph                 flow_graph;
+        graph::graph          flow_graph;
         auto                 &ps = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
                                                                             { "pre_samples", pre_samples },
                                                                             { "post_samples", post_samples },
@@ -159,7 +159,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "rapid block continuous"_test = [] {
-        graph flow_graph;
+        graph::graph flow_graph;
         auto &ps = flow_graph.make_node<Picoscope4000a>(
                 { { { "sample_rate", 10000. }, { "post_samples", 1000 }, { "acquisition_mode_string", "RAPID_BLOCK" }, { "rapid_block_nr_captures", 1 }, { "auto_arm", true } } });
 
@@ -184,7 +184,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 };
 
-} // namespace gr::picoscope4000a::test
+} // namespace fair::picoscope4000a::test
 
 int
 main() { /* tests are statically executed */

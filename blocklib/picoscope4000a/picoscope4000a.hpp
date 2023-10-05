@@ -1,11 +1,11 @@
-#ifndef GR_PICOSCOPE4000A_PICOSCOPE4000A_HPP
-#define GR_PICOSCOPE4000A_PICOSCOPE4000A_HPP
+#ifndef FAIR_PICOSCOPE4000A_PICOSCOPE4000A_HPP
+#define FAIR_PICOSCOPE4000A_PICOSCOPE4000A_HPP
 
 #include <picoscope.hpp>
 
-namespace gr::picoscope4000a {
+namespace fair::picoscope4000a {
 
-struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
+struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
     using AnalogPort = fair::graph::PortOut<float>;
 
     AnalogPort values0;
@@ -49,7 +49,7 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     driver_driver_version() const;
     std::string
     driver_hardware_version() const;
-    gr::picoscope::GetValuesResult
+    fair::picoscope::GetValuesResult
     driver_rapid_block_get_values(std::size_t capture, std::size_t nr_samples);
     std::error_code
     driver_initialize();
@@ -65,9 +65,9 @@ struct Picoscope4000a : public gr::picoscope::Picoscope<Picoscope4000a> {
     driver_poll();
 };
 
-} // namespace gr::picoscope4000a
+} // namespace fair::picoscope4000a
 
-ENABLE_REFLECTION(gr::picoscope4000a::Picoscope4000a, values0, errors0, values1, errors1, values2, errors2, values3, errors3, values4, errors4, values5, errors5, values6, errors6, values7, errors7,
+ENABLE_REFLECTION(fair::picoscope4000a::Picoscope4000a, values0, errors0, values1, errors1, values2, errors2, values3, errors3, values4, errors4, values5, errors5, values6, errors6, values7, errors7,
                   serial_number, sample_rate, pre_samples, post_samples, acquisition_mode_string, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once);
 
 #endif

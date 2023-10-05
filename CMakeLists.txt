@@ -41,9 +41,5 @@ if (ENABLE_TESTING AND UNIX AND NOT APPLE)
     enable_testing()
 endif ()
 
-if(ENABLE_PICOSCOPE)
-    add_subdirectory(gr-picoscope)
-endif()
-
 add_subdirectory(blocklib)
 
