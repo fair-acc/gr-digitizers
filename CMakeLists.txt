@@ -7,6 +7,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 
 include(FetchContent)
 
+set(ENABLE_TESTING OFF)
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
@@ -41,10 +42,27 @@ if(ENABLE_PICOSCOPE)
     pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
 endif()
 
-option(ENABLE_TESTING "Enable Test Builds" ON)
-if (ENABLE_TESTING AND UNIX AND NOT APPLE)
+option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds" ON)
+if (ENABLE_GR_DIGITIZERS_TESTING AND UNIX AND NOT APPLE)
     list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
     enable_testing()
+    if (ENABLE_COVERAGE)
+        message("Coverage reporting enabled")
+        include(cmake/CodeCoverage.cmake) # https://github.com/bilke/cmake-modules/blob/master/CodeCoverage.cmake # (License: BSL-1.0)
+        target_compile_options(gr-digitizers-options INTERFACE --coverage -O0 -g -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # fortify_source is not possible without optimization
+        target_link_libraries(gr-digitizers-options INTERFACE --coverage)
+        append_coverage_compiler_flags()
+        setup_target_for_coverage_gcovr_xml(
+                NAME coverage
+                EXECUTABLE ctest
+                DEPENDENCIES qa_block_scaling_offset
+                EXCLUDE "$CMAKE_BUILD_DIR/*" "concepts/.*" ".*/test/.*")
+        setup_target_for_coverage_gcovr_html(
+                NAME coverage_html
+                EXECUTABLE ctest
+                DEPENDENCIES qa_block_scaling_offset
+                EXCLUDE "$CMAKE_BUILD_DIR/*" "concepts/.*" ".*/test/.*")
+    endif ()
 endif ()
 
 add_subdirectory(blocklib)

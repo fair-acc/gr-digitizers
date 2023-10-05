@@ -11,6 +11,6 @@ target_include_directories(fair-picoscope4000a INTERFACE $<BUILD_INTERFACE:${CMA
 target_link_libraries(fair-picoscope4000a ps4000a fair-picoscope refl-cpp fmt)
 set_target_properties(gr-digitizers PROPERTIES PUBLIC_HEADER picoscope4000a.hpp)
 
-if (ENABLE_TESTING)
+if (ENABLE_GR_DIGITIZERS_TESTING)
     add_subdirectory(test)
 endif ()
