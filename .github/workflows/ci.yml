@@ -2,9 +2,9 @@ name: CMake
 
 on:
   push:
-    branches: [ main ]
+    branches: [ dev-prototype ]
   pull_request:
-    branches: [ main ]
+    branches: [ dev-prototype ]
   release:
     types: [ created ]
 
