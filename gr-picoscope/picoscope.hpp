@@ -163,19 +163,19 @@ using fair::graph::Visible;
 
 template<typename PSImpl>
 struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true>> {
-    A<std::string, "serial number", Visible> serial_number;
+    A<std::string, "serial number"> serial_number;
     A<double, "sample rate", Visible>        sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
     A<std::string, "acquisition mode as string", Visible>      acquisition_mode_string  = std::string("STREAMING");
-    A<std::size_t, "pre-samples", Visible>                     pre_samples              = 1000;
-    A<std::size_t, "post-samples", Visible>                    post_samples             = 9000;
-    A<std::size_t, "no. captures (rapid block mode)", Visible> rapid_block_nr_captures  = 1;
-    A<bool, "trigger once (rapid block mode)", Visible>        trigger_once             = false;
-    A<double, "poll rate (streaming mode)", Visible>           streaming_mode_poll_rate = 0.001;
-    A<bool, "auto-arm", Visible>                               auto_arm                 = true;
-    A<ChannelMap, "enabled analog channels", Visible>          enabled_channels;
-    A<PortMap, "enabled digital ports", Visible>               enabled_ports;
-    A<trigger_setting_t, "trigger settings", Visible>          trigger;
+    A<std::size_t, "pre-samples">                     pre_samples              = 1000;
+    A<std::size_t, "post-samples">                    post_samples             = 9000;
+    A<std::size_t, "no. captures (rapid block mode)"> rapid_block_nr_captures  = 1;
+    A<bool, "trigger once (rapid block mode)">        trigger_once             = false;
+    A<double, "poll rate (streaming mode)">           streaming_mode_poll_rate = 0.001;
+    A<bool, "auto-arm">                               auto_arm                 = true;
+    A<ChannelMap, "enabled analog channels">          enabled_channels;
+    A<PortMap, "enabled digital ports">               enabled_ports;
+    A<trigger_setting_t, "trigger settings">          trigger;
 
     detail::State                                              state;
     detail::Settings                                           ps_settings;
