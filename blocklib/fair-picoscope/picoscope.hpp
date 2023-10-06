@@ -32,20 +32,31 @@ invoke_streaming_callback(int16_t handle, int32_t noOfSamples, uint32_t startInd
 
 enum class acquisition_mode_t { STREAMING, RAPID_BLOCK };
 
-/**
- * An enum representing coupling mode
- */
 enum class coupling_t {
-    DC_1M  = 0, ///< DC, 1 MOhm
-    AC_1M  = 1, ///< AC, 1 MOhm
-    DC_50R = 2, ///< DC, 50 Ohm
+    DC_1M,  ///< DC, 1 MOhm
+    AC_1M,  ///< AC, 1 MOhm
+    DC_50R, ///< DC, 50 Ohm
 };
 
-/*!
- * \brief Specifies a trigger mechanism
- * \ingroup digitizers
- */
-enum class trigger_direction_t { Rising, Falling, Low, High };
+enum class trigger_direction_t { RISING, FALLING, LOW, HIGH };
+
+struct GetValuesResult {
+    std::error_code error;
+    std::size_t     samples;
+    int16_t         overflow;
+};
+
+namespace detail {
+
+constexpr std::size_t driver_buffer_size = 65536;
+
+struct channel_setting_t {
+    double     range    = 2.;
+    float      offset   = 0.;
+    coupling_t coupling = coupling_t::AC_1M;
+};
+
+using ChannelMap = std::map<std::string, channel_setting_t, std::less<>>;
 
 struct trigger_setting_t {
     static constexpr std::string_view TRIGGER_DIGITAL_SOURCE = "DI"; // DI is as well used as "AUX" for p6000 scopes
@@ -67,40 +78,8 @@ struct trigger_setting_t {
 
     std::string         source;
     float               threshold  = 0; // AI only
-    trigger_direction_t direction  = trigger_direction_t::Rising;
+    trigger_direction_t direction  = trigger_direction_t::RISING;
     int                 pin_number = 0; // DI only
-};
-
-struct channel_setting_t {
-    double     range    = 2.;
-    float      offset   = 0.;
-    coupling_t coupling = coupling_t::AC_1M;
-};
-
-using ChannelMap = std::map<std::string, channel_setting_t, std::less<>>;
-
-struct port_setting_t {
-    float logic_level = 1.5;
-    bool  enabled     = false;
-};
-
-using PortMap = std::map<std::string, port_setting_t, std::less<>>;
-
-struct GetValuesResult {
-    std::error_code error;
-    std::size_t     samples;
-    int16_t         overflow;
-};
-
-namespace detail {
-
-constexpr std::size_t driver_buffer_size = 65536;
-
-template<typename T, std::size_t InitialSize = 1>
-struct BufferHelper {
-    gr::circular_buffer<T>        buffer = gr::circular_buffer<T>(InitialSize);
-    decltype(buffer.new_reader()) reader = buffer.new_reader();
-    decltype(buffer.new_writer()) writer = buffer.new_writer();
 };
 
 struct Channel {
@@ -117,6 +96,13 @@ struct Error {
     std::error_code error;
 };
 
+template<typename T, std::size_t InitialSize = 1>
+struct BufferHelper {
+    gr::circular_buffer<T>        buffer = gr::circular_buffer<T>(InitialSize);
+    decltype(buffer.new_reader()) reader = buffer.new_reader();
+    decltype(buffer.new_writer()) writer = buffer.new_writer();
+};
+
 struct Settings {
     std::string        serial_number;
     double             sample_rate              = 10000.;
@@ -128,7 +114,6 @@ struct Settings {
     double             streaming_mode_poll_rate = 0.001;
     bool               auto_arm                 = true;
     ChannelMap         enabled_channels;
-    PortMap            enabled_ports;
     trigger_setting_t  trigger;
 };
 
@@ -153,6 +138,69 @@ struct State {
     std::size_t produced_worker = 0;                  // poller/callback thread
 };
 
+// TODO replace by std::ranges::views::split once that works on all supported compilers
+inline std::vector<std::string_view>
+split(std::string_view s) {
+    std::vector<std::string_view> segments;
+    while (true) {
+        const auto pos = s.find(",");
+        if (pos == std::string_view::npos) {
+            segments.push_back(s);
+            return segments;
+        }
+
+        segments.push_back(s.substr(0, pos));
+        s.remove_prefix(pos + 1);
+    }
+}
+
+inline acquisition_mode_t
+parse_acquisition_mode(std::string_view s) {
+    using enum acquisition_mode_t;
+    if (s == "RAPID_BLOCK") return RAPID_BLOCK;
+    if (s == "STREAMING") return STREAMING;
+    throw std::invalid_argument(fmt::format("Unknown acquisition mode '{}'", s));
+}
+
+inline coupling_t
+parse_coupling(std::string_view s) {
+    using enum coupling_t;
+    if (s == "DC_1M") return DC_1M;
+    if (s == "AC_1M") return AC_1M;
+    if (s == "DC_50R") return DC_50R;
+    throw std::invalid_argument(fmt::format("Unknown coupling type '{}'", s));
+}
+
+inline trigger_direction_t
+parse_trigger_direction(std::string_view s) {
+    using enum trigger_direction_t;
+    if (s == "RISING") return RISING;
+    if (s == "FALLING") return FALLING;
+    if (s == "LOW") return LOW;
+    if (s == "HIGH") return HIGH;
+    throw std::invalid_argument(fmt::format("Unknown trigger direction '{}'", s));
+}
+
+inline ChannelMap
+channel_settings(std::span<const std::string_view> ids, std::span<const double> ranges, std::span<const float> offsets, std::span<const std::string_view> couplings) {
+    ChannelMap r;
+    for (std::size_t i = 0; i < ids.size(); ++i) {
+        channel_setting_t channel;
+        if (i < ranges.size()) {
+            channel.range = ranges[i];
+        }
+        if (i < offsets.size()) {
+            channel.offset = offsets[i];
+        }
+        if (i < couplings.size()) {
+            channel.coupling = parse_coupling(couplings[i]);
+        }
+
+        r[std::string(ids[i])] = channel;
+    }
+    return r;
+}
+
 } // namespace detail
 
 // optional shortening
@@ -163,69 +211,31 @@ using fair::graph::Visible;
 
 template<typename PSImpl>
 struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true>> {
-    A<std::string, "serial number"> serial_number;
-    A<double, "sample rate", Visible>        sample_rate = 10000.;
+    A<std::string, "serial number">   serial_number;
+    A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
-    A<std::string, "acquisition mode as string", Visible>      acquisition_mode_string  = std::string("STREAMING");
-    A<std::size_t, "pre-samples">                     pre_samples              = 1000;
-    A<std::size_t, "post-samples">                    post_samples             = 9000;
-    A<std::size_t, "no. captures (rapid block mode)"> rapid_block_nr_captures  = 1;
-    A<bool, "trigger once (rapid block mode)">        trigger_once             = false;
-    A<double, "poll rate (streaming mode)">           streaming_mode_poll_rate = 0.001;
-    A<bool, "auto-arm">                               auto_arm                 = true;
-    A<ChannelMap, "enabled analog channels">          enabled_channels;
-    A<PortMap, "enabled digital ports">               enabled_ports;
-    A<trigger_setting_t, "trigger settings">          trigger;
+    A<std::string, "acquisition mode", Visible>                           acquisition_mode         = std::string("STREAMING");
+    A<std::size_t, "pre-samples">                                         pre_samples              = 1000;
+    A<std::size_t, "post-samples">                                        post_samples             = 9000;
+    A<std::size_t, "no. captures (rapid block mode)">                     rapid_block_nr_captures  = 1;
+    A<bool, "trigger once (rapid block mode)">                            trigger_once             = false;
+    A<double, "poll rate (streaming mode)">                               streaming_mode_poll_rate = 0.001;
+    A<bool, "auto-arm">                                                   auto_arm                 = true;
+    A<std::string, "IDs of enabled channels, comma-separated">            channel_ids;
+    std::vector<double>                                                   channel_ranges;
+    std::vector<float>                                                    channel_offsets;
+    A<std::string, "Coupling modes of enabled channels, comma-separated"> channel_couplings;
+    A<std::string, "trigger channel/port ID">                             trigger_source;
+    A<float, "trigger threshold, analog only">                            trigger_threshold = 0.f;
+    A<std::string, "trigger direction">                                   trigger_direction = std::string("RISING");
+    A<int, "trigger pin, digital only">                                   trigger_pin       = 0;
 
-    detail::State                                              state;
-    detail::Settings                                           ps_settings;
+    detail::State                                                         state;
+    detail::Settings                                                      ps_settings;
 
-    detail::streaming_callback_function_t                      _streaming_callback = [this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); };
+    detail::streaming_callback_function_t _streaming_callback = [this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); };
 
     ~Picoscope() { stop(); }
-
-    // TODO this should be part of the settings, but how to pass it through property_map?
-    void
-    set_channel_configuration(ChannelMap channels, PortMap ports = {}, trigger_setting_t trigger_ = {}) {
-        const auto was_started = state.started;
-        if (was_started) {
-            stop();
-        }
-
-        // TODO maybe also check (at the end of configure()) that the configured channels
-        // actually exist on the given device
-        for (const auto &[id, _] : channels) {
-            if (!PSImpl::driver_channel_id_to_index(id)) {
-                throw std::invalid_argument(fmt::format("Unknown channel '{}'", id));
-            }
-        }
-
-        if (trigger_.is_enabled()) {
-            if (!PSImpl::driver_channel_id_to_index(trigger_.source)) {
-                throw std::invalid_argument(fmt::format("Unknown trigger channel '{}'", trigger_.source));
-            }
-        }
-
-        ps_settings.enabled_channels = enabled_channels = std::move(channels);
-        ps_settings.enabled_ports = enabled_ports = std::move(ports);
-        ps_settings.trigger = trigger = std::move(trigger_);
-
-        state.channels.reserve(enabled_channels.value.size());
-
-        std::size_t channel_idx = 0;
-        for (const auto &[id, settings] : enabled_channels.value) {
-            state.channels.emplace_back(detail::Channel{ .id            = id,
-                                                         .settings      = settings,
-                                                         .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
-                                                         .data_writer   = self().values[channel_idx].streamWriter().buffer().new_writer(),
-                                                         .error_writer  = self().errors[channel_idx].streamWriter().buffer().new_writer() });
-            channel_idx++;
-        }
-
-        if (was_started) {
-            start();
-        }
-    }
 
     void
     settings_changed(const fair::graph::property_map & /*old_settings*/, const fair::graph::property_map & /*new_settings*/) {
@@ -233,19 +243,35 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
         if (was_started) {
             stop();
         }
-        auto s = detail::Settings{ .serial_number            = serial_number,
-                                   .sample_rate              = sample_rate,
-                                   .acquisition_mode         = acquisition_mode_string == "STREAMING" ? acquisition_mode_t::STREAMING : acquisition_mode_t::RAPID_BLOCK,
-                                   .pre_samples              = pre_samples,
-                                   .post_samples             = post_samples,
-                                   .rapid_block_nr_captures  = rapid_block_nr_captures,
-                                   .trigger_once             = trigger_once,
-                                   .streaming_mode_poll_rate = streaming_mode_poll_rate,
-                                   .auto_arm                 = auto_arm,
-                                   .enabled_channels         = enabled_channels,
-                                   .enabled_ports            = enabled_ports,
-                                   .trigger                  = trigger };
-        std::swap(ps_settings, s);
+        try {
+            auto s = detail::Settings{ .serial_number            = serial_number,
+                                       .sample_rate              = sample_rate,
+                                       .acquisition_mode         = detail::parse_acquisition_mode(acquisition_mode),
+                                       .pre_samples              = pre_samples,
+                                       .post_samples             = post_samples,
+                                       .rapid_block_nr_captures  = rapid_block_nr_captures,
+                                       .trigger_once             = trigger_once,
+                                       .streaming_mode_poll_rate = streaming_mode_poll_rate,
+                                       .auto_arm                 = auto_arm,
+                                       .enabled_channels         = detail::channel_settings(detail::split(channel_ids), channel_ranges, channel_offsets, detail::split(channel_couplings)),
+                                       .trigger                  = detail::trigger_setting_t{
+                                                                .source = trigger_source, .threshold = trigger_threshold, .direction = detail::parse_trigger_direction(trigger_direction), .pin_number = trigger_pin } };
+            std::swap(ps_settings, s);
+
+            state.channels.reserve(ps_settings.enabled_channels.size());
+            std::size_t channel_idx = 0;
+            for (const auto &[id, settings] : ps_settings.enabled_channels) {
+                state.channels.emplace_back(detail::Channel{ .id            = id,
+                                                             .settings      = settings,
+                                                             .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
+                                                             .data_writer   = self().values[channel_idx].streamWriter().buffer().new_writer(),
+                                                             .error_writer  = self().errors[channel_idx].streamWriter().buffer().new_writer() });
+                channel_idx++;
+            }
+        } catch (const std::exception &e) {
+            // TODO add errors properly
+            fmt::println(std::cerr, "Could not apply settings: {}", e.what());
+        }
         if (was_started) {
             start();
         }

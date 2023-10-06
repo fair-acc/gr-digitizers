@@ -16,6 +16,7 @@ struct PicoStatus4000aErrc : std::error_category {
     name() const noexcept override {
         return "Ps4000a";
     }
+
     std::string
     message(int ev) const override {
         const auto status = static_cast<PICO_STATUS>(ev);
@@ -136,10 +137,10 @@ convert_to_ps4000a_channel(std::string_view source) {
 PS4000A_THRESHOLD_DIRECTION
 convert_to_ps4000a_threshold_direction(trigger_direction_t direction) {
     switch (direction) {
-    case trigger_direction_t::Rising: return PS4000A_RISING;
-    case trigger_direction_t::Falling: return PS4000A_FALLING;
-    case trigger_direction_t::Low: return PS4000A_BELOW;
-    case trigger_direction_t::High: return PS4000A_ABOVE;
+    case trigger_direction_t::RISING: return PS4000A_RISING;
+    case trigger_direction_t::FALLING: return PS4000A_FALLING;
+    case trigger_direction_t::LOW: return PS4000A_BELOW;
+    case trigger_direction_t::HIGH: return PS4000A_ABOVE;
     default: throw std::runtime_error(fmt::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
     }
 };
@@ -317,10 +318,10 @@ Picoscope4000a::driver_initialize() {
     std::lock_guard init_guard{ g_init_mutex };
 
     // take any if serial number is not provided (useful for testing purposes)
-    if (serial_number.value.empty()) {
+    if (ps_settings.serial_number.empty()) {
         status = ps4000aOpenUnit(&state.handle, nullptr);
     } else {
-        status = ps4000aOpenUnit(&state.handle, const_cast<int8_t *>(reinterpret_cast<const int8_t *>(serial_number.value.data())));
+        status = ps4000aOpenUnit(&state.handle, const_cast<int8_t *>(reinterpret_cast<const int8_t *>(ps_settings.serial_number.data())));
     }
 
     // ignore ext. power not connected error/warning
@@ -416,7 +417,7 @@ Picoscope4000a::driver_configure() {
     }
 
     // apply trigger configuration
-    if (trigger.value.is_analog() && ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
+    if (ps_settings.trigger.is_analog() && ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
         const auto channel = convert_to_ps4000a_channel(ps_settings.trigger.source);
         assert(channel);
         status = ps4000aSetSimpleTrigger(state.handle,

@@ -46,6 +46,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
 
 } // namespace fair::picoscope4000a
 
-ENABLE_REFLECTION(fair::picoscope4000a::Picoscope4000a, values, errors, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode_string, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once);
+ENABLE_REFLECTION(fair::picoscope4000a::Picoscope4000a, values, errors, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate,
+                  auto_arm, trigger_once, channel_ids, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, trigger_pin);
 
 #endif
