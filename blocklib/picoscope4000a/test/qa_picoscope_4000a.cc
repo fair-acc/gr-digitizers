@@ -5,6 +5,8 @@
 
 #include <scheduler.hpp>
 
+using namespace std::string_literals;
+
 namespace fair::picoscope4000a::test {
 
 void
@@ -76,14 +78,18 @@ const boost::ut::suite Picoscope4000aTests = [] {
                                                                                   { "streaming_mode_poll_rate", 0.00001 },
                                                                                   { "auto_arm", true },
                                                                                   { "channel_ids", "A" },
+                                                                                  { "channel_names", "Test signal" },
+                                                                                  { "channel_units", "Test unit" },
                                                                                   { "channel_ranges", std::vector{ { 5. } } },
                                                                                   { "channel_couplings", "AC_1M" } } });
 
+        auto              &tag_tracker = flow_graph.make_node<tag_debug<float>>();
         auto              &sink        = flow_graph.make_node<count_sink<float>>();
         auto              &errsink     = flow_graph.make_node<count_sink<float>>();
 
         // TODO move back to static connect() once it can handle arrays
-        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink, 0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, tag_tracker, 0)));
+        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out">(tag_tracker).template to<"in">(sink)));
         expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/ 8, errsink, 0)));
 
         // Explicitly start unit because it takes quite some time
@@ -107,6 +113,14 @@ const boost::ut::suite Picoscope4000aTests = [] {
         expect(eq(sink.samples_seen, errsink.samples_seen));
         expect(ge(sink.samples_seen, std::size_t{ 80000 }));
         expect(le(sink.samples_seen, std::size_t{ 160000 }));
+        expect(eq(tag_tracker.seen_tags.size(), std::size_t{ 1 }));
+        const auto &tag = tag_tracker.seen_tags[0];
+        expect(eq(tag.index, int64_t{ 0 }));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.key()))), static_cast<float>(sample_rate)));
+        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.key()))), "Test signal"s));
+        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.key()))), "Test unit"s));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.key()))), 0.f));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.key()))), 5.f));
     };
 
     "rapid block basics"_test            = [] { test_rapid_block_basic(1); };

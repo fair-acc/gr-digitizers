@@ -45,6 +45,26 @@ struct vector_sink : public fair::graph::node<vector_sink<T>> {
 };
 
 template<typename T>
+struct tag_debug : public fair::graph::node<tag_debug<T>> {
+    fair::graph::PortIn<T>          in;
+    fair::graph::PortOut<T>         out;
+    std::vector<fair::graph::tag_t> seen_tags;
+    std::size_t                     samples_seen = 0;
+
+    fair::graph::work_return_status_t
+    process_bulk(std::span<const T> input, std::span<T> output) noexcept {
+        std::copy(input.begin(), input.end(), output.begin());
+        if (this->input_tags_present()) {
+            auto tag = this->input_tags()[0];
+            tag.index += static_cast<int64_t>(samples_seen);
+            seen_tags.push_back(std::move(tag));
+        }
+        samples_seen += input.size();
+        return fair::graph::work_return_status_t::OK;
+    }
+};
+
+template<typename T>
 struct count_sink : public fair::graph::node<count_sink<T>> {
     fair::graph::PortIn<T> in;
     std::size_t            samples_seen = 0;
@@ -60,6 +80,7 @@ struct count_sink : public fair::graph::node<count_sink<T>> {
 
 ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::vector_source, out, data);
 ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::vector_sink, in, data);
+ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::tag_debug, in, out);
 ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::count_sink, in);
 
 #endif

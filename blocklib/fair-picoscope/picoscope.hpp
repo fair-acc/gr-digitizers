@@ -51,9 +51,11 @@ namespace detail {
 constexpr std::size_t driver_buffer_size = 65536;
 
 struct channel_setting_t {
-    double     range    = 2.;
-    float      offset   = 0.;
-    coupling_t coupling = coupling_t::AC_1M;
+    std::string name;
+    std::string unit     = "V";
+    double      range    = 2.;
+    float       offset   = 0.;
+    coupling_t  coupling = coupling_t::AC_1M;
 };
 
 using ChannelMap = std::map<std::string, channel_setting_t, std::less<>>;
@@ -83,12 +85,25 @@ struct trigger_setting_t {
 };
 
 struct Channel {
-    using WriterType = decltype(std::declval<gr::circular_buffer<float>>().new_writer());
+    using WriterType    = decltype(std::declval<gr::circular_buffer<float>>().new_writer());
+    using TagWriterType = decltype(std::declval<gr::circular_buffer<fair::graph::tag_t>>().new_writer());
     std::string          id;
     channel_setting_t    settings;
     std::vector<int16_t> driver_buffer;
     WriterType           data_writer;
+    TagWriterType        tag_writer;
     WriterType           error_writer;
+    bool                 signal_info_written = false;
+
+    fair::graph::property_map
+    signal_info() const {
+        using namespace fair::graph;
+        static const auto SIGNAL_NAME = std::string(tag::SIGNAL_NAME.key());
+        static const auto SIGNAL_UNIT = std::string(tag::SIGNAL_UNIT.key());
+        static const auto SIGNAL_MIN  = std::string(tag::SIGNAL_MIN.key());
+        static const auto SIGNAL_MAX  = std::string(tag::SIGNAL_MAX.key());
+        return { { SIGNAL_NAME, settings.name }, { SIGNAL_UNIT, settings.unit }, { SIGNAL_MIN, settings.offset }, { SIGNAL_MAX, settings.offset + static_cast<float>(settings.range) } };
+    }
 };
 
 struct Error {
@@ -182,10 +197,19 @@ parse_trigger_direction(std::string_view s) {
 }
 
 inline ChannelMap
-channel_settings(std::span<const std::string_view> ids, std::span<const double> ranges, std::span<const float> offsets, std::span<const std::string_view> couplings) {
+channel_settings(std::span<const std::string_view> ids, std::span<const std::string_view> names, std::span<const std::string_view> units, std::span<const double> ranges,
+                 std::span<const float> offsets, std::span<const std::string_view> couplings) {
     ChannelMap r;
     for (std::size_t i = 0; i < ids.size(); ++i) {
         channel_setting_t channel;
+        if (i < names.size()) {
+            channel.name = names[i];
+        } else {
+            channel.name = fmt::format("signal {} ({})", i, ids[i]);
+        }
+        if (i < units.size()) {
+            channel.unit = std::string(units[i]);
+        }
         if (i < ranges.size()) {
             channel.range = ranges[i];
         }
@@ -222,6 +246,8 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
     A<double, "poll rate (streaming mode)">                               streaming_mode_poll_rate = 0.001;
     A<bool, "auto-arm">                                                   auto_arm                 = true;
     A<std::string, "IDs of enabled channels, comma-separated">            channel_ids;
+    A<std::string, "Names of enabled channels, comma-separated">          channel_names;
+    A<std::string, "Units of enabled channels, comma-separated">          channel_units;
     std::vector<double>                                                   channel_ranges;
     std::vector<float>                                                    channel_offsets;
     A<std::string, "Coupling modes of enabled channels, comma-separated"> channel_couplings;
@@ -253,7 +279,8 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
                                        .trigger_once             = trigger_once,
                                        .streaming_mode_poll_rate = streaming_mode_poll_rate,
                                        .auto_arm                 = auto_arm,
-                                       .enabled_channels         = detail::channel_settings(detail::split(channel_ids), channel_ranges, channel_offsets, detail::split(channel_couplings)),
+                                       .enabled_channels         = detail::channel_settings(detail::split(channel_ids), detail::split(channel_names), detail::split(channel_units), channel_ranges,
+                                                                                            channel_offsets, detail::split(channel_couplings)),
                                        .trigger                  = detail::trigger_setting_t{
                                                                 .source = trigger_source, .threshold = trigger_threshold, .direction = detail::parse_trigger_direction(trigger_direction), .pin_number = trigger_pin } };
             std::swap(ps_settings, s);
@@ -265,6 +292,7 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
                                                              .settings      = settings,
                                                              .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
                                                              .data_writer   = self().values[channel_idx].streamWriter().buffer().new_writer(),
+                                                             .tag_writer    = self().values[channel_idx].tagWriter().buffer().new_writer(),
                                                              .error_writer  = self().errors[channel_idx].streamWriter().buffer().new_writer() });
                 channel_idx++;
             }
@@ -508,6 +536,16 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
             }
             auto write_errors = channel.error_writer.reserve_output_range(nr_samples);
             std::fill(write_errors.begin(), write_errors.end(), error_estimate);
+
+            if (!channel.signal_info_written) {
+                auto write_tag                = channel.tag_writer.reserve_output_range(1);
+                write_tag[0].index            = static_cast<int64_t>(state.produced_worker);
+                write_tag[0].map              = channel.signal_info();
+                static const auto SAMPLE_RATE = std::string(fair::graph::tag::SAMPLE_RATE.key());
+                write_tag[0].map[SAMPLE_RATE] = static_cast<float>(sample_rate);
+                write_tag.publish(1);
+                channel.signal_info_written = true;
+            }
 
             write_values.publish(nr_samples);
             write_errors.publish(nr_samples);
