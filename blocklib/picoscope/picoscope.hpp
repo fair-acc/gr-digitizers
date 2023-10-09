@@ -97,15 +97,17 @@ struct trigger_setting_t {
     int                 pin_number = 0; // DI only
 };
 
+template<typename T>
 struct Channel {
-    using WriterType    = decltype(std::declval<gr::circular_buffer<float>>().new_writer());
-    using TagWriterType = decltype(std::declval<gr::circular_buffer<gr::tag_t>>().new_writer());
+    using ValueWriterType = decltype(std::declval<gr::circular_buffer<T>>().new_writer());
+    using ErrorWriterType = decltype(std::declval<gr::circular_buffer<float>>().new_writer());
+    using TagWriterType   = decltype(std::declval<gr::circular_buffer<gr::tag_t>>().new_writer());
     std::string          id;
     channel_setting_t    settings;
     std::vector<int16_t> driver_buffer;
-    WriterType           data_writer;
+    ValueWriterType      data_writer;
     TagWriterType        tag_writer;
-    WriterType           error_writer;
+    ErrorWriterType      error_writer;
     bool                 signal_info_written = false;
 
     gr::property_map
@@ -145,8 +147,9 @@ struct Settings {
     trigger_setting_t  trigger;
 };
 
+template<typename T>
 struct State {
-    std::vector<Channel>          channels;
+    std::vector<Channel<T>>       channels;
     std::atomic<std::size_t>      data_available     = 0;
     std::atomic<bool>             data_finished      = false;
     bool                          initialized        = false;
@@ -230,8 +233,8 @@ using A = gr::Annotated<T, description, Arguments...>;
 
 using gr::Visible;
 
-template<typename PSImpl>
-struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>> {
+template<typename T, typename PSImpl>
+struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTypes<int16_t, float>> {
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
@@ -253,7 +256,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>> {
     A<std::string, "trigger direction">                               trigger_direction = std::string("RISING");
     A<int, "trigger pin, digital only">                               trigger_pin       = 0;
 
-    detail::State                                                     state;
+    detail::State<T>                                                  state;
     detail::Settings                                                  ps_settings;
 
     detail::streaming_callback_function_t _streaming_callback = [this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); };
@@ -285,12 +288,12 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>> {
             state.channels.reserve(ps_settings.enabled_channels.size());
             std::size_t channel_idx = 0;
             for (const auto &[id, settings] : ps_settings.enabled_channels) {
-                state.channels.emplace_back(detail::Channel{ .id            = id,
-                                                             .settings      = settings,
-                                                             .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
-                                                             .data_writer   = self().values[channel_idx].streamWriter().buffer().new_writer(),
-                                                             .tag_writer    = self().values[channel_idx].tagWriter().buffer().new_writer(),
-                                                             .error_writer  = self().errors[channel_idx].streamWriter().buffer().new_writer() });
+                state.channels.emplace_back(detail::Channel<T>{ .id            = id,
+                                                                .settings      = settings,
+                                                                .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
+                                                                .data_writer   = self().values[channel_idx].streamWriter().buffer().new_writer(),
+                                                                .tag_writer    = self().values[channel_idx].tagWriter().buffer().new_writer(),
+                                                                .error_writer  = self().errors[channel_idx].streamWriter().buffer().new_writer() });
                 channel_idx++;
             }
         } catch (const std::exception &e) {
@@ -522,14 +525,18 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>> {
     void
     process_driver_data(std::size_t nr_samples, std::size_t offset) {
         for (auto &channel : state.channels) {
-            const auto error_estimate     = channel.settings.range * static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
+            const auto error_estimate = channel.settings.range * static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
 
-            const auto voltage_multiplier = static_cast<float>(channel.settings.range / state.max_value);
-
-            auto       write_values       = channel.data_writer.reserve_output_range(nr_samples);
-            // TODO use SIMD
-            for (std::size_t i = 0; i < nr_samples; ++i) {
-                write_values[i] = voltage_multiplier * channel.driver_buffer[offset + i];
+            auto       write_values   = channel.data_writer.reserve_output_range(nr_samples);
+            const auto driver_data    = std::span(channel.driver_buffer).subspan(offset, nr_samples);
+            if constexpr (std::is_same_v<T, int16_t>) {
+                std::copy(driver_data.begin(), driver_data.end(), write_values.begin());
+            } else {
+                const auto voltage_multiplier = static_cast<T>(channel.settings.range / state.max_value);
+                // TODO use SIMD
+                for (std::size_t i = 0; i < nr_samples; ++i) {
+                    write_values[i] = voltage_multiplier * driver_data[i];
+                }
             }
             auto write_errors = channel.error_writer.reserve_output_range(nr_samples);
             std::fill(write_errors.begin(), write_errors.end(), error_estimate);
