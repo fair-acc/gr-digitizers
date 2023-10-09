@@ -1,10 +1,15 @@
-#pragma once
+#ifndef FAIR_PICOSCOPE_STATUS_MESSAGE_H
+#define FAIR_PICOSCOPE_STATUS_MESSAGE_H
 
 #include <PicoStatus.h>
+
 #include <string>
 
+namespace fair::picoscope {
+
+namespace detail {
 inline std::string
-ps4000a_status_to_string(PICO_STATUS status) {
+status_to_string(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "PICO_OK";
     case PICO_MAX_UNITS_OPENED: return "PICO_MAX_UNITS_OPENED";
@@ -202,7 +207,7 @@ ps4000a_status_to_string(PICO_STATUS status) {
 }
 
 inline std::string
-ps4000a_status_to_string_verbose(PICO_STATUS status) {
+status_to_string_verbose(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "The PicoScope is functioning correctly.";
     case PICO_MAX_UNITS_OPENED: return "An attempt has been made to open more than <API>_MAX_UNITS.";
@@ -494,8 +499,13 @@ ps4000a_status_to_string_verbose(PICO_STATUS status) {
     default: return "unknown";
     }
 }
+} // namespace detail
 
 inline std::string
-ps4000a_get_error_message(PICO_STATUS status) {
-    return ps4000a_status_to_string(status) + " - " + ps4000a_status_to_string_verbose(status);
+get_error_message(PICO_STATUS status) {
+    return detail::status_to_string(status) + " - " + detail::status_to_string_verbose(status);
 }
+
+} // namespace fair::picoscope
+
+#endif // FAIR_PICOSCOPE_STATUS_MESSAGE_H

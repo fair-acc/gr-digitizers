@@ -15,7 +15,6 @@ test_rapid_block_basic(std::size_t nr_captures) {
     using namespace fair::graph;
     using namespace gr::helpers;
     using namespace fair::picoscope;
-    using namespace fair::picoscope4000a;
 
     constexpr std::size_t pre_samples   = 33;
     constexpr std::size_t post_samples  = 1000;
@@ -52,7 +51,6 @@ const boost::ut::suite Picoscope4000aTests = [] {
     using namespace fair::graph;
     using namespace gr::helpers;
     using namespace fair::picoscope;
-    using namespace fair::picoscope4000a;
 
     "open and close"_test = [] {
         fair::graph::graph flow_graph;

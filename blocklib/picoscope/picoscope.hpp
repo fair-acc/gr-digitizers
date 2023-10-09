@@ -1,6 +1,8 @@
 #ifndef FAIR_PICOSCOPE_PICOSCOPE_HPP
 #define FAIR_PICOSCOPE_PICOSCOPE_HPP
 
+#include "status_messages.hpp"
+
 #include <node.hpp>
 
 #include <fmt/format.h>
