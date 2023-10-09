@@ -166,22 +166,6 @@ struct State {
     std::size_t produced_worker = 0;                    // poller/callback thread
 };
 
-// TODO replace by std::ranges::views::split once that works on all supported compilers
-inline std::vector<std::string_view>
-split(std::string_view s) {
-    std::vector<std::string_view> segments;
-    while (true) {
-        const auto pos = s.find(",");
-        if (pos == std::string_view::npos) {
-            segments.push_back(s);
-            return segments;
-        }
-
-        segments.push_back(s.substr(0, pos));
-        s.remove_prefix(pos + 1);
-    }
-}
-
 inline acquisition_mode_t
 parse_acquisition_mode(std::string_view s) {
     using enum acquisition_mode_t;
@@ -210,8 +194,8 @@ parse_trigger_direction(std::string_view s) {
 }
 
 inline ChannelMap
-channel_settings(std::span<const std::string_view> ids, std::span<const std::string_view> names, std::span<const std::string_view> units, std::span<const double> ranges,
-                 std::span<const float> offsets, std::span<const std::string_view> couplings) {
+channel_settings(std::span<const std::string> ids, std::span<const std::string> names, std::span<const std::string> units, std::span<const double> ranges, std::span<const float> offsets,
+                 std::span<const std::string> couplings) {
     ChannelMap r;
     for (std::size_t i = 0; i < ids.size(); ++i) {
         channel_setting_t channel;
@@ -251,26 +235,26 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>> {
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
-    A<std::string, "acquisition mode", Visible>                           acquisition_mode         = std::string("STREAMING");
-    A<std::size_t, "pre-samples">                                         pre_samples              = 1000;
-    A<std::size_t, "post-samples">                                        post_samples             = 9000;
-    A<std::size_t, "no. captures (rapid block mode)">                     rapid_block_nr_captures  = 1;
-    A<bool, "trigger once (rapid block mode)">                            trigger_once             = false;
-    A<double, "poll rate (streaming mode)">                               streaming_mode_poll_rate = 0.001;
-    A<bool, "auto-arm">                                                   auto_arm                 = true;
-    A<std::string, "IDs of enabled channels, comma-separated">            channel_ids;
-    A<std::string, "Names of enabled channels, comma-separated">          channel_names;
-    A<std::string, "Units of enabled channels, comma-separated">          channel_units;
-    std::vector<double>                                                   channel_ranges;
-    std::vector<float>                                                    channel_offsets;
-    A<std::string, "Coupling modes of enabled channels, comma-separated"> channel_couplings;
-    A<std::string, "trigger channel/port ID">                             trigger_source;
-    A<float, "trigger threshold, analog only">                            trigger_threshold = 0.f;
-    A<std::string, "trigger direction">                                   trigger_direction = std::string("RISING");
-    A<int, "trigger pin, digital only">                                   trigger_pin       = 0;
+    A<std::string, "acquisition mode", Visible>                       acquisition_mode         = std::string("STREAMING");
+    A<std::size_t, "pre-samples">                                     pre_samples              = 1000;
+    A<std::size_t, "post-samples">                                    post_samples             = 9000;
+    A<std::size_t, "no. captures (rapid block mode)">                 rapid_block_nr_captures  = 1;
+    A<bool, "trigger once (rapid block mode)">                        trigger_once             = false;
+    A<double, "poll rate (streaming mode)">                           streaming_mode_poll_rate = 0.001;
+    A<bool, "auto-arm">                                               auto_arm                 = true;
+    A<std::vector<std::string>, "IDs of enabled channels">            channel_ids;
+    A<std::vector<std::string>, "Names of enabled channels">          channel_names;
+    A<std::vector<std::string>, "Units of enabled channels">          channel_units;
+    std::vector<double>                                               channel_ranges;
+    std::vector<float>                                                channel_offsets;
+    A<std::vector<std::string>, "Coupling modes of enabled channels"> channel_couplings;
+    A<std::string, "trigger channel/port ID">                         trigger_source;
+    A<float, "trigger threshold, analog only">                        trigger_threshold = 0.f;
+    A<std::string, "trigger direction">                               trigger_direction = std::string("RISING");
+    A<int, "trigger pin, digital only">                               trigger_pin       = 0;
 
-    detail::State                                                         state;
-    detail::Settings                                                      ps_settings;
+    detail::State                                                     state;
+    detail::Settings                                                  ps_settings;
 
     detail::streaming_callback_function_t _streaming_callback = [this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); };
 
@@ -292,8 +276,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>> {
                                        .trigger_once             = trigger_once,
                                        .streaming_mode_poll_rate = streaming_mode_poll_rate,
                                        .auto_arm                 = auto_arm,
-                                       .enabled_channels         = detail::channel_settings(detail::split(channel_ids), detail::split(channel_names), detail::split(channel_units), channel_ranges,
-                                                                                            channel_offsets, detail::split(channel_couplings)),
+                                       .enabled_channels         = detail::channel_settings(channel_ids.value, channel_names.value, channel_units.value, channel_ranges, channel_offsets,
+                                                                                            channel_couplings.value),
                                        .trigger                  = detail::trigger_setting_t{
                                                                 .source = trigger_source, .threshold = trigger_threshold, .direction = detail::parse_trigger_direction(trigger_direction), .pin_number = trigger_pin } };
             std::swap(ps_settings, s);

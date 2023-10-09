@@ -28,9 +28,9 @@ test_rapid_block_basic(std::size_t nr_captures) {
                                                                              { "rapid_block_nr_captures", nr_captures },
                                                                              { "auto_arm", true },
                                                                              { "trigger_once", true },
-                                                                             { "channel_ids", "A" },
+                                                                             { "channel_ids", std::vector<std::string>{ "A" } },
                                                                              { "channel_ranges", std::vector{ { 5. } } },
-                                                                             { "channel_couplings", "AC_1M" } } });
+                                                                             { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
     auto                 &sink    = flow_graph.make_node<count_sink<float>>();
     auto                 &errsink = flow_graph.make_node<count_sink<float>>();
@@ -75,11 +75,11 @@ const boost::ut::suite Picoscope4000aTests = [] {
                                                                                 { "acquisition_mode", "STREAMING" },
                                                                                 { "streaming_mode_poll_rate", 0.00001 },
                                                                                 { "auto_arm", true },
-                                                                                { "channel_ids", "A" },
-                                                                                { "channel_names", "Test signal" },
-                                                                                { "channel_units", "Test unit" },
+                                                                                { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                                { "channel_names", std::vector<std::string>{ "Test signal" } },
+                                                                                { "channel_units", std::vector<std::string>{ "Test unit" } },
                                                                                 { "channel_ranges", std::vector{ { 5. } } },
-                                                                                { "channel_couplings", "AC_1M" } } });
+                                                                                { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
         auto            &tag_tracker = flow_graph.make_node<tag_debug<float>>();
         auto            &sink        = flow_graph.make_node<count_sink<float>>();
@@ -139,9 +139,9 @@ const boost::ut::suite Picoscope4000aTests = [] {
                                                                                { "rapid_block_nr_captures", nr_captures },
                                                                                { "auto_arm", true },
                                                                                { "trigger_once", true },
-                                                                               { "channel_ids", "A,B,C,D" },
+                                                                               { "channel_ids", std::vector<std::string>{ "A", "B", "C", "D" } },
                                                                                { "channel_ranges", std::vector{ { 5., 5., 5., 5. } } },
-                                                                               { "channel_couplings", "AC_1M,AC_1M,AC_1M,AC_1M" } } });
+                                                                               { "channel_couplings", std::vector<std::string>{ "AC_1M", "AC_1M", "AC_1M", "AC_1M" } } } });
 
         auto                 &sink0 = flow_graph.make_node<count_sink<float>>();
         auto                 &sink1 = flow_graph.make_node<count_sink<float>>();
@@ -170,9 +170,9 @@ const boost::ut::suite Picoscope4000aTests = [] {
                                                                    { "acquisition_mode", "RAPID_BLOCK" },
                                                                    { "rapid_block_nr_captures", std::size_t{ 1 } },
                                                                    { "auto_arm", true },
-                                                                   { "channel_ids", "A" },
+                                                                   { "channel_ids", std::vector<std::string>{ "A" } },
                                                                    { "channel_ranges", std::vector{ { 5. } } },
-                                                                   { "channel_couplings", "AC_1M" } } });
+                                                                   { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
         auto     &sink0 = flow_graph.make_node<count_sink<float>>();
 
