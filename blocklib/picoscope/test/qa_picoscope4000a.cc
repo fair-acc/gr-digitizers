@@ -30,7 +30,7 @@ test_rapid_block_basic(std::size_t nr_captures) {
                                                                                 { "auto_arm", true },
                                                                                 { "trigger_once", true },
                                                                                 { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                                { "channel_ranges", std::vector{ { 5. } } },
+                                                                                { "channel_ranges", std::vector{ 5. } },
                                                                                 { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
     auto                 &sink    = flow_graph.make_node<count_sink<T>>();
@@ -66,7 +66,7 @@ test_streaming_basics() {
                                                                                { "channel_ids", std::vector<std::string>{ "A" } },
                                                                                { "channel_names", std::vector<std::string>{ "Test signal" } },
                                                                                { "channel_units", std::vector<std::string>{ "Test unit" } },
-                                                                               { "channel_ranges", std::vector{ { 5. } } },
+                                                                               { "channel_ranges", std::vector{ 5. } },
                                                                                { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
     auto            &tag_tracker = flow_graph.make_node<tag_debug<T>>();
@@ -186,7 +186,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
                                                                           { "rapid_block_nr_captures", std::size_t{ 1 } },
                                                                           { "auto_arm", true },
                                                                           { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                          { "channel_ranges", std::vector{ { 5. } } },
+                                                                          { "channel_ranges", std::vector{ 5. } },
                                                                           { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
         auto     &sink0 = flow_graph.make_node<count_sink<float>>();

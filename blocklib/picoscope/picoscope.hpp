@@ -379,12 +379,13 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         if (state.poller.joinable()) {
             return;
         }
-        const auto poll_duration = std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
 
         if (state.poller_state == detail::poller_state_t::EXIT) {
             state.poller_state = detail::poller_state_t::IDLE;
         }
 #ifdef GR_PICOSCOPE_POLLER_THREAD
+        const auto poll_duration = std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
+
         state.poller = std::thread([this, poll_duration] {
             while (state.poller_state != detail::poller_state_t::EXIT) {
                 if (state.poller_state == detail::poller_state_t::IDLE) {
