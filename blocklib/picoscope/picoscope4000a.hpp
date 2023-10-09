@@ -7,30 +7,6 @@
 
 namespace fair::picoscope {
 
-struct PicoStatus4000aErrc : std::error_category {
-    const char *
-    name() const noexcept override {
-        return "Ps4000a";
-    }
-
-    std::string
-    message(int ev) const override {
-        const auto status = static_cast<PICO_STATUS>(ev);
-        return get_error_message(status);
-    }
-};
-
-const PicoStatus4000aErrc thePsErrCategory{};
-
-/*!
- * This method is needed because PICO_STATUS is not a distinct type (e.g. an enum)
- * therfore we cannot really hook this into the std error code properly.
- */
-std::error_code
-make_pico_4000a_error_code(PICO_STATUS e) {
-    return { static_cast<int>(e), thePsErrCategory };
-}
-
 namespace detail {
 std::mutex g_init_mutex;
 
@@ -250,7 +226,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
         return this->work_impl();
     }
 
-    std::error_code
+    Error
     set_buffers(size_t samples, uint32_t block_number) {
         for (auto &channel : state.channels) {
             const auto channel_index = detail::convert_to_ps4000a_channel(channel.id);
@@ -261,7 +237,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
 
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aSetDataBuffer (chan {}): {}", static_cast<std::size_t>(*channel_index), get_error_message(status));
-                return make_pico_4000a_error_code(status);
+                return { status };
             }
         }
 
@@ -307,13 +283,13 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
                                                  &nr_samples, 1, PS4000A_RATIO_MODE_NONE, static_cast<uint32_t>(capture), &overflow);
         if (status != PICO_OK) {
             fmt::println(std::cerr, "ps4000aGetValues: {}", get_error_message(status));
-            return { make_pico_4000a_error_code(status), 0, 0 };
+            return { { status }, 0, 0 };
         }
 
         return { {}, static_cast<std::size_t>(nr_samples), overflow };
     }
 
-    std::error_code
+    Error
     driver_initialize() {
         PICO_STATUS status;
 
@@ -337,7 +313,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
 
         if (status != PICO_OK) {
             fmt::println(std::cerr, "open unit failed: {} ", get_error_message(status));
-            return make_pico_4000a_error_code(status);
+            return { status };
         }
 
         // maximum value is used for conversion to volts
@@ -345,13 +321,13 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
         if (status != PICO_OK) {
             ps4000aCloseUnit(state.handle);
             fmt::println(std::cerr, "ps4000aMaximumValue: {}", get_error_message(status));
-            return make_pico_4000a_error_code(status);
+            return { status };
         }
 
         return {};
     }
 
-    std::error_code
+    Error
     driver_close() {
         if (state.handle == -1) {
             return {};
@@ -363,23 +339,23 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
         if (status != PICO_OK) {
             fmt::println(std::cerr, "ps4000aCloseUnit: {}", get_error_message(status));
         }
-        return make_pico_4000a_error_code(status);
+        return { status };
     }
 
-    std::error_code
+    Error
     driver_configure() {
         int32_t max_samples;
         auto    status = ps4000aMemorySegments(state.handle, static_cast<uint32_t>(ps_settings.rapid_block_nr_captures), &max_samples);
         if (status != PICO_OK) {
             fmt::println(std::cerr, "ps4000aMemorySegments: {}", get_error_message(status));
-            return make_pico_4000a_error_code(status);
+            return { status };
         }
 
         if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
             status = ps4000aSetNoOfCaptures(state.handle, static_cast<uint32_t>(ps_settings.rapid_block_nr_captures));
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aSetNoOfCaptures: {}", get_error_message(status));
-                return make_pico_4000a_error_code(status);
+                return { status };
             }
         }
 
@@ -397,7 +373,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
             status              = ps4000aSetChannel(state.handle, *idx, true, coupling, static_cast<PICO_CONNECT_PROBE_RANGE>(range), channel.settings.offset);
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aSetChannel (chan '{}'): {}", channel.id, get_error_message(status));
-                return make_pico_4000a_error_code(status);
+                return { status };
             }
         }
 
@@ -413,7 +389,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
                                              -1); // auto trigger
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aSetSimpleTrigger: {}", get_error_message(status));
-                return make_pico_4000a_error_code(status);
+                return { status };
             }
         } else {
             // disable triggers
@@ -424,7 +400,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
                 status         = ps4000aSetTriggerChannelConditions(state.handle, &cond, 1, PS4000A_CLEAR);
                 if (status != PICO_OK) {
                     fmt::println(std::cerr, "ps4000aSetTriggerChannelConditionsV2: {}", get_error_message(status));
-                    return make_pico_4000a_error_code(status);
+                    return { status };
                 }
             }
         }
@@ -433,15 +409,15 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
         double actual_freq;
         detail::convert_frequency_to_ps4000a_timebase(state.handle, ps_settings.sample_rate, actual_freq);
 
-        return std::error_code{};
+        return {};
     }
 
-    std::error_code
+    Error
     driver_arm() {
         if (ps_settings.acquisition_mode == acquisition_mode_t::RAPID_BLOCK) {
             uint32_t    timebase   = detail::convert_frequency_to_ps4000a_timebase(state.handle, ps_settings.sample_rate, state.actual_sample_rate);
 
-            static auto redirector = [](int16_t, PICO_STATUS status, void *vobj) { static_cast<Picoscope4000a *>(vobj)->rapid_block_callback(make_pico_4000a_error_code(status)); };
+            static auto redirector = [](int16_t, PICO_STATUS status, void *vobj) { static_cast<Picoscope4000a *>(vobj)->rapid_block_callback({ status }); };
 
             auto        status     = ps4000aRunBlock(state.handle, static_cast<int32_t>(ps_settings.pre_samples), static_cast<int32_t>(ps_settings.post_samples),
                                                      timebase, // timebase
@@ -450,7 +426,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
                                                      static_cast<ps4000aBlockReady>(redirector), this);
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aRunBlock: {}", get_error_message(status));
-                return make_pico_4000a_error_code(status);
+                return { status };
             }
         } else {
             using fair::picoscope::detail::driver_buffer_size;
@@ -468,30 +444,30 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
 
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aRunStreaming: {}", get_error_message(status));
-                return make_pico_4000a_error_code(status);
+                return { status };
             }
         }
 
         return {};
     }
 
-    std::error_code
+    Error
     driver_disarm() noexcept {
         if (const auto status = ps4000aStop(state.handle); status != PICO_OK) {
             fmt::println(std::cerr, "ps4000aStop: {}", get_error_message(status));
-            return make_pico_4000a_error_code(status);
+            return { status };
         }
 
         return {};
     }
 
-    std::error_code
+    Error
     driver_poll() {
         const auto status = ps4000aGetStreamingLatestValues(state.handle, static_cast<ps4000aStreamingReady>(fair::picoscope::detail::invoke_streaming_callback), &_streaming_callback);
         if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
             return {};
         }
-        return make_pico_4000a_error_code(status);
+        return { status };
     }
 };
 

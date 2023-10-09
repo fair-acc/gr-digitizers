@@ -8,7 +8,7 @@
 namespace fair::picoscope {
 
 namespace detail {
-inline std::string
+inline constexpr std::string_view
 status_to_string(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "PICO_OK";
@@ -206,7 +206,7 @@ status_to_string(PICO_STATUS status) {
     }
 }
 
-inline std::string
+constexpr inline std::string_view
 status_to_string_verbose(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "The PicoScope is functioning correctly.";
@@ -503,7 +503,7 @@ status_to_string_verbose(PICO_STATUS status) {
 
 inline std::string
 get_error_message(PICO_STATUS status) {
-    return detail::status_to_string(status) + " - " + detail::status_to_string_verbose(status);
+    return fmt::format("{} - {}", detail::status_to_string(status), detail::status_to_string_verbose(status));
 }
 
 } // namespace fair::picoscope

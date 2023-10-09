@@ -32,6 +32,17 @@ invoke_streaming_callback(int16_t handle, int32_t noOfSamples, uint32_t startInd
 
 } // namespace detail
 
+struct Error {
+    PICO_STATUS code = PICO_OK;
+
+    std::string
+    message() const {
+        return get_error_message(code);
+    }
+
+    constexpr operator bool() const noexcept { return code != PICO_OK; }
+};
+
 enum class acquisition_mode_t { STREAMING, RAPID_BLOCK };
 
 enum class coupling_t {
@@ -43,9 +54,9 @@ enum class coupling_t {
 enum class trigger_direction_t { RISING, FALLING, LOW, HIGH };
 
 struct GetValuesResult {
-    std::error_code error;
-    std::size_t     samples;
-    int16_t         overflow;
+    Error       error;
+    std::size_t samples;
+    int16_t     overflow;
 };
 
 namespace detail {
@@ -108,9 +119,9 @@ struct Channel {
     }
 };
 
-struct Error {
-    std::size_t     sample;
-    std::error_code error;
+struct ErrorWithSample {
+    std::size_t sample;
+    Error       error;
 };
 
 template<typename T, std::size_t InitialSize = 1>
@@ -135,24 +146,24 @@ struct Settings {
 };
 
 struct State {
-    std::vector<Channel>        channels;
-    std::atomic<std::size_t>    data_available     = 0;
-    std::atomic<bool>           data_finished      = false;
-    bool                        initialized        = false;
-    bool                        configured         = false;
-    bool                        closed             = false;
-    bool                        armed              = false;
-    bool                        started            = false; // TODO transitional until nodes have state handling
-    int16_t                     handle             = -1;    ///< picoscope handle
-    int16_t                     overflow           = 0;     ///< status returned from getValues
-    int16_t                     max_value          = 0;     ///< maximum ADC count used for ADC conversion
-    double                      actual_sample_rate = 0;
-    std::thread                 poller;
-    BufferHelper<Error>         errors;
-    std::atomic<poller_state_t> poller_state = poller_state_t::IDLE;
-    std::atomic<bool>           forced_quit  = false; // TODO transitional until we found out what
-                                                      // goes wrong with multithreaded scheduler
-    std::size_t produced_worker = 0;                  // poller/callback thread
+    std::vector<Channel>          channels;
+    std::atomic<std::size_t>      data_available     = 0;
+    std::atomic<bool>             data_finished      = false;
+    bool                          initialized        = false;
+    bool                          configured         = false;
+    bool                          closed             = false;
+    bool                          armed              = false;
+    bool                          started            = false; // TODO transitional until nodes have state handling
+    int16_t                       handle             = -1;    ///< picoscope handle
+    int16_t                       overflow           = 0;     ///< status returned from getValues
+    int16_t                       max_value          = 0;     ///< maximum ADC count used for ADC conversion
+    double                        actual_sample_rate = 0;
+    std::thread                   poller;
+    BufferHelper<ErrorWithSample> errors;
+    std::atomic<poller_state_t>   poller_state = poller_state_t::IDLE;
+    std::atomic<bool>             forced_quit  = false; // TODO transitional until we found out what
+                                                        // goes wrong with multithreaded scheduler
+    std::size_t produced_worker = 0;                    // poller/callback thread
 };
 
 // TODO replace by std::ranges::views::split once that works on all supported compilers
@@ -576,7 +587,7 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
     }
 
     void
-    rapid_block_callback(std::error_code ec) {
+    rapid_block_callback(Error ec) {
         if (ec) {
             report_error(ec);
             return;
@@ -599,7 +610,7 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
     }
 
     void
-    report_error(std::error_code ec) {
+    report_error(Error ec) {
         auto out = state.errors.writer.reserve_output_range(1);
         out[0]   = { state.produced_worker, ec };
         out.publish(1);
