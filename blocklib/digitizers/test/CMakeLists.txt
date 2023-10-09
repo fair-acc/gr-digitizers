@@ -8,7 +8,7 @@ function(add_ut_test TEST_NAME)
         target_link_options(${TEST_NAME} PRIVATE -fsanitize=address -Wall)
     endif ()
     target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_CURRENT_BINARY_DIR})
-    target_link_libraries(${TEST_NAME} PRIVATE graph-prototype gr-digitizers refl-cpp fmt ut)
+    target_link_libraries(${TEST_NAME} PRIVATE gnuradio-core gr-digitizers refl-cpp fmt ut)
     add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()
 

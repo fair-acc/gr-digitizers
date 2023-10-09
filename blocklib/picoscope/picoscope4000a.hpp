@@ -215,12 +215,12 @@ convert_frequency_to_ps4000a_timebase(int16_t handle, double desired_freq, doubl
 } // namespace detail
 
 struct Picoscope4000a : public fair::picoscope::Picoscope<Picoscope4000a> {
-    using AnalogPort = fair::graph::PortOut<float>;
+    using AnalogPort = gr::PortOut<float>;
 
-    std::array<fair::graph::PortOut<float>, 8> values;
-    std::array<fair::graph::PortOut<float>, 8> errors;
+    std::array<gr::PortOut<float>, 8> values;
+    std::array<gr::PortOut<float>, 8> errors;
 
-    fair::graph::work_return_t
+    gr::work_return_t
     work(std::size_t requested_work = 0) {
         std::ignore = requested_work;
         return this->work_impl();

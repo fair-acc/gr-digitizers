@@ -3,7 +3,7 @@
 
 #include "status_messages.hpp"
 
-#include <node.hpp>
+#include <gnuradio-4.0/node.hpp>
 
 #include <fmt/format.h>
 
@@ -99,7 +99,7 @@ struct trigger_setting_t {
 
 struct Channel {
     using WriterType    = decltype(std::declval<gr::circular_buffer<float>>().new_writer());
-    using TagWriterType = decltype(std::declval<gr::circular_buffer<fair::graph::tag_t>>().new_writer());
+    using TagWriterType = decltype(std::declval<gr::circular_buffer<gr::tag_t>>().new_writer());
     std::string          id;
     channel_setting_t    settings;
     std::vector<int16_t> driver_buffer;
@@ -108,9 +108,9 @@ struct Channel {
     WriterType           error_writer;
     bool                 signal_info_written = false;
 
-    fair::graph::property_map
+    gr::property_map
     signal_info() const {
-        using namespace fair::graph;
+        using namespace gr;
         static const auto SIGNAL_NAME = std::string(tag::SIGNAL_NAME.key());
         static const auto SIGNAL_UNIT = std::string(tag::SIGNAL_UNIT.key());
         static const auto SIGNAL_MIN  = std::string(tag::SIGNAL_MIN.key());
@@ -241,13 +241,13 @@ channel_settings(std::span<const std::string_view> ids, std::span<const std::str
 } // namespace detail
 
 // optional shortening
-template<typename T, fair::meta::fixed_string description = "", typename... Arguments>
-using A = fair::graph::Annotated<T, description, Arguments...>;
+template<typename T, gr::meta::fixed_string description = "", typename... Arguments>
+using A = gr::Annotated<T, description, Arguments...>;
 
-using fair::graph::Visible;
+using gr::Visible;
 
 template<typename PSImpl>
-struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true>> {
+struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>> {
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
@@ -277,7 +277,7 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
     ~Picoscope() { stop(); }
 
     void
-    settings_changed(const fair::graph::property_map & /*old_settings*/, const fair::graph::property_map & /*new_settings*/) {
+    settings_changed(const gr::property_map & /*old_settings*/, const gr::property_map & /*new_settings*/) {
         const auto was_started = state.started;
         if (was_started) {
             stop();
@@ -318,9 +318,9 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
         }
     }
 
-    fair::graph::work_return_t
+    gr::work_return_t
     work_impl() noexcept {
-        using enum fair::graph::work_return_status_t;
+        using enum gr::work_return_status_t;
         start(); // TODO should be done by scheduler
 
         if (state.channels.empty()) {
@@ -554,7 +554,7 @@ struct Picoscope : public fair::graph::node<PSImpl, fair::graph::BlockingIO<true
                 auto write_tag                = channel.tag_writer.reserve_output_range(1);
                 write_tag[0].index            = static_cast<int64_t>(state.produced_worker);
                 write_tag[0].map              = channel.signal_info();
-                static const auto SAMPLE_RATE = std::string(fair::graph::tag::SAMPLE_RATE.key());
+                static const auto SAMPLE_RATE = std::string(gr::tag::SAMPLE_RATE.key());
                 write_tag[0].map[SAMPLE_RATE] = static_cast<float>(sample_rate);
                 write_tag.publish(1);
                 channel.signal_info_written = true;

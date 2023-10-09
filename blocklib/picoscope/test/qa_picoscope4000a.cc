@@ -1,9 +1,9 @@
 #include <boost/ut.hpp>
 
+#include <gnuradio-4.0/scheduler.hpp>
+
 #include <helper_blocks.hpp>
 #include <picoscope4000a.hpp>
-
-#include <scheduler.hpp>
 
 using namespace std::string_literals;
 
@@ -12,15 +12,15 @@ namespace fair::picoscope4000a::test {
 void
 test_rapid_block_basic(std::size_t nr_captures) {
     using namespace boost::ut;
-    using namespace fair::graph;
-    using namespace gr::helpers;
+    using namespace gr;
+    using namespace fair::helpers;
     using namespace fair::picoscope;
 
     constexpr std::size_t pre_samples   = 33;
     constexpr std::size_t post_samples  = 1000;
     const auto            total_samples = nr_captures * (pre_samples + post_samples);
 
-    fair::graph::graph    flow_graph;
+    gr::graph             flow_graph;
     auto                 &ps      = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
                                                                              { "pre_samples", pre_samples },
                                                                              { "post_samples", post_samples },
@@ -48,13 +48,13 @@ test_rapid_block_basic(std::size_t nr_captures) {
 
 const boost::ut::suite Picoscope4000aTests = [] {
     using namespace boost::ut;
-    using namespace fair::graph;
-    using namespace gr::helpers;
+    using namespace gr;
+    using namespace fair::helpers;
     using namespace fair::picoscope;
 
     "open and close"_test = [] {
-        fair::graph::graph flow_graph;
-        auto              &ps = flow_graph.make_node<Picoscope4000a>();
+        gr::graph flow_graph;
+        auto     &ps = flow_graph.make_node<Picoscope4000a>();
 
         // this takes time, so we do it a few times only
         for (auto i = 0; i < 3; i++) {
@@ -66,24 +66,24 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "streaming basics"_test = [] {
-        fair::graph::graph flow_graph;
+        gr::graph        flow_graph;
 
-        constexpr double   sample_rate = 80000.;
-        constexpr auto     duration_ms = 2000;
+        constexpr double sample_rate = 80000.;
+        constexpr auto   duration_ms = 2000;
 
-        auto              &ps          = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", sample_rate },
-                                                                                  { "acquisition_mode", "STREAMING" },
-                                                                                  { "streaming_mode_poll_rate", 0.00001 },
-                                                                                  { "auto_arm", true },
-                                                                                  { "channel_ids", "A" },
-                                                                                  { "channel_names", "Test signal" },
-                                                                                  { "channel_units", "Test unit" },
-                                                                                  { "channel_ranges", std::vector{ { 5. } } },
-                                                                                  { "channel_couplings", "AC_1M" } } });
+        auto            &ps          = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", sample_rate },
+                                                                                { "acquisition_mode", "STREAMING" },
+                                                                                { "streaming_mode_poll_rate", 0.00001 },
+                                                                                { "auto_arm", true },
+                                                                                { "channel_ids", "A" },
+                                                                                { "channel_names", "Test signal" },
+                                                                                { "channel_units", "Test unit" },
+                                                                                { "channel_ranges", std::vector{ { 5. } } },
+                                                                                { "channel_couplings", "AC_1M" } } });
 
-        auto              &tag_tracker = flow_graph.make_node<tag_debug<float>>();
-        auto              &sink        = flow_graph.make_node<count_sink<float>>();
-        auto              &errsink     = flow_graph.make_node<count_sink<float>>();
+        auto            &tag_tracker = flow_graph.make_node<tag_debug<float>>();
+        auto            &sink        = flow_graph.make_node<count_sink<float>>();
+        auto            &errsink     = flow_graph.make_node<count_sink<float>>();
 
         // TODO move back to static connect() once it can handle arrays
         expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, tag_tracker, 0)));
@@ -97,7 +97,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
         constexpr std::size_t                        min_threads = 2;
         constexpr std::size_t                        max_threads = 2;
         scheduler::simple<scheduler::multi_threaded> sched{ std::move(flow_graph),
-                                                            std::make_shared<fair::thread_pool::BasicThreadPool>("simple-scheduler-pool", fair::thread_pool::CPU_BOUND, min_threads, max_threads) };
+                                                            std::make_shared<thread_pool::BasicThreadPool>("simple-scheduler-pool", thread_pool::CPU_BOUND, min_threads, max_threads) };
         sched.start();
         std::this_thread::sleep_for(std::chrono::milliseconds(duration_ms));
         ps.force_quit(); // needed, otherwise stop() doesn't terminate (no matter if the PS works blocking or not)
@@ -131,7 +131,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
         constexpr std::size_t nr_captures   = 2;
         constexpr auto        total_samples = nr_captures * (pre_samples + post_samples);
 
-        fair::graph::graph    flow_graph;
+        gr::graph             flow_graph;
         auto                 &ps    = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
                                                                                { "pre_samples", pre_samples },
                                                                                { "post_samples", post_samples },
@@ -164,17 +164,17 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "rapid block continuous"_test = [] {
-        fair::graph::graph flow_graph;
-        auto              &ps    = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
-                                                                            { "post_samples", std::size_t{ 1000 } },
-                                                                            { "acquisition_mode", "RAPID_BLOCK" },
-                                                                            { "rapid_block_nr_captures", std::size_t{ 1 } },
-                                                                            { "auto_arm", true },
-                                                                            { "channel_ids", "A" },
-                                                                            { "channel_ranges", std::vector{ { 5. } } },
-                                                                            { "channel_couplings", "AC_1M" } } });
+        gr::graph flow_graph;
+        auto     &ps    = flow_graph.make_node<Picoscope4000a>({ { { "sample_rate", 10000. },
+                                                                   { "post_samples", std::size_t{ 1000 } },
+                                                                   { "acquisition_mode", "RAPID_BLOCK" },
+                                                                   { "rapid_block_nr_captures", std::size_t{ 1 } },
+                                                                   { "auto_arm", true },
+                                                                   { "channel_ids", "A" },
+                                                                   { "channel_ranges", std::vector{ { 5. } } },
+                                                                   { "channel_couplings", "AC_1M" } } });
 
-        auto              &sink0 = flow_graph.make_node<count_sink<float>>();
+        auto     &sink0 = flow_graph.make_node<count_sink<float>>();
 
         expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink0, 0)));
 

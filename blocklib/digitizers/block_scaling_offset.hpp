@@ -1,7 +1,7 @@
 #ifndef GR_DIGITIZERS_BLOCK_SCALING_OFFSET_HPP
 #define GR_DIGITIZERS_BLOCK_SCALING_OFFSET_HPP
 
-#include <node.hpp>
+#include <gnuradio-4.0/node.hpp>
 
 namespace gr::digitizers {
 
@@ -13,13 +13,13 @@ namespace gr::digitizers {
  * while the second input is only scaled.
  */
 template<typename T>
-struct block_scaling_offset : public fair::graph::node<block_scaling_offset<T>> {
-    fair::graph::PortIn<T>                                    in_signal;
-    fair::graph::PortIn<T>                                    in_error;
-    fair::graph::PortOut<T>                                   out_signal;
-    fair::graph::PortOut<T>                                   out_error;
-    fair::graph::Annotated<T, "scale", fair::graph::Visible>  scale  = 1.;
-    fair::graph::Annotated<T, "offset", fair::graph::Visible> offset = 0.;
+struct block_scaling_offset : public gr::node<block_scaling_offset<T>> {
+    gr::PortIn<T>                           in_signal;
+    gr::PortIn<T>                           in_error;
+    gr::PortOut<T>                          out_signal;
+    gr::PortOut<T>                          out_error;
+    gr::Annotated<T, "scale", gr::Visible>  scale  = 1.;
+    gr::Annotated<T, "offset", gr::Visible> offset = 0.;
 
     std::tuple<T, T>
     process_one(T sig, T error) noexcept {

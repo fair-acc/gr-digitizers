@@ -1,20 +1,20 @@
-#ifndef GR_HELPERS_HELPER_BLOCKS_HPP
-#define GR_HELPERS_HELPER_BLOCKS_HPP
+#ifndef FAIR_HELPERS_HELPER_BLOCKS_HPP
+#define FAIR_HELPERS_HELPER_BLOCKS_HPP
 
-#include <node.hpp>
+#include <gnuradio-4.0/node.hpp>
 
 /**
  * TRANSITIONAL: some simple helpers blocks for tests, should go upstream or
  * replaced by upstream blocks.
  */
-namespace gr::helpers {
+namespace fair::helpers {
 
 template<typename T>
-struct vector_source : public fair::graph::node<vector_source<T>> {
-    fair::graph::PortOut<T> out;
+struct vector_source : public gr::node<vector_source<T>> {
+    gr::PortOut<T> out;
 
-    std::vector<T>          data;
-    std::size_t             _produced = 0;
+    std::vector<T> data;
+    std::size_t    _produced = 0;
 
     explicit vector_source(std::vector<T> data_) : data{ std::move(data_) } {}
 
@@ -33,25 +33,25 @@ struct vector_source : public fair::graph::node<vector_source<T>> {
 };
 
 template<typename T>
-struct vector_sink : public fair::graph::node<vector_sink<T>> {
-    fair::graph::PortIn<T> in;
-    std::vector<T>         data;
+struct vector_sink : public gr::node<vector_sink<T>> {
+    gr::PortIn<T>  in;
+    std::vector<T> data;
 
-    fair::graph::work_return_status_t
+    gr::work_return_status_t
     process_bulk(std::span<const T> input) {
         data.insert(data.end(), input.begin(), input.end());
-        return fair::graph::work_return_status_t::OK;
+        return gr::work_return_status_t::OK;
     }
 };
 
 template<typename T>
-struct tag_debug : public fair::graph::node<tag_debug<T>> {
-    fair::graph::PortIn<T>          in;
-    fair::graph::PortOut<T>         out;
-    std::vector<fair::graph::tag_t> seen_tags;
-    std::size_t                     samples_seen = 0;
+struct tag_debug : public gr::node<tag_debug<T>> {
+    gr::PortIn<T>          in;
+    gr::PortOut<T>         out;
+    std::vector<gr::tag_t> seen_tags;
+    std::size_t            samples_seen = 0;
 
-    fair::graph::work_return_status_t
+    gr::work_return_status_t
     process_bulk(std::span<const T> input, std::span<T> output) noexcept {
         std::copy(input.begin(), input.end(), output.begin());
         if (this->input_tags_present()) {
@@ -60,27 +60,27 @@ struct tag_debug : public fair::graph::node<tag_debug<T>> {
             seen_tags.push_back(std::move(tag));
         }
         samples_seen += input.size();
-        return fair::graph::work_return_status_t::OK;
+        return gr::work_return_status_t::OK;
     }
 };
 
 template<typename T>
-struct count_sink : public fair::graph::node<count_sink<T>> {
-    fair::graph::PortIn<T> in;
-    std::size_t            samples_seen = 0;
+struct count_sink : public gr::node<count_sink<T>> {
+    gr::PortIn<T> in;
+    std::size_t   samples_seen = 0;
 
-    fair::graph::work_return_status_t
+    gr::work_return_status_t
     process_bulk(std::span<const T> input) noexcept {
         samples_seen += input.size();
-        return fair::graph::work_return_status_t::OK;
+        return gr::work_return_status_t::OK;
     }
 };
 
-} // namespace gr::helpers
+} // namespace fair::helpers
 
-ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::vector_source, out, data);
-ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::vector_sink, in, data);
-ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::tag_debug, in, out);
-ENABLE_REFLECTION_FOR_TEMPLATE(gr::helpers::count_sink, in);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::vector_source, out, data);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::vector_sink, in, data);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::tag_debug, in, out);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::count_sink, in);
 
 #endif

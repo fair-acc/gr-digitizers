@@ -1,17 +1,17 @@
-#include <boost/ut.hpp>
-
 #include <block_scaling_offset.hpp>
 #include <helper_blocks.hpp>
 
-#include <scheduler.hpp>
+#include <gnuradio-4.0/scheduler.hpp>
+
+#include <boost/ut.hpp>
 
 namespace gr::digitizers::block_scaling_offset_test {
 
 const boost::ut::suite BlockScalingOffsetTests = [] {
     using namespace boost::ut;
-    using namespace fair::graph;
+    using namespace gr;
     using namespace gr::digitizers;
-    using namespace gr::helpers;
+    using namespace fair::helpers;
 
     "scale and offset"_test = [] {
         constexpr float       scale  = 1.5;
