@@ -462,7 +462,15 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
 
     Error
     driver_poll() {
-        const auto status = ps4000aGetStreamingLatestValues(this->state.handle, static_cast<ps4000aStreamingReady>(fair::picoscope::detail::invoke_streaming_callback), &this->_streaming_callback);
+        static auto redirector = [](int16_t handle, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t triggerAt, int16_t triggered, int16_t autoStop, void *vobj) {
+            std::ignore = handle;
+            std::ignore = triggerAt;
+            std::ignore = triggered;
+            std::ignore = autoStop;
+            static_cast<Picoscope4000a *>(vobj)->streaming_callback(noOfSamples, startIndex, overflow);
+        };
+
+        const auto status = ps4000aGetStreamingLatestValues(this->state.handle, static_cast<ps4000aStreamingReady>(redirector), this);
         if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
             return {};
         }

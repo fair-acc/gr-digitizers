@@ -13,25 +13,6 @@
 
 namespace fair::picoscope {
 
-namespace detail {
-
-using streaming_callback_function_t = std::function<void(int32_t, uint32_t, int16_t)>;
-/*!
- * \brief The state of the poller worker function.
- */
-enum class poller_state_t { IDLE = 0, RUNNING, EXIT };
-
-inline void
-invoke_streaming_callback(int16_t handle, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t triggerAt, int16_t triggered, int16_t autoStop, void *parameter) {
-    std::ignore = handle;
-    std::ignore = triggerAt;
-    std::ignore = triggered;
-    std::ignore = autoStop;
-    (*static_cast<streaming_callback_function_t *>(parameter))(noOfSamples, startIndex, overflow);
-}
-
-} // namespace detail
-
 struct Error {
     PICO_STATUS code = PICO_OK;
 
@@ -62,6 +43,8 @@ struct GetValuesResult {
 namespace detail {
 
 constexpr std::size_t driver_buffer_size = 65536;
+
+enum class poller_state_t { IDLE = 0, RUNNING, EXIT };
 
 struct channel_setting_t {
     std::string name;
@@ -258,8 +241,6 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
 
     detail::State<T>                                                  state;
     detail::Settings                                                  ps_settings;
-
-    detail::streaming_callback_function_t _streaming_callback = [this](int32_t noSamples, uint32_t startIndex, int16_t overflow) { streaming_callback(noSamples, startIndex, overflow); };
 
     ~Picoscope() { stop(); }
 
