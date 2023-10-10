@@ -43,10 +43,18 @@ jobs:
           path: ${{runner.workspace}}/build/_deps
           key: ${{ runner.os }}-${{ matrix.configurations.compiler }}-${{ matrix.cmake-build-type }}-${{ hashFiles('CMakeLists.txt') }}
 
+      - name: Install gcovr
+        # packaged gcovr is too old for gcc13
+        shell: bash
+        if: matrix.configurations.name == env.REFERENCE_CONFIG && matrix.cmake-build-type == 'Debug'
+        run: |
+          python3 -m pip install gcovr --user --no-warn-script-location
+          gcovr --version
+
       - name: Install gcc-13
         if: matrix.configurations.compiler == 'gcc13'
         run: |
-          sudo apt-get install -y gcc-13 g++-13 gcovr
+          sudo apt-get install -y gcc-13 g++-13 # gcovr # packaged gcovr is too old for gcc13
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 110 --slave /usr/bin/g++ g++ /usr/bin/g++-13 --slave /usr/bin/gcov gcov /usr/bin/gcov-13
 
       - name: Install clang-17
