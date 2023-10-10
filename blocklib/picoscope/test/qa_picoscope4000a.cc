@@ -22,29 +22,26 @@ test_rapid_block_basic(std::size_t nr_captures) {
     const auto            total_samples = nr_captures * (pre_samples + post_samples);
 
     gr::graph             flow_graph;
-    auto                 &ps      = flow_graph.make_node<Picoscope4000a<T>>({ { { "sample_rate", 10000. },
-                                                                                { "pre_samples", pre_samples },
-                                                                                { "post_samples", post_samples },
-                                                                                { "acquisition_mode", "RAPID_BLOCK" },
-                                                                                { "rapid_block_nr_captures", nr_captures },
-                                                                                { "auto_arm", true },
-                                                                                { "trigger_once", true },
-                                                                                { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                                { "channel_ranges", std::vector{ 5. } },
-                                                                                { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
+    auto                 &ps   = flow_graph.make_node<Picoscope4000a<T>>({ { { "sample_rate", 10000. },
+                                                                             { "pre_samples", pre_samples },
+                                                                             { "post_samples", post_samples },
+                                                                             { "acquisition_mode", "RAPID_BLOCK" },
+                                                                             { "rapid_block_nr_captures", nr_captures },
+                                                                             { "auto_arm", true },
+                                                                             { "trigger_once", true },
+                                                                             { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                             { "channel_ranges", std::vector{ 5. } },
+                                                                             { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-    auto                 &sink    = flow_graph.make_node<count_sink<T>>();
-    auto                 &errsink = flow_graph.make_node<count_sink<float>>();
+    auto                 &sink = flow_graph.make_node<count_sink<T>>();
 
     // TODO move back to static connect() once it can handle arrays
     expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, sink, 0)));
-    expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/ 8, errsink, 0)));
 
     scheduler::simple sched{ std::move(flow_graph) };
     sched.run_and_wait();
 
     expect(eq(sink.samples_seen, total_samples));
-    expect(eq(errsink.samples_seen, total_samples));
 }
 
 template<typename T>
@@ -71,12 +68,10 @@ test_streaming_basics() {
 
     auto            &tag_tracker = flow_graph.make_node<tag_debug<T>>();
     auto            &sink        = flow_graph.make_node<count_sink<T>>();
-    auto            &errsink     = flow_graph.make_node<count_sink<float>>();
 
     // TODO move back to static connect() once it can handle arrays
     expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, 0, tag_tracker, 0)));
     expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out">(tag_tracker).template to<"in">(sink)));
-    expect(eq(connection_result_t::SUCCESS, flow_graph.dynamic_connect(ps, /*errors[0]*/ 8, errsink, 0)));
 
     // Explicitly start unit because it takes quite some time
     expect(nothrow([&ps] { ps.start(); }));
@@ -96,7 +91,6 @@ test_streaming_basics() {
     fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", sample_rate, static_cast<std::size_t>(measured_rate), measured_rate / sample_rate * 100., duration_ms);
     fmt::println("Total: {}", sink.samples_seen);
 
-    expect(eq(sink.samples_seen, errsink.samples_seen));
     expect(ge(sink.samples_seen, std::size_t{ 80000 }));
     expect(le(sink.samples_seen, std::size_t{ 160000 }));
     expect(eq(tag_tracker.seen_tags.size(), std::size_t{ 1 }));

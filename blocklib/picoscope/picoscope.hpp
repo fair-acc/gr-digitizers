@@ -83,14 +83,12 @@ struct trigger_setting_t {
 template<typename T>
 struct Channel {
     using ValueWriterType = decltype(std::declval<gr::circular_buffer<T>>().new_writer());
-    using ErrorWriterType = decltype(std::declval<gr::circular_buffer<float>>().new_writer());
     using TagWriterType   = decltype(std::declval<gr::circular_buffer<gr::tag_t>>().new_writer());
     std::string          id;
     channel_setting_t    settings;
     std::vector<int16_t> driver_buffer;
     ValueWriterType      data_writer;
     TagWriterType        tag_writer;
-    ErrorWriterType      error_writer;
     bool                 signal_info_written = false;
 
     gr::property_map
@@ -133,16 +131,16 @@ struct Settings {
 template<typename T>
 struct State {
     std::vector<Channel<T>>       channels;
-    std::atomic<std::size_t>      data_available     = 0;
     std::atomic<bool>             data_finished      = false;
     bool                          initialized        = false;
     bool                          configured         = false;
     bool                          closed             = false;
     bool                          armed              = false;
     bool                          started            = false; // TODO transitional until nodes have state handling
-    int16_t                       handle             = -1;    ///< picoscope handle
-    int16_t                       overflow           = 0;     ///< status returned from getValues
-    int16_t                       max_value          = 0;     ///< maximum ADC count used for ADC conversion
+    int8_t                        trigger_state      = 0;
+    int16_t                       handle             = -1; ///< picoscope handle
+    int16_t                       overflow           = 0;  ///< status returned from getValues
+    int16_t                       max_value          = 0;  ///< maximum ADC count used for ADC conversion
     double                        actual_sample_rate = 0;
     std::thread                   poller;
     BufferHelper<ErrorWithSample> errors;
@@ -272,9 +270,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
                 state.channels.emplace_back(detail::Channel<T>{ .id            = id,
                                                                 .settings      = settings,
                                                                 .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
-                                                                .data_writer   = self().values[channel_idx].streamWriter().buffer().new_writer(),
-                                                                .tag_writer    = self().values[channel_idx].tagWriter().buffer().new_writer(),
-                                                                .error_writer  = self().errors[channel_idx].streamWriter().buffer().new_writer() });
+                                                                .data_writer   = self().analog_out[channel_idx].streamWriter().buffer().new_writer(),
+                                                                .tag_writer    = self().analog_out[channel_idx].tagWriter().buffer().new_writer() });
                 channel_idx++;
             }
         } catch (const std::exception &e) {
@@ -386,7 +383,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
 #ifdef GR_PICOSCOPE_POLLER_THREAD
         const auto poll_duration = std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
 
-        state.poller = std::thread([this, poll_duration] {
+        state.poller             = std::thread([this, poll_duration] {
             while (state.poller_state != detail::poller_state_t::EXIT) {
                 if (state.poller_state == detail::poller_state_t::IDLE) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -506,38 +503,72 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
 
     void
     process_driver_data(std::size_t nr_samples, std::size_t offset) {
-        for (auto &channel : state.channels) {
-            const auto error_estimate = channel.settings.range * static_cast<double>(PSImpl::DRIVER_VERTICAL_PRECISION);
+        std::vector<std::size_t> trigger_offsets;
 
-            auto       write_values   = channel.data_writer.reserve_output_range(nr_samples);
-            const auto driver_data    = std::span(channel.driver_buffer).subspan(offset, nr_samples);
+        using ChannelOutputRange = decltype(state.channels[0].data_writer.reserve_output_range(1));
+        std::vector<ChannelOutputRange> channel_outputs;
+        channel_outputs.reserve(state.channels.size());
+
+        for (std::size_t channel_idx = 0; channel_idx < state.channels.size(); ++channel_idx) {
+            auto &channel = state.channels[channel_idx];
+
+            channel_outputs.push_back(channel.data_writer.reserve_output_range(nr_samples));
+            auto      &output      = channel_outputs[channel_idx];
+
+            const auto driver_data = std::span(channel.driver_buffer).subspan(offset, nr_samples);
+
             if constexpr (std::is_same_v<T, int16_t>) {
-                std::copy(driver_data.begin(), driver_data.end(), write_values.begin());
+                std::copy(driver_data.begin(), driver_data.end(), output.begin());
             } else {
                 const auto voltage_multiplier = static_cast<T>(channel.settings.range / state.max_value);
                 // TODO use SIMD
                 for (std::size_t i = 0; i < nr_samples; ++i) {
-                    write_values[i] = voltage_multiplier * driver_data[i];
+                    output[i] = voltage_multiplier * driver_data[i];
                 }
             }
-            auto write_errors = channel.error_writer.reserve_output_range(nr_samples);
-            std::fill(write_errors.begin(), write_errors.end(), error_estimate);
 
-            if (!channel.signal_info_written) {
-                auto write_tag                = channel.tag_writer.reserve_output_range(1);
-                write_tag[0].index            = static_cast<int64_t>(state.produced_worker);
-                write_tag[0].map              = channel.signal_info();
-                static const auto SAMPLE_RATE = std::string(gr::tag::SAMPLE_RATE.key());
-                write_tag[0].map[SAMPLE_RATE] = static_cast<float>(sample_rate);
-                write_tag.publish(1);
-                channel.signal_info_written = true;
+            if (channel.id == ps_settings.trigger.source) {
+                trigger_offsets = find_analog_triggers(channel, output);
             }
-
-            write_values.publish(nr_samples);
-            write_errors.publish(nr_samples);
         }
 
-        state.data_available += nr_samples;
+        const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+
+        // TODO wait (block) here for timing messages if trigger count > timing message count
+        // TODO pair up trigger offsets with timing messages
+
+        std::vector<gr::tag_t> trigger_tags;
+        trigger_tags.reserve(trigger_offsets.size());
+
+        for (const auto trigger_offset : trigger_offsets) {
+            trigger_tags.emplace_back(static_cast<int64_t>(state.produced_worker + trigger_offset), gr::property_map{ // TODO use data from timing message
+                                                                                                                      { gr::tag::TRIGGER_NAME, "PPS" },
+                                                                                                                      { gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count()) } });
+        }
+
+        for (auto &channel : state.channels) {
+            const auto write_signal_info = !channel.signal_info_written;
+            const auto tags_to_write     = trigger_tags.size() + (write_signal_info ? 1 : 0);
+            if (tags_to_write == 0) {
+                continue;
+            }
+            auto write_tags = channel.tag_writer.reserve_output_range(tags_to_write);
+            if (write_signal_info) {
+                write_tags[0].index            = static_cast<int64_t>(state.produced_worker);
+                write_tags[0].map              = channel.signal_info();
+                static const auto SAMPLE_RATE  = std::string(gr::tag::SAMPLE_RATE.key());
+                write_tags[0].map[SAMPLE_RATE] = static_cast<float>(sample_rate);
+                channel.signal_info_written    = true;
+            }
+            std::copy(trigger_tags.begin(), trigger_tags.end(), write_tags.begin() + (write_signal_info ? 1 : 0));
+            write_tags.publish(write_tags.size());
+        }
+
+        // once all tags have been written, publish the data
+        for (auto &output : channel_outputs) {
+            output.publish(nr_samples);
+        }
+
         state.produced_worker += nr_samples;
     }
 
@@ -580,6 +611,49 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         if (ps_settings.trigger_once) {
             state.data_finished = true;
         }
+    }
+
+    std::vector<std::size_t>
+    find_analog_triggers(const detail::Channel<T> &trigger_channel, std::span<const T> samples) {
+        if (samples.empty()) {
+            return {};
+        }
+
+        std::vector<std::size_t> trigger_offsets; // relative offset of detected triggers
+        const auto               band               = static_cast<float>(trigger_channel.settings.range / 100.);
+        const auto               voltage_multiplier = static_cast<float>(trigger_channel.settings.range / state.max_value);
+
+        const auto               to_float           = [&voltage_multiplier](T raw) {
+            if constexpr (std::is_same_v<T, float>) {
+                return raw;
+            } else {
+                return voltage_multiplier * raw;
+            }
+        };
+
+        if (ps_settings.trigger.direction == trigger_direction_t::RISING || ps_settings.trigger.direction == trigger_direction_t::HIGH) {
+            for (std::size_t i = 0; i < samples.size(); i++) {
+                const auto value = to_float(samples[i]);
+                if (state.trigger_state == 0 && value >= ps_settings.trigger.threshold) {
+                    state.trigger_state = 1;
+                    trigger_offsets.push_back(i);
+                } else if (state.trigger_state == 1 && value <= ps_settings.trigger.threshold - band) {
+                    state.trigger_state = 0;
+                }
+            }
+        } else if (ps_settings.trigger.direction == trigger_direction_t::FALLING || ps_settings.trigger.direction == trigger_direction_t::LOW) {
+            for (std::size_t i = 0; i < samples.size(); i++) {
+                const auto value = to_float(samples[i]);
+                if (state.trigger_state == 1 && value <= ps_settings.trigger.threshold) {
+                    state.trigger_state = 0;
+                    trigger_offsets.push_back(i);
+                } else if (state.trigger_state == 0 && value >= ps_settings.trigger.threshold + band) {
+                    state.trigger_state = 1;
+                }
+            }
+        }
+
+        return trigger_offsets;
     }
 
     void

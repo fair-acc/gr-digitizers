@@ -216,8 +216,7 @@ convert_frequency_to_ps4000a_timebase(int16_t handle, double desired_freq, doubl
 
 template<typename T>
 struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> {
-    std::array<gr::PortOut<T>, 8>     values;
-    std::array<gr::PortOut<float>, 8> errors;
+    std::array<gr::PortOut<T>, 8> analog_out;
 
     gr::work_return_t
     work(std::size_t requested_work = 0) {
@@ -480,8 +479,8 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
 
 } // namespace fair::picoscope
 
-ENABLE_REFLECTION_FOR_TEMPLATE(fair::picoscope::Picoscope4000a, values, errors, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures,
-                               streaming_mode_poll_rate, auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source,
-                               trigger_threshold, trigger_direction, trigger_pin);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::picoscope::Picoscope4000a, analog_out, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate,
+                               auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold,
+                               trigger_direction, trigger_pin);
 
 #endif
