@@ -13,7 +13,7 @@ namespace gr::digitizers {
  * while the second input is only scaled.
  */
 template<typename T>
-struct block_scaling_offset : public gr::node<block_scaling_offset<T>> {
+struct BlockScalingOffset : public gr::node<BlockScalingOffset<T>> {
     gr::PortIn<T>                           in_signal;
     gr::PortIn<T>                           in_error;
     gr::PortOut<T>                          out_signal;
@@ -29,6 +29,6 @@ struct block_scaling_offset : public gr::node<block_scaling_offset<T>> {
 
 } // namespace gr::digitizers
 
-ENABLE_REFLECTION_FOR_TEMPLATE(gr::digitizers::block_scaling_offset, in_signal, in_error, out_signal, out_error, scale, offset);
+ENABLE_REFLECTION_FOR_TEMPLATE(gr::digitizers::BlockScalingOffset, in_signal, in_error, out_signal, out_error, scale, offset);
 
 #endif

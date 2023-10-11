@@ -1,5 +1,5 @@
-#ifndef FAIR_PICOSCOPE_STATUS_MESSAGE_H
-#define FAIR_PICOSCOPE_STATUS_MESSAGE_H
+#ifndef FAIR_PICOSCOPE_STATUS_MESSAGES_HPP
+#define FAIR_PICOSCOPE_STATUS_MESSAGES_HPP
 
 #include <PicoStatus.h>
 
@@ -9,7 +9,7 @@ namespace fair::picoscope {
 
 namespace detail {
 inline constexpr std::string_view
-status_to_string(PICO_STATUS status) {
+statusToString(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "PICO_OK";
     case PICO_MAX_UNITS_OPENED: return "PICO_MAX_UNITS_OPENED";
@@ -207,7 +207,7 @@ status_to_string(PICO_STATUS status) {
 }
 
 constexpr inline std::string_view
-status_to_string_verbose(PICO_STATUS status) {
+statusToStringVerbose(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "The PicoScope is functioning correctly.";
     case PICO_MAX_UNITS_OPENED: return "An attempt has been made to open more than <API>_MAX_UNITS.";
@@ -502,8 +502,8 @@ status_to_string_verbose(PICO_STATUS status) {
 } // namespace detail
 
 inline std::string
-get_error_message(PICO_STATUS status) {
-    return fmt::format("{} - {}", detail::status_to_string(status), detail::status_to_string_verbose(status));
+getErrorMessage(PICO_STATUS status) {
+    return fmt::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status));
 }
 
 } // namespace fair::picoscope

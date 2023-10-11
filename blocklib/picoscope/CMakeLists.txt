@@ -9,7 +9,7 @@ add_library(fair-picoscope INTERFACE)
 target_include_directories(fair-picoscope INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include/>)
 
 target_link_libraries(fair-picoscope INTERFACE ps4000a gr-digitizers-options gnuradio-core refl-cpp fmt)
-set_target_properties(gr-digitizers PROPERTIES PUBLIC_HEADER "picoscope.hpp;picoscope4000a.hpp")
+set_target_properties(gr-digitizers PROPERTIES PUBLIC_HEADER "Picoscope.hpp;Picoscope4000a.hpp;StatusMessages.hpp")
 
 if (ENABLE_GR_DIGITIZERS_TESTING)
     add_subdirectory(test)

@@ -10,16 +10,16 @@
 namespace fair::helpers {
 
 template<typename T>
-struct vector_source : public gr::node<vector_source<T>> {
+struct VectorSource : public gr::node<VectorSource<T>> {
     gr::PortOut<T> out;
 
     std::vector<T> data;
     std::size_t    _produced = 0;
 
-    explicit vector_source(std::vector<T> data_) : data{ std::move(data_) } {}
+    explicit VectorSource(std::vector<T> data_) : data{ std::move(data_) } {}
 
     constexpr std::make_signed_t<std::size_t>
-    available_samples(const vector_source &) noexcept {
+    available_samples(const VectorSource &) noexcept {
         const auto v = static_cast<std::make_signed_t<std::size_t>>(data.size() - _produced);
         return v > 0 ? v : -1;
     }
@@ -33,7 +33,7 @@ struct vector_source : public gr::node<vector_source<T>> {
 };
 
 template<typename T>
-struct vector_sink : public gr::node<vector_sink<T>> {
+struct VectorSink : public gr::node<VectorSink<T>> {
     gr::PortIn<T>  in;
     std::vector<T> data;
 
@@ -45,7 +45,7 @@ struct vector_sink : public gr::node<vector_sink<T>> {
 };
 
 template<typename T>
-struct tag_debug : public gr::node<tag_debug<T>> {
+struct TagDebug : public gr::node<TagDebug<T>> {
     gr::PortIn<T>          in;
     gr::PortOut<T>         out;
     std::vector<gr::tag_t> seen_tags;
@@ -65,7 +65,7 @@ struct tag_debug : public gr::node<tag_debug<T>> {
 };
 
 template<typename T>
-struct count_sink : public gr::node<count_sink<T>> {
+struct CountSink : public gr::node<CountSink<T>> {
     gr::PortIn<T> in;
     std::size_t   samples_seen = 0;
 
@@ -78,9 +78,9 @@ struct count_sink : public gr::node<count_sink<T>> {
 
 } // namespace fair::helpers
 
-ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::vector_source, out, data);
-ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::vector_sink, in, data);
-ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::tag_debug, in, out);
-ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::count_sink, in);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::VectorSource, out, data);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::VectorSink, in, data);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::TagDebug, in, out);
+ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::CountSink, in);
 
 #endif

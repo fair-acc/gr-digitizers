@@ -1,5 +1,5 @@
-#include <block_scaling_offset.hpp>
-#include <helper_blocks.hpp>
+#include <BlockScalingOffset.hpp>
+#include <HelperBlocks.hpp>
 
 #include <gnuradio-4.0/scheduler.hpp>
 
@@ -20,20 +20,20 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
         std::vector<float>    data(n);
         std::iota(data.begin(), data.end(), 0);
 
-        graph flow_graph;
+        graph flowGraph;
 
-        auto &src0 = flow_graph.make_node<vector_source<float>>(data);
-        auto &src1 = flow_graph.make_node<vector_source<float>>(data);
-        auto &snk0 = flow_graph.make_node<vector_sink<float>>();
-        auto &snk1 = flow_graph.make_node<vector_sink<float>>();
-        auto &bso  = flow_graph.make_node<block_scaling_offset<float>>({ { { "scale", scale }, { "offset", offset } } });
+        auto &src0 = flowGraph.make_node<VectorSource<float>>(data);
+        auto &src1 = flowGraph.make_node<VectorSource<float>>(data);
+        auto &snk0 = flowGraph.make_node<VectorSink<float>>();
+        auto &snk1 = flowGraph.make_node<VectorSink<float>>();
+        auto &bso  = flowGraph.make_node<BlockScalingOffset<float>>({ { { "scale", scale }, { "offset", offset } } });
 
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out">(src0).template to<"in_signal">(bso)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out">(src1).template to<"in_error">(bso)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out_signal">(bso).template to<"in">(snk0)));
-        expect(eq(connection_result_t::SUCCESS, flow_graph.connect<"out_error">(bso).template to<"in">(snk1)));
+        expect(eq(connection_result_t::SUCCESS, flowGraph.connect<"out">(src0).template to<"in_signal">(bso)));
+        expect(eq(connection_result_t::SUCCESS, flowGraph.connect<"out">(src1).template to<"in_error">(bso)));
+        expect(eq(connection_result_t::SUCCESS, flowGraph.connect<"out_signal">(bso).template to<"in">(snk0)));
+        expect(eq(connection_result_t::SUCCESS, flowGraph.connect<"out_error">(bso).template to<"in">(snk1)));
 
-        scheduler::simple sched{ std::move(flow_graph) };
+        scheduler::simple sched{ std::move(flowGraph) };
         sched.run_and_wait();
 
         expect(eq(data.size(), snk0.data.size()));

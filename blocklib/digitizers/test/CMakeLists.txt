@@ -12,4 +12,4 @@ function(add_ut_test TEST_NAME)
     add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()
 
-add_ut_test(qa_block_scaling_offset)
+add_ut_test(qa_BlockScalingOffset)
