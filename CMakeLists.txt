@@ -55,12 +55,12 @@ if (ENABLE_GR_DIGITIZERS_TESTING AND UNIX AND NOT APPLE)
         setup_target_for_coverage_gcovr_xml(
                 NAME coverage
                 EXECUTABLE ctest
-                DEPENDENCIES qa_block_scaling_offset
+                DEPENDENCIES qa_BlockScalingOffset
                 EXCLUDE "$CMAKE_BUILD_DIR/*" "concepts/.*" ".*/test/.*")
         setup_target_for_coverage_gcovr_html(
                 NAME coverage_html
                 EXECUTABLE ctest
-                DEPENDENCIES qa_block_scaling_offset
+                DEPENDENCIES qa_BlockScalingOffset
                 EXCLUDE "$CMAKE_BUILD_DIR/*" "concepts/.*" ".*/test/.*")
     endif ()
 endif ()
