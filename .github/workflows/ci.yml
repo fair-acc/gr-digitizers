@@ -8,6 +8,9 @@ on:
   release:
     types: [ created ]
 
+env:
+  REFERENCE_CONFIG: 'Ubuntu gcc13' # configuration used for coverage etc
+
 jobs:
   build:
     name: "${{ matrix.configurations.name }} | ${{ matrix.cmake-build-type }}"
