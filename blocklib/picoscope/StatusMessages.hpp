@@ -7,7 +7,7 @@
 
 namespace fair::picoscope::detail {
 
-inline constexpr std::string_view
+constexpr std::string_view
 statusToString(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "PICO_OK";
@@ -205,7 +205,7 @@ statusToString(PICO_STATUS status) {
     }
 }
 
-constexpr inline std::string_view
+constexpr std::string_view
 statusToStringVerbose(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "The PicoScope is functioning correctly.";

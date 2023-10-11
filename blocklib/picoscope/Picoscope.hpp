@@ -21,7 +21,7 @@ struct Error {
         return detail::getErrorMessage(code);
     }
 
-    constexpr operator bool() const noexcept { return code != PICO_OK; }
+    explicit constexpr operator bool() const noexcept { return code != PICO_OK; }
 };
 
 enum class AcquisitionMode { STREAMING, RAPID_BLOCK };

@@ -89,11 +89,12 @@ convertToPs4000aChannel(std::string_view source) {
 
 constexpr PS4000A_THRESHOLD_DIRECTION
 convertToPs4000aThresholdDirection(TriggerDirection direction) {
+    using enum TriggerDirection;
     switch (direction) {
-    case TriggerDirection::RISING: return PS4000A_RISING;
-    case TriggerDirection::FALLING: return PS4000A_FALLING;
-    case TriggerDirection::LOW: return PS4000A_BELOW;
-    case TriggerDirection::HIGH: return PS4000A_ABOVE;
+    case RISING: return PS4000A_RISING;
+    case FALLING: return PS4000A_FALLING;
+    case LOW: return PS4000A_BELOW;
+    case HIGH: return PS4000A_ABOVE;
     default: throw std::runtime_error(fmt::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
     }
 };
