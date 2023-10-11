@@ -22,7 +22,7 @@ struct BlockScalingOffset : public gr::Block<BlockScalingOffset<T>> {
     gr::Annotated<T, "offset", gr::Visible> offset = 0.;
 
     std::tuple<T, T>
-    process_one(T sig, T error) noexcept {
+    processOne(T sig, T error) noexcept {
         return { static_cast<T>(sig * scale - offset), static_cast<T>(error * scale) };
     }
 };

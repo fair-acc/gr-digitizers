@@ -16,19 +16,20 @@ struct VectorSource : public gr::Block<VectorSource<T>> {
     std::vector<T> data;
     std::size_t    _produced = 0;
 
-    explicit VectorSource(std::vector<T> data_) : data{ std::move(data_) } {}
-
-    constexpr std::make_signed_t<std::size_t>
-    availableSamples(const VectorSource &) noexcept {
-        const auto v = static_cast<std::make_signed_t<std::size_t>>(data.size() - _produced);
-        return v > 0 ? v : -1;
+    void
+    settingsChanged(const gr::property_map & /*old_settings*/, const gr::property_map & /*new_settings*/) {
+        _produced = 0;
     }
 
-    T
-    processOne() noexcept {
-        const auto n = _produced;
-        _produced++;
-        return data[n];
+    gr::work::Status
+    processBulk(gr::PublishableSpan auto &output) noexcept {
+        using enum gr::work::Status;
+        const auto n     = std::min(output.size(), data.size() - _produced);
+        const auto chunk = std::span(data).subspan(_produced, n);
+        std::copy(chunk.begin(), chunk.end(), output.begin());
+        output.publish(n);
+        _produced += n;
+        return _produced == data.size() ? DONE : OK;
     }
 };
 

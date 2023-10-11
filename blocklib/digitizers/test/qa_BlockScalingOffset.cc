@@ -22,8 +22,8 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
 
         Graph flowGraph;
 
-        auto &src0 = flowGraph.emplaceBlock<VectorSource<float>>(data);
-        auto &src1 = flowGraph.emplaceBlock<VectorSource<float>>(data);
+        auto &src0 = flowGraph.emplaceBlock<VectorSource<float>>({ { { "data", data } } });
+        auto &src1 = flowGraph.emplaceBlock<VectorSource<float>>({ { { "data", data } } });
         auto &snk0 = flowGraph.emplaceBlock<VectorSink<float>>();
         auto &snk1 = flowGraph.emplaceBlock<VectorSink<float>>();
         auto &bso  = flowGraph.emplaceBlock<BlockScalingOffset<float>>({ { { "scale", kScale }, { "offset", kOffset } } });

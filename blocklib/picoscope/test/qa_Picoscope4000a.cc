@@ -137,9 +137,9 @@ const boost::ut::suite Picoscope4000aTests = [] {
     "rapid block multiple captures"_test = [] { testRapidBlockBasic<float>(3); };
 
     "rapid block 4 channels"_test        = [] {
-        constexpr std::size_t kPreSamples  = 33;
-        constexpr std::size_t kPostSamples = 1000;
-        constexpr std::size_t kNrCaptures  = 2;
+        constexpr std::size_t kPreSamples   = 33;
+        constexpr std::size_t kPostSamples  = 1000;
+        constexpr std::size_t kNrCaptures   = 2;
         constexpr auto        kTotalSamples = kNrCaptures * (kPreSamples + kPostSamples);
 
         Graph                 flowGraph;

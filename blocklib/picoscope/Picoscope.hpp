@@ -243,7 +243,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
     ~Picoscope() { stop(); }
 
     void
-    settings_changed(const gr::property_map & /*old_settings*/, const gr::property_map & /*new_settings*/) {
+    settingsChanged(const gr::property_map & /*old_settings*/, const gr::property_map & /*new_settings*/) {
         const auto wasStarted = state.started;
         if (wasStarted) {
             stop();
