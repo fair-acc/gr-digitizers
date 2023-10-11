@@ -24,7 +24,7 @@ struct Error {
     explicit constexpr operator bool() const noexcept { return code != PICO_OK; }
 };
 
-enum class AcquisitionMode { STREAMING, RAPID_BLOCK };
+enum class AcquisitionMode { Streaming, RapidBlock };
 
 enum class Coupling {
     DC_1M,  ///< DC, 1 MOhm
@@ -32,7 +32,7 @@ enum class Coupling {
     DC_50R, ///< DC, 50 Ohm
 };
 
-enum class TriggerDirection { RISING, FALLING, LOW, HIGH };
+enum class TriggerDirection { Rising, Falling, Low, High };
 
 struct GetValuesResult {
     Error       error;
@@ -44,7 +44,7 @@ namespace detail {
 
 constexpr std::size_t driver_buffer_size = 65536;
 
-enum class PollerState { IDLE = 0, RUNNING, EXIT };
+enum class PollerState { Idle, Running, Exit };
 
 struct ChannelSetting {
     std::string name;
@@ -57,7 +57,7 @@ struct ChannelSetting {
 using ChannelMap = std::map<std::string, ChannelSetting, std::less<>>;
 
 struct TriggerSetting {
-    static constexpr std::string_view TRIGGER_DIGITAL_SOURCE = "DI"; // DI is as well used as "AUX" for p6000 scopes
+    static constexpr std::string_view kTriggerDigitalSource = "DI"; // DI is as well used as "AUX" for p6000 scopes
 
     bool
     isEnabled() const {
@@ -66,17 +66,17 @@ struct TriggerSetting {
 
     bool
     isDigital() const {
-        return isEnabled() && source == TRIGGER_DIGITAL_SOURCE;
+        return isEnabled() && source == kTriggerDigitalSource;
     }
 
     bool
     isAnalog() const {
-        return isEnabled() && source != TRIGGER_DIGITAL_SOURCE;
+        return isEnabled() && source != kTriggerDigitalSource;
     }
 
     std::string      source;
     float            threshold  = 0; // AI only
-    TriggerDirection direction  = TriggerDirection::RISING;
+    TriggerDirection direction  = TriggerDirection::Rising;
     int              pin_number = 0; // DI only
 };
 
@@ -94,11 +94,11 @@ struct Channel {
     gr::property_map
     signalInfo() const {
         using namespace gr;
-        static const auto SIGNAL_NAME = std::string(tag::SIGNAL_NAME.key());
-        static const auto SIGNAL_UNIT = std::string(tag::SIGNAL_UNIT.key());
-        static const auto SIGNAL_MIN  = std::string(tag::SIGNAL_MIN.key());
-        static const auto SIGNAL_MAX  = std::string(tag::SIGNAL_MAX.key());
-        return { { SIGNAL_NAME, settings.name }, { SIGNAL_UNIT, settings.unit }, { SIGNAL_MIN, settings.offset }, { SIGNAL_MAX, settings.offset + static_cast<float>(settings.range) } };
+        static const auto kSignalName = std::string(tag::SIGNAL_NAME.key());
+        static const auto kSignalUnit = std::string(tag::SIGNAL_UNIT.key());
+        static const auto kSignalMin  = std::string(tag::SIGNAL_MIN.key());
+        static const auto kSignalMax  = std::string(tag::SIGNAL_MAX.key());
+        return { { kSignalName, settings.name }, { kSignalUnit, settings.unit }, { kSignalMin, settings.offset }, { kSignalMax, settings.offset + static_cast<float>(settings.range) } };
     }
 };
 
@@ -117,7 +117,7 @@ struct BufferHelper {
 struct Settings {
     std::string     serial_number;
     double          sample_rate              = 10000.;
-    AcquisitionMode acquisition_mode         = AcquisitionMode::STREAMING;
+    AcquisitionMode acquisition_mode         = AcquisitionMode::Streaming;
     std::size_t     pre_samples              = 1000;
     std::size_t     post_samples             = 9000;
     std::size_t     rapid_block_nr_captures  = 1;
@@ -144,7 +144,7 @@ struct State {
     double                        actual_sample_rate = 0;
     std::thread                   poller;
     BufferHelper<ErrorWithSample> errors;
-    std::atomic<PollerState>      poller_state = PollerState::IDLE;
+    std::atomic<PollerState>      poller_state = PollerState::Idle;
     std::atomic<bool>             forced_quit  = false; // TODO transitional until we found out what
                                                         // goes wrong with multithreaded scheduler
     std::size_t produced_worker = 0;                    // poller/callback thread
@@ -153,8 +153,8 @@ struct State {
 inline AcquisitionMode
 parseAcquisitionMode(std::string_view s) {
     using enum AcquisitionMode;
-    if (s == "RAPID_BLOCK") return RAPID_BLOCK;
-    if (s == "STREAMING") return STREAMING;
+    if (s == "RapidBlock") return RapidBlock;
+    if (s == "Streaming") return Streaming;
     throw std::invalid_argument(fmt::format("Unknown acquisition mode '{}'", s));
 }
 
@@ -170,10 +170,10 @@ parseCoupling(std::string_view s) {
 inline TriggerDirection
 parseTriggerDirection(std::string_view s) {
     using enum TriggerDirection;
-    if (s == "RISING") return RISING;
-    if (s == "FALLING") return FALLING;
-    if (s == "LOW") return LOW;
-    if (s == "HIGH") return HIGH;
+    if (s == "Rising") return Rising;
+    if (s == "Falling") return Falling;
+    if (s == "Low") return Low;
+    if (s == "High") return High;
     throw std::invalid_argument(fmt::format("Unknown trigger direction '{}'", s));
 }
 
@@ -219,7 +219,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
-    A<std::string, "acquisition mode", Visible>                       acquisition_mode         = std::string("STREAMING");
+    A<std::string, "acquisition mode", Visible>                       acquisition_mode         = std::string("Streaming");
     A<std::size_t, "pre-samples">                                     pre_samples              = 1000;
     A<std::size_t, "post-samples">                                    post_samples             = 9000;
     A<std::size_t, "no. captures (rapid block mode)">                 rapid_block_nr_captures  = 1;
@@ -234,7 +234,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
     A<std::vector<std::string>, "Coupling modes of enabled channels"> channel_couplings;
     A<std::string, "trigger channel/port ID">                         trigger_source;
     A<float, "trigger threshold, analog only">                        trigger_threshold = 0.f;
-    A<std::string, "trigger direction">                               trigger_direction = std::string("RISING");
+    A<std::string, "trigger direction">                               trigger_direction = std::string("Rising");
     A<int, "trigger pin, digital only">                               trigger_pin       = 0;
 
     detail::State<T>                                                  state;
@@ -307,7 +307,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         }
 
 #ifndef GR_PICOSCOPE_POLLER_THREAD
-        if (ps_settings.acquisition_mode == AcquisitionMode::STREAMING) {
+        if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
             if (const auto ec = self().driver_poll()) {
                 // TODO tolerate or return ERROR
                 reportError(ec);
@@ -342,7 +342,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             if (ps_settings.auto_arm) {
                 arm();
             }
-            if (ps_settings.acquisition_mode == AcquisitionMode::STREAMING) {
+            if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
                 startPollThread();
             }
             state.started = true;
@@ -366,7 +366,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         disarm();
         close();
 
-        if (ps_settings.acquisition_mode == AcquisitionMode::STREAMING) {
+        if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
             stopPollThread();
         }
     }
@@ -377,15 +377,15 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             return;
         }
 
-        if (state.poller_state == detail::PollerState::EXIT) {
-            state.poller_state = detail::PollerState::IDLE;
+        if (state.poller_state == detail::PollerState::Exit) {
+            state.poller_state = detail::PollerState::Idle;
         }
 #ifdef GR_PICOSCOPE_POLLER_THREAD
         const auto pollDuration = std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
 
         state.poller            = std::thread([this, pollDuration] {
-            while (state.poller_state != detail::poller_state_t::EXIT) {
-                if (state.poller_state == detail::poller_state_t::IDLE) {
+            while (state.poller_state != detail::poller_state_t::Exit) {
+                if (state.poller_state == detail::poller_state_t::Idle) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     continue;
                 }
@@ -408,7 +408,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
 
     void
     stopPollThread() {
-        state.poller_state = detail::PollerState::EXIT;
+        state.poller_state = detail::PollerState::Exit;
         if (state.poller.joinable()) {
             state.poller.join();
         }
@@ -473,8 +473,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         }
 
         state.armed = true;
-        if (ps_settings.acquisition_mode == AcquisitionMode::STREAMING) {
-            state.poller_state = detail::PollerState::RUNNING;
+        if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
+            state.poller_state = detail::PollerState::Running;
         }
     }
 
@@ -484,8 +484,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             return;
         }
 
-        if (ps_settings.acquisition_mode == AcquisitionMode::STREAMING) {
-            state.poller_state = detail::PollerState::IDLE;
+        if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
+            state.poller_state = detail::PollerState::Idle;
         }
 
         if (const auto ec = self().driver_disarm()) {
@@ -550,8 +550,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             if (writeSignalInfo) {
                 writeTags[0].index            = static_cast<int64_t>(state.produced_worker);
                 writeTags[0].map              = channel.signalInfo();
-                static const auto SAMPLE_RATE = std::string(gr::tag::SAMPLE_RATE.key());
-                writeTags[0].map[SAMPLE_RATE] = static_cast<float>(sample_rate);
+                static const auto kSampleRate = std::string(gr::tag::SAMPLE_RATE.key());
+                writeTags[0].map[kSampleRate] = static_cast<float>(sample_rate);
                 channel.signal_info_written   = true;
             }
             std::copy(triggerTags.begin(), triggerTags.end(), writeTags.begin() + (writeSignalInfo ? 1 : 0));
@@ -625,7 +625,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             }
         };
 
-        if (ps_settings.trigger.direction == TriggerDirection::RISING || ps_settings.trigger.direction == TriggerDirection::HIGH) {
+        if (ps_settings.trigger.direction == TriggerDirection::Rising || ps_settings.trigger.direction == TriggerDirection::High) {
             for (std::size_t i = 0; i < samples.size(); i++) {
                 const auto value = toFloat(samples[i]);
                 if (state.trigger_state == 0 && value >= ps_settings.trigger.threshold) {
@@ -635,7 +635,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
                     state.trigger_state = 0;
                 }
             }
-        } else if (ps_settings.trigger.direction == TriggerDirection::FALLING || ps_settings.trigger.direction == TriggerDirection::LOW) {
+        } else if (ps_settings.trigger.direction == TriggerDirection::Falling || ps_settings.trigger.direction == TriggerDirection::Low) {
             for (std::size_t i = 0; i < samples.size(); i++) {
                 const auto value = toFloat(samples[i]);
                 if (state.trigger_state == 1 && value <= ps_settings.trigger.threshold) {

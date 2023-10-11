@@ -27,7 +27,6 @@ constexpr PS4000A_COUPLING
 convertToPs4000aCoupling(Coupling coupling) {
     if (coupling == Coupling::AC_1M) return PS4000A_AC;
     if (coupling == Coupling::DC_1M) return PS4000A_DC;
-
     throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
 }
 
@@ -47,7 +46,6 @@ convertToPs4000aRange(double range) {
     if (range == 50.0) return PS4000A_50V;
     if (range == 100.0) return PS4000A_100V;
     if (range == 200.0) return PS4000A_200V;
-
     throw std::runtime_error(fmt::format("Range value not supported: {}", range));
 }
 
@@ -55,22 +53,22 @@ constexpr void
 validateDesiredActualFrequencyPs4000a(double desiredFreq, double actualFreq) {
     // In order to prevent exceptions/exit due to rounding errors, we dont directly
     // compare actual_freq to desired_freq, but instead allow a difference up to 0.001%
-    constexpr double MAX_DIFF_PERCENTAGE = 0.001;
-    const double     diffPercent         = (actualFreq - desiredFreq) * 100 / desiredFreq;
-    if (abs(diffPercent) > MAX_DIFF_PERCENTAGE) {
+    constexpr double kMaxDiffPercentage = 0.001;
+    const double     diffPercent        = (actualFreq - desiredFreq) * 100 / desiredFreq;
+    if (abs(diffPercent) > kMaxDiffPercentage) {
         throw std::runtime_error(fmt::format("Desired and actual frequency do not match. desired: {} actual: {}", desiredFreq, actualFreq));
     }
 }
 
 constexpr int16_t
 convertVoltageToPs4000aRawLogicValue(double value) {
-    constexpr double MAX_LOGICAL_VOLTAGE = 5.0;
+    constexpr double kMaxLogicalVoltage = 5.0;
 
-    if (value > MAX_LOGICAL_VOLTAGE) {
-        throw std::invalid_argument(fmt::format("Maximum logical level is: {}, received: {}.", MAX_LOGICAL_VOLTAGE, value));
+    if (value > kMaxLogicalVoltage) {
+        throw std::invalid_argument(fmt::format("Maximum logical level is: {}, received: {}.", kMaxLogicalVoltage, value));
     }
     // Note max channel value not provided with PicoScope API, we use ext max value
-    return static_cast<int16_t>(value / MAX_LOGICAL_VOLTAGE * PS4000A_EXT_MAX_VALUE);
+    return static_cast<int16_t>(value / kMaxLogicalVoltage * PS4000A_EXT_MAX_VALUE);
 }
 
 constexpr std::optional<PS4000A_CHANNEL>
@@ -91,10 +89,10 @@ constexpr PS4000A_THRESHOLD_DIRECTION
 convertToPs4000aThresholdDirection(TriggerDirection direction) {
     using enum TriggerDirection;
     switch (direction) {
-    case RISING: return PS4000A_RISING;
-    case FALLING: return PS4000A_FALLING;
-    case LOW: return PS4000A_BELOW;
-    case HIGH: return PS4000A_ABOVE;
+    case Rising: return PS4000A_RISING;
+    case Falling: return PS4000A_FALLING;
+    case Low: return PS4000A_BELOW;
+    case High: return PS4000A_ABOVE;
     default: throw std::runtime_error(fmt::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
     }
 };
@@ -107,7 +105,7 @@ struct Ps4000aUnitInterval {
     uint32_t           interval;
 };
 
-Ps4000aUnitInterval
+constexpr Ps4000aUnitInterval
 convertFrequencyToPs4000aTimeUnitsAndInterval(double desired_freq, double &actual_freq) {
     Ps4000aUnitInterval unint;
 
@@ -136,7 +134,7 @@ convertFrequencyToPs4000aTimeUnitsAndInterval(double desired_freq, double &actua
  * Note this function has to be called after the call to the ps3000aSetChannel function,
  * that is just befor the arm!!!
  */
-uint32_t
+constexpr uint32_t
 convertFrequencyToPs4000aTimebase(int16_t handle, double desiredFreq, double &actualFreq) {
     // It is assumed that the timebase is calculated like this:
     // (timebase–2) / 125,000,000
@@ -350,7 +348,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
             return { status };
         }
 
-        if (this->ps_settings.acquisition_mode == AcquisitionMode::RAPID_BLOCK) {
+        if (this->ps_settings.acquisition_mode == AcquisitionMode::RapidBlock) {
             status = ps4000aSetNoOfCaptures(this->state.handle, static_cast<uint32_t>(this->ps_settings.rapid_block_nr_captures));
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aSetNoOfCaptures: {}", detail::getErrorMessage(status));
@@ -377,7 +375,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
         }
 
         // apply trigger configuration
-        if (this->ps_settings.trigger.isAnalog() && this->ps_settings.acquisition_mode == AcquisitionMode::RAPID_BLOCK) {
+        if (this->ps_settings.trigger.isAnalog() && this->ps_settings.acquisition_mode == AcquisitionMode::RapidBlock) {
             const auto channel = detail::convertToPs4000aChannel(this->ps_settings.trigger.source);
             assert(channel);
             status = ps4000aSetSimpleTrigger(this->state.handle,
@@ -413,7 +411,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
 
     Error
     driver_arm() {
-        if (this->ps_settings.acquisition_mode == AcquisitionMode::RAPID_BLOCK) {
+        if (this->ps_settings.acquisition_mode == AcquisitionMode::RapidBlock) {
             uint32_t    timebase   = detail::convertFrequencyToPs4000aTimebase(this->state.handle, this->ps_settings.sample_rate, this->state.actual_sample_rate);
 
             static auto redirector = [](int16_t, PICO_STATUS status, void *vobj) { static_cast<Picoscope4000a *>(vobj)->rapidBlockCallback({ status }); };

@@ -17,15 +17,15 @@ testRapidBlockBasic(std::size_t nrCaptures) {
     using namespace fair::helpers;
     using namespace fair::picoscope;
 
-    constexpr std::size_t PRE_SAMPLES  = 33;
-    constexpr std::size_t POST_SAMPLES = 1000;
-    const auto            totalSamples = nrCaptures * (PRE_SAMPLES + POST_SAMPLES);
+    constexpr std::size_t kPreSamples  = 33;
+    constexpr std::size_t kPostSamples = 1000;
+    const auto            totalSamples = nrCaptures * (kPreSamples + kPostSamples);
 
     gr::graph             flowGraph;
     auto                 &ps   = flowGraph.make_node<Picoscope4000a<T>>({ { { "sample_rate", 10000. },
-                                                                            { "pre_samples", PRE_SAMPLES },
-                                                                            { "post_samples", POST_SAMPLES },
-                                                                            { "acquisition_mode", "RAPID_BLOCK" },
+                                                                            { "pre_samples", kPreSamples },
+                                                                            { "post_samples", kPostSamples },
+                                                                            { "acquisition_mode", "RapidBlock" },
                                                                             { "rapid_block_nr_captures", nrCaptures },
                                                                             { "auto_arm", true },
                                                                             { "trigger_once", true },
@@ -46,18 +46,19 @@ testRapidBlockBasic(std::size_t nrCaptures) {
 
 template<typename T>
 void
-test_streaming_basics() {
+testStreamingBasics() {
+    using namespace std::chrono;
     using namespace boost::ut;
     using namespace gr;
     using namespace fair::helpers;
     using namespace fair::picoscope;
     gr::graph        flowGraph;
 
-    constexpr double SAMPLE_RATE = 80000.;
-    constexpr auto   DURATION_MS = 2000;
+    constexpr double kSampleRate = 80000.;
+    constexpr auto   kDuration   = seconds(2);
 
-    auto            &ps          = flowGraph.make_node<Picoscope4000a<T>>({ { { "sample_rate", SAMPLE_RATE },
-                                                                              { "acquisition_mode", "STREAMING" },
+    auto            &ps          = flowGraph.make_node<Picoscope4000a<T>>({ { { "sample_rate", kSampleRate },
+                                                                              { "acquisition_mode", "Streaming" },
                                                                               { "streaming_mode_poll_rate", 0.00001 },
                                                                               { "auto_arm", true },
                                                                               { "channel_ids", std::vector<std::string>{ "A" } },
@@ -82,13 +83,14 @@ test_streaming_basics() {
     scheduler::simple<scheduler::multi_threaded> sched{ std::move(flowGraph),
                                                         std::make_shared<thread_pool::BasicThreadPool>("simple-scheduler-pool", thread_pool::CPU_BOUND, MIN_THREADS, MAX_THREADS) };
     sched.start();
-    std::this_thread::sleep_for(std::chrono::milliseconds(DURATION_MS));
+    std::this_thread::sleep_for(kDuration);
     ps.forceQuit(); // needed, otherwise stop() doesn't terminate (no matter if the PS works blocking or not)
     sched.stop();
 
-    const auto measuredRate = static_cast<double>(sink.samples_seen) * 1000. / DURATION_MS;
+    const auto measuredRate = sink.samples_seen / duration<double>(kDuration).count();
     fmt::println("Produced in worker: {}", ps.producedWorker());
-    fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", SAMPLE_RATE, static_cast<std::size_t>(measuredRate), measuredRate / SAMPLE_RATE * 100., DURATION_MS);
+    fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / kSampleRate * 100.,
+                 duration_cast<milliseconds>(kDuration).count());
     fmt::println("Total: {}", sink.samples_seen);
 
     expect(ge(sink.samples_seen, std::size_t{ 80000 }));
@@ -96,7 +98,7 @@ test_streaming_basics() {
     expect(eq(tagTracker.seen_tags.size(), std::size_t{ 1 }));
     const auto &tag = tagTracker.seen_tags[0];
     expect(eq(tag.index, int64_t{ 0 }));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.key()))), static_cast<float>(SAMPLE_RATE)));
+    expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.key()))), static_cast<float>(kSampleRate)));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.key()))), "Test signal"s));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.key()))), "Test unit"s));
     expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.key()))), 0.f));
@@ -123,8 +125,8 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "streaming basics"_test = [] {
-        test_streaming_basics<float>();
-        test_streaming_basics<int16_t>();
+        testStreamingBasics<float>();
+        testStreamingBasics<int16_t>();
     };
 
     "rapid block basics"_test = [] {
@@ -135,16 +137,16 @@ const boost::ut::suite Picoscope4000aTests = [] {
     "rapid block multiple captures"_test = [] { testRapidBlockBasic<float>(3); };
 
     "rapid block 4 channels"_test        = [] {
-        constexpr std::size_t PRE_SAMPLES  = 33;
-        constexpr std::size_t POST_SAMPLES = 1000;
+        constexpr std::size_t kPreSamples  = 33;
+        constexpr std::size_t kPostSamples = 1000;
         constexpr std::size_t NR_CAPTURES  = 2;
-        constexpr auto        totalSamples = NR_CAPTURES * (PRE_SAMPLES + POST_SAMPLES);
+        constexpr auto        totalSamples = NR_CAPTURES * (kPreSamples + kPostSamples);
 
         gr::graph             flowGraph;
         auto                 &ps    = flowGraph.make_node<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
-                                                                                     { "pre_samples", PRE_SAMPLES },
-                                                                                     { "post_samples", POST_SAMPLES },
-                                                                                     { "acquisition_mode", "RAPID_BLOCK" },
+                                                                                     { "pre_samples", kPreSamples },
+                                                                                     { "post_samples", kPostSamples },
+                                                                                     { "acquisition_mode", "RapidBlock" },
                                                                                      { "rapid_block_nr_captures", NR_CAPTURES },
                                                                                      { "auto_arm", true },
                                                                                      { "trigger_once", true },
@@ -176,7 +178,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
         gr::graph flowGraph;
         auto     &ps    = flowGraph.make_node<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
                                                                          { "post_samples", std::size_t{ 1000 } },
-                                                                         { "acquisition_mode", "RAPID_BLOCK" },
+                                                                         { "acquisition_mode", "RapidBlock" },
                                                                          { "rapid_block_nr_captures", std::size_t{ 1 } },
                                                                          { "auto_arm", true },
                                                                          { "channel_ids", std::vector<std::string>{ "A" } },
