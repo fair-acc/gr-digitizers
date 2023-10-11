@@ -5,9 +5,8 @@
 
 #include <string>
 
-namespace fair::picoscope {
+namespace fair::picoscope::detail {
 
-namespace detail {
 inline constexpr std::string_view
 statusToString(PICO_STATUS status) {
     switch (status) {
@@ -499,13 +498,12 @@ statusToStringVerbose(PICO_STATUS status) {
     default: return "unknown";
     }
 }
-} // namespace detail
 
 inline std::string
 getErrorMessage(PICO_STATUS status) {
     return fmt::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status));
 }
 
-} // namespace fair::picoscope
+} // namespace fair::picoscope::detail
 
 #endif // FAIR_PICOSCOPE_STATUS_MESSAGE_H

@@ -18,7 +18,7 @@ struct Error {
 
     std::string
     message() const {
-        return getErrorMessage(code);
+        return detail::getErrorMessage(code);
     }
 
     constexpr operator bool() const noexcept { return code != PICO_OK; }
@@ -26,7 +26,7 @@ struct Error {
 
 enum class AcquisitionMode { STREAMING, RAPID_BLOCK };
 
-enum class coupling_t {
+enum class Coupling {
     DC_1M,  ///< DC, 1 MOhm
     AC_1M,  ///< AC, 1 MOhm
     DC_50R, ///< DC, 50 Ohm
@@ -51,7 +51,7 @@ struct ChannelSetting {
     std::string unit     = "V";
     double      range    = 2.;
     float       offset   = 0.;
-    coupling_t  coupling = coupling_t::AC_1M;
+    Coupling    coupling = Coupling::AC_1M;
 };
 
 using ChannelMap = std::map<std::string, ChannelSetting, std::less<>>;
@@ -158,9 +158,9 @@ parseAcquisitionMode(std::string_view s) {
     throw std::invalid_argument(fmt::format("Unknown acquisition mode '{}'", s));
 }
 
-inline coupling_t
+inline Coupling
 parseCoupling(std::string_view s) {
-    using enum coupling_t;
+    using enum Coupling;
     if (s == "DC_1M") return DC_1M;
     if (s == "AC_1M") return AC_1M;
     if (s == "DC_50R") return DC_50R;
@@ -503,11 +503,11 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         std::vector<ChannelOutputRange> channelOutputs;
         channelOutputs.reserve(state.channels.size());
 
-        for (std::size_t channel_idx = 0; channel_idx < state.channels.size(); ++channel_idx) {
-            auto &channel = state.channels[channel_idx];
+        for (std::size_t channelIdx = 0; channelIdx < state.channels.size(); ++channelIdx) {
+            auto &channel = state.channels[channelIdx];
 
             channelOutputs.push_back(channel.data_writer.reserve_output_range(nrSamples));
-            auto      &output     = channelOutputs[channel_idx];
+            auto      &output     = channelOutputs[channelIdx];
 
             const auto driverData = std::span(channel.driver_buffer).subspan(offset, nrSamples);
 
@@ -534,10 +534,10 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         std::vector<gr::tag_t> triggerTags;
         triggerTags.reserve(triggerOffsets.size());
 
-        for (const auto trigger_offset : triggerOffsets) {
-            triggerTags.emplace_back(static_cast<int64_t>(state.produced_worker + trigger_offset), gr::property_map{ // TODO use data from timing message
-                                                                                                                     { gr::tag::TRIGGER_NAME, "PPS" },
-                                                                                                                     { gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count()) } });
+        for (const auto triggerOffset : triggerOffsets) {
+            triggerTags.emplace_back(static_cast<int64_t>(state.produced_worker + triggerOffset), gr::property_map{ // TODO use data from timing message
+                                                                                                                    { gr::tag::TRIGGER_NAME, "PPS" },
+                                                                                                                    { gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count()) } });
         }
 
         for (auto &channel : state.channels) {
@@ -592,14 +592,14 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         }
         const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
         for (std::size_t capture = 0; capture < ps_settings.rapid_block_nr_captures; ++capture) {
-            const auto get_values_result = self().driver_rapidBlockGetValues(capture, samples);
-            if (get_values_result.error) {
+            const auto getValuesResult = self().driver_rapidBlockGetValues(capture, samples);
+            if (getValuesResult.error) {
                 reportError(ec);
                 return;
             }
 
             // TODO handle overflow for individual channels?
-            processDriverData(get_values_result.samples, 0);
+            processDriverData(getValuesResult.samples, 0);
         }
 
         if (ps_settings.trigger_once) {
