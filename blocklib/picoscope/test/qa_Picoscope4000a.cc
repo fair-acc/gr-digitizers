@@ -140,7 +140,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
         constexpr std::size_t kPreSamples  = 33;
         constexpr std::size_t kPostSamples = 1000;
         constexpr std::size_t kNrCaptures  = 2;
-        constexpr auto        totalSamples = kNrCaptures * (kPreSamples + kPostSamples);
+        constexpr auto        kTotalSamples = kNrCaptures * (kPreSamples + kPostSamples);
 
         Graph                 flowGraph;
         auto                 &ps    = flowGraph.emplaceBlock<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
@@ -168,10 +168,10 @@ const boost::ut::suite Picoscope4000aTests = [] {
         scheduler::Simple sched{ std::move(flowGraph) };
         sched.runAndWait();
 
-        expect(eq(sink0.samples_seen, totalSamples));
-        expect(eq(sink1.samples_seen, totalSamples));
-        expect(eq(sink2.samples_seen, totalSamples));
-        expect(eq(sink3.samples_seen, totalSamples));
+        expect(eq(sink0.samples_seen, kTotalSamples));
+        expect(eq(sink1.samples_seen, kTotalSamples));
+        expect(eq(sink2.samples_seen, kTotalSamples));
+        expect(eq(sink3.samples_seen, kTotalSamples));
     };
 
     "rapid block continuous"_test = [] {
