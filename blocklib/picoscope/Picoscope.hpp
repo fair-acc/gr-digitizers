@@ -3,7 +3,7 @@
 
 #include "StatusMessages.hpp"
 
-#include <gnuradio-4.0/node.hpp>
+#include <gnuradio-4.0/Block.hpp>
 
 #include <fmt/format.h>
 
@@ -42,7 +42,7 @@ struct GetValuesResult {
 
 namespace detail {
 
-constexpr std::size_t driver_buffer_size = 65536;
+constexpr std::size_t kDriverBufferSize = 65536;
 
 enum class PollerState { Idle, Running, Exit };
 
@@ -82,8 +82,8 @@ struct TriggerSetting {
 
 template<typename T>
 struct Channel {
-    using ValueWriterType = decltype(std::declval<gr::circular_buffer<T>>().new_writer());
-    using TagWriterType   = decltype(std::declval<gr::circular_buffer<gr::tag_t>>().new_writer());
+    using ValueWriterType = decltype(std::declval<gr::CircularBuffer<T>>().new_writer());
+    using TagWriterType   = decltype(std::declval<gr::CircularBuffer<gr::Tag>>().new_writer());
     std::string          id;
     ChannelSetting       settings;
     std::vector<int16_t> driver_buffer;
@@ -109,7 +109,7 @@ struct ErrorWithSample {
 
 template<typename T, std::size_t initialSize = 1>
 struct BufferHelper {
-    gr::circular_buffer<T>        buffer = gr::circular_buffer<T>(initialSize);
+    gr::CircularBuffer<T>         buffer = gr::CircularBuffer<T>(initialSize);
     decltype(buffer.new_reader()) reader = buffer.new_reader();
     decltype(buffer.new_writer()) writer = buffer.new_writer();
 };
@@ -214,8 +214,8 @@ using A = gr::Annotated<T, description, Arguments...>;
 
 using gr::Visible;
 
-template<typename T, typename PSImpl>
-struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTypes<int16_t, float>> {
+template<typename T, typename TPSImpl>
+struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::SupportedTypes<int16_t, float>> {
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
@@ -269,7 +269,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             for (const auto &[id, settings] : ps_settings.enabled_channels) {
                 state.channels.emplace_back(detail::Channel<T>{ .id            = id,
                                                                 .settings      = settings,
-                                                                .driver_buffer = std::vector<int16_t>(detail::driver_buffer_size),
+                                                                .driver_buffer = std::vector<int16_t>(detail::kDriverBufferSize),
                                                                 .data_writer   = self().analog_out[channelIdx].streamWriter().buffer().new_writer(),
                                                                 .tag_writer    = self().analog_out[channelIdx].tagWriter().buffer().new_writer() });
                 channelIdx++;
@@ -283,9 +283,9 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         }
     }
 
-    gr::work_return_t
+    gr::work::Result
     workImpl() noexcept {
-        using enum gr::work_return_status_t;
+        using enum gr::work::Status;
         start(); // TODO should be done by scheduler
 
         if (state.channels.empty()) {
@@ -531,7 +531,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         // TODO wait (block) here for timing messages if trigger count > timing message count
         // TODO pair up trigger offsets with timing messages
 
-        std::vector<gr::tag_t> triggerTags;
+        std::vector<gr::Tag> triggerTags;
         triggerTags.reserve(triggerOffsets.size());
 
         for (const auto triggerOffset : triggerOffsets) {
@@ -659,12 +659,12 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
 
     [[nodiscard]] constexpr auto &
     self() noexcept {
-        return *static_cast<PSImpl *>(this);
+        return *static_cast<TPSImpl *>(this);
     }
 
     [[nodiscard]] constexpr const auto &
     self() const noexcept {
-        return *static_cast<const PSImpl *>(this);
+        return *static_cast<const TPSImpl *>(this);
     }
 };
 

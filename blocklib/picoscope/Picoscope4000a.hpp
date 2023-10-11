@@ -217,7 +217,7 @@ template<typename T>
 struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> {
     std::array<gr::PortOut<T>, 8> analog_out;
 
-    gr::work_return_t
+    gr::work::Result
     work(std::size_t requestedWork = 0) {
         std::ignore = requestedWork;
         return this->workImpl();
@@ -426,8 +426,8 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
                 return { status };
             }
         } else {
-            using fair::picoscope::detail::driver_buffer_size;
-            setBuffers(driver_buffer_size, 0);
+            using fair::picoscope::detail::kDriverBufferSize;
+            setBuffers(kDriverBufferSize, 0);
 
             auto unit_int = detail::convertFrequencyToPs4000aTimeUnitsAndInterval(this->ps_settings.sample_rate, this->state.actual_sample_rate);
 
@@ -435,9 +435,9 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
                                                 &unit_int.interval, // sample interval
                                                 unit_int.unit,      // time unit of sample interval
                                                 0,                  // pre-triggersamples (unused)
-                                                static_cast<uint32_t>(driver_buffer_size), false,
+                                                static_cast<uint32_t>(kDriverBufferSize), false,
                                                 1, // downsampling factor // TODO reconsider if we need downsampling support
-                                                PS4000A_RATIO_MODE_NONE, static_cast<uint32_t>(driver_buffer_size));
+                                                PS4000A_RATIO_MODE_NONE, static_cast<uint32_t>(kDriverBufferSize));
 
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aRunStreaming: {}", detail::getErrorMessage(status));

@@ -1,7 +1,7 @@
 #ifndef GR_DIGITIZERS_BLOCK_SCALING_OFFSET_HPP
 #define GR_DIGITIZERS_BLOCK_SCALING_OFFSET_HPP
 
-#include <gnuradio-4.0/node.hpp>
+#include <gnuradio-4.0/Block.hpp>
 
 namespace gr::digitizers {
 
@@ -13,7 +13,7 @@ namespace gr::digitizers {
  * while the second input is only scaled.
  */
 template<typename T>
-struct BlockScalingOffset : public gr::node<BlockScalingOffset<T>> {
+struct BlockScalingOffset : public gr::Block<BlockScalingOffset<T>> {
     gr::PortIn<T>                           in_signal;
     gr::PortIn<T>                           in_error;
     gr::PortOut<T>                          out_signal;

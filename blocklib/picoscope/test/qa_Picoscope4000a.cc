@@ -1,6 +1,6 @@
 #include <boost/ut.hpp>
 
-#include <gnuradio-4.0/scheduler.hpp>
+#include <gnuradio-4.0/Scheduler.hpp>
 
 #include <HelperBlocks.hpp>
 #include <Picoscope4000a.hpp>
@@ -21,25 +21,25 @@ testRapidBlockBasic(std::size_t nrCaptures) {
     constexpr std::size_t kPostSamples = 1000;
     const auto            totalSamples = nrCaptures * (kPreSamples + kPostSamples);
 
-    gr::graph             flowGraph;
-    auto                 &ps   = flowGraph.make_node<Picoscope4000a<T>>({ { { "sample_rate", 10000. },
-                                                                            { "pre_samples", kPreSamples },
-                                                                            { "post_samples", kPostSamples },
-                                                                            { "acquisition_mode", "RapidBlock" },
-                                                                            { "rapid_block_nr_captures", nrCaptures },
-                                                                            { "auto_arm", true },
-                                                                            { "trigger_once", true },
-                                                                            { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                            { "channel_ranges", std::vector{ 5. } },
-                                                                            { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
+    Graph                 flowGraph;
+    auto                 &ps   = flowGraph.emplaceBlock<Picoscope4000a<T>>({ { { "sample_rate", 10000. },
+                                                                               { "pre_samples", kPreSamples },
+                                                                               { "post_samples", kPostSamples },
+                                                                               { "acquisition_mode", "RapidBlock" },
+                                                                               { "rapid_block_nr_captures", nrCaptures },
+                                                                               { "auto_arm", true },
+                                                                               { "trigger_once", true },
+                                                                               { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                               { "channel_ranges", std::vector{ 5. } },
+                                                                               { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-    auto                 &sink = flowGraph.make_node<CountSink<T>>();
+    auto                 &sink = flowGraph.emplaceBlock<CountSink<T>>();
 
     // TODO move back to static connect() once it can handle arrays
-    expect(eq(connection_result_t::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink, 0)));
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink, 0)));
 
-    scheduler::simple sched{ std::move(flowGraph) };
-    sched.run_and_wait();
+    scheduler::Simple sched{ std::move(flowGraph) };
+    sched.runAndWait();
 
     expect(eq(sink.samples_seen, totalSamples));
 }
@@ -52,36 +52,36 @@ testStreamingBasics() {
     using namespace gr;
     using namespace fair::helpers;
     using namespace fair::picoscope;
-    gr::graph        flowGraph;
+    Graph            flowGraph;
 
     constexpr double kSampleRate = 80000.;
     constexpr auto   kDuration   = seconds(2);
 
-    auto            &ps          = flowGraph.make_node<Picoscope4000a<T>>({ { { "sample_rate", kSampleRate },
-                                                                              { "acquisition_mode", "Streaming" },
-                                                                              { "streaming_mode_poll_rate", 0.00001 },
-                                                                              { "auto_arm", true },
-                                                                              { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                              { "channel_names", std::vector<std::string>{ "Test signal" } },
-                                                                              { "channel_units", std::vector<std::string>{ "Test unit" } },
-                                                                              { "channel_ranges", std::vector{ 5. } },
-                                                                              { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
+    auto            &ps          = flowGraph.emplaceBlock<Picoscope4000a<T>>({ { { "sample_rate", kSampleRate },
+                                                                                 { "acquisition_mode", "Streaming" },
+                                                                                 { "streaming_mode_poll_rate", 0.00001 },
+                                                                                 { "auto_arm", true },
+                                                                                 { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                                 { "channel_names", std::vector<std::string>{ "Test signal" } },
+                                                                                 { "channel_units", std::vector<std::string>{ "Test unit" } },
+                                                                                 { "channel_ranges", std::vector{ 5. } },
+                                                                                 { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-    auto            &tagTracker  = flowGraph.make_node<TagDebug<T>>();
-    auto            &sink        = flowGraph.make_node<CountSink<T>>();
+    auto            &tagTracker  = flowGraph.emplaceBlock<TagDebug<T>>();
+    auto            &sink        = flowGraph.emplaceBlock<CountSink<T>>();
 
     // TODO move back to static connect() once it can handle arrays
-    expect(eq(connection_result_t::SUCCESS, flowGraph.dynamic_connect(ps, 0, tagTracker, 0)));
-    expect(eq(connection_result_t::SUCCESS, flowGraph.connect<"out">(tagTracker).template to<"in">(sink)));
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, tagTracker, 0)));
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(tagTracker).template to<"in">(sink)));
 
     // Explicitly start unit because it takes quite some time
     expect(nothrow([&ps] { ps.start(); }));
 
     // This either hangs or terminates without producing anything if I increase the number of threads
-    constexpr std::size_t                        MIN_THREADS = 2;
-    constexpr std::size_t                        MAX_THREADS = 2;
-    scheduler::simple<scheduler::multi_threaded> sched{ std::move(flowGraph),
-                                                        std::make_shared<thread_pool::BasicThreadPool>("simple-scheduler-pool", thread_pool::CPU_BOUND, MIN_THREADS, MAX_THREADS) };
+    constexpr std::size_t                                        kMinThreads = 2;
+    constexpr std::size_t                                        kMaxThreads = 2;
+    scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{ std::move(flowGraph),
+                                                                        std::make_shared<thread_pool::BasicThreadPool>("simple-scheduler-pool", thread_pool::CPU_BOUND, kMinThreads, kMaxThreads) };
     sched.start();
     std::this_thread::sleep_for(kDuration);
     ps.forceQuit(); // needed, otherwise stop() doesn't terminate (no matter if the PS works blocking or not)
@@ -112,8 +112,8 @@ const boost::ut::suite Picoscope4000aTests = [] {
     using namespace fair::picoscope;
 
     "open and close"_test = [] {
-        gr::graph flowGraph;
-        auto     &ps = flowGraph.make_node<Picoscope4000a<float>>();
+        Graph flowGraph;
+        auto &ps = flowGraph.emplaceBlock<Picoscope4000a<float>>();
 
         // this takes time, so we do it a few times only
         for (auto i = 0; i < 3; i++) {
@@ -139,34 +139,34 @@ const boost::ut::suite Picoscope4000aTests = [] {
     "rapid block 4 channels"_test        = [] {
         constexpr std::size_t kPreSamples  = 33;
         constexpr std::size_t kPostSamples = 1000;
-        constexpr std::size_t NR_CAPTURES  = 2;
-        constexpr auto        totalSamples = NR_CAPTURES * (kPreSamples + kPostSamples);
+        constexpr std::size_t kNrCaptures  = 2;
+        constexpr auto        totalSamples = kNrCaptures * (kPreSamples + kPostSamples);
 
-        gr::graph             flowGraph;
-        auto                 &ps    = flowGraph.make_node<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
-                                                                                     { "pre_samples", kPreSamples },
-                                                                                     { "post_samples", kPostSamples },
-                                                                                     { "acquisition_mode", "RapidBlock" },
-                                                                                     { "rapid_block_nr_captures", NR_CAPTURES },
-                                                                                     { "auto_arm", true },
-                                                                                     { "trigger_once", true },
-                                                                                     { "channel_ids", std::vector<std::string>{ "A", "B", "C", "D" } },
-                                                                                     { "channel_ranges", std::vector{ { 5., 5., 5., 5. } } },
-                                                                                     { "channel_couplings", std::vector<std::string>{ "AC_1M", "AC_1M", "AC_1M", "AC_1M" } } } });
+        Graph                 flowGraph;
+        auto                 &ps    = flowGraph.emplaceBlock<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
+                                                                                        { "pre_samples", kPreSamples },
+                                                                                        { "post_samples", kPostSamples },
+                                                                                        { "acquisition_mode", "RapidBlock" },
+                                                                                        { "rapid_block_nr_captures", kNrCaptures },
+                                                                                        { "auto_arm", true },
+                                                                                        { "trigger_once", true },
+                                                                                        { "channel_ids", std::vector<std::string>{ "A", "B", "C", "D" } },
+                                                                                        { "channel_ranges", std::vector{ { 5., 5., 5., 5. } } },
+                                                                                        { "channel_couplings", std::vector<std::string>{ "AC_1M", "AC_1M", "AC_1M", "AC_1M" } } } });
 
-        auto                 &sink0 = flowGraph.make_node<CountSink<float>>();
-        auto                 &sink1 = flowGraph.make_node<CountSink<float>>();
-        auto                 &sink2 = flowGraph.make_node<CountSink<float>>();
-        auto                 &sink3 = flowGraph.make_node<CountSink<float>>();
+        auto                 &sink0 = flowGraph.emplaceBlock<CountSink<float>>();
+        auto                 &sink1 = flowGraph.emplaceBlock<CountSink<float>>();
+        auto                 &sink2 = flowGraph.emplaceBlock<CountSink<float>>();
+        auto                 &sink3 = flowGraph.emplaceBlock<CountSink<float>>();
 
         // TODO move back to static connect() once it can handle arrays
-        expect(eq(connection_result_t::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink0, 0)));
-        expect(eq(connection_result_t::SUCCESS, flowGraph.dynamic_connect(ps, 1, sink1, 0)));
-        expect(eq(connection_result_t::SUCCESS, flowGraph.dynamic_connect(ps, 2, sink2, 0)));
-        expect(eq(connection_result_t::SUCCESS, flowGraph.dynamic_connect(ps, 3, sink3, 0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink0, 0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 1, sink1, 0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 2, sink2, 0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 3, sink3, 0)));
 
-        scheduler::simple sched{ std::move(flowGraph) };
-        sched.run_and_wait();
+        scheduler::Simple sched{ std::move(flowGraph) };
+        sched.runAndWait();
 
         expect(eq(sink0.samples_seen, totalSamples));
         expect(eq(sink1.samples_seen, totalSamples));
@@ -175,31 +175,31 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "rapid block continuous"_test = [] {
-        gr::graph flowGraph;
-        auto     &ps    = flowGraph.make_node<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
-                                                                         { "post_samples", std::size_t{ 1000 } },
-                                                                         { "acquisition_mode", "RapidBlock" },
-                                                                         { "rapid_block_nr_captures", std::size_t{ 1 } },
-                                                                         { "auto_arm", true },
-                                                                         { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                         { "channel_ranges", std::vector{ 5. } },
-                                                                         { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
+        Graph flowGraph;
+        auto &ps    = flowGraph.emplaceBlock<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
+                                                                        { "post_samples", std::size_t{ 1000 } },
+                                                                        { "acquisition_mode", "RapidBlock" },
+                                                                        { "rapid_block_nr_captures", std::size_t{ 1 } },
+                                                                        { "auto_arm", true },
+                                                                        { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                        { "channel_ranges", std::vector{ 5. } },
+                                                                        { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-        auto     &sink0 = flowGraph.make_node<CountSink<float>>();
+        auto &sink0 = flowGraph.emplaceBlock<CountSink<float>>();
 
-        expect(eq(connection_result_t::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink0, 0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink0, 0)));
 
         ps.start();
 
         // TODO tried multi_threaded scheduler with start(); sleep; stop(), something goes
         // wrong there (scheduler doesn't shovel data reliably)
-        scheduler::simple sched{ std::move(flowGraph) };
+        scheduler::Simple sched{ std::move(flowGraph) };
         auto              quitter = std::async([&ps] {
             std::this_thread::sleep_for(std::chrono::seconds(3));
             ps.forceQuit();
         });
 
-        sched.run_and_wait();
+        sched.runAndWait();
         expect(ge(sink0.samples_seen, std::size_t{ 2000 }));
         expect(le(sink0.samples_seen, std::size_t{ 10000 }));
     };
