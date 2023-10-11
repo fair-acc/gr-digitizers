@@ -308,7 +308,7 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
 
 #ifndef GR_PICOSCOPE_POLLER_THREAD
         if (ps_settings.acquisition_mode == AcquisitionMode::STREAMING) {
-            if (auto ec = self().driver_poll()) {
+            if (const auto ec = self().driver_poll()) {
                 // TODO tolerate or return ERROR
                 reportError(ec);
                 fmt::println(std::cerr, "poll failed");
@@ -381,26 +381,25 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             state.poller_state = detail::PollerState::IDLE;
         }
 #ifdef GR_PICOSCOPE_POLLER_THREAD
-        const auto poll_duration = std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
+        const auto pollDuration = std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
 
-        state.poller             = std::thread([this, poll_duration] {
+        state.poller            = std::thread([this, pollDuration] {
             while (state.poller_state != detail::poller_state_t::EXIT) {
                 if (state.poller_state == detail::poller_state_t::IDLE) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     continue;
                 }
 
-                const auto poll_start = std::chrono::high_resolution_clock::now();
+                const auto pollStart = std::chrono::high_resolution_clock::now();
 
-                auto       ec         = self().driver_poll();
-                if (ec) {
-                    fmt::println(std::cerr, "poll failed");
+                if (const auto ec = self().driver_poll()) {
+                    fmt::println(std::cerr, "poll failed: {}", ec.message());
                 }
                 // Substract the time each iteration itself took in order to get closer to
                 // the desired poll duration
-                const auto elapsed_poll_duration = std::chrono::high_resolution_clock::now() - poll_start;
-                if (elapsed_poll_duration < poll_duration) {
-                    std::this_thread::sleep_for(poll_duration - elapsed_poll_duration);
+                const auto elapsedPollDuration = std::chrono::high_resolution_clock::now() - pollStart;
+                if (elapsedPollDurationuration < pollDuration) {
+                    std::this_thread::sleep_for(pollDuration - elapsedPollDuration);
                 }
             }
         });
@@ -430,9 +429,9 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
         if (state.initialized) {
             return;
         }
-        const auto ec = self().driver_initialize();
-        if (ec) {
-            throw std::runtime_error(fmt::format("Initialization failed"));
+
+        if (const auto ec = self().driver_initialize()) {
+            throw std::runtime_error(fmt::format("Initialization failed: {}", ec.message()));
         }
 
         state.initialized = true;
@@ -456,9 +455,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             throw std::runtime_error("Cannot configure armed device");
         }
 
-        auto ec = self().driver_configure();
-        if (ec) {
-            throw std::runtime_error("Configuration failed");
+        if (const auto ec = self().driver_configure()) {
+            throw std::runtime_error(fmt::format("Configuration failed: {}", ec.message()));
         }
 
         state.configured = true;
@@ -470,10 +468,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             return;
         }
 
-        // arm the driver
-        auto ec = self().driver_arm();
-        if (ec) {
-            throw std::runtime_error("Arming failed");
+        if (const auto ec = self().driver_arm()) {
+            throw std::runtime_error(fmt::format("Arming failed: {}", ec.message()));
         }
 
         state.armed = true;
@@ -492,10 +488,8 @@ struct Picoscope : public gr::node<PSImpl, gr::BlockingIO<true>, gr::SupportedTy
             state.poller_state = detail::PollerState::IDLE;
         }
 
-        const auto ec = self().driver_disarm();
-
-        if (ec) {
-            fmt::println(std::cerr, "disarm failed");
+        if (const auto ec = self().driver_disarm()) {
+            fmt::println(std::cerr, "disarm failed: {}", ec.message());
         }
 
         state.armed = false;
