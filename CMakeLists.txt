@@ -11,7 +11,7 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-    GIT_TAG 6303c46716cd4bb9304d3e42f5b5e11f38bfe9f4
+    GIT_TAG 6b8fe7919fa29ddcf57d39318a36dd000f4173ad
 )
 
 FetchContent_Declare(
