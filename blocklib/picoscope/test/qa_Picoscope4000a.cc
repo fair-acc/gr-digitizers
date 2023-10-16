@@ -35,8 +35,7 @@ testRapidBlockBasic(std::size_t nrCaptures) {
 
     auto                 &sink = flowGraph.emplaceBlock<CountSink<T>>();
 
-    // TODO move back to static connect() once it can handle arrays
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink, 0)));
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(sink)));
 
     scheduler::Simple sched{ std::move(flowGraph) };
     sched.runAndWait();
@@ -70,8 +69,7 @@ testStreamingBasics() {
     auto            &tagTracker  = flowGraph.emplaceBlock<TagDebug<T>>();
     auto            &sink        = flowGraph.emplaceBlock<CountSink<T>>();
 
-    // TODO move back to static connect() once it can handle arrays
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, tagTracker, 0)));
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(tagTracker)));
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(tagTracker).template to<"in">(sink)));
 
     // Explicitly start unit because it takes quite some time
@@ -159,11 +157,10 @@ const boost::ut::suite Picoscope4000aTests = [] {
         auto                 &sink2 = flowGraph.emplaceBlock<CountSink<float>>();
         auto                 &sink3 = flowGraph.emplaceBlock<CountSink<float>>();
 
-        // TODO move back to static connect() once it can handle arrays
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink0, 0)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 1, sink1, 0)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 2, sink2, 0)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 3, sink3, 0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).to<"in">(sink0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 1>(ps).to<"in">(sink1)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 2>(ps).to<"in">(sink2)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 3>(ps).to<"in">(sink3)));
 
         scheduler::Simple sched{ std::move(flowGraph) };
         sched.runAndWait();
@@ -187,7 +184,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
         auto &sink0 = flowGraph.emplaceBlock<CountSink<float>>();
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.dynamic_connect(ps, 0, sink0, 0)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).to<"in">(sink0)));
 
         ps.start();
 
