@@ -20,7 +20,15 @@ FetchContent_Declare(
     GIT_TAG bf8388f61103571dee3061a4ef23292a320d9dbf # head as of 2023-08-21
 )
 
-FetchContent_MakeAvailable(graph-prototype ut)
+FetchContent_Declare( # used for examples and utilities, not for actual blocks
+   cli11_proj
+   QUIET
+   GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+   GIT_TAG v2.3.2
+   SOURCE_DIR     cli11_proj
+)
+
+FetchContent_MakeAvailable(graph-prototype ut cli11_proj)
 
 add_library(gr-digitizers-options INTERFACE)
 include(cmake/CompilerWarnings.cmake)
@@ -36,10 +44,16 @@ if(NOT EMSCRIPTEN)
     set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
 endif()
 
+find_package(PkgConfig REQUIRED)
+
 if(ENABLE_PICOSCOPE)
-    find_package(PkgConfig REQUIRED)
     pkg_check_modules(zlib REQUIRED IMPORTED_TARGET zlib)
     pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+endif()
+
+if(ENABLE_TIMING)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(saftlib REQUIRED IMPORTED_TARGET saftlib)
 endif()
 
 option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds" ON)
@@ -66,4 +80,3 @@ if (ENABLE_GR_DIGITIZERS_TESTING AND UNIX AND NOT APPLE)
 endif ()
 
 add_subdirectory(blocklib)
-
