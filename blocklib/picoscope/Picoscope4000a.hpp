@@ -367,7 +367,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
             const auto coupling = detail::convertToPs4000aCoupling(channel.settings.coupling);
             const auto range    = detail::convertToPs4000aRange(channel.settings.range);
 
-            status              = ps4000aSetChannel(this->state.handle, *idx, true, coupling, static_cast<PICO_CONNECT_PROBE_RANGE>(range), channel.settings.offset);
+            status              = ps4000aSetChannel(this->state.handle, *idx, true, coupling, static_cast<PICO_CONNECT_PROBE_RANGE>(range), static_cast<float>(channel.settings.offset));
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "ps4000aSetChannel (chan '{}'): {}", channel.id, detail::getErrorMessage(status));
                 return { status };
