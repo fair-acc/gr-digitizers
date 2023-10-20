@@ -21,7 +21,10 @@ struct Error {
         return detail::getErrorMessage(code);
     }
 
-    explicit constexpr operator bool() const noexcept { return code != PICO_OK; }
+    explicit constexpr
+    operator bool() const noexcept {
+        return code != PICO_OK;
+    }
 };
 
 enum class AcquisitionMode { Streaming, RapidBlock };
@@ -50,7 +53,7 @@ struct ChannelSetting {
     std::string name;
     std::string unit     = "V";
     double      range    = 2.;
-    float       offset   = 0.;
+    double      offset   = 0.;
     Coupling    coupling = Coupling::AC_1M;
 };
 
@@ -75,7 +78,7 @@ struct TriggerSetting {
     }
 
     std::string      source;
-    float            threshold  = 0; // AI only
+    double           threshold  = 0; // AI only
     TriggerDirection direction  = TriggerDirection::Rising;
     int              pin_number = 0; // DI only
 };
@@ -98,7 +101,9 @@ struct Channel {
         static const auto kSignalUnit = std::string(tag::SIGNAL_UNIT.key());
         static const auto kSignalMin  = std::string(tag::SIGNAL_MIN.key());
         static const auto kSignalMax  = std::string(tag::SIGNAL_MAX.key());
-        return { { kSignalName, settings.name }, { kSignalUnit, settings.unit }, { kSignalMin, settings.offset }, { kSignalMax, settings.offset + static_cast<float>(settings.range) } };
+        return {
+            { kSignalName, settings.name }, { kSignalUnit, settings.unit }, { kSignalMin, static_cast<float>(settings.offset) }, { kSignalMax, static_cast<float>(settings.offset + settings.range) }
+        };
     }
 };
 
@@ -178,7 +183,7 @@ parseTriggerDirection(std::string_view s) {
 }
 
 inline ChannelMap
-channelSettings(std::span<const std::string> ids, std::span<const std::string> names, std::span<const std::string> units, std::span<const double> ranges, std::span<const float> offsets,
+channelSettings(std::span<const std::string> ids, std::span<const std::string> names, std::span<const std::string> units, std::span<const double> ranges, std::span<const double> offsets,
                 std::span<const std::string> couplings) {
     ChannelMap r;
     for (std::size_t i = 0; i < ids.size(); ++i) {
@@ -215,7 +220,7 @@ using A = gr::Annotated<T, description, Arguments...>;
 using gr::Visible;
 
 template<typename T, typename TPSImpl>
-struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::SupportedTypes<int16_t, float>> {
+struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::SupportedTypes<int16_t, float, double>> {
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
@@ -230,10 +235,10 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
     A<std::vector<std::string>, "Names of enabled channels">          channel_names;
     A<std::vector<std::string>, "Units of enabled channels">          channel_units;
     std::vector<double>                                               channel_ranges;
-    std::vector<float>                                                channel_offsets;
+    std::vector<double>                                               channel_offsets;
     A<std::vector<std::string>, "Coupling modes of enabled channels"> channel_couplings;
     A<std::string, "trigger channel/port ID">                         trigger_source;
-    A<float, "trigger threshold, analog only">                        trigger_threshold = 0.f;
+    A<double, "trigger threshold, analog only">                       trigger_threshold = 0.f;
     A<std::string, "trigger direction">                               trigger_direction = std::string("Rising");
     A<int, "trigger pin, digital only">                               trigger_pin       = 0;
 
@@ -614,11 +619,13 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
         }
 
         std::vector<std::size_t> triggerOffsets; // relative offset of detected triggers
-        const auto               band              = static_cast<float>(triggerChannel.settings.range / 100.);
-        const auto               voltageMultiplier = static_cast<float>(triggerChannel.settings.range / state.max_value);
+        const auto               band              = triggerChannel.settings.range / 100.;
+        const auto               voltageMultiplier = triggerChannel.settings.range / state.max_value;
 
-        const auto               toFloat           = [&voltageMultiplier](T raw) {
+        const auto               toDouble          = [&voltageMultiplier](T raw) {
             if constexpr (std::is_same_v<T, float>) {
+                return static_cast<double>(raw);
+            } else if constexpr (std::is_same_v<T, double>) {
                 return raw;
             } else {
                 return voltageMultiplier * raw;
@@ -627,7 +634,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
         if (ps_settings.trigger.direction == TriggerDirection::Rising || ps_settings.trigger.direction == TriggerDirection::High) {
             for (std::size_t i = 0; i < samples.size(); i++) {
-                const auto value = toFloat(samples[i]);
+                const auto value = toDouble(samples[i]);
                 if (state.trigger_state == 0 && value >= ps_settings.trigger.threshold) {
                     state.trigger_state = 1;
                     triggerOffsets.push_back(i);
@@ -637,7 +644,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             }
         } else if (ps_settings.trigger.direction == TriggerDirection::Falling || ps_settings.trigger.direction == TriggerDirection::Low) {
             for (std::size_t i = 0; i < samples.size(); i++) {
-                const auto value = toFloat(samples[i]);
+                const auto value = toDouble(samples[i]);
                 if (state.trigger_state == 1 && value <= ps_settings.trigger.threshold) {
                     state.trigger_state = 0;
                     triggerOffsets.push_back(i);
