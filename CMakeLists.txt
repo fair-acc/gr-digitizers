@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 project(gr-digitizers CXX)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 
@@ -11,7 +11,7 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-    GIT_TAG bf360a2c5fddac35d356b1de2d415e5e203345c9
+    GIT_TAG f291da9ccb1b50beec09fdd4b1db921056552b9f
 )
 
 FetchContent_Declare(
