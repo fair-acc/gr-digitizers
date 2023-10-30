@@ -1,5 +1,5 @@
 # TODO do not hardcode
-add_library(ps4000a SHARED IMPORTED)
+add_library(ps4000a SHARED IMPORTED GLOBAL)
 set_property(TARGET ps4000a PROPERTY
              IMPORTED_LOCATION ${PICOSCOPE_PREFIX}/lib/libps4000a.so)
 target_link_libraries(ps4000a INTERFACE PkgConfig::zlib PkgConfig::libusb)

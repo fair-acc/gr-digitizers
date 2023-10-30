@@ -24,11 +24,56 @@ FetchContent_Declare( # used for examples and utilities, not for actual blocks
    cli11_proj
    QUIET
    GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-   GIT_TAG v2.3.2
+   GIT_TAG v2.3.t 2
    SOURCE_DIR     cli11_proj
 )
 
-FetchContent_MakeAvailable(graph-prototype ut cli11_proj)
+FetchContent_Declare(
+        imgui
+        GIT_REPOSITORY  https://github.com/ocornut/imgui.git
+        GIT_TAG         v1.88
+)
+
+# Enables 32 bit vertex indices for ImGui
+add_compile_definitions("ImDrawIdx=unsigned int")
+
+FetchContent_Declare(
+        implot
+        GIT_REPOSITORY  https://github.com/epezent/implot.git
+        GIT_TAG         18758e237e8906a97ddf42de1e75793526f30ce9 #latest 2023-04-19
+)
+FetchContent_MakeAvailable(imgui implot graph-prototype ut cli11_proj)
+
+find_package(SDL2 REQUIRED)
+find_package(OpenGL REQUIRED COMPONENTS OpenGL)
+
+# imgui and implot are not CMake Projects, so we have to define their targets manually here
+add_library(imgui
+    OBJECT
+        ${imgui_SOURCE_DIR}/imgui_demo.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+)
+target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
+target_include_directories(imgui BEFORE
+    PUBLIC
+        ${imgui_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}/backends
+)
+
+add_library(implot
+    OBJECT ${implot_SOURCE_DIR}/implot_demo.cpp ${implot_SOURCE_DIR}/implot_items.cpp ${implot_SOURCE_DIR}/implot.cpp
+)
+target_include_directories(implot BEFORE
+    PUBLIC
+        ${implot_SOURCE_DIR}
+)
+target_link_libraries(implot PUBLIC imgui)
 
 add_library(gr-digitizers-options INTERFACE)
 include(cmake/CompilerWarnings.cmake)
@@ -52,7 +97,6 @@ if(ENABLE_PICOSCOPE)
 endif()
 
 if(ENABLE_TIMING)
-    find_package(PkgConfig REQUIRED)
     pkg_check_modules(saftlib REQUIRED IMPORTED_TARGET saftlib)
 endif()
 
