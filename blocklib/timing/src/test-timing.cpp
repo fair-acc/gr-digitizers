@@ -1,28 +1,35 @@
 #include <format>
 #include <thread>
 #include <iostream>
-
-#include "imgui.h"
-#include "imgui_impl_sdl.h"
-#include "imgui_impl_opengl3.h"
 #include <cstdio>
+
+// CLI - interface
+#include <CLI/CLI.hpp>
+
+// UI
 #include <SDL.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL_opengles2.h>
 #else
 #include <SDL_opengl.h>
 #endif
+#include <imgui.h>
+#include <imgui_impl_sdl.h>
+#include <imgui_impl_opengl3.h>
+#include <implot.h>
 
-#include <CLI/CLI.hpp>
-
+// timing
 #include <SAFTd.h>
 #include <TimingReceiver.h>
 #include <SoftwareActionSink.h>
 #include <SoftwareCondition.h>
 #include <CommonFunctions.h>
+#include <etherbone.h>
 
-#include <gnuradio-4.0/algorithm/ImChart.hpp>
+// gr
+#include <gnuradio-4.0/CircularBuffer.hpp>
 
+// picoscope
 #include <ps4000aApi.h>
 
 using saftlib::SAFTd_Proxy;
@@ -72,9 +79,13 @@ class Ps4000a {
     }UNIT;
 
     typedef struct tBufferInfo {
-        UNIT		 *unit;
-        int16_t		**driverBuffers;
-        int16_t		**appBuffers;
+        using buftype = gr::CircularBuffer<char, 10000>;
+        UNIT *unit;
+        std::array<std::array<int16_t, 20000>, 8> driverBuffers{};
+        std::array<buftype, 8> data{ buftype{0} ,buftype{0},buftype{0},buftype{0},buftype{0},buftype{0},buftype{0},buftype{0}};
+        std::array<decltype(data[0].new_writer()), 8> writers = {
+                data[0].new_writer(),data[1].new_writer(),data[2].new_writer(),data[3].new_writer(),
+                data[4].new_writer(),data[5].new_writer(), data[6].new_writer(),data[7].new_writer()};
     } BUFFER_INFO;
 
     const uint32_t	bufferLength = 100000;
@@ -89,6 +100,7 @@ class Ps4000a {
 
     BUFFER_INFO bufferInfo;
     UNIT digitizer;
+
 
     void SetDefaults(UNIT *unit) {
         for (int32_t ch = 0; ch < unit->channelCount; ch++) {
@@ -193,14 +205,9 @@ class Ps4000a {
         PICO_STATUS status;
 
         // Setup data and temporary application buffers to copy data into
-        for (int i = 0; i < unit->channelCount; i++) {
+        for (std::size_t i = 0; i < unit->channelCount; i++) {
             if (unit->channelSettings[PS4000A_CHANNEL_A + i].enabled) {
-                buffers[i * 2] = (int16_t*)calloc(bufferLength, sizeof(int16_t));
-                buffers[i * 2 + 1] = (int16_t*)calloc(bufferLength, sizeof(int16_t));
-                status = ps4000aSetDataBuffers(unit->handle, (PS4000A_CHANNEL)i, buffers[i * 2], buffers[i * 2 + 1], bufferLength, 0, PS4000A_RATIO_MODE_NONE);
-                appBuffers[i * 2] = (int16_t*)calloc(bufferLength, sizeof(int16_t));
-                appBuffers[i * 2 + 1] = (int16_t*)calloc(bufferLength, sizeof(int16_t));
-                printf(status ? "StreamDataHandler:ps4000aSetDataBuffers(channel %ld) ------ 0x%08lx \n" : "", i, status);
+                status = ps4000aSetDataBuffer(unit->handle, (PS4000A_CHANNEL)i, bufferInfo.driverBuffers[i].data(), bufferInfo.driverBuffers[0].size(), 0, PS4000A_RATIO_MODE_NONE);
             }
         }
         uint32_t downsampleRatio = 1;
@@ -212,8 +219,6 @@ class Ps4000a {
         int16_t autostop = true;
 
         bufferInfo.unit = unit;
-        bufferInfo.driverBuffers = buffers;
-        bufferInfo.appBuffers = appBuffers;
 
         printf("\nStreaming Data for %lu samples", postTrigger / downsampleRatio);
         printf("Collect streaming...\n");
@@ -238,37 +243,37 @@ class Ps4000a {
             sleep(0);
             g_ready = false;
             status = ps4000aGetStreamingLatestValues(unit->handle, [](int16_t handle, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t triggerAt, int16_t triggered, int16_t autoStop, void * pParameter ) {
-                auto *digitizer = (Ps4000a*) pParameter;
+                auto *pPs4000A = (Ps4000a*) pParameter;
 
                 // Used for streaming
-                digitizer->g_sampleCount = noOfSamples;
-                digitizer->g_startIndex = startIndex;
-                digitizer->g_autoStop = autoStop;
+                pPs4000A->g_sampleCount = noOfSamples;
+                pPs4000A->g_startIndex = startIndex;
+                pPs4000A->g_autoStop = autoStop;
 
                 // Flag to say done reading data
-                digitizer->g_ready = true;
+                pPs4000A->g_ready = true;
 
                 // Flags to show if & where a trigger has occurred
-                digitizer->g_trig = triggered;
-                digitizer->g_trigAt = triggerAt;
+                pPs4000A->g_trig = triggered;
+                pPs4000A->g_trigAt = triggerAt;
 
                 if (noOfSamples) {
-                    for (int channel = 0; channel < digitizer->bufferInfo.unit->channelCount; channel++) {
-                        if (digitizer->bufferInfo.unit->channelSettings[channel].enabled) {
-                            if (digitizer->bufferInfo.appBuffers && digitizer->bufferInfo.driverBuffers) {
-                                if (digitizer->bufferInfo.appBuffers[channel * 2] && digitizer->bufferInfo.driverBuffers[channel * 2]) {
-                                    std::memcpy(&digitizer->bufferInfo.appBuffers[channel * 2][0], &digitizer->bufferInfo.driverBuffers[channel * 2][startIndex], noOfSamples * sizeof(int16_t));
+                    for (int channel = 0; channel < pPs4000A->bufferInfo.unit->channelCount; channel++) {
+                        if (pPs4000A->bufferInfo.unit->channelSettings[channel].enabled) {
+                            if (pPs4000A->bufferInfo.appBuffers && pPs4000A->bufferInfo.driverBuffers) {
+                                if (pPs4000A->bufferInfo.appBuffers[channel * 2] && pPs4000A->bufferInfo.driverBuffers[channel * 2]) {
+                                    std::memcpy(&pPs4000A->bufferInfo.appBuffers[channel * 2][0], &pPs4000A->bufferInfo.driverBuffers[channel * 2][startIndex], noOfSamples * sizeof(int16_t));
                                 }
                                 // Min buffers
-                                if (digitizer->bufferInfo.appBuffers[channel * 2 + 1] && digitizer->bufferInfo.driverBuffers[1]) {
-                                    std::memcpy(&digitizer->bufferInfo.appBuffers[channel * 2 + 1][0], &digitizer->bufferInfo.driverBuffers[channel * 2 + 1][startIndex], noOfSamples * sizeof(int16_t));
+                                if (pPs4000A->bufferInfo.appBuffers[channel * 2 + 1] && pPs4000A->bufferInfo.driverBuffers[1]) {
+                                    std::memcpy(&pPs4000A->bufferInfo.appBuffers[channel * 2 + 1][0], &pPs4000A->bufferInfo.driverBuffers[channel * 2 + 1][startIndex], noOfSamples * sizeof(int16_t));
                                 }
                             }
                         }
                     }
                 }
             }, this);
-            if (g_ready && g_sampleCount > 0) /* can be ready and have no data, if autoStop has fired */ {
+            if (status == PICO_OK && g_ready && g_sampleCount > 0) /* can be ready and have no data, if autoStop has fired */ {
                 if (g_trig) {
                     triggeredAt = totalSamples + g_trigAt;		// Calculate where the trigger occurred in the total samples collected
                 }
@@ -277,7 +282,7 @@ class Ps4000a {
                 if (g_trig) {
                     printf("Trig. at index %lu total %lu", g_trigAt, triggeredAt);	// Show where trigger occurred
                 }
-                for (int i = 0; i < (uint32_t)(g_sampleCount); i++) {
+                for (int i = 0; i < g_sampleCount; i++) {
                     for (int j = 0; j < unit->channelCount; j++) {
                         if (unit->channelSettings[j].enabled) {
                             fmt::print("Ch{:c}  {:7d} = {:7d}mV, {:7d} = {:7d}mV\n",
@@ -333,25 +338,245 @@ public:
 };
 
 class Timing {
+public:
+    struct event {
+        uint64_t id = 0x0; // full 64 bit EventID contained in the timing message
+        uint64_t param  = 0x0; // full 64 bit parameter contained in the timing message
+        uint64_t time = 0; // time for next event (this value is added to the current time or the next PPS, see option -p
+        uint64_t executed = 0;
+        uint16_t flags = 0x0;
+
+        void print() const {
+            // print everything out
+            std::cout << "tDeadline: " << tr_formatDate(saftlib::makeTimeTAI(time), PMODE_HEX & PMODE_VERBOSE, false);
+            // print event id
+            auto fid   = ((id >> 60) & 0xf);   // 1
+            auto gid   = ((id >> 48) & 0xfff); // 4
+            auto evtno = ((id >> 36) & 0xfff); // 4
+            if (fid == 0) { //full << " FLAGS: N/A";
+                auto flgs = 0;
+                auto sid   = ((id >> 24) & 0xfff);  // 4
+                auto bpid  = ((id >> 10) & 0x3fff); // 5
+                auto res   = (id & 0x3ff);          // 4
+                std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, FLAGS={:#01X}, SID={:#04X}, BPID={:#05X}, RES={:#04X}, id={:#016X}",
+                                         fid, gid, evtno, flgs, sid, bpid, res, id);
+            } else if (fid == 1) {
+                auto flgs = ((id >> 32) & 0xf);   // 1
+                auto bpc   = ((id >> 34) & 0x1);   // 1
+                auto sid   = ((id >> 20) & 0xfff); // 4
+                auto bpid  = ((id >> 6) & 0x3fff); // 5
+                auto res   = (id & 0x3f);          // 4
+                std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, FLAGS={:#01X}, BPC={:#01X}, SID={:#04X}, BPID={:#05X}, RES={:#04X}, id={:#016X}",
+                                         fid, gid, evtno, flgs, bpc, sid, bpid, res, id);
+            } else {
+                auto other = (id & 0xfffffffff);   // 9
+                std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, OTHER={:#09X}, id={:#016X}", fid, gid, evtno, other, id);
+            }
+            // print parameter
+            std::cout << std::format(", Param={:#016X}", param);
+            // print flags
+            auto delay = executed - time;
+            if (flags & 1) {
+                std::cout << std::format(" !late (by {} ns)", delay);
+            }
+            if (flags & 2) {
+                std::cout << std::format(" !early (by {} ns)", delay);
+            }
+            if (flags & 4) {
+                std::cout << std::format(" !conflict (delayed by {} ns)", delay);
+            }
+            if (flags & 8) {
+                std::cout << std::format(" !delayed (by {} ns)", delay);
+            }
+        }
+    };
+private:
+    gr::CircularBuffer<event, 10000> snooped{10000};
+    decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
+    gr::CircularBuffer<event, 10000> to_inject{10000};
+    decltype(to_inject.new_reader()) to_inject_reader = to_inject.new_reader();
+public:
+    bool ppsAlign= false;
+    bool absoluteTime = false;
+    bool UTC = false;
+    bool UTCleap = false;
+    uint64_t snoopID     = 0x0;
+    uint64_t snoopMask   = 0x0;
+    int64_t  snoopOffset = 0x0;
+
     // open connection to saftlib
     std::shared_ptr<SAFTd_Proxy> saftd = SAFTd_Proxy::create();
     // get a specific device
     std::map<std::string, std::string> devices = saftd->getDevices();
     std::shared_ptr<TimingReceiver_Proxy> receiver;
 
-public:
     Timing() {
         if (devices.empty()) {
             std::cerr << "No devices attached to saftd" << std::endl;
         }
         receiver = TimingReceiver_Proxy::create(devices.begin()->second);
     }
+
+    void process() {
+        inject();
+        snoop();
+    }
+
+    void inject() {
+        for (auto &event: to_inject_reader.get()) {
+            const saftlib::Time wrTime = receiver->CurrentTime(); // current WR time
+            saftlib::Time eventTime; // time for next event in PTP time
+            if (ppsAlign) {
+                const saftlib::Time ppsNext   = (wrTime - (wrTime.getTAI() % 1000000000)) + 1000000000; // time for next PPS
+                eventTime = (ppsNext + event.time);
+            } else if (absoluteTime) {
+                if (UTC) {
+                    eventTime = saftlib::makeTimeUTC(event.time, UTCleap);
+                } else {
+                    eventTime = saftlib::makeTimeTAI(event.time);
+                }
+            } else {
+                eventTime = wrTime + event.time;
+            }
+            receiver->InjectEvent(event.id, event.param, eventTime);
+            event.print();
+        }
+    }
+
+    void snoop() {
+        std::shared_ptr<SoftwareActionSink_Proxy> sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
+        std::shared_ptr<SoftwareCondition_Proxy> condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, snoopOffset));
+        // Accept all errors
+        condition->setAcceptLate(true);
+        condition->setAcceptEarly(true);
+        condition->setAcceptConflict(true);
+        condition->setAcceptDelayed(true);
+        condition->SigAction.connect([this](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed, uint16_t flags) {
+            this->snoop_writer.publish([this, id, param, deadline, executed, flags](std::span<event> buffer) {
+                buffer[0].param = param;
+                buffer[0].id = id;
+                buffer[0].time = deadline.getTAI();
+                buffer[0].executed = executed.getTAI();
+                buffer[0].flags = flags;
+                buffer[0].print();
+            }, 1);
+        });
+        condition->setActive(true);
+        const auto startTime = std::chrono::system_clock::now();
+        while(true) {
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
+            if (duration > 0) {
+                saftlib::wait_for_signal( duration >= std::numeric_limits<int>::max() ? std::numeric_limits<int>::max() : duration);
+            } else {
+                break;
+            }
+        }
+    }
 };
 
-int interactive_scope() {
-    Timing timing;
-    Ps4000a scope;
+class WBConsole {
+    // hardware address of the timing receiver on the wishbone bus
+    static constexpr unsigned int CERN_ID = 0xce42;
+    static constexpr unsigned int UART_ID = 0xe2d13d04;
+    static constexpr unsigned int VUART_TX = 0x10;
+    static constexpr unsigned int VUART_RX = 0x14;
+    eb_socket_t socket{};
+    eb_device_t device{};
+    eb_address_t tx{}, rx{};
 
+    gr::CircularBuffer<char, 10000> input{10000};
+    decltype(input.new_writer()) writer = input.new_writer();
+    gr::CircularBuffer<char, 10000> output{10000};
+    decltype(output.new_reader()) reader = output.new_reader();
+
+public:
+    WBConsole() {
+        if (eb_status_t status{}; (status = eb_socket_open(EB_ABI_CODE, 0, EB_DATAX|EB_ADDRX, &socket)) != EB_OK) {
+            fmt::print("eb_socket_open failed: {}", status);
+            throw std::logic_error("failed to open socket");
+        }
+
+        if (eb_status_t status{}; (status = eb_device_open(socket, "dev/wbm0", EB_DATAX|EB_ADDRX, 3, &device)) != EB_OK) {
+            fmt::print("failed to open etherbone device: {} status: {}", "dev/wbm0", status);
+            throw std::logic_error("failed to open device");
+        }
+
+        std::array<sdb_device, 1> sdb{};
+        int c = sdb.size();
+        if (eb_status_t status{}; (status = eb_sdb_find_by_identity(device, CERN_ID, UART_ID, sdb.data(), &c)) != EB_OK) {
+            fmt::print("eb_sdb_find_by_identity", status);
+            throw std::logic_error("failed to find by identity");
+        }
+
+        if (c > 1) {
+            fprintf(stderr, "found %d UARTs on that device; pick one with -i #\n", c);
+            throw std::logic_error("uart name not ambiguous");
+        } else if (c < 1) {
+            fprintf(stderr, "could not find UART #%d on that device (%d total)\n", 1, c);
+            throw std::logic_error("want to use nonexisting uart");
+        }
+
+        printf("Connected to uart at address %" PRIx64"\n", sdb[1].sdb_component.addr_first);
+        tx = sdb[1].sdb_component.addr_first + VUART_TX;
+        rx = sdb[1].sdb_component.addr_first + VUART_RX;
+    }
+
+    ~WBConsole() {
+        eb_device_close(device);
+        eb_socket_close(socket);
+    }
+
+    void process() {
+        std::array<eb_data_t, 200> rx_data{};
+        bool busy = false;
+        eb_data_t done{};
+        eb_cycle_t cycle{};
+        /* Poll for status */
+        eb_cycle_open(device, nullptr, eb_block, &cycle);
+        eb_cycle_read(cycle, rx, EB_BIG_ENDIAN|EB_DATA32, &rx_data[0]);
+        eb_cycle_read(cycle, tx, EB_BIG_ENDIAN|EB_DATA32, &done);
+        eb_cycle_close(cycle);
+
+        /* Bulk read anything extra */
+        if ((rx_data[0] & 0x100) != 0) {
+            eb_cycle_open(device, nullptr, eb_block, &cycle);
+            for (uint i = 1; i < rx_data.size(); ++i) {
+                eb_cycle_read(cycle, rx, EB_BIG_ENDIAN|EB_DATA32, &rx_data[i]);
+            }
+            eb_cycle_close(cycle);
+
+            for (unsigned long data : rx_data) {
+                if ((data & 0x100) == 0) {
+                    continue;
+                }
+                char byte = data & 0xFF;
+                // copy received byte to ringbuffer
+                output.new_writer().publish([byte](std::span<char> buffer) {buffer[0] = byte;}, 1);
+            }
+        }
+
+        busy = busy && (done & 0x100) == 0;
+        if (!busy) {
+            eb_cycle_open(device, nullptr, eb_block, &cycle);
+            for (auto tx_data : reader.get()) {
+                eb_device_write(device, tx, EB_BIG_ENDIAN|EB_DATA32, static_cast<eb_data_t>(tx_data), eb_block, nullptr);
+            }
+            eb_cycle_close(cycle);
+            busy = true;
+            eb_cycle_close(cycle);
+        }
+    }
+
+    void send_command(std::string_view cmd) {
+        output.new_writer().publish([&cmd](std::span<char> buf) { std::copy(cmd.begin(), cmd.end(), buf.begin()); }, cmd.size());
+    }
+
+    void setMasterMode(bool enable) {
+        send_command(enable ? "mode master" : "mode slave");
+    }
+};
+
+int interactive(Ps4000a &a, Timing &timing, WBConsole &console) {
     // Initialize UI
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
@@ -478,150 +703,50 @@ int interactive_scope() {
     return 0;
 }
 
+void draw_plot() {
+    static float xs1[1001], ys1[1001];
+    for (int i = 0; i < 1001; ++i) {
+        xs1[i] = i * 0.001f;
+        ys1[i] = 0.5f + 0.5f * sinf(50.f * (xs1[i] + (float)ImGui::GetTime() / 10.f));
+    }
+    static double xs2[20], ys2[20];
+    for (int i = 0; i < 20; ++i) {
+        xs2[i] = i * 1/19.0f;
+        ys2[i] = xs2[i] * xs2[i];
+    }
+    if (ImPlot::BeginPlot("Line Plots")) {
+        ImPlot::SetupAxes("x","y");
+        ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
+        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
+        ImPlot::PlotLine("g(x)", xs2, ys2, 20,ImPlotLineFlags_Segments);
+        ImPlot::EndPlot();
+    }
+}
+
 int main(int argc, char** argv) {
+    Ps4000a picoscope; // a picoscope to examine generated timing signals
+    Timing timing; // an interface to the timing card allowing condition & io configuration and event injection & snooping
+    WBConsole console; // a whishbone console to send raw commands to the timing card and switch it beteween master and slave mode
+
     CLI::App app{"timing receiver saftbus example"};
     bool scope = false;
     app.add_flag("--scope", scope, "enter interactive scope mode showing the timing input connected to a picoscope and the generated and received timing msgs");
-    bool inject = false;
-    app.add_flag("-i", inject, "inject");
-    uint64_t eventID     = 0x0; // full 64 bit EventID contained in the timing message
-    app.add_option("-e", eventID, "event id to send");
-    uint64_t eventParam  = 0x0; // full 64 bit parameter contained in the timing message
-    app.add_option("-p", eventParam, "event parameters to send");
-    uint64_t eventTNext  = 0x0; // time for next event (this value is added to the current time or the next PPS, see option -p
-    app.add_option("-t", eventTNext, "time to send the event");
-    bool ppsAlign= false;
-    app.add_flag("--pps", ppsAlign, "add time to next pps pulse");
-    bool absoluteTime = false;
-    app.add_flag("--abs", absoluteTime, "time is an absolute time instead of an offset");
-    bool UTC = false;
-    app.add_flag("--utc", UTC, "absolute time is in utc, default is tai");
-    bool UTCleap = false;
-    app.add_flag("--leap", UTCleap, "utc calculation leap second flag");
+    app.add_flag("--pps", timing.ppsAlign, "add time to next pps pulse");
+    app.add_flag("--abs", timing.absoluteTime, "time is an absolute time instead of an offset");
+    app.add_flag("--utc", timing.UTC, "absolute time is in utc, default is tai");
+    app.add_flag("--leap", timing.UTCleap, "utc calculation leap second flag");
 
     bool snoop = false;
     app.add_flag("-s", snoop, "snoop");
-    uint64_t snoopID     = 0x0;
-    app.add_option("-f", snoopID, "id filter");
-    uint64_t snoopMask   = 0x0;
-    app.add_option("-m", snoopMask, "snoop mask");
-    int64_t  snoopOffset = 0x0;
-    app.add_option("-o", snoopOffset, "snoop offset");
-    int64_t snoopSeconds = -1;
-    app.add_option("-d", snoopSeconds, "snoop duration in seconds, -1 for infinite");
-
-    uint32_t pmode = PMODE_HEX;
-    app.add_option("--print-mode", pmode, "print mode PMODE_NONE(0x0), PMODE_DEC(0x1), PMODE_HEX(0x2), PMODE_VERBOSE(0x4), PMODE_UTC(0x8)");
+    app.add_option("-f", timing.snoopID, "id filter");
+    app.add_option("-m", timing.snoopMask, "snoop mask");
+    app.add_option("-o", timing.snoopOffset, "snoop offset");
 
     CLI11_PARSE(app, argc, argv);
 
     if (scope) {
         fmt::print("entering interactive timing scope mode\n");
-        return interactive_scope();
-    }
-
-    try {
-        // initialize required stuff
-        std::shared_ptr<SAFTd_Proxy> saftd = SAFTd_Proxy::create();
-
-        // get a specific device
-        std::map<std::string, std::string> devices = saftd->getDevices();
-        if (devices.empty()) {
-            std::cerr << "No devices attached to saftd" << std::endl;
-            return -1;
-        }
-        std::shared_ptr<TimingReceiver_Proxy> receiver = TimingReceiver_Proxy::create(devices.begin()->second);
-
-        if (inject) {
-            const saftlib::Time wrTime = receiver->CurrentTime(); // current WR time
-            saftlib::Time eventTime; // time for next event in PTP time
-            if (ppsAlign) {
-                const saftlib::Time ppsNext   = (wrTime - (wrTime.getTAI() % 1000000000)) + 1000000000; // time for next PPS
-                eventTime = (ppsNext + eventTNext);
-            } else if (absoluteTime) {
-                if (UTC) {
-                    eventTime = saftlib::makeTimeUTC(eventTNext, UTCleap);
-                } else {
-                    eventTime = saftlib::makeTimeTAI(eventTNext);
-                }
-            } else {
-                eventTime = wrTime + eventTNext;
-            }
-            receiver->InjectEvent(eventID, eventParam, eventTime);
-            if (pmode & PMODE_HEX) {
-              std::cout << "Injected event (eventID/parameter/time): 0x" << std::hex << std::setw(16) << std::setfill('0') << eventID
-                                                                            << " 0x" << std::setw(16) << std::setfill('0') << eventParam
-                                                                            << " 0x" << std::setw(16) << std::setfill('0') << (UTC?eventTime.getUTC():eventTime.getTAI()) << std::dec << std::endl;
-            }
-        }
-
-        if (snoop) {
-          std::shared_ptr<SoftwareActionSink_Proxy> sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
-          std::shared_ptr<SoftwareCondition_Proxy> condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, snoopOffset));
-          // Accept all errors
-          condition->setAcceptLate(true);
-          condition->setAcceptEarly(true);
-          condition->setAcceptConflict(true);
-          condition->setAcceptDelayed(true);
-          condition->SigAction.connect([&pmode](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed, uint16_t flags) {
-              std::cout << "tDeadline: " << tr_formatDate(deadline, pmode, false);
-              // print event id
-              auto fid   = ((id >> 60) & 0xf);   // 1
-              auto gid   = ((id >> 48) & 0xfff); // 4
-              auto evtno = ((id >> 36) & 0xfff); // 4
-              if (fid == 0) { //full << " FLAGS: N/A";
-                  auto flgs = 0;
-                  auto sid   = ((id >> 24) & 0xfff);  // 4
-                  auto bpid  = ((id >> 10) & 0x3fff); // 5
-                  auto res   = (id & 0x3ff);          // 4
-                  std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, FLAGS={:#01X}, SID={:#04X}, BPID={:#05X}, RES={:#04X}, id={:#016X}",
-                                           fid, gid, evtno, flgs, sid, bpid, res, id);
-              } else if (fid == 1) {
-                  auto flgs = ((id >> 32) & 0xf);   // 1
-                  auto bpc   = ((id >> 34) & 0x1);   // 1
-                  auto sid   = ((id >> 20) & 0xfff); // 4
-                  auto bpid  = ((id >> 6) & 0x3fff); // 5
-                  auto res   = (id & 0x3f);          // 4
-                  std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, FLAGS={:#01X}, BPC={:#01X}, SID={:#04X}, BPID={:#05X}, RES={:#04X}, id={:#016X}",
-                                           fid, gid, evtno, flgs, bpc, sid, bpid, res, id);
-              } else {
-                  auto other = (id & 0xfffffffff);   // 9
-                  std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, OTHER={:#09X}, id={:#016X}", fid, gid, evtno, other, id);
-              }
-              // print parameter
-              std::cout << std::format(", Param={:#016X}", param);
-              // print flags
-              auto delay = executed - deadline;
-              if (flags & 1) {
-                  std::cout << std::format(" !late (by {} ns)", delay);
-              }
-              if (flags & 2) {
-                  std::cout << std::format(" !early (by {} ns)", delay);
-              }
-              if (flags & 4) {
-                  std::cout << std::format(" !conflict (delayed by {} ns)", delay);
-              }
-              if (flags & 8) {
-                  std::cout << std::format(" !delayed (by {} ns)", delay);
-              }
-          });
-          condition->setActive(true);
-          const auto startTime = std::chrono::system_clock::now();
-          while(true) {
-              if (snoopSeconds < 0) { // wait infinitely
-                  saftlib::wait_for_signal(-1);
-              } else {
-                  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::seconds(snoopSeconds)).count();
-                  if (duration > 0) {
-                      saftlib::wait_for_signal( duration >= std::numeric_limits<int>::max() ? std::numeric_limits<int>::max() : duration);
-                  } else {
-                      break;
-                  }
-              }
-          }
-        }
-    } catch (const saftbus::Error& error) {
-      std::cerr << "Failed to invoke method: \'" << error.what() << "\'" << std::endl;
+        return interactive(picoscope, timing, console);
     }
 
     return 0;
