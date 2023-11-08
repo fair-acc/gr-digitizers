@@ -98,6 +98,7 @@ endif()
 
 if(ENABLE_TIMING)
     pkg_check_modules(saftlib REQUIRED IMPORTED_TARGET saftlib)
+    pkg_check_modules(etherbone REQUIRED IMPORTED_TARGET etherbone)
 endif()
 
 option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds" ON)
