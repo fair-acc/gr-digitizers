@@ -18,8 +18,157 @@
 #include <imgui_impl_opengl3.h>
 #include <implot.h>
 
+#include <fmt/chrono.h>
+
 #include "timing.hpp"
 #include "ps4000a.hpp"
+
+#include <gnuradio-4.0/HistoryBuffer.hpp>
+
+void showTimingEventTable(gr::BufferReader auto &event_reader) {
+    if (ImGui::CollapsingHeader("Received Timing Events")) {
+        static int freeze_cols = 1;
+        static int freeze_rows = 1;
+
+        //const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
+        //const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
+        //ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 20);
+        static ImGuiTableFlags flags =
+                ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
+                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
+        if (ImGui::BeginTable("received_events", 13, flags/*, outer_size*/)) {
+            ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
+            ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
+            ImGui::TableSetupColumn("executed");
+            ImGui::TableSetupColumn("id");
+            ImGui::TableSetupColumn("param");
+            ImGui::TableSetupColumn("flags");
+            ImGui::TableSetupColumn("eventno");
+            ImGui::TableSetupColumn("fid");
+            ImGui::TableSetupColumn("gid");
+            ImGui::TableSetupColumn("bpc");
+            ImGui::TableSetupColumn("sid");
+            ImGui::TableSetupColumn("bpcid");
+            ImGui::TableSetupColumn("res");
+            ImGui::TableSetupColumn("flgs");
+
+            ImGui::TableHeadersRow();
+            auto data = event_reader.get();
+
+            for (auto &evt : data) {
+                ImGui::TableNextRow();
+                auto fid   = ((evt.id >> 60) & 0xf);   // 1
+                if (ImGui::TableSetColumnIndex(0)) { // time
+                    ImGui::Text("%s", fmt::format("{:%F-%T}", std::chrono::system_clock::time_point{} + std::chrono::nanoseconds(evt.time)).c_str());
+                }
+                if (ImGui::TableSetColumnIndex(1)) { // executed time
+                    ImGui::Text("%s", fmt::format("{:%F-%T}", std::chrono::system_clock::time_point{} + std::chrono::nanoseconds(evt.executed)).c_str());
+                }
+                if (ImGui::TableSetColumnIndex(2)) { // id
+                    ImGui::Text("%s", fmt::format("{:#x}", evt.id).c_str());
+                }
+                if (ImGui::TableSetColumnIndex(3)) { // param
+                    ImGui::Text("%s", fmt::format("{:#x}", evt.param).c_str());
+                }
+                if (ImGui::TableSetColumnIndex(4)) { // flags
+                    // print flags
+                    auto delay = evt.executed - evt.time;
+                    if (flags & 1) {
+                        ImGui::Text("%s", fmt::format(" !late (by {} ns)", delay).c_str());
+                    } else if (flags & 2) {
+                        ImGui::Text("%s", fmt::format(" !early (by {} ns)", delay).c_str());
+                    } else if (flags & 4) {
+                        ImGui::Text("%s", fmt::format(" !conflict (delayed by {} ns)", delay).c_str());
+                    } else if (flags & 8) {
+                        ImGui::Text("%s", fmt::format(" !delayed (by {} ns)", delay).c_str());
+                    }
+                }
+                if (ImGui::TableSetColumnIndex(5)) { // eventno
+                    auto evtno = ((evt.id >> 36) & 0xfff); // 4
+                    ImGui::Text("%s", fmt::format("{}", evtno).c_str());
+                }
+                if (ImGui::TableSetColumnIndex(6)) { // fid
+                    ImGui::Text("%s", fmt::format("{}", fid).c_str());
+                }
+                if (ImGui::TableSetColumnIndex(7)) { // gid
+                    auto gid   = ((evt.id >> 48) & 0xfff); // 4
+                    ImGui::Text("%s", fmt::format("{}", gid).c_str());
+                }
+                if (fid == 0) { //full << " FLAGS: N/A";
+                    if (ImGui::TableSetColumnIndex(9)) { // sid
+                        auto sid   = ((evt.id >> 24) & 0xfff);  // 4
+                        ImGui::Text("%s", fmt::format("{}", sid).c_str());
+                    }
+                    if (ImGui::TableSetColumnIndex(10)) { // pbcid
+                        auto bpcid  = ((evt.id >> 10) & 0x3fff); // 5
+                        ImGui::Text("%s", fmt::format("{}", bpcid).c_str());
+                    }
+                    if (ImGui::TableSetColumnIndex(11)) { // res
+                        auto res   = (evt.id & 0x3ff);          // 4
+                        ImGui::Text("%s", fmt::format("{}", res).c_str());
+                    }
+                    if (ImGui::TableSetColumnIndex(12)) { // flgs
+                        ImGui::Text("%s", fmt::format("{}", 0).c_str());
+                    }
+                } else if (fid == 1) {
+                    if (ImGui::TableSetColumnIndex(8)) { //bpc
+                        auto bpc   = ((evt.id >> 34) & 0x1);   // 1
+                        ImGui::Text("%s", fmt::format("{}", bpc).c_str());
+                    }
+                    if (ImGui::TableSetColumnIndex(9)) { // sid
+                        auto sid   = ((evt.id >> 20) & 0xfff); // 4
+                        ImGui::Text("%s", fmt::format("{}", sid).c_str());
+                    }
+                    if (ImGui::TableSetColumnIndex(10)) { // pbcid
+                        auto bpcid  = ((evt.id >> 6) & 0x3fff); // 5
+                        ImGui::Text("%s", fmt::format("{}", bpcid).c_str());
+                    }
+                    if (ImGui::TableSetColumnIndex(11)) { // res
+                        auto res   = (evt.id & 0x3f);          // 4
+                        ImGui::Text("%s", fmt::format("{}", res).c_str());
+                    }
+                    if (ImGui::TableSetColumnIndex(12)) { // flgs
+                        auto flgs = ((evt.id >> 32) & 0xf);   // 1
+                        ImGui::Text("%s", fmt::format("{}", flgs).c_str());
+                    }
+                } else {
+                }
+            }
+            ImGui::EndTable();
+            if (data.size() > event_reader.buffer().size() / 2) {
+                std::ignore = event_reader.consume(data.size() - event_reader.buffer().size() / 2);
+            }
+        }
+    }
+
+}
+
+void showTimingSchedule(Timing &timing) {
+    if (ImGui::CollapsingHeader("Schedule to inject")) {
+
+    }
+}
+
+void showTRConfig(Timing &timing) {
+    if (ImGui::CollapsingHeader("Timing Receiver IO configuration")) {
+
+    }
+}
+
+void showTimePlot(gr::BufferReader auto &picoscope_reader, gr::BufferReader auto &event_reader) {
+    auto data = picoscope_reader.get();
+    if (ImGui::CollapsingHeader("Plot")) {
+        if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
+            ImPlot::SetupAxes("x","y");
+            ImPlot::PlotLine("IO1", data.data(), data.size());
+            ImPlot::EndPlot();
+        }
+    }
+    if (data.size() > picoscope_reader.buffer().size() / 2) {
+        std::ignore = picoscope_reader.consume(data.size() - picoscope_reader.buffer().size() / 2);
+    }
+}
 
 int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     // Initialize UI
@@ -67,6 +216,7 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
@@ -84,13 +234,17 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-    // Main loop
+    gr::BufferReader auto event_reader = timing.snooped.new_reader();
+    gr::BufferReader auto digitizer_reader = digitizer.buffer().new_reader();
+    //gr::HistoryBuffer<Timing::event, 1000> snoop_history{};
 
+    // Main loop
     bool done = false;
     while (!done) {
         digitizer.process();
-        console.process();
+        //console.process();
         timing.process();
+
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -110,24 +264,15 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
 
-        static float f = 0.0f;
-        static int counter = 0;
-
-        ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &show_another_window);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-            counter++;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        static ImGuiWindowFlags imGuiWindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+        ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
+        ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
+        if (ImGui::Begin("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
+            showTimingEventTable(event_reader);
+            showTimingSchedule(timing);
+            showTRConfig(timing);
+            showTimePlot(digitizer_reader, event_reader);
+        }
         ImGui::End();
 
         // Rendering
@@ -152,23 +297,6 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
 }
 
 void draw_plot() {
-    static float xs1[1001], ys1[1001];
-    for (int i = 0; i < 1001; ++i) {
-        xs1[i] = i * 0.001f;
-        ys1[i] = 0.5f + 0.5f * sinf(50.f * (xs1[i] + (float)ImGui::GetTime() / 10.f));
-    }
-    static double xs2[20], ys2[20];
-    for (int i = 0; i < 20; ++i) {
-        xs2[i] = i * 1/19.0f;
-        ys2[i] = xs2[i] * xs2[i];
-    }
-    if (ImPlot::BeginPlot("Line Plots")) {
-        ImPlot::SetupAxes("x","y");
-        ImPlot::PlotLine("f(x)", xs1, ys1, 1001);
-        ImPlot::SetNextMarkerStyle(ImPlotMarker_Circle);
-        ImPlot::PlotLine("g(x)", xs2, ys2, 20,ImPlotLineFlags_Segments);
-        ImPlot::EndPlot();
-    }
 }
 
 int main(int argc, char** argv) {

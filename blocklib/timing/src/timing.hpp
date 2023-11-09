@@ -69,13 +69,14 @@ public:
             }
         }
     };
-private:
+public:
     gr::CircularBuffer<event, 10000> snooped{10000};
-    decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
     gr::CircularBuffer<event, 10000> to_inject{10000};
+private:
+    decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
     decltype(to_inject.new_reader()) to_inject_reader = to_inject.new_reader();
-    bool initialized;
-    bool tried;
+    bool initialized = false;
+    bool tried = false;
 public:
     bool ppsAlign= false;
     bool absoluteTime = false;
@@ -87,6 +88,8 @@ public:
 
     std::shared_ptr<SAFTd_Proxy> saftd;
     std::shared_ptr<TimingReceiver_Proxy> receiver;
+    std::shared_ptr<SoftwareActionSink_Proxy> sink;
+    std::shared_ptr<SoftwareCondition_Proxy> condition;
 
     void initialize() {
         // open connection to saftlib
@@ -98,7 +101,24 @@ public:
                 std::cerr << "No devices attached to saftd" << std::endl;
             }
             receiver = TimingReceiver_Proxy::create(devices.begin()->second);
-        initialized = true;
+            sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
+            condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, snoopOffset));
+            condition->setAcceptLate(true);
+            condition->setAcceptEarly(true);
+            condition->setAcceptConflict(true);
+            condition->setAcceptDelayed(true);
+            condition->SigAction.connect([this](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed, uint16_t flags) {
+                this->snoop_writer.publish([this, id, param, deadline, executed, flags](std::span<event> buffer) {
+                    buffer[0].param = param;
+                    buffer[0].id = id;
+                    buffer[0].time = deadline.getTAI();
+                    buffer[0].executed = executed.getTAI();
+                    buffer[0].flags = flags;
+                    buffer[0].print();
+                }, 1);
+            });
+            condition->setActive(true);
+            initialized = true;
         } catch (...) {}
     }
 
@@ -134,29 +154,11 @@ public:
     }
 
     void snoop() {
-        std::shared_ptr<SoftwareActionSink_Proxy> sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
-        std::shared_ptr<SoftwareCondition_Proxy> condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, snoopOffset));
-        // Accept all errors
-        condition->setAcceptLate(true);
-        condition->setAcceptEarly(true);
-        condition->setAcceptConflict(true);
-        condition->setAcceptDelayed(true);
-        condition->SigAction.connect([this](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed, uint16_t flags) {
-            this->snoop_writer.publish([this, id, param, deadline, executed, flags](std::span<event> buffer) {
-                buffer[0].param = param;
-                buffer[0].id = id;
-                buffer[0].time = deadline.getTAI();
-                buffer[0].executed = executed.getTAI();
-                buffer[0].flags = flags;
-                buffer[0].print();
-            }, 1);
-        });
-        condition->setActive(true);
         const auto startTime = std::chrono::system_clock::now();
         while(true) {
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
             if (duration > 0) {
-                saftlib::wait_for_signal( duration >= std::numeric_limits<int>::max() ? std::numeric_limits<int>::max() : duration);
+                saftlib::wait_for_signal( duration < 50 ? 50 : (duration >= std::numeric_limits<int>::max() ? std::numeric_limits<int>::max() : duration));
             } else {
                 break;
             }
@@ -170,6 +172,7 @@ class WBConsole {
     static constexpr unsigned int UART_ID = 0xe2d13d04;
     static constexpr unsigned int VUART_TX = 0x10;
     static constexpr unsigned int VUART_RX = 0x14;
+    sdb_device sdbDevice{};
     eb_socket_t socket{};
     eb_device_t device{};
     eb_address_t tx{}, rx{};
@@ -179,8 +182,8 @@ class WBConsole {
     gr::CircularBuffer<char, 10000> output{10000};
     decltype(output.new_reader()) reader = output.new_reader();
 
-    bool initialized;
-    bool tried;
+    bool initialized = false;
+    bool tried = false;
 
 public:
     void initialize() {
@@ -214,9 +217,9 @@ public:
             return;
         }
 
-        printf("Connected to uart at address %" PRIx64"\n", sdb[1].sdb_component.addr_first);
-        tx = sdb[1].sdb_component.addr_first + VUART_TX;
-        rx = sdb[1].sdb_component.addr_first + VUART_RX;
+        printf("Connected to uart at address %" PRIx64"\n", sdb[0].sdb_component.addr_first);
+        tx = sdb[0].sdb_component.addr_first + VUART_TX;
+        rx = sdb[0].sdb_component.addr_first + VUART_RX;
         initialized = true;
     }
 

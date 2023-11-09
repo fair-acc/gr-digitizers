@@ -44,23 +44,23 @@ class Ps4000a {
         uint16_t			hasIntelligentProbes;
     } UNIT;
 
+    static constexpr uint32_t	bufferLength = 100000;
+    static constexpr uint32_t inputRanges[] = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000 };
+
     typedef struct tBufferInfo {
-        using buftype = gr::CircularBuffer<int16_t , 10000>;
-        std::array<std::array<int16_t, 20000>, 8> driverBuffers{};
+        using buftype = gr::CircularBuffer<int16_t , 1<<14>;
+        std::array<std::array<int16_t, bufferLength>, 8> driverBuffers{};
         std::array<buftype, 8> data{ buftype{0} ,buftype{0},buftype{0},buftype{0},buftype{0},buftype{0},buftype{0},buftype{0}};
         std::array<decltype(data[0].new_writer()), 8> writers = {
                 data[0].new_writer(),data[1].new_writer(),data[2].new_writer(),data[3].new_writer(),
                 data[4].new_writer(),data[5].new_writer(), data[6].new_writer(),data[7].new_writer()};
     } BUFFER_INFO;
 
-    const uint32_t	bufferLength = 100000;
-    static constexpr uint32_t inputRanges[] = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000 };
     std::atomic_bool running = false;
     BUFFER_INFO bufferInfo;
     UNIT digitizer;
     bool initialized = false;
     bool tried = false;
-
 
     static void SetDefaults(UNIT *unit) {
         for (int32_t ch = 0; ch < unit->channelCount; ch++) {
@@ -170,16 +170,20 @@ class Ps4000a {
         for (std::size_t i = 0; i < digitizer.channelCount; i++) {
             if (digitizer.channelSettings[PS4000A_CHANNEL_A + i].enabled) {
                 status = ps4000aSetDataBuffer(digitizer.handle, (PS4000A_CHANNEL) i, bufferInfo.driverBuffers[i].data(),
-                                              bufferInfo.driverBuffers[0].size(), 0, PS4000A_RATIO_MODE_NONE);
+                                              bufferInfo.driverBuffers[i].size(), 0, PS4000A_RATIO_MODE_NONE);
+                if (status != PICO_OK) { // If unit not found or open no need to continue
+                    fmt::print("Failed to set data buffer. error code: {:#x}\n", status);
+                    return;
+                }
             }
         }
         uint32_t downsampleRatio = 1;
         PS4000A_TIME_UNITS timeUnits = PS4000A_US;
-        uint32_t sampleInterval = 1000; // 1/1000 us = 1000Hz
+        uint32_t sampleInterval = 1000; // 1/1000 us = 1kHz
         PS4000A_RATIO_MODE ratioMode = PS4000A_RATIO_MODE_NONE;
         uint32_t preTrigger = 0;
-        uint32_t postTrigger = 5000; //1000000; => 5s
-        int16_t autostop = true;
+        uint32_t postTrigger = 10; // => 0.1s
+        int16_t autostop = false;
 
         printf("\nStreaming Data for %u samples", postTrigger / downsampleRatio);
         printf("Collect streaming...\n");
@@ -247,9 +251,13 @@ public:
                     pPs4000A->running = false;
                 }, this);
                 if (status != PICO_OK) {
-                    fmt::print("Error reading from digitizer: {}\n", status);
+                    fmt::print("Error reading from digitizer: {:#x}\n", status);
                 }
             }
         }
+    }
+
+    auto buffer() {
+        return bufferInfo.data[0];
     }
 };
