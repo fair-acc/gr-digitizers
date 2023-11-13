@@ -19,25 +19,28 @@
 #include <implot.h>
 
 #include <fmt/chrono.h>
+#include <fmt/ranges.h>
 
 #include "timing.hpp"
 #include "ps4000a.hpp"
 
-#include <gnuradio-4.0/HistoryBuffer.hpp>
+static auto tai_ns_to_utc(auto input) {
+    return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
+}
 
 void showTimingEventTable(gr::BufferReader auto &event_reader) {
-    if (ImGui::CollapsingHeader("Received Timing Events")) {
+    if (ImGui::CollapsingHeader("Received Timing Events", ImGuiTreeNodeFlags_DefaultOpen)) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
 
-        //const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
-        //const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        //ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 20);
+        const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
+        const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
+        ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 24);
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        if (ImGui::BeginTable("received_events", 13, flags/*, outer_size*/)) {
+        if (ImGui::BeginTable("received_events", 13, flags, outer_size)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
             ImGui::TableSetupColumn("executed");
@@ -141,24 +144,185 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
             }
         }
     }
-
 }
 
 void showTimingSchedule(Timing &timing) {
-    if (ImGui::CollapsingHeader("Schedule to inject")) {
+    if (ImGui::CollapsingHeader("Schedule to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
+        static enum class InjectState { STOPPED, RUNNING, ONCE, SINGLE } injectState = InjectState::STOPPED;
+        static int current = 0;
+        static std::vector<Timing::event> events{};
+        if (ImGui::Button("+")) {
+            events.emplace_back();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("start")) {
+            current = 0;
+            injectState = InjectState::RUNNING;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("once")) {
+            current = 0;
+            injectState = InjectState::ONCE;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("stop")) {
+            injectState = InjectState::STOPPED;
+        }
+        ImGui::SameLine();
+        static bool showDetails;
+        ImGui::Checkbox("show details", &showDetails);
+        ImGui::SameLine();
+        static std::array<char*, 3> format{"raw", "fid = 1", "fid = 2"};
+        static int current_format = 1;
+        ImGui::Combo("timing format", &current_format, format.data(), format.size(), format.size());
+        // schedule table
+        static int freeze_cols = 1;
+        static int freeze_rows = 1;
+        const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
+        ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 24);
+        static ImGuiTableFlags flags =
+                ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
+                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
+        int nColumns = current_format == 1 ? 7 : (current_format == 2 ? 8 : 3);
+        if (ImGui::BeginTable("schedule", nColumns, flags, outer_size)) {
+            ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
+            ImGui::TableSetupColumn("time offset", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
+            switch (current_format) {
+                case 1:
+                    ImGui::TableSetupColumn("eventno");
+                    ImGui::TableSetupColumn("gid");
+                    ImGui::TableSetupColumn("sid");
+                    ImGui::TableSetupColumn("bpcid");
+                    ImGui::TableSetupColumn("res");
+                    ImGui::TableSetupColumn("flgs");
+                    break;
+                case 2:
+                    ImGui::TableSetupColumn("eventno");
+                    ImGui::TableSetupColumn("gid");
+                    ImGui::TableSetupColumn("bpc");
+                    ImGui::TableSetupColumn("sid");
+                    ImGui::TableSetupColumn("bpcid");
+                    ImGui::TableSetupColumn("res");
+                    ImGui::TableSetupColumn("flgs");
+                    break;
+                default:
+                case 0:
+                    ImGui::TableSetupColumn("id");
+                    ImGui::TableSetupColumn("param");
+                    break;
+            }
+            ImGui::TableHeadersRow();
+            static constexpr uint64_t min_uint64 = 0, max_uint64 = std::numeric_limits<uint64_t>::max();
+            static constexpr uint64_t max_uint40 = (1ul << 40) - 1; // 5
+            static constexpr uint64_t max_uint32 = (1ul << 32) - 1; // 4
+            static constexpr uint64_t max_uint24 = (1ul << 24) - 1; // 3
+            static constexpr uint64_t max_uint16 = (1ul << 16) - 1; // 2
+            static constexpr uint64_t max_uint8 = (1ul << 8) - 1; // 1
+            for (auto &ev : events) {
+                ImGui::PushID(&ev);
+                if (ImGui::TableNextColumn()) {
+                    ImGui::DragScalar("##time", ImGuiDataType_U64, &ev.time, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                }
+                switch (current_format) {
+                    case 1:
+                        if (ImGui::TableNextColumn()) {
+                            uint64_t eventno = ((ev.id >> 36) & 0xfff);
+                            ImGui::DragScalar("##eventno", ImGuiDataType_U64, &eventno, 1.0f, &min_uint64, &max_uint32, "%d", ImGuiSliderFlags_None);
+                            ev.id = (eventno << 36) | (ev.id & ~(max_uint32 << 36));
+                        } // ("eventno");
+                        if (ImGui::TableNextColumn()) {
+                            uint64_t gid = ((ev.id >> 48) & 0xfff);
+                            ImGui::DragScalar("##gid", ImGuiDataType_U64, &gid, 1.0f, &min_uint64, &max_uint32, "%d", ImGuiSliderFlags_None);
+                            ev.id = (gid << 48) | (ev.id & ~(max_uint32 << 48));
+                        } // ("gid");
+                        if (ImGui::TableNextColumn()) {
+                            auto sid   = ((ev.id >> 20) & 0xfff); // 4
+                            ImGui::DragScalar("##sid", ImGuiDataType_U64, &sid, 1.0f, &min_uint64, &max_uint32, "%d", ImGuiSliderFlags_None);
+                            ev.id = (sid << 20) | (ev.id & ~(max_uint32 << 20));
+                        } // ("sid");
+                        if (ImGui::TableNextColumn()) {
+                            auto bpcid  = ((ev.id >> 6) & 0x3fff); // 5
+                            ImGui::DragScalar("##bpcid", ImGuiDataType_U64, &bpcid, 1.0f, &min_uint64, &max_uint40, "%d", ImGuiSliderFlags_None);
+                            ev.id = (bpcid << 6) | (ev.id & ~(max_uint40 << 6));
+                        } // ("bpcid");
+                        if (ImGui::TableNextColumn()) {
+                            auto res   = (ev.id & 0x3f);          // 4
+                            ImGui::DragScalar("##res", ImGuiDataType_U64, &res, 1.0f, &min_uint64, &max_uint32, "%d", ImGuiSliderFlags_None);
+                            ev.id = (res << 36) | (ev.id & ~(max_uint32 << 36));
+                        } // ("res");
+                        if (ImGui::TableNextColumn()) {
+                            auto flgs = ((ev.id >> 32) & 0xf);   // 1
+                            ImGui::DragScalar("##flgs", ImGuiDataType_U64, &flgs, 1.0f, &min_uint64, &max_uint8, "%d", ImGuiSliderFlags_None);
+                            ev.id = (flgs << 32) | (ev.id & ~(max_uint8 << 32));
+                        } // ("flgs");
+                        break;
+                    case 2:
+                        if (ImGui::TableNextColumn()) { } // ("eventno"); //   auto bpc   = ((evt.id >> 34) & 0x1);   // 1
+                        if (ImGui::TableNextColumn()) { } // ("gid");
+                        if (ImGui::TableNextColumn()) { } // ("bpc");
+                        if (ImGui::TableNextColumn()) { } // ("sid");
+                        if (ImGui::TableNextColumn()) { } // ("bpcid");
+                        if (ImGui::TableNextColumn()) { } // ("res");
+                        if (ImGui::TableNextColumn()) { } // ("flgs");
+                        break;
+                    default:
+                    case 0:
+                        if (ImGui::TableNextColumn()) {  // ("id");
+                            std::string id = fmt::format("{}", ev.id);
+                            id.reserve(32);
+                            ImGui::InputText("##id", id.data(), 32);
 
+                            // ImGui::DragScalar("##id", ImGuiDataType_U64, &ev.id, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                            // ev.id =
+                        }
+                        if (ImGui::TableNextColumn()) {
+                            ImGui::DragScalar("##param", ImGuiDataType_U64, &ev.param, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                        }
+                        break;
+                }
+                ImGui::PopID();
+            }
+        }
+        ImGui::EndTable();
+        // if running, schedule events up to 100ms ahead
     }
 }
 
 void showTRConfig(Timing &timing) {
-    if (ImGui::CollapsingHeader("Timing Receiver IO configuration")) {
+    if (ImGui::CollapsingHeader("Timing Receiver IO configuration", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (!timing.initialized) {
+            ImGui::TextUnformatted("No timing receiver found");
+            return;
+        }
+        auto trTime = timing.receiver->CurrentTime().getTAI();
+        ImGui::TextUnformatted(fmt::format("{}\n {}\n {}°C,\nGateware: {},\n(\"version\", \"{}\")",
+                                           trTime, tai_ns_to_utc(trTime),
+                                           timing.receiver->CurrentTemperature(),
+                                           fmt::join(timing.receiver->getGatewareInfo(), ",\n"),
+                                           timing.receiver->getGatewareVersion()).c_str());
+        // print tr info
+        // table of ios
+        //saft-io-ctl pexaria -i
+        //Name           Direction  OutputEnable  InputTermination  SpecialOut  SpecialIn  Resolution  Logic Level
+        //--------------------------------------------------------------------------------------------------------
+        //        IO1            Out        Yes           No                No          No         1ns (LVDS)  LVTTL
+        //IO2            Out        Yes           No                No          No         1ns (LVDS)  LVTTL
+        //IO3            Out        Yes           No                No          No         1ns (LVDS)  LVTTL
+        //LED1_ADD_R     Out        No            No                No          No         8ns (GPIO)  TTL
+        // conditions (dropdown to select IO}
+        // Table: EVENT | MASK | OFFSET | FLAGS (late1/early2/conflict4/delayed8) | on/off
+    }
+}
 
+void showEBConsole(WBConsole &console) {
+    if (ImGui::CollapsingHeader("EtherBone Console")) {
     }
 }
 
 void showTimePlot(gr::BufferReader auto &picoscope_reader, gr::BufferReader auto &event_reader) {
     auto data = picoscope_reader.get();
-    if (ImGui::CollapsingHeader("Plot")) {
+    if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
             ImPlot::SetupAxes("x","y");
             ImPlot::PlotLine("IO1", data.data(), data.size());
@@ -271,6 +435,7 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
             showTimingEventTable(event_reader);
             showTimingSchedule(timing);
             showTRConfig(timing);
+            showEBConsole(console);
             showTimePlot(digitizer_reader, event_reader);
         }
         ImGui::End();

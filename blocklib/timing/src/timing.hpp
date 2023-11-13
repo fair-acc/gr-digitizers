@@ -69,13 +69,14 @@ public:
             }
         }
     };
+
+    bool initialized = false;
 public:
     gr::CircularBuffer<event, 10000> snooped{10000};
     gr::CircularBuffer<event, 10000> to_inject{10000};
 private:
     decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
     decltype(to_inject.new_reader()) to_inject_reader = to_inject.new_reader();
-    bool initialized = false;
     bool tried = false;
 public:
     bool ppsAlign= false;
