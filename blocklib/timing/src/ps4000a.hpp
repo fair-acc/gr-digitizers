@@ -44,13 +44,14 @@ class Ps4000a {
         uint16_t			hasIntelligentProbes;
     } UNIT;
 
-    static constexpr uint32_t	bufferLength = 100000;
+    static constexpr uint32_t	bufferLength = 10000;
+    static constexpr uint32_t	ringBufferLength = 50000;
     static constexpr uint32_t inputRanges[] = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000 };
 
     typedef struct tBufferInfo {
         using buftype = gr::CircularBuffer<int16_t , 1<<14>;
         std::array<std::array<int16_t, bufferLength>, 8> driverBuffers{};
-        std::array<buftype, 8> data{ buftype{0} ,buftype{0},buftype{0},buftype{0},buftype{0},buftype{0},buftype{0},buftype{0}};
+        std::array<buftype, 8> data{ buftype{ringBufferLength} ,buftype{ringBufferLength},buftype{ringBufferLength},buftype{ringBufferLength},buftype{ringBufferLength},buftype{ringBufferLength},buftype{ringBufferLength},buftype{ringBufferLength}};
         std::array<decltype(data[0].new_writer()), 8> writers = {
                 data[0].new_writer(),data[1].new_writer(),data[2].new_writer(),data[3].new_writer(),
                 data[4].new_writer(),data[5].new_writer(), data[6].new_writer(),data[7].new_writer()};
@@ -161,9 +162,6 @@ class Ps4000a {
     }
 
     void setupStreaming() {
-        int16_t *buffers[PS4000A_MAX_CHANNEL_BUFFERS];
-        int16_t *appBuffers[PS4000A_MAX_CHANNEL_BUFFERS];
-
         PICO_STATUS status;
 
         // Setup data and temporary application buffers to copy data into
@@ -179,10 +177,10 @@ class Ps4000a {
         }
         uint32_t downsampleRatio = 1;
         PS4000A_TIME_UNITS timeUnits = PS4000A_US;
-        uint32_t sampleInterval = 1000; // 1/1000 us = 1kHz
+        uint32_t sampleInterval = 200; // 1/50 us = 5kHz
         PS4000A_RATIO_MODE ratioMode = PS4000A_RATIO_MODE_NONE;
         uint32_t preTrigger = 0;
-        uint32_t postTrigger = 10; // => 0.1s
+        uint32_t postTrigger = 100; // => 0.1s
         int16_t autostop = false;
 
         printf("\nStreaming Data for %u samples", postTrigger / downsampleRatio);
@@ -241,10 +239,12 @@ public:
                     if (noOfSamples > 0) {
                         for (std::size_t channel = 0; channel < pPs4000A->digitizer.channelCount; channel++) {
                             if (pPs4000A->digitizer.channelSettings[channel].enabled) {
-                                pPs4000A->bufferInfo.writers[channel].publish([startIndex, channel, &pPs4000A](std::span<int16_t > buffer) {
-                                    auto &buf = pPs4000A->bufferInfo.driverBuffers[channel];
-                                    std::copy(buf.data() + startIndex, buf.data() + startIndex + buffer.size(), buffer.begin());
-                                }, noOfSamples);
+                                if (!pPs4000A->bufferInfo.writers[channel].try_publish([startIndex, channel, &pPs4000A](std::span<int16_t > buffer) {
+                                            auto &buf = pPs4000A->bufferInfo.driverBuffers[channel];
+                                            std::copy(buf.data() + startIndex, buf.data() + startIndex + buffer.size(), buffer.begin());
+                                        }, noOfSamples)) {
+                                    fmt::print("digitizer buffer overrun, dropping samples\n");
+                                }
                             }
                         }
                     }

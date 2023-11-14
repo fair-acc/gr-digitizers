@@ -7,6 +7,10 @@
 #include <SoftwareCondition.h>
 #include <CommonFunctions.h>
 #include <etherbone.h>
+#include <Output_Proxy.hpp>
+#include <Output.hpp>
+#include <Input.hpp>
+#include <OutputCondition.hpp>
 
 // gr
 #include <gnuradio-4.0/CircularBuffer.hpp>
@@ -19,54 +23,78 @@ using saftlib::SoftwareCondition_Proxy;
 class Timing {
 public:
     struct event {
-        uint64_t id = 0x0; // full 64 bit EventID contained in the timing message
-        uint64_t param  = 0x0; // full 64 bit parameter contained in the timing message
-        uint64_t time = 0; // time for next event (this value is added to the current time or the next PPS, see option -p
+        // eventid - 64
+        uint8_t fid = 1;   // 4
+        uint16_t gid;  // 12
+        uint16_t eventno; // 12
+        bool flag_beamin;
+        bool flag_bpc_start;
+        bool flag_reserved1;
+        bool flag_reserved2;
+        uint16_t sid; //12
+        uint16_t bpid; //14
+        bool reserved;
+        bool reqNoBeam;
+        uint8_t virtAcc; // 4
+        // param - 64
+        uint32_t bpcid; // 22
+        uint64_t bpcts; // 42
+        // timing system
+        uint64_t time = 0;
         uint64_t executed = 0;
         uint16_t flags = 0x0;
 
-        void print() const {
-            // print everything out
-            std::cout << "tDeadline: " << tr_formatDate(saftlib::makeTimeTAI(time), PMODE_HEX & PMODE_VERBOSE, false);
-            // print event id
-            auto fid   = ((id >> 60) & 0xf);   // 1
-            auto gid   = ((id >> 48) & 0xfff); // 4
-            auto evtno = ((id >> 36) & 0xfff); // 4
-            if (fid == 0) { //full << " FLAGS: N/A";
-                auto flgs = 0;
-                auto sid   = ((id >> 24) & 0xfff);  // 4
-                auto bpid  = ((id >> 10) & 0x3fff); // 5
-                auto res   = (id & 0x3ff);          // 4
-                std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, FLAGS={:#01X}, SID={:#04X}, BPID={:#05X}, RES={:#04X}, id={:#016X}",
-                                         fid, gid, evtno, flgs, sid, bpid, res, id);
-            } else if (fid == 1) {
-                auto flgs = ((id >> 32) & 0xf);   // 1
-                auto bpc   = ((id >> 34) & 0x1);   // 1
-                auto sid   = ((id >> 20) & 0xfff); // 4
-                auto bpid  = ((id >> 6) & 0x3fff); // 5
-                auto res   = (id & 0x3f);          // 4
-                std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, FLAGS={:#01X}, BPC={:#01X}, SID={:#04X}, BPID={:#05X}, RES={:#04X}, id={:#016X}",
-                                         fid, gid, evtno, flgs, bpc, sid, bpid, res, id);
-            } else {
-                auto other = (id & 0xfffffffff);   // 9
-                std::cout << std::format("FID={:#01X}, GID={:#04X}, EVTNO={:#04X}, OTHER={:#09X}, id={:#016X}", fid, gid, evtno, other, id);
-            }
-            // print parameter
-            std::cout << std::format(", Param={:#016X}", param);
-            // print flags
-            auto delay = executed - time;
-            if (flags & 1) {
-                std::cout << std::format(" !late (by {} ns)", delay);
-            }
-            if (flags & 2) {
-                std::cout << std::format(" !early (by {} ns)", delay);
-            }
-            if (flags & 4) {
-                std::cout << std::format(" !conflict (delayed by {} ns)", delay);
-            }
-            if (flags & 8) {
-                std::cout << std::format(" !delayed (by {} ns)", delay);
-            }
+        event(const event&) = default;
+        event(event&&) = default;
+        event& operator=(const event&) = default;
+        event& operator=(event&&) = default;
+
+        explicit event(uint64_t timestamp = 0, uint64_t id = 1ul << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) {
+            time = timestamp;
+            flags = _flags;
+            executed = _executed;
+            // id
+            virtAcc        = (id >>  0) & ((1ul <<  4) - 1);
+            reqNoBeam      = (id >> 4) & ((1ul << 1) - 1);
+            reserved       = (id >>  5) & ((1ul <<  1) - 1);
+            bpid           = (id >>  6) & ((1ul << 14) - 1);
+            sid            = (id >> 20) & ((1ul << 12) - 1);
+            flag_reserved2 = (id >> 32) & ((1ul <<  1) - 1);
+            flag_reserved1 = (id >> 33) & ((1ul <<  1) - 1);
+            flag_bpc_start = (id >> 34) & ((1ul <<  1) - 1);
+            flag_beamin    = (id >> 35) & ((1ul <<  1) - 1);
+            eventno        = (id >> 36) & ((1ul << 12) - 1);
+            gid            = (id >> 48) & ((1ul << 12) - 1);
+            fid            = (id >> 60) & ((1ul <<  4) - 1);
+            // param
+            bpcts          = (param  >>  0) & ((1ul << 42) - 1);
+            bpcid          = (param  >> 42) & ((1ul << 22) - 1);
+        }
+
+        [[nodiscard]] uint64_t id() const {
+            // clang-format:off
+            //       field             width        position
+            return ((virtAcc & ((1ul <<  4) - 1)) <<  0)
+                 + ((reqNoBeam + 0ul) << 4)
+                 + ((reserved + 0ul)              <<  5)
+                 + ((bpid    & ((1ul << 14) - 1)) <<  6)
+                 + ((sid     & ((1ul << 12) - 1)) << 20)
+                 + ((flag_reserved2 + 0ul)        << 32)
+                 + ((flag_reserved1 + 0ul)        << 33)
+                 + ((flag_bpc_start + 0ul)        << 34)
+                 + ((flag_beamin + 0ul)           << 35)
+                 + ((eventno & ((1ul << 12) - 1)) << 36)
+                 + ((gid     & ((1ul << 12) - 1)) << 48)
+                 + ((fid     & ((1ul <<  4) - 1)) << 60);
+            // clang-format:on
+        }
+
+        [[nodiscard]] uint64_t param() const {
+            // clang-format:off
+            //       field             width        position
+            return ((bpcts & ((1ul << 42) - 1)) <<  0)
+                 + ((bpcid & ((1ul << 22) - 1)) << 42);
+            // clang-format:on
         }
     };
 
@@ -110,12 +138,7 @@ public:
             condition->setAcceptDelayed(true);
             condition->SigAction.connect([this](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed, uint16_t flags) {
                 this->snoop_writer.publish([this, id, param, deadline, executed, flags](std::span<event> buffer) {
-                    buffer[0].param = param;
-                    buffer[0].id = id;
-                    buffer[0].time = deadline.getTAI();
-                    buffer[0].executed = executed.getTAI();
-                    buffer[0].flags = flags;
-                    buffer[0].print();
+                    buffer[0] = Timing::event{deadline.getTAI(), id, param, flags, executed.getTAI()};
                 }, 1);
             });
             condition->setActive(true);
@@ -149,8 +172,7 @@ public:
             } else {
                 eventTime = wrTime + event.time;
             }
-            receiver->InjectEvent(event.id, event.param, eventTime);
-            event.print();
+            receiver->InjectEvent(event.id(), event.param(), eventTime);
         }
     }
 
