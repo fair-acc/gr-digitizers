@@ -30,7 +30,7 @@ static auto tai_ns_to_utc(auto input) {
 
 void showTimingEventTable(gr::BufferReader auto &event_reader) {
     if (ImGui::Button("clear")) {
-        event_reader.consume(event_reader.available());
+        std::ignore = event_reader.consume(event_reader.available());
     }
     if (ImGui::CollapsingHeader("Received Timing Events", ImGuiTreeNodeFlags_DefaultOpen)) {
         static int freeze_cols = 1;
@@ -41,7 +41,7 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
         ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 20);
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
-                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         if (ImGui::BeginTable("received_events", 19, flags, outer_size)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
@@ -58,8 +58,8 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
             ImGui::TableSetupColumn("bpcid");
             ImGui::TableSetupColumn("bpcts");
             ImGui::TableSetupColumn("fid");
-            ImGui::TableSetupColumn("id");
-            ImGui::TableSetupColumn("param");
+            ImGui::TableSetupColumn("id", ImGuiTableColumnFlags_DefaultHide);
+            ImGui::TableSetupColumn("param", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("reserved1", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("reserved2", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
@@ -68,80 +68,80 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
             ImGui::TableHeadersRow();
             auto data = event_reader.get();
 
-            for (auto &evt : data) {
+            for (auto &evt : std::ranges::reverse_view{data}) {
                 ImGui::TableNextRow();
-                if (ImGui::TableSetColumnIndex(0)) { // time
+                if (ImGui::TableNextColumn()) { // time
                     ImGui::Text("%s", fmt::format("{}", tai_ns_to_utc(evt.time)).c_str());
                 }
                 if (ImGui::TableSetColumnIndex(1)) { // executed time
                     ImGui::Text("%s", fmt::format("{}", tai_ns_to_utc(evt.executed)).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(6)) {
+                if (ImGui::TableNextColumn()) {
                     ImGui::Text("%s", fmt::format("{}", evt.gid).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(12)) {
+                if (ImGui::TableNextColumn()) {
                     ImGui::Text("%s", fmt::format("{}", evt.sid).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(13)) {
+                if (ImGui::TableNextColumn()) {
                     ImGui::Text("%s", fmt::format("{}", evt.bpid).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(7)) {
+                if (ImGui::TableNextColumn()) {
                     ImGui::Text("%s", fmt::format("{}", evt.eventno).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(8)) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_beamin ? ImGui::GetColorU32({0,255,0,0}) : ImGui::GetColorU32({255,0,0,0}));
+                if (ImGui::TableNextColumn()) {
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_beamin ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
                     ImGui::Text("%s", fmt::format("{}", evt.flag_beamin ? "y" : "n").c_str());
                 }
-                if (ImGui::TableSetColumnIndex(9)) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_bpc_start ? ImGui::GetColorU32({0,255,0,0}) : ImGui::GetColorU32({255,0,0,0}));
+                if (ImGui::TableNextColumn()) {
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_bpc_start ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
                     ImGui::Text("%s", fmt::format("{}", evt.flag_bpc_start ? "y" : "n").c_str());
                 }
-                if (ImGui::TableSetColumnIndex(15)) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.reqNoBeam ? ImGui::GetColorU32({0,255,0,0}) : ImGui::GetColorU32({255,0,0,0}));
+                if (ImGui::TableNextColumn()) {
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.reqNoBeam ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
                     ImGui::Text("%s", fmt::format("{}", evt.reqNoBeam ? "y" : "n").c_str());
                 }
-                if (ImGui::TableSetColumnIndex(16)) {
+                if (ImGui::TableNextColumn()) {
                     ImGui::Text("%s", fmt::format("{}", evt.virtAcc).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(17)) {
+                if (ImGui::TableNextColumn()) {
                     ImGui::Text("%s", fmt::format("{}", evt.bpcid).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(18)) {
+                if (ImGui::TableNextColumn()) {
                     ImGui::Text("%s", fmt::format("{}", evt.bpcts).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(5)) { // fid
+                if (ImGui::TableNextColumn()) { // fid
                     ImGui::Text("%s", fmt::format("{}", evt.fid).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(2)) { // id
-                    ImGui::Text("%s", fmt::format("{:#x}", evt.id()).c_str());
+                if (ImGui::TableNextColumn()) { // id
+                    ImGui::Text("%s", fmt::format("{:#08x}", evt.id()).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(3)) { // param
-                    ImGui::Text("%s", fmt::format("{:#x}", evt.param()).c_str());
+                if (ImGui::TableNextColumn()) { // param
+                    ImGui::Text("%s", fmt::format("{:#08x}", evt.param()).c_str());
                 }
-                if (ImGui::TableSetColumnIndex(10)) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_reserved1 ? ImGui::GetColorU32({0,255,0,0}) : ImGui::GetColorU32({255,0,0,0}));
+                if (ImGui::TableNextColumn()) {
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_reserved1 ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
                     ImGui::Text("%s", fmt::format("{}", evt.flag_reserved1 ? "y" : "n").c_str());
                 }
-                if (ImGui::TableSetColumnIndex(11)) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_reserved2 ? ImGui::GetColorU32({0,255,0,0}) : ImGui::GetColorU32({255,0,0,0}));
+                if (ImGui::TableNextColumn()) {
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_reserved2 ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
                     ImGui::Text("%s", fmt::format("{}", evt.flag_reserved2 ? "y" : "n").c_str());
                 }
-                if (ImGui::TableSetColumnIndex(14)) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.reserved ? ImGui::GetColorU32({0,255,0,0}) : ImGui::GetColorU32({255,0,0,0}));
+                if (ImGui::TableNextColumn()) {
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.reserved ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
                     ImGui::Text("%s", fmt::format("{}", evt.reserved ? "y" : "n").c_str());
                 }
-                if (ImGui::TableSetColumnIndex(4)) { // flags
+                if (ImGui::TableNextColumn()) { // flags
                     // print flags
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flags ? ImGui::GetColorU32({0,255,0,0}) : ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_TableRowBg]));
-                    auto delay = evt.executed - evt.time;
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flags ? ImGui::GetColorU32({1.0,0,0,0.4f}) : ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_TableRowBg]));
+                    auto delay = (static_cast<double>(evt.executed - evt.time)) * 1e-6;
                     if (evt.flags & 1) {
-                        ImGui::Text("%s", fmt::format(" !late (by {} ns)", delay).c_str());
+                        ImGui::Text("%s", fmt::format(" !late (by {} ms)", delay).c_str());
                     } else if (evt.flags & 2) {
-                        ImGui::Text("%s", fmt::format(" !early (by {} ns)", delay).c_str());
+                        ImGui::Text("%s", fmt::format(" !early (by {} ms)", delay).c_str());
                     } else if (evt.flags & 4) {
-                        ImGui::Text("%s", fmt::format(" !conflict (delayed by {} ns)", delay).c_str());
+                        ImGui::Text("%s", fmt::format(" !conflict (delayed by {} ms)", delay).c_str());
                     } else if (evt.flags & 8) {
-                        ImGui::Text("%s", fmt::format(" !delayed (by {} ns)", delay).c_str());
+                        ImGui::Text("%s", fmt::format(" !delayed (by {} ms)", delay).c_str());
                     }
                 }
             }
@@ -192,7 +192,6 @@ void showTimingSchedule(Timing &timing) {
         // schedule table
         static int freeze_cols = 1;
         static int freeze_rows = 1;
-        const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
         ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 15);
         static ImGuiTableFlags flags =
@@ -202,22 +201,22 @@ void showTimingSchedule(Timing &timing) {
         if (ImGui::BeginTable("event schedule", 17, flags, outer_size)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
-            ImGui::TableSetupColumn("id");
-            ImGui::TableSetupColumn("param");
-            ImGui::TableSetupColumn("fid");
             ImGui::TableSetupColumn("gid");
+            ImGui::TableSetupColumn("sid");
+            ImGui::TableSetupColumn("bpid");
             ImGui::TableSetupColumn("eventno");
             ImGui::TableSetupColumn("beam-in");
             ImGui::TableSetupColumn("bpc-start");
-            ImGui::TableSetupColumn("reserved1");
-            ImGui::TableSetupColumn("reserved2");
-            ImGui::TableSetupColumn("sid");
-            ImGui::TableSetupColumn("bpid");
-            ImGui::TableSetupColumn("reserved");
             ImGui::TableSetupColumn("req no beam");
             ImGui::TableSetupColumn("virt acc");
             ImGui::TableSetupColumn("bpcid");
             ImGui::TableSetupColumn("bpcts");
+            ImGui::TableSetupColumn("fid");
+            ImGui::TableSetupColumn("id", ImGuiTableColumnFlags_DefaultHide);
+            ImGui::TableSetupColumn("param", ImGuiTableColumnFlags_DefaultHide);
+            ImGui::TableSetupColumn("reserved1", ImGuiTableColumnFlags_DefaultHide);
+            ImGui::TableSetupColumn("reserved2", ImGuiTableColumnFlags_DefaultHide);
+            ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
 
             ImGui::TableHeadersRow();
 
@@ -228,10 +227,10 @@ void showTimingSchedule(Timing &timing) {
                     ImGui::DragScalar("##time", ImGuiDataType_U64, &ev.time, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
                 }
                 if (ImGui::TableSetColumnIndex(1)) {
-                    ImGui::Text("%s", fmt::format("{:#x}", ev.id()).c_str());
+                    ImGui::Text("%s", fmt::format("{:#08x}", ev.id()).c_str());
                 }
                 if (ImGui::TableSetColumnIndex(2)) {
-                    ImGui::Text("%s", fmt::format("{:#x}", ev.param()).c_str());
+                    ImGui::Text("%s", fmt::format("{:#08x}", ev.param()).c_str());
                 }
                 if (ImGui::TableSetColumnIndex(3)) {
                     uint64_t fid = ev.fid;
@@ -340,7 +339,7 @@ void showTimingSchedule(Timing &timing) {
 }
 
 void showTRConfig(Timing &timing) {
-    ImGui::SetNextItemOpen(false);
+    ImGui::SetNextItemOpen(false, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Timing Receiver IO configuration", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (!timing.initialized) {
             ImGui::TextUnformatted("No timing receiver found");
@@ -355,12 +354,11 @@ void showTRConfig(Timing &timing) {
         // print table of io info
         static int freeze_cols = 1;
         static int freeze_rows = 1;
-        const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
         ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 24);
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
-                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         if (ImGui::BeginTable("ioConfiguration", 8, flags, outer_size)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
@@ -428,17 +426,30 @@ void showTRConfig(Timing &timing) {
 }
 
 void showEBConsole(WBConsole &console) {
-    ImGui::SetNextItemOpen(false);
+    ImGui::SetNextItemOpen(false, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("EtherBone Console", ImGuiTreeNodeFlags_CollapsingHeader)) {
     }
 }
 
-void showTimePlot(gr::BufferReader auto &picoscope_reader, gr::BufferReader auto &event_reader) {
+void showTimePlot(gr::BufferReader auto &picoscope_reader, Timing &timing, gr::BufferReader auto &event_reader) {
     auto data = picoscope_reader.get();
+    double plot_depth = 20; // [ms] = 5 s
+    double time = timing.receiver->CurrentTime().getTAI() * 1e-9;
     if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
             ImPlot::SetupAxes("x","y");
-            ImPlot::PlotLine("IO1", data.data(), data.size());
+            ImPlot::SetupAxisLimits(ImAxis_X1, time, time - plot_depth, ImGuiCond_Always);
+            static std::vector<double> lines;
+            lines.clear();
+            for (auto &ev: event_reader.get()) {
+                double evTime = ev.time * 1e-9;
+                if (evTime < time && evTime > time - plot_depth) {
+                    lines.push_back(evTime);
+                }
+            }
+            ImPlot::PlotInfLines("Vertical", lines.data(), lines.size());
+            // TODO: reenable picoscope data
+            //ImPlot::PlotLine("IO1", data.data(), data.size());
             ImPlot::EndPlot();
         }
     }
@@ -506,10 +517,9 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
+    ImGui::StyleColorsLight();
 
     // Our state
-    bool show_demo_window = true;
-    bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     gr::BufferReader auto event_reader = timing.snooped.new_reader();
@@ -536,24 +546,26 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
             if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
                 done = true;
         }
-
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-
         static ImGuiWindowFlags imGuiWindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
         if (ImGui::Begin("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
             // TODO: include FAIR header
+            //app_header::draw_header_bar("OpenDigitizer", app->fontLarge[app->prototypeMode],
+            //app->style() == DigitizerUi::Style::Light ? app_header::Style::Light : app_header::Style::Dark);
             showTimingEventTable(event_reader);
             showTimingSchedule(timing);
             showTRConfig(timing);
+            showTimePlot(digitizer_reader, timing, event_reader);
             showEBConsole(console);
-            showTimePlot(digitizer_reader, event_reader);
         }
         ImGui::End();
+
+        ImGui::ShowDemoWindow();
 
         // Rendering
         ImGui::Render();
