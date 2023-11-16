@@ -24,6 +24,7 @@
 #include "timing.hpp"
 #include "ps4000a.hpp"
 #include "fair_header.h"
+#include "plot.hpp"
 
 static auto tai_ns_to_utc(auto input) {
     return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
@@ -383,15 +384,29 @@ void showTimePlot(gr::BufferReader auto &picoscope_reader, Timing &timing, gr::B
         if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
             ImPlot::SetupAxes("x","y");
             ImPlot::SetupAxisLimits(ImAxis_X1, time, time - plot_depth, ImGuiCond_Always);
-            static std::vector<double> lines;
-            lines.clear();
-            for (auto &ev: event_reader.get()) {
-                double evTime = ev.time * 1e-9;
-                if (evTime < time && evTime > time - plot_depth) {
-                    lines.push_back(evTime);
-                }
-            }
-            ImPlot::PlotInfLines("Vertical", lines.data(), lines.size());
+            auto d= event_reader.get();
+
+            ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, 16.0f);
+            ImPlot::PushStyleColor(ImPlotCol_Line, {1.0,0,0,0.6f});
+            ImPlot::PushStyleColor(ImPlotCol_Fill, {0,1.0,0,0.6f});
+            ImPlot::PlotStatusBarG("beamin", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.flag_beamin * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Bool);
+            ImPlot::PopStyleColor(2);
+
+            ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpcid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Discrete);
+
+            ImPlot::PushStyleColor(ImPlotCol_Line, {0.7f,0.2f,0,0.6f});
+            ImPlot::PushStyleColor(ImPlotCol_Fill, {0.2f,0.7f,0,0.6f});
+            ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.sid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
+            ImPlot::PopStyleColor(2);
+
+            ImPlot::PushStyleColor(ImPlotCol_Line, {0,0.7f,0.2f,0.6f});
+            ImPlot::PushStyleColor(ImPlotCol_Fill, {0,0.2f,0.7f,0.6f});
+            ImPlot::PlotStatusBarG("pbid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
+            ImPlot::PopStyleColor(2);
+            ImPlot::PopStyleVar();
+
+            // plot non-beam process events
+
             // TODO: reenable picoscope data
             //ImPlot::PlotLine("IO1", data.data(), data.size());
             ImPlot::EndPlot();
