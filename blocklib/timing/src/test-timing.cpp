@@ -28,13 +28,54 @@ static auto tai_ns_to_utc(auto input) {
     return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
 }
 
+template <typename... T>
+void tableColumnString(fmt::format_string<T...> &&fmt, T&&... args) {
+    if (ImGui::TableNextColumn()) {
+        ImGui::Text("%s", fmt::vformat(fmt, fmt::make_format_args(args...)).c_str());
+    }
+}
+void tableColumnBool(bool state, ImColor trueColor, ImColor falseColor) {
+    if (ImGui::TableNextColumn()) {
+        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, state ? trueColor : falseColor);
+        ImGui::Text("%s", fmt::format("{}", state ? "y" : "n").c_str());
+    }
+}
+template <typename T>
+void tableColumnSlider(const std::string &id, T &field, const uint64_t &max, float width) {
+    static constexpr uint64_t min_uint64 = 0;
+    if (ImGui::TableNextColumn()) {
+        ImGui::SetNextItemWidth(width);
+        uint64_t tmp = field;
+        ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, &tmp, 1.0f, &min_uint64, &max, "%d", ImGuiSliderFlags_None);
+        field = tmp & max;
+    }
+}
+void tableColumnCheckbox(const std::string &id, bool &field) {
+    if (ImGui::TableNextColumn()) {
+        bool flag_beamin = field;
+        ImGui::Checkbox(id.c_str(), &flag_beamin);
+        field = flag_beamin;
+    }
+}
+
 void showTimingEventTable(gr::BufferReader auto &event_reader) {
+    // colormap for timing ids
+    static std::array<ImColor, 20> colorlist { // gemerated with http://medialab.github.io/iwanthue/
+            ImColor{78,172,215,120}, ImColor{200,76,41,120}, ImColor{85,199,102,120}, ImColor{186,84,191,120},
+            ImColor{101,173,51,120}, ImColor{117,98,204,120}, ImColor{169,180,56,120}, ImColor{211,76,146,120},
+            ImColor{71,136,57,120}, ImColor{209,69,88,120}, ImColor{86,192,158,120}, ImColor{217,132,45,120},
+            ImColor{102,125,198,120}, ImColor{201,160,65,120}, ImColor{199,135,198,120}, ImColor{156,176,104,120},
+            ImColor{168,85,112,120}, ImColor{55,132,95,120}, ImColor{203,126,93,120}, ImColor{118,109,41,120},
+    };
+
     if (ImGui::Button("clear")) {
         std::ignore = event_reader.consume(event_reader.available());
     }
     if (ImGui::CollapsingHeader("Received Timing Events", ImGuiTreeNodeFlags_DefaultOpen)) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
+
+        static std::map<uint16_t, ImColor> colors;
 
         const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
@@ -47,6 +88,7 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("timestamp", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
             ImGui::TableSetupColumn("executed at", ImGuiTableColumnFlags_DefaultHide);
+            ImGui::TableSetupColumn("bpcid");
             ImGui::TableSetupColumn("gid");
             ImGui::TableSetupColumn("sid");
             ImGui::TableSetupColumn("bpid");
@@ -55,9 +97,8 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
             ImGui::TableSetupColumn("bpc-start");
             ImGui::TableSetupColumn("req no beam");
             ImGui::TableSetupColumn("virt acc");
-            ImGui::TableSetupColumn("bpcid");
             ImGui::TableSetupColumn("bpcts");
-            ImGui::TableSetupColumn("fid");
+            ImGui::TableSetupColumn("fid", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("id", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("param", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("reserved1", ImGuiTableColumnFlags_DefaultHide);
@@ -70,66 +111,34 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
 
             for (auto &evt : std::ranges::reverse_view{data}) {
                 ImGui::TableNextRow();
-                if (ImGui::TableNextColumn()) { // time
-                    ImGui::Text("%s", fmt::format("{}", tai_ns_to_utc(evt.time)).c_str());
-                }
-                if (ImGui::TableSetColumnIndex(1)) { // executed time
-                    ImGui::Text("%s", fmt::format("{}", tai_ns_to_utc(evt.executed)).c_str());
-                }
+                tableColumnString("{}", tai_ns_to_utc(evt.time));
+                tableColumnString("{}", tai_ns_to_utc(evt.executed));
+                tableColumnString("{}", evt.gid);
+                tableColumnString("{}", evt.bpcid);
+                tableColumnString("{}", evt.sid);
                 if (ImGui::TableNextColumn()) {
-                    ImGui::Text("%s", fmt::format("{}", evt.gid).c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::Text("%s", fmt::format("{}", evt.sid).c_str());
-                }
-                if (ImGui::TableNextColumn()) {
+                    if (colors.contains(evt.bpid)) {
+                        ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, colors[evt.bpid]);
+                    } else {
+                        if (colorlist.size() > colors.size()) {
+                            colors.insert({evt.bpid, ImColor{colorlist[colors.size()]}});
+                            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, colors[evt.bpid]);
+                        }
+                    }
                     ImGui::Text("%s", fmt::format("{}", evt.bpid).c_str());
                 }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::Text("%s", fmt::format("{}", evt.eventno).c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_beamin ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
-                    ImGui::Text("%s", fmt::format("{}", evt.flag_beamin ? "y" : "n").c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_bpc_start ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
-                    ImGui::Text("%s", fmt::format("{}", evt.flag_bpc_start ? "y" : "n").c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.reqNoBeam ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
-                    ImGui::Text("%s", fmt::format("{}", evt.reqNoBeam ? "y" : "n").c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::Text("%s", fmt::format("{}", evt.virtAcc).c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::Text("%s", fmt::format("{}", evt.bpcid).c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::Text("%s", fmt::format("{}", evt.bpcts).c_str());
-                }
-                if (ImGui::TableNextColumn()) { // fid
-                    ImGui::Text("%s", fmt::format("{}", evt.fid).c_str());
-                }
-                if (ImGui::TableNextColumn()) { // id
-                    ImGui::Text("%s", fmt::format("{:#08x}", evt.id()).c_str());
-                }
-                if (ImGui::TableNextColumn()) { // param
-                    ImGui::Text("%s", fmt::format("{:#08x}", evt.param()).c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_reserved1 ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
-                    ImGui::Text("%s", fmt::format("{}", evt.flag_reserved1 ? "y" : "n").c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flag_reserved2 ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
-                    ImGui::Text("%s", fmt::format("{}", evt.flag_reserved2 ? "y" : "n").c_str());
-                }
-                if (ImGui::TableNextColumn()) {
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.reserved ? ImGui::GetColorU32({0,1.0,0,0.4f}) : ImGui::GetColorU32({1.0,0,0,0.4f}));
-                    ImGui::Text("%s", fmt::format("{}", evt.reserved ? "y" : "n").c_str());
-                }
+                tableColumnString("{}", evt.eventno);
+                tableColumnBool(evt.flag_beamin, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
+                tableColumnBool(evt.flag_bpc_start, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
+                tableColumnBool(evt.reqNoBeam, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
+                tableColumnString("{}", evt.virtAcc);
+                tableColumnString("{}", evt.bpcts);
+                tableColumnString("{}", evt.fid);
+                tableColumnString("{:#08x}", evt.id());
+                tableColumnString("{:#08x}", evt.param());
+                tableColumnBool(evt.flag_reserved1, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
+                tableColumnBool(evt.flag_reserved2, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
+                tableColumnBool(evt.reserved, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
                 if (ImGui::TableNextColumn()) { // flags
                     // print flags
                     ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flags ? ImGui::GetColorU32({1.0,0,0,0.4f}) : ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_TableRowBg]));
@@ -167,11 +176,12 @@ void showTimingSchedule(Timing &timing) {
     static std::vector<Timing::event> events{};
     static enum class InjectState { STOPPED, RUNNING, ONCE, SINGLE } injectState = InjectState::STOPPED;
     if (ImGui::CollapsingHeader("Schedule to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
-        static uint64_t default_offset = 100000000; // 100ms
+        ImGui::SetNextItemWidth(80.f);
+        static uint64_t default_offset = 100000000ul; // 100ms
         ImGui::DragScalar("default event offset", ImGuiDataType_U64, &default_offset, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
         ImGui::SameLine();
         if (ImGui::Button("+")) {
-            events.emplace_back(default_offset + (events.empty() ? 0ul : events.end()->time));
+            events.emplace_back(default_offset + (events.empty() ? 0ul : events.back().time));
         }
         ImGui::SameLine();
         if (ImGui::Button("start")) {
@@ -196,8 +206,9 @@ void showTimingSchedule(Timing &timing) {
         ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 15);
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
-                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
+        ImGui::BeginDisabled(injectState != InjectState::STOPPED);
         if (ImGui::BeginTable("event schedule", 17, flags, outer_size)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
@@ -223,101 +234,32 @@ void showTimingSchedule(Timing &timing) {
             for (auto &ev: events) {
                 ImGui::PushID(&ev);
                 ImGui::TableNextRow();
-                if (ImGui::TableSetColumnIndex(0)) { // time
-                    ImGui::DragScalar("##time", ImGuiDataType_U64, &ev.time, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
-                }
-                if (ImGui::TableSetColumnIndex(1)) {
-                    ImGui::Text("%s", fmt::format("{:#08x}", ev.id()).c_str());
-                }
-                if (ImGui::TableSetColumnIndex(2)) {
-                    ImGui::Text("%s", fmt::format("{:#08x}", ev.param()).c_str());
-                }
-                if (ImGui::TableSetColumnIndex(3)) {
-                    uint64_t fid = ev.fid;
-                    ImGui::DragScalar("##fid", ImGuiDataType_U64, &fid, 1.0f, &min_uint64, &max_uint4, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.fid = fid & max_uint4;
-                }
-                if (ImGui::TableSetColumnIndex(4)) {
-                    uint64_t gid = ev.gid;
-                    ImGui::DragScalar("##gid", ImGuiDataType_U64, &gid, 1.0f, &min_uint64, &max_uint12, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.gid = gid & max_uint12;
-                }
-                if (ImGui::TableSetColumnIndex(5)) {
-                    uint64_t eventno = ev.eventno;
-                    ImGui::DragScalar("##eventno", ImGuiDataType_U64, &eventno, 1.0f, &min_uint64, &max_uint12, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.eventno = eventno & max_uint12;
-                }
-                if (ImGui::TableSetColumnIndex(6)) {
-                    bool flag_beamin = ev.flag_beamin;
-                    ImGui::Checkbox("##beamin", &flag_beamin);
-                    ev.flag_beamin = flag_beamin;
-                }
-                if (ImGui::TableSetColumnIndex(7)) {
-                    bool flag_bpc_start = ev.flag_bpc_start;
-                    ImGui::Checkbox("##bpcstart", &flag_bpc_start);
-                    ev.flag_bpc_start = flag_bpc_start;
-                }
-                if (ImGui::TableSetColumnIndex(8)) {
-                    bool flag_reserved1 = ev.flag_reserved1;
-                    ImGui::Checkbox("##reserved1", &flag_reserved1);
-                    ev.flag_reserved1 = flag_reserved1;
-                }
-                if (ImGui::TableSetColumnIndex(9)) {
-                    bool flag_reserved2 = ev.flag_reserved2;
-                    ImGui::Checkbox("##reserved2", &flag_reserved2);
-                    ev.flag_reserved2 = flag_reserved2;
-                }
-                if (ImGui::TableSetColumnIndex(10)) {
-                    uint64_t sid = ev.sid;
-                    ImGui::DragScalar("##sid", ImGuiDataType_U64, &sid, 1.0f, &min_uint64, &max_uint12, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.sid = sid & max_uint12;
-                }
-                if (ImGui::TableSetColumnIndex(11)) {
-                    uint64_t bpid = ev.bpid;
-                    ImGui::DragScalar("##pbid", ImGuiDataType_U64, &bpid, 1.0f, &min_uint64, &max_uint14, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.bpid = bpid & max_uint14;
-                }
-                if (ImGui::TableSetColumnIndex(12)) {
-                    bool reserved = ev.reserved;
-                    ImGui::Checkbox("##reserved", &reserved);
-                    ev.reserved = reserved;
-                }
-                if (ImGui::TableSetColumnIndex(13)) {
-                    bool reqNoBeam = ev.reqNoBeam;
-                    ImGui::Checkbox("##reqNoBeam", &reqNoBeam);
-                    ev.reqNoBeam = reqNoBeam;
-                }
-                if (ImGui::TableSetColumnIndex(14)) {
-                    uint64_t virtAcc = ev.virtAcc;
-                    ImGui::DragScalar("##virtAcc", ImGuiDataType_U64, &virtAcc, 1.0f, &min_uint64, &max_uint4, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.virtAcc = virtAcc & max_uint4;
-                }
-                if (ImGui::TableSetColumnIndex(15)) {
-                    uint64_t bpcid = ev.bpcid;
-                    ImGui::DragScalar("##bpcid", ImGuiDataType_U64, &bpcid, 1.0f, &min_uint64, &max_uint22, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.bpcid = bpcid & max_uint22;
-                }
-                if (ImGui::TableSetColumnIndex(16)) {
-                    uint64_t bpcts = ev.bpcts;
-                    ImGui::DragScalar("##bpcts", ImGuiDataType_U64, &bpcts, 1.0f, &min_uint64, &max_uint42, "%d",
-                                      ImGuiSliderFlags_None);
-                    ev.bpcts = bpcts & max_uint42;
-                }
+                tableColumnSlider("##time", ev.time, max_uint64, 80.f);
+                tableColumnSlider("##gid", ev.gid, max_uint12,20.f);
+                tableColumnSlider("##sid", ev.sid, max_uint12, 20.f);
+                tableColumnSlider("##pbid", ev.bpid, max_uint14, 20.f);
+                tableColumnSlider("##eventno", ev.eventno, max_uint12, 20.f);
+                tableColumnCheckbox("##beamin", ev.flag_beamin);
+                tableColumnCheckbox("##bpcstart",ev.flag_bpc_start);
+                tableColumnCheckbox("##reqNoBeam",ev.reqNoBeam);
+                tableColumnSlider("##virtAcc", ev.virtAcc, max_uint4, 20.f);
+                tableColumnSlider("##bpcid",ev.bpcid, max_uint22, 40.f);
+                tableColumnSlider("##bpcts",ev.bpcts, max_uint42, 40.f);
+                tableColumnSlider("##fid",ev.fid, max_uint4, 20.f);
+                tableColumnString("{:#08x}", ev.id());
+                tableColumnString("{:#08x}", ev.param());
+                tableColumnCheckbox("##reserved1",ev.flag_reserved1);
+                tableColumnCheckbox("##reserved2",ev.flag_reserved2);
+                tableColumnCheckbox("##reserved",ev.reserved);
                 ImGui::PopID();
             }
             ImGui::EndTable();
         }
+        ImGui::EndDisabled();
     }
     // if running, schedule events up to 100ms ahead
     if (injectState == InjectState::RUNNING || injectState == InjectState::ONCE || injectState == InjectState::SINGLE) {
-        while (events[current].time + time_offset < timing.receiver->CurrentTime().getTAI() + 500000000) {
+        while (events[current].time + time_offset < timing.receiver->CurrentTime().getTAI() + 500000000ul) {
             timing.receiver->InjectEvent(events[current].id(), events[current].param(), saftlib::makeTimeTAI(events[current].time + time_offset));
             if (injectState == InjectState::SINGLE) {
                 injectState = InjectState::STOPPED;
@@ -566,6 +508,7 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
         ImGui::End();
 
         ImGui::ShowDemoWindow();
+        ImPlot::ShowDemoWindow();
 
         // Rendering
         ImGui::Render();
