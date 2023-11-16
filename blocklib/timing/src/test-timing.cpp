@@ -23,6 +23,7 @@
 
 #include "timing.hpp"
 #include "ps4000a.hpp"
+#include "fair_header.h"
 
 static auto tai_ns_to_utc(auto input) {
     return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
@@ -297,7 +298,7 @@ void showTRConfig(Timing &timing) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 24);
+        ImVec2 outer_size = ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, TEXT_BASE_HEIGHT * 24);
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
@@ -329,6 +330,7 @@ void showTRConfig(Timing &timing) {
             ImGui::EndTable();
         }
         // Table of ECA Conditions
+        ImGui::SameLine();
         static int freeze_cols_conds = 1;
         static int freeze_rows_conds = 1;
         ImVec2 outer_size_conds = ImVec2(0.0f, TEXT_BASE_HEIGHT * 24);
@@ -461,6 +463,9 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     ImGui_ImplOpenGL3_Init(glsl_version);
     ImGui::StyleColorsLight();
 
+    auto defaultFont = app_header::loadHeaderFont(13.f);
+    auto headerFont = app_header::loadHeaderFont(32.f);
+
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -483,10 +488,11 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT)
+            if (event.type == SDL_QUIT) {
                 done = true;
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))
+            } else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
                 done = true;
+            }
         }
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -497,8 +503,7 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
         if (ImGui::Begin("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
             // TODO: include FAIR header
-            //app_header::draw_header_bar("OpenDigitizer", app->fontLarge[app->prototypeMode],
-            //app->style() == DigitizerUi::Style::Light ? app_header::Style::Light : app_header::Style::Dark);
+            app_header::draw_header_bar("Digitizer Timing Debug", headerFont);
             showTimingEventTable(event_reader);
             showTimingSchedule(timing);
             showTRConfig(timing);
