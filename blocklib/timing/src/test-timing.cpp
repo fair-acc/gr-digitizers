@@ -26,6 +26,32 @@
 #include "fair_header.h"
 #include "plot.hpp"
 
+static const std::array<ImColor, 13> bpcidColors{
+    // colors taken from: https://git.acc.gsi.de/fcc-applications/common-context-widget-reactor/src/branch/master/common-context-widget-fx/src/main/resources/de/gsi/fcc/applications/common/contextwidget/fx/StylesColorsBase.css
+    ImColor{0x00, 0x70, 0xC0}, // 0x0070C0 - materials
+    ImColor{0x00, 0xB0, 0x50}, // 0x00B050 - bio
+    ImColor{0x5C, 0xB7, 0xC3}, // 0x5CB7C3 - cbm
+    ImColor{0x70, 0x30, 0xA0}, // 0x7030A0 - nustar-basic
+    ImColor{0xC6, 0x59, 0x11}, // 0xC65911 - machine
+    ImColor{0xFF, 0xDA, 0x4A}, // 0xFFDA4A - nustar-r3b
+    ImColor{0xC4, 0x8B, 0xD0}, // 0xC48BD0 - nustar-she-c
+    ImColor{0xE1, 0x4C, 0xFF}, // 0xE14CFF - nustar-she-p
+    ImColor{0xFF, 0xFF, 0x00}, // 0xFFFF00 - nustar-hades
+    ImColor{0xFF, 0xA6, 0x32}, // 0xFFA632 - plasma
+    ImColor{0x00, 0xFC, 0xD6}, // 0x00FCD6 - appa-pp
+    ImColor{0x80, 0x80, 0x80}, // 0x808080 - undefined
+    ImColor{0x9e, 0x9e, 0x9e}  // 0x9e9e9e - invalid
+};
+
+// generic colormap for timing ids
+static std::array<ImColor, 20> colorlist { // gemerated with http://medialab.github.io/iwanthue/
+    ImColor{78,172,215,120}, ImColor{200,76,41,120}, ImColor{85,199,102,120}, ImColor{186,84,191,120},
+    ImColor{101,173,51,120}, ImColor{117,98,204,120}, ImColor{169,180,56,120}, ImColor{211,76,146,120},
+    ImColor{71,136,57,120}, ImColor{209,69,88,120}, ImColor{86,192,158,120}, ImColor{217,132,45,120},
+    ImColor{102,125,198,120}, ImColor{201,160,65,120}, ImColor{199,135,198,120}, ImColor{156,176,104,120},
+    ImColor{168,85,112,120}, ImColor{55,132,95,120}, ImColor{203,126,93,120}, ImColor{118,109,41,120},
+};
+
 // https://www-acc.gsi.de/wiki/Timing/TimingSystemGroupsAndMachines#Groups_for_Operation
 static const std::map<uint16_t, std::pair<std::string, std::string>> timingGroupTable{
         {200, {"YRT1_TO_YRT1LQ1 ", "from ion source 1 to merging quadrupole"}},
@@ -440,14 +466,6 @@ void tableColumnCheckbox(const std::string &id, bool &field) {
 }
 
 void showTimingEventTable(gr::BufferReader auto &event_reader) {
-    // colormap for timing ids
-    static std::array<ImColor, 20> colorlist { // gemerated with http://medialab.github.io/iwanthue/
-            ImColor{78,172,215,120}, ImColor{200,76,41,120}, ImColor{85,199,102,120}, ImColor{186,84,191,120},
-            ImColor{101,173,51,120}, ImColor{117,98,204,120}, ImColor{169,180,56,120}, ImColor{211,76,146,120},
-            ImColor{71,136,57,120}, ImColor{209,69,88,120}, ImColor{86,192,158,120}, ImColor{217,132,45,120},
-            ImColor{102,125,198,120}, ImColor{201,160,65,120}, ImColor{199,135,198,120}, ImColor{156,176,104,120},
-            ImColor{168,85,112,120}, ImColor{55,132,95,120}, ImColor{203,126,93,120}, ImColor{118,109,41,120},
-    };
 
     if (ImGui::Button("clear")) {
         std::ignore = event_reader.consume(event_reader.available());
@@ -565,6 +583,40 @@ void showTimingSchedule(Timing &timing) {
             events.emplace_back(default_offset + (events.empty() ? 0ul : events.back().time));
         }
         ImGui::SameLine();
+        if (ImGui::Button("clear##schedule")) {
+            events.clear();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("load")) {
+            events.clear();
+            std::string string = ImGui::GetClipboardText();
+            using std::operator""sv;
+            try {
+                for (auto line: std::views::split(string, "\n"sv)) {
+                    std::string_view line_sv(line);
+                    if (line_sv.empty()) continue;
+                    std::array<uint64_t, 3> numbers{};
+                    for (auto [i, number]: std::views::split(line_sv, " "sv) | std::views::enumerate) {
+                        std::string_view number_sv(number);
+                        numbers[i] = std::stoul(std::string(number_sv), nullptr, 0);
+                    }
+                    events.emplace_back(numbers[2], numbers[0], numbers[1]);
+                }
+            } catch (std::exception &e) {
+                events.clear();
+                fmt::print("Error parsing clipboard data: {}", string);
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("store")) {
+            std::string string;
+            for (auto &ev: events) {
+                string.append(fmt::format("{:#x} {:#x} {}\n", ev.id(), ev.param(), ev.time));
+            }
+            ImGui::SetClipboardText(string.c_str());
+        }
+        // set state
+        ImGui::SameLine();
         if (ImGui::Button("start")) {
             current = 0;
             time_offset = timing.receiver->CurrentTime().getTAI();
@@ -590,7 +642,7 @@ void showTimingSchedule(Timing &timing) {
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         ImGui::BeginDisabled(injectState != InjectState::STOPPED);
-        if (ImGui::BeginTable("event schedule", 17, flags, outer_size)) {
+        if (ImGui::BeginTable("event schedule", 20, flags, outer_size)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
             ImGui::TableSetupColumn("bpcid");
@@ -609,10 +661,14 @@ void showTimingSchedule(Timing &timing) {
             ImGui::TableSetupColumn("reserved1", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("reserved2", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
+            ImGui::TableSetupColumn("##inject", ImGuiTableColumnFlags_NoHide);
+            ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_NoHide);
+            ImGui::TableSetupColumn("Trigger Generation", ImGuiTableColumnFlags_NoHide);
 
             ImGui::TableHeadersRow();
 
-            for (auto &ev: events) {
+            events.erase(std::remove_if(events.begin(), events.end(), [&timing, default_offset = default_offset](auto &ev) {
+                bool to_remove = false;
                 ImGui::PushID(&ev);
                 ImGui::TableNextRow();
                 tableColumnSlider("##time", ev.time, max_uint64, 80.f);
@@ -632,8 +688,20 @@ void showTimingSchedule(Timing &timing) {
                 tableColumnCheckbox("##reserved1",ev.flag_reserved1);
                 tableColumnCheckbox("##reserved2",ev.flag_reserved2);
                 tableColumnCheckbox("##reserved",ev.reserved);
+                // interactive settings
+                ImGui::TableNextColumn();
+                if (ImGui::Button("remove")) {
+                    to_remove = true;
+                }
+                ImGui::TableNextColumn();
+                if (ImGui::Button("inject")) {
+                    timing.injectEvent(ev, timing.receiver->CurrentTime().getTAI() + default_offset);
+                }
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted("TODO: add timing trigger info here");
                 ImGui::PopID();
-            }
+                return to_remove;
+            }), events.end());
             ImGui::EndTable();
         }
         ImGui::EndDisabled();
@@ -641,7 +709,8 @@ void showTimingSchedule(Timing &timing) {
     // if running, schedule events up to 100ms ahead
     if (injectState == InjectState::RUNNING || injectState == InjectState::ONCE || injectState == InjectState::SINGLE) {
         while (events[current].time + time_offset < timing.receiver->CurrentTime().getTAI() + 500000000ul) {
-            timing.receiver->InjectEvent(events[current].id(), events[current].param(), saftlib::makeTimeTAI(events[current].time + time_offset));
+            auto ev = events[current];
+            timing.injectEvent(ev, time_offset);
             if (injectState == InjectState::SINGLE) {
                 injectState = InjectState::STOPPED;
                 break;
@@ -774,7 +843,7 @@ void showTimePlot(gr::BufferReader auto &picoscope_reader, Timing &timing, gr::B
             ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpcid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Discrete);
 
             ImPlot::PushStyleColor(ImPlotCol_Line, {0.7f,0.2f,0,0.6f});
-            ImPlot::PushStyleColor(ImPlotCol_Fill, {0.2f,0.7f,0,0.6f});
+            ImPlot::PushStyleColor(ImPlotCol_Fill, {0.2f,0.1f,0,0.6f});
             ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.sid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
             ImPlot::PopStyleColor(2);
 

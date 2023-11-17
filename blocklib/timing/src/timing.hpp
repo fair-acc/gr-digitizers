@@ -187,6 +187,10 @@ public:
             }
         }
     }
+
+    void injectEvent(event event, uint64_t time_offset) {
+        receiver->InjectEvent(event.id(), event.param(), saftlib::makeTimeTAI(event.time + time_offset));
+    }
 };
 
 class WBConsole {
