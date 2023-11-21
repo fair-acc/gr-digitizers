@@ -2,6 +2,9 @@
 #include <thread>
 #include <iostream>
 #include <cstdio>
+#include <unordered_set>
+#include <ranges>
+#include <string>
 
 // CLI - interface
 #include <CLI/CLI.hpp>
@@ -21,6 +24,8 @@
 
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
+#include <unordered_set>
+#include <OutputCondition_Proxy.hpp>
 
 #include "timing.hpp"
 #include "ps4000a.hpp"
@@ -650,6 +655,19 @@ void showTimingSchedule(Timing &timing) {
         if (oldInjectState == InjectState::STOPPED) {
             ImGui::PopStyleColor();
         }
+        // get condition information
+        static std::vector<std::pair<std::string, std::string>> ioNames{};
+        std::vector<std::pair<std::string, std::shared_ptr<saftlib::OutputCondition_Proxy>>> conditions{};
+        for (auto &[name, port] : timing.receiver->getOutputs()) {
+            if (std::find_if(ioNames.begin(), ioNames.end(), [&name](auto const &e) {return e.first == name;}) == ioNames.end()) {
+                ioNames.emplace_back(name, port);
+            }
+            auto port_proxy = saftlib::Output_Proxy::create(port);
+            for (auto & condition : port_proxy->getAllConditions()) {
+                auto condition_proxy = saftlib::OutputCondition_Proxy::create(condition);
+                conditions.emplace_back(name, std::move(condition_proxy));
+            }
+        }
         // schedule table
         static int freeze_cols = 1;
         static int freeze_rows = 1;
@@ -685,7 +703,7 @@ void showTimingSchedule(Timing &timing) {
 
             ImGui::TableHeadersRow();
 
-            events.erase(std::remove_if(events.begin(), events.end(), [&timing, default_offset = default_offset](auto &ev) {
+            events.erase(std::remove_if(events.begin(), events.end(), [&timing, default_offset = default_offset, &conditions, &ioNames = ioNames](auto &ev) {
                 bool to_remove = false;
                 ImGui::PushID(&ev);
                 ImGui::TableNextRow();
@@ -716,14 +734,87 @@ void showTimingSchedule(Timing &timing) {
                     timing.injectEvent(ev, timing.receiver->CurrentTime().getTAI() + default_offset);
                 }
                 ImGui::TableNextColumn();
-                ImGui::TextUnformatted("TODO: add timing trigger info here");
+                std::string condIO{};
+                std::int64_t risetime = 0, flattop = 0;
+                std::array<std::shared_ptr<saftlib::OutputCondition_Proxy>, 2> trigger_conditions{};
+                bool condition_changed = false;
+                for (auto & [ioName, cond] : conditions) {
+                    if ((ev.id() & cond->getMask()) == cond->getID()) {
+                        if (condIO.empty()) {
+                            condIO = ioName;
+                            if (cond->getOn()) {
+                                risetime = cond->getOffset();
+                                trigger_conditions[0] = cond;
+                            } else {
+                                flattop = cond->getOffset();
+                                trigger_conditions[1] = cond;
+                            }
+                        } else if (condIO == ioName) {
+                            if (cond->getOn() && !trigger_conditions[0]) {
+                                risetime = cond->getOffset();
+                                flattop -= risetime;
+                                trigger_conditions[0] = cond;
+                                break;
+                            } else if (!trigger_conditions[1]){
+                                flattop = cond->getOffset() - risetime;
+                                trigger_conditions[1] = cond;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!condIO.empty()) {
+                    int current = std::distance(ioNames.begin(), std::find_if(ioNames.begin(), ioNames.end(), [&condIO](auto e) {return e.first == condIO;}));
+                    current = current >= ioNames.size() ? 0 : current;
+                    ImGui::Combo("IO", &current, [](void* data, int i, const char** out) -> bool {*out = ((std::vector<std::pair<std::string, std::string>>*) data)->at(i).first.c_str(); return true;}, &ioNames, ioNames.size(), 5);
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(40);
+                    ImGui::DragScalar("risetime", ImGuiDataType_U64, &risetime, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(40);
+                    ImGui::DragScalar("flattop", ImGuiDataType_U64, &flattop, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                    ImGui::SameLine();
+                    if (risetime != trigger_conditions[0]->getOffset() || flattop != trigger_conditions[1]->getOffset()) {
+                        //condition_changed = true;
+                    }
+                    if(ImGui::Button("delete") || ioNames[current].first != condIO) {
+                        // todo: remove both conditions
+                        trigger_conditions[0]->Destroy();
+                        trigger_conditions[1]->Destroy();
+                        trigger_conditions[0] = {};
+                        trigger_conditions[1] = {};
+                        if (ioNames[current].first != condIO) {
+                            condition_changed = true;
+                        }
+                    }
+                } else {
+                    ImGui::SameLine();
+                    if(ImGui::Button("Add Trigger")) {
+                        auto proxy = saftlib::Output_Proxy::create(ioNames[0].second);
+                        proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), default_offset, true);
+                        proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), 2 * default_offset, false);
+                    }
+                }
+                if (condition_changed) {
+                    auto proxy = saftlib::Output_Proxy::create(ioNames[current].second);
+                    if (trigger_conditions[0]) {
+                        trigger_conditions[0]->setOffset(risetime);
+                    } else {
+                        proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), risetime, true);
+                    }
+                    if (trigger_conditions[1]) {
+                        trigger_conditions[1]->setOffset(flattop);
+                    } else {
+                        proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), flattop + risetime, false);
+                    }
+                }
                 ImGui::PopID();
                 return to_remove;
             }), events.end());
         }
         ImGui::EndDisabled();
     }
-    // if running, schedule events up to 100ms ahead
+    // if running, schedule events up to 500ms ahead
     if (injectState == InjectState::RUNNING || injectState == InjectState::ONCE || injectState == InjectState::SINGLE) {
         while (events[current].time + time_offset < timing.receiver->CurrentTime().getTAI() + 500000000ul) {
             auto ev = events[current];
@@ -809,7 +900,7 @@ void showTRConfig(Timing &timing) {
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        if (auto _ = ImScoped::Table("ioConditions", 9, flags_conds, outer_size_conds, 0.f)) {
+        if (auto _ = ImScoped::Table("ioConditions", 10, flags_conds, outer_size_conds, 0.f)) {
             ImGui::TableSetupScrollFreeze(freeze_cols_conds, freeze_rows_conds);
             ImGui::TableSetupColumn("IO", ImGuiTableColumnFlags_NoHide);
             ImGui::TableSetupColumn("Offset");
@@ -820,16 +911,15 @@ void showTRConfig(Timing &timing) {
             ImGui::TableSetupColumn("Accept Delayed");
             ImGui::TableSetupColumn("Accept Late");
             ImGui::TableSetupColumn("Active");
+            ImGui::TableSetupColumn("OutputState");
             ImGui::TableHeadersRow();
 
-            auto outputs = timing.receiver->getOutputs();
-
-            for (auto &[name, port] : outputs) {
+            for (auto &[name, port] : timing.receiver->getOutputs()) {
                 auto port_proxy = saftlib::Output_Proxy::create(port);
                 for (auto & condition : port_proxy->getAllConditions()) {
+                    auto condition_proxy = saftlib::OutputCondition_Proxy::create(condition);
                     ImGui::PushID(&condition);
                     ImGui::TableNextRow();
-                    auto condition_proxy = saftlib::Condition_Proxy::create(condition);
                     tableColumnString("{}", name);
                     tableColumnString("{}", condition_proxy->getOffset());
                     tableColumnString("{:#016x}", condition_proxy->getID());
@@ -839,6 +929,7 @@ void showTRConfig(Timing &timing) {
                     tableColumnString("{}", condition_proxy->getAcceptDelayed());
                     tableColumnString("{}", condition_proxy->getAcceptLate());
                     tableColumnString("{}", condition_proxy->getActive());
+                    tableColumnString("{}", condition_proxy->getOn());
                     ImGui::PopID();
                 }
             }
