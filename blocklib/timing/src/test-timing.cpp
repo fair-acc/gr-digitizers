@@ -17,6 +17,7 @@
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
 #include <implot.h>
+#include "ImScoped.hpp"
 
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
@@ -483,7 +484,7 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        if (ImGui::BeginTable("received_events", 19, flags, outer_size)) {
+        if (auto _ = ImScoped::Table("received_events", 19, flags, outer_size, 0.f)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("timestamp", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
             ImGui::TableSetupColumn("executed at", ImGuiTableColumnFlags_DefaultHide);
@@ -553,7 +554,6 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
                     }
                 }
             }
-            ImGui::EndTable();
             if (data.size() > event_reader.buffer().size() / 2) {
                 std::ignore = event_reader.consume(data.size() - event_reader.buffer().size() / 2);
             }
@@ -642,7 +642,7 @@ void showTimingSchedule(Timing &timing) {
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         ImGui::BeginDisabled(injectState != InjectState::STOPPED);
-        if (ImGui::BeginTable("event schedule", 20, flags, outer_size)) {
+        if (auto _ = ImScoped::Table("event schedule", 20, flags, outer_size, 0.f)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
             ImGui::TableSetupColumn("bpcid");
@@ -702,7 +702,6 @@ void showTimingSchedule(Timing &timing) {
                 ImGui::PopID();
                 return to_remove;
             }), events.end());
-            ImGui::EndTable();
         }
         ImGui::EndDisabled();
     }
@@ -752,7 +751,7 @@ void showTRConfig(Timing &timing) {
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        if (ImGui::BeginTable("ioConfiguration", 8, flags, outer_size)) {
+        if (auto _ = ImScoped::Table("ioConfiguration", 8, flags, outer_size, 0.f)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
             ImGui::TableSetupColumn("Direction");
@@ -776,7 +775,6 @@ void showTRConfig(Timing &timing) {
                 }
                 ImGui::PopID();
             }
-            ImGui::EndTable();
         }
         // Table of ECA Conditions
         ImGui::SameLine();
@@ -787,7 +785,7 @@ void showTRConfig(Timing &timing) {
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        if (ImGui::BeginTable("ioConfiguration", 8, flags_conds, outer_size_conds)) {
+        if (auto _ = ImScoped::Table("ioConfiguration", 8, flags_conds, outer_size_conds, 0.f)) {
             ImGui::TableSetupScrollFreeze(freeze_cols_conds, freeze_rows_conds);
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
             ImGui::TableSetupColumn("Direction");
@@ -811,7 +809,6 @@ void showTRConfig(Timing &timing) {
                 }
                 ImGui::PopID();
             }
-            ImGui::EndTable();
         }
 
         // Table: EVENT | MASK | OFFSET | FLAGS (late1/early2/conflict4/delayed8) | on/off
@@ -964,7 +961,7 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
         static ImGuiWindowFlags imGuiWindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
-        if (ImGui::Begin("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
+        if (auto _ = ImScoped::Window("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
             // TODO: include FAIR header
             app_header::draw_header_bar("Digitizer Timing Debug", headerFont);
             showTimingEventTable(event_reader);
@@ -973,7 +970,6 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
             showTimePlot(digitizer_reader, timing, event_reader);
             showEBConsole(console);
         }
-        ImGui::End();
 
         ImGui::ShowDemoWindow();
         ImPlot::ShowDemoWindow();
