@@ -617,10 +617,20 @@ void showTimingSchedule(Timing &timing) {
         }
         // set state
         ImGui::SameLine();
+        const auto oldInjectState = injectState;
+        if (oldInjectState == InjectState::RUNNING) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
+        }
         if (ImGui::Button("start")) {
             current = 0;
             time_offset = timing.receiver->CurrentTime().getTAI();
             injectState = InjectState::RUNNING;
+        }
+        if (oldInjectState == InjectState::RUNNING) {
+            ImGui::PopStyleColor();
+        }
+        if (oldInjectState == InjectState::ONCE) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
         }
         ImGui::SameLine();
         if (ImGui::Button("once")) {
@@ -628,9 +638,18 @@ void showTimingSchedule(Timing &timing) {
             time_offset = timing.receiver->CurrentTime().getTAI();
             injectState = InjectState::ONCE;
         }
+        if (oldInjectState == InjectState::ONCE) {
+            ImGui::PopStyleColor();
+        }
+        if (oldInjectState == InjectState::STOPPED) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
+        }
         ImGui::SameLine();
         if (ImGui::Button("stop")) {
             injectState = InjectState::STOPPED;
+        }
+        if (oldInjectState == InjectState::STOPPED) {
+            ImGui::PopStyleColor();
         }
         // schedule table
         static int freeze_cols = 1;
