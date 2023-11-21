@@ -467,7 +467,6 @@ void tableColumnCheckbox(const std::string &id, bool &field) {
 }
 
 void showTimingEventTable(gr::BufferReader auto &event_reader) {
-
     if (ImGui::Button("clear")) {
         std::ignore = event_reader.consume(event_reader.available());
     }
@@ -765,7 +764,7 @@ void showTRConfig(Timing &timing) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        ImVec2 outer_size = ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, TEXT_BASE_HEIGHT * 24);
+        ImVec2 outer_size = ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, TEXT_BASE_HEIGHT * 10);
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
@@ -784,14 +783,20 @@ void showTRConfig(Timing &timing) {
 
             auto outputs = timing.receiver->getOutputs();
 
-            for (auto &out :outputs) {
-                ImGui::PushID(&out);
+            for (auto & [name, port]:outputs) {
+                ImGui::PushID(&name);
                 ImGui::TableNextRow();
-                auto port_proxy = saftlib::Output_Proxy::create(out.second);
-                auto conditions = port_proxy->getAllConditions();
-                if (ImGui::TableSetColumnIndex(0)) {
-                    ImGui::Text("%s", fmt::format("{}", out.first).c_str());
-                }
+                auto port_proxy = saftlib::Output_Proxy::create(port);
+                auto input_name = port_proxy->getInput();
+                auto input_proxy = input_name.empty() ? std::shared_ptr<saftlib::Input_Proxy>{} : saftlib::Input_Proxy::create(input_name);
+                tableColumnString("{}", name);
+                tableColumnString(""); //{}", port_proxy->direction);
+                tableColumnString("{}", port_proxy->getOutputEnable());
+                tableColumnString("{}", input_proxy ? input_proxy->getInputTermination() : false);
+                tableColumnString("{}", input_proxy ? port_proxy->getSpecialPurposeOut() : false);
+                tableColumnString("{}", input_proxy ? input_proxy->getSpecialPurposeIn() : false);
+                tableColumnString("{}", input_proxy ? input_proxy->getResolution() : false);
+                tableColumnString("{}", port_proxy->getLogicLevelOut());
                 ImGui::PopID();
             }
         }
@@ -799,38 +804,45 @@ void showTRConfig(Timing &timing) {
         ImGui::SameLine();
         static int freeze_cols_conds = 1;
         static int freeze_rows_conds = 1;
-        ImVec2 outer_size_conds = ImVec2(0.0f, TEXT_BASE_HEIGHT * 24);
+        ImVec2 outer_size_conds = ImVec2(0.0f, TEXT_BASE_HEIGHT * 10);
         static ImGuiTableFlags flags_conds =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
-                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable |
+                ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        if (auto _ = ImScoped::Table("ioConfiguration", 8, flags_conds, outer_size_conds, 0.f)) {
+        if (auto _ = ImScoped::Table("ioConditions", 9, flags_conds, outer_size_conds, 0.f)) {
             ImGui::TableSetupScrollFreeze(freeze_cols_conds, freeze_rows_conds);
-            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
-            ImGui::TableSetupColumn("Direction");
-            ImGui::TableSetupColumn("Output Enable");
-            ImGui::TableSetupColumn("Input Termination");
-            ImGui::TableSetupColumn("Special Out");
-            ImGui::TableSetupColumn("Special In");
-            ImGui::TableSetupColumn("Resolution");
-            ImGui::TableSetupColumn("Level");
+            ImGui::TableSetupColumn("IO", ImGuiTableColumnFlags_NoHide);
+            ImGui::TableSetupColumn("Offset");
+            ImGui::TableSetupColumn("ID Filter");
+            ImGui::TableSetupColumn("Mask");
+            ImGui::TableSetupColumn("Accept Confligt");
+            ImGui::TableSetupColumn("Accept Early");
+            ImGui::TableSetupColumn("Accept Delayed");
+            ImGui::TableSetupColumn("Accept Late");
+            ImGui::TableSetupColumn("Active");
             ImGui::TableHeadersRow();
 
             auto outputs = timing.receiver->getOutputs();
 
-            for (auto &out :outputs) {
-                ImGui::PushID(&out);
-                ImGui::TableNextRow();
-                auto port_proxy = saftlib::Output_Proxy::create(out.second);
-                auto conditions = port_proxy->getAllConditions();
-                if (ImGui::TableSetColumnIndex(0)) {
-                    ImGui::Text("%s", fmt::format("{}", out.first).c_str());
+            for (auto &[name, port] : outputs) {
+                auto port_proxy = saftlib::Output_Proxy::create(port);
+                for (auto & condition : port_proxy->getAllConditions()) {
+                    ImGui::PushID(&condition);
+                    ImGui::TableNextRow();
+                    auto condition_proxy = saftlib::Condition_Proxy::create(condition);
+                    tableColumnString("{}", name);
+                    tableColumnString("{}", condition_proxy->getOffset());
+                    tableColumnString("{:#016x}", condition_proxy->getID());
+                    tableColumnString("{:#016x}", condition_proxy->getMask());
+                    tableColumnString("{}", condition_proxy->getAcceptConflict());
+                    tableColumnString("{}", condition_proxy->getAcceptEarly());
+                    tableColumnString("{}", condition_proxy->getAcceptDelayed());
+                    tableColumnString("{}", condition_proxy->getAcceptLate());
+                    tableColumnString("{}", condition_proxy->getActive());
+                    ImGui::PopID();
                 }
-                ImGui::PopID();
             }
         }
-
-        // Table: EVENT | MASK | OFFSET | FLAGS (late1/early2/conflict4/delayed8) | on/off
     }
 }
 
@@ -985,8 +997,8 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
             app_header::draw_header_bar("Digitizer Timing Debug", headerFont);
             showTimingEventTable(event_reader);
             showTimingSchedule(timing);
-            showTRConfig(timing);
             showTimePlot(digitizer_reader, timing, event_reader);
+            showTRConfig(timing);
             showEBConsole(console);
         }
 

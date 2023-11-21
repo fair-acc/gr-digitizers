@@ -8,6 +8,7 @@
 #include <CommonFunctions.h>
 #include <etherbone.h>
 #include <Output_Proxy.hpp>
+#include <Input_Proxy.hpp>
 #include <Output.hpp>
 #include <Input.hpp>
 #include <OutputCondition.hpp>
