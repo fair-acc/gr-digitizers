@@ -102,12 +102,11 @@ public:
     bool initialized = false;
 public:
     gr::CircularBuffer<event, 10000> snooped{10000};
-    gr::CircularBuffer<event, 10000> to_inject{10000};
 private:
     decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
-    decltype(to_inject.new_reader()) to_inject_reader = to_inject.new_reader();
     bool tried = false;
 public:
+    bool simulate = false;
     bool ppsAlign= false;
     bool absoluteTime = false;
     bool UTC = false;
@@ -123,28 +122,35 @@ public:
 
     void initialize() {
         // open connection to saftlib
-        try {
-            saftd = SAFTd_Proxy::create();
-            // get a specific device
-            std::map<std::string, std::string> devices = saftd->getDevices();
-            if (devices.empty()) {
-                std::cerr << "No devices attached to saftd" << std::endl;
-            }
-            receiver = TimingReceiver_Proxy::create(devices.begin()->second);
-            sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
-            condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, snoopOffset));
-            condition->setAcceptLate(true);
-            condition->setAcceptEarly(true);
-            condition->setAcceptConflict(true);
-            condition->setAcceptDelayed(true);
-            condition->SigAction.connect([this](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed, uint16_t flags) {
-                this->snoop_writer.publish([this, id, param, deadline, executed, flags](std::span<event> buffer) {
-                    buffer[0] = Timing::event{deadline.getTAI(), id, param, flags, executed.getTAI()};
-                }, 1);
-            });
-            condition->setActive(true);
+        if (simulate) {
             initialized = true;
-        } catch (...) {}
+        } else {
+            try {
+                saftd = SAFTd_Proxy::create();
+                // get a specific device
+                std::map<std::string, std::string> devices = saftd->getDevices();
+                if (devices.empty()) {
+                    std::cerr << "No devices attached to saftd" << std::endl;
+                }
+                receiver = TimingReceiver_Proxy::create(devices.begin()->second);
+                sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
+                condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, snoopOffset));
+                condition->setAcceptLate(true);
+                condition->setAcceptEarly(true);
+                condition->setAcceptConflict(true);
+                condition->setAcceptDelayed(true);
+                condition->SigAction.connect(
+                        [this](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed,
+                               uint16_t flags) {
+                            this->snoop_writer.publish(
+                                    [this, id, param, deadline, executed, flags](std::span<event> buffer) {
+                                        buffer[0] = Timing::event{deadline.getTAI(), id, param, flags, executed.getTAI()};
+                                    }, 1);
+                        });
+                condition->setActive(true);
+                initialized = true;
+            } catch (...) {}
+        }
     }
 
     void process() {
@@ -152,45 +158,42 @@ public:
             tried = true;
             initialize();
         } else if (initialized) {
-            inject();
-            snoop();
-        }
-    }
-
-    void inject() {
-        for (auto &event: to_inject_reader.get()) {
-            const saftlib::Time wrTime = receiver->CurrentTime(); // current WR time
-            saftlib::Time eventTime; // time for next event in PTP time
-            if (ppsAlign) {
-                const saftlib::Time ppsNext   = (wrTime - (wrTime.getTAI() % 1000000000)) + 1000000000; // time for next PPS
-                eventTime = (ppsNext + event.time);
-            } else if (absoluteTime) {
-                if (UTC) {
-                    eventTime = saftlib::makeTimeUTC(event.time, UTCleap);
-                } else {
-                    eventTime = saftlib::makeTimeTAI(event.time);
-                }
-            } else {
-                eventTime = wrTime + event.time;
+            if (!simulate) {
+                snoop();
             }
-            receiver->InjectEvent(event.id(), event.param(), eventTime);
         }
     }
 
-    void snoop() {
+    static void snoop() {
         const auto startTime = std::chrono::system_clock::now();
         while(true) {
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
             if (duration > 0) {
-                saftlib::wait_for_signal( duration < 50 ? 50 : (duration >= std::numeric_limits<int>::max() ? std::numeric_limits<int>::max() : duration));
+                saftlib::wait_for_signal(std::clamp(duration, std::numeric_limits<int>::max()+0l, 50l));
             } else {
                 break;
             }
         }
     }
 
-    void injectEvent(event event, uint64_t time_offset) {
-        receiver->InjectEvent(event.id(), event.param(), saftlib::makeTimeTAI(event.time + time_offset));
+    void injectEvent(event ev, uint64_t time_offset) {
+        if (simulate) {
+            this->snoop_writer.publish(
+                    [ev, time_offset](std::span<event> buffer) {
+                        buffer[0] = ev;
+                        buffer[0].time += time_offset;
+                        buffer[0].executed = buffer[0].time;
+                    }, 1);
+        } else {
+            receiver->InjectEvent(ev.id(), ev.param(), saftlib::makeTimeTAI(ev.time + time_offset));
+        }
+    }
+
+    unsigned long getTAI() {
+        if (simulate) {
+            return duration_cast<std::chrono::nanoseconds>(std::chrono::utc_clock::now().time_since_epoch()).count();
+        }
+        return receiver->CurrentTime().getTAI();
     }
 };
 
