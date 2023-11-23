@@ -293,208 +293,233 @@ void showTimingSchedule(Timing &timing) {
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        ImGui::BeginDisabled(injectState != InjectState::STOPPED);
-        if (auto _ = ImScoped::Table("event schedule", 20, flags, outer_size, 0.f)) {
-            ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
-            ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
-            ImGui::TableSetupColumn("bpcid");
-            ImGui::TableSetupColumn("sid");
-            ImGui::TableSetupColumn("bpid");
-            ImGui::TableSetupColumn("gid");
-            ImGui::TableSetupColumn("eventno");
-            ImGui::TableSetupColumn("beam-in");
-            ImGui::TableSetupColumn("bpc-start");
-            ImGui::TableSetupColumn("req no beam");
-            ImGui::TableSetupColumn("virt acc");
-            ImGui::TableSetupColumn("bpcts");
-            ImGui::TableSetupColumn("fid");
-            ImGui::TableSetupColumn("id", ImGuiTableColumnFlags_DefaultHide);
-            ImGui::TableSetupColumn("param", ImGuiTableColumnFlags_DefaultHide);
-            ImGui::TableSetupColumn("reserved1", ImGuiTableColumnFlags_DefaultHide);
-            ImGui::TableSetupColumn("reserved2", ImGuiTableColumnFlags_DefaultHide);
-            ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
-            ImGui::TableSetupColumn("##inject", ImGuiTableColumnFlags_NoHide);
-            ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_NoHide);
-            ImGui::TableSetupColumn("Trigger Generation", ImGuiTableColumnFlags_NoHide);
+        {
+            auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
+            if (auto _ = ImScoped::Table("event schedule", 20, flags, outer_size, 0.f)) {
+                ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
+                ImGui::TableSetupColumn("time",
+                                        ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
+                ImGui::TableSetupColumn("bpcid");
+                ImGui::TableSetupColumn("sid");
+                ImGui::TableSetupColumn("bpid");
+                ImGui::TableSetupColumn("gid");
+                ImGui::TableSetupColumn("eventno");
+                ImGui::TableSetupColumn("beam-in");
+                ImGui::TableSetupColumn("bpc-start");
+                ImGui::TableSetupColumn("req no beam");
+                ImGui::TableSetupColumn("virt acc");
+                ImGui::TableSetupColumn("bpcts");
+                ImGui::TableSetupColumn("fid");
+                ImGui::TableSetupColumn("id", ImGuiTableColumnFlags_DefaultHide);
+                ImGui::TableSetupColumn("param", ImGuiTableColumnFlags_DefaultHide);
+                ImGui::TableSetupColumn("reserved1", ImGuiTableColumnFlags_DefaultHide);
+                ImGui::TableSetupColumn("reserved2", ImGuiTableColumnFlags_DefaultHide);
+                ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
+                ImGui::TableSetupColumn("##inject", ImGuiTableColumnFlags_NoHide);
+                ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_NoHide);
+                ImGui::TableSetupColumn("Trigger Generation", ImGuiTableColumnFlags_NoHide);
 
-            ImGui::TableHeadersRow();
+                ImGui::TableHeadersRow();
 
-            events.erase(std::remove_if(events.begin(), events.end(), [&timing, default_offset = default_offset, &conditions, &ioNames = ioNames](auto &ev) {
-                bool to_remove = false;
-                ImGui::PushID(&ev);
-                ImGui::TableNextRow();
-                tableColumnSlider("##time", ev.time, max_uint64, 80.f);
-                tableColumnSlider("##bpcid",ev.bpcid, max_uint22, 40.f);
-                tableColumnSlider("##sid", ev.sid, max_uint12, 40.f);
-                tableColumnSlider("##pbid", ev.bpid, max_uint14, 40.f);
-                if (ImGui::TableNextColumn()) {
-                    ImGui::SetNextItemWidth(80.f);
-                    std::size_t textlen;
-                    uint64_t tmp = ev.gid;
-                    ImGui::DragScalar("##gid", ImGuiDataType_U64, &tmp, 1.0f, &min_uint64, &max_uint12, "%d", ImGuiSliderFlags_None);
-                    //std::array<char, 32> buf{};
-                    //ImGui::InputText("##gidtxt", buf.data(), buf.size(), 0, [](ImGuiInputTextCallbackData *edit) {
-                    //    fmt::print("{}\n", edit->Buf[0]);
-                    //    *((std::size_t*) edit->UserData) = edit->BufTextLen;
-                    //    return 0;
-                    //}, &textlen);
-                    //if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
-                    //    auto _ = ImScoped::Tooltip();
-                    //    std::size_t parsed;
-                    //    long number = std::stol(std::string{buf.data(), buf.size()}, &parsed);
-                    //    std::vector<uint16_t> available;
-                    //    if (parsed == textlen) { // is a number
-                    //        available.push_back(number);
-                    //    } else { // search for the string in enum
-                    //        for (auto & [id, pair] : timingGroupTable) {
-                    //            auto & [name, _] = pair;
-                    //            if (name.contains(std::string(buf.data(), std::min(textlen, buf.size())))) {
-                    //                available.push_back(number);
-                    //            }
-                    //        }
-                    //    }
-                    //    int listCurrent = 0;
-                    //    if (auto _ = ImScoped::ListBox("##gidList", ImVec2{0.f,0.f})) {
-                    //        for
-                    //        ImGuiListClipper clipper;
-                    //        clipper.Begin(items_count, GetTextLineHeightWithSpacing()); // We know exactly our line height here so we pass it as a minor optimization, but generally you don't need to.
-                    //        while (clipper.Step())
-                    //            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-                    //            {
-                    //                const char* item_text;
-                    //                if (!items_getter(data, i, &item_text))
-                    //                    item_text = "*Unknown item*";
+                events.erase(std::remove_if(events.begin(), events.end(),
+                                            [&timing, default_offset = default_offset, &conditions, &ioNames = ioNames](
+                                                    auto &ev) {
+                                                bool to_remove = false;
+                                                ImGui::PushID(&ev);
+                                                ImGui::TableNextRow();
+                                                tableColumnSlider("##time", ev.time, max_uint64, 80.f);
+                                                tableColumnSlider("##bpcid", ev.bpcid, max_uint22, 40.f);
+                                                tableColumnSlider("##sid", ev.sid, max_uint12, 40.f);
+                                                tableColumnSlider("##pbid", ev.bpid, max_uint14, 40.f);
+                                                if (ImGui::TableNextColumn()) {
+                                                    ImGui::SetNextItemWidth(80.f);
+                                                    std::size_t textlen;
+                                                    uint64_t tmp = ev.gid;
+                                                    ImGui::DragScalar("##gid", ImGuiDataType_U64, &tmp, 1.0f,
+                                                                      &min_uint64, &max_uint12, "%d",
+                                                                      ImGuiSliderFlags_None);
+                                                    // trying to make selection of group-ids and events more user-friendly
+                                                    //std::array<char, 32> buf{};
+                                                    //ImGui::InputText("##gidtxt", buf.data(), buf.size(), 0, [](ImGuiInputTextCallbackData *edit) {
+                                                    //    fmt::print("{}\n", edit->Buf[0]);
+                                                    //    *((std::size_t*) edit->UserData) = edit->BufTextLen;
+                                                    //    return 0;
+                                                    //}, &textlen);
+                                                    //if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
+                                                    //    auto _ = ImScoped::Tooltip();
+                                                    //    std::size_t parsed;
+                                                    //    long number = std::stol(std::string{buf.data(), buf.size()}, &parsed);
+                                                    //    std::vector<uint16_t> available;
+                                                    //    if (parsed == textlen) { // is a number
+                                                    //        available.push_back(number);
+                                                    //    } else { // search for the string in enum
+                                                    //        for (auto & [id, pair] : timingGroupTable) {
+                                                    //            auto & [name, _] = pair;
+                                                    //            if (name.contains(std::string(buf.data(), std::min(textlen, buf.size())))) {
+                                                    //                available.push_back(number);
+                                                    //            }
+                                                    //        }
+                                                    //    }
+                                                    //    int listCurrent = 0;
+                                                    //    if (auto _ = ImScoped::ListBox("##gidList", ImVec2{0.f,0.f})) {
+                                                    //        for
+                                                    //        ImGuiListClipper clipper;
+                                                    //        clipper.Begin(items_count, GetTextLineHeightWithSpacing()); // We know exactly our line height here so we pass it as a minor optimization, but generally you don't need to.
+                                                    //        while (clipper.Step())
+                                                    //            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
+                                                    //            {
+                                                    //                const char* item_text;
+                                                    //                if (!items_getter(data, i, &item_text))
+                                                    //                    item_text = "*Unknown item*";
 
-                    //                PushID(i);
-                    //                const bool item_selected = (i == *current_item);
-                    //                if (Selectable(item_text, item_selected))
-                    //                {
-                    //                    *current_item = i;
-                    //                    value_changed = true;
-                    //                }
-                    //                if (item_selected)
-                    //                    SetItemDefaultFocus();
-                    //                PopID();
-                    //            }
-                    //    }
-                    //}
-                    ev.gid = tmp & max_uint12;
-                }
-                tableColumnSlider("##eventno", ev.eventno, max_uint12, 40.f);
-                tableColumnCheckbox("##beamin", ev.flag_beamin);
-                tableColumnCheckbox("##bpcstart",ev.flag_bpc_start);
-                tableColumnCheckbox("##reqNoBeam",ev.reqNoBeam);
-                tableColumnSlider("##virtAcc", ev.virtAcc, max_uint4, 40.f);
-                tableColumnSlider("##bpcts",ev.bpcts, max_uint42, 80.f);
-                tableColumnSlider("##fid",ev.fid, max_uint4, 40.f);
-                tableColumnString("{:#08x}", ev.id());
-                tableColumnString("{:#08x}", ev.param());
-                tableColumnCheckbox("##reserved1",ev.flag_reserved1);
-                tableColumnCheckbox("##reserved2",ev.flag_reserved2);
-                tableColumnCheckbox("##reserved",ev.reserved);
-                // interactive settings
-                ImGui::TableNextColumn();
-                if (ImGui::Button("remove")) {
-                    to_remove = true;
-                }
-                ImGui::TableNextColumn();
-                if (ImGui::Button("inject")) {
-                    timing.injectEvent(ev, timing.getTAI() + default_offset);
-                }
-                ImGui::TableNextColumn();
-                if (!timing.simulate) {
-                    std::string condIO{};
-                    std::int64_t risetime = 0, flattop = 0;
-                    std::array<std::shared_ptr<saftlib::OutputCondition_Proxy>, 2> trigger_conditions{};
-                    bool condition_changed = false;
-                    for (auto &[ioName, cond]: conditions) {
-                        if ((ev.id() & cond->getMask()) == cond->getID()) {
-                            if (condIO.empty()) {
-                                condIO = ioName;
-                                if (cond->getOn()) {
-                                    risetime = cond->getOffset();
-                                    trigger_conditions[0] = cond;
-                                } else {
-                                    flattop = cond->getOffset();
-                                    trigger_conditions[1] = cond;
-                                }
-                            } else if (condIO == ioName) {
-                                if (cond->getOn() && !trigger_conditions[0]) {
-                                    risetime = cond->getOffset();
-                                    flattop -= risetime;
-                                    trigger_conditions[0] = cond;
-                                    break;
-                                } else if (!trigger_conditions[1]) {
-                                    flattop = cond->getOffset() - risetime;
-                                    trigger_conditions[1] = cond;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    if (!condIO.empty()) {
-                        int current = std::distance(ioNames.begin(), std::find_if(ioNames.begin(), ioNames.end(),
-                                                                                  [&condIO](auto e) {
-                                                                                      return e.first == condIO;
-                                                                                  }));
-                        current = current >= ioNames.size() ? 0 : current;
-                        ImGui::Combo("IO", &current, [](void *data, int i, const char **out) -> bool {
-                            *out = ((std::vector<std::pair<std::string, std::string>> *) data)->at(i).first.c_str();
-                            return true;
-                        }, &ioNames, ioNames.size(), 5);
-                        ImGui::SameLine();
-                        ImGui::SetNextItemWidth(40);
-                        ImGui::DragScalar("risetime", ImGuiDataType_U64, &risetime, 1.0f, &min_uint64, &max_uint64,
-                                          "%d", ImGuiSliderFlags_None);
-                        ImGui::SameLine();
-                        ImGui::SetNextItemWidth(40);
-                        ImGui::DragScalar("flattop", ImGuiDataType_U64, &flattop, 1.0f, &min_uint64, &max_uint64, "%d",
-                                          ImGuiSliderFlags_None);
-                        ImGui::SameLine();
-                        if (risetime != trigger_conditions[0]->getOffset() ||
-                            flattop != trigger_conditions[1]->getOffset()) {
-                            //condition_changed = true;
-                        }
-                        if (ImGui::Button("delete") || ioNames[current].first != condIO) {
-                            // todo: remove both conditions
-                            trigger_conditions[0]->Destroy();
-                            trigger_conditions[1]->Destroy();
-                            trigger_conditions[0] = {};
-                            trigger_conditions[1] = {};
-                            if (ioNames[current].first != condIO) {
-                                condition_changed = true;
-                            }
-                        }
-                    } else {
-                        ImGui::SameLine();
-                        if (ImGui::Button("Add Trigger")) {
-                            auto proxy = saftlib::Output_Proxy::create(ioNames[0].second);
-                            proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), default_offset,
-                                                true);
-                            proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), 2 * default_offset,
-                                                false);
-                        }
-                    }
-                    if (condition_changed) {
-                        auto proxy = saftlib::Output_Proxy::create(ioNames[current].second);
-                        if (trigger_conditions[0]) {
-                            trigger_conditions[0]->setOffset(risetime);
-                        } else {
-                            proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), risetime, true);
-                        }
-                        if (trigger_conditions[1]) {
-                            trigger_conditions[1]->setOffset(flattop);
-                        } else {
-                            proxy->NewCondition(true, ev.id(), std::numeric_limits<uint64_t>::max(), flattop + risetime,
-                                                false);
-                        }
-                    }
-                }
-                ImGui::PopID();
-                return to_remove;
-            }), events.end());
+                                                    //                PushID(i);
+                                                    //                const bool item_selected = (i == *current_item);
+                                                    //                if (Selectable(item_text, item_selected))
+                                                    //                {
+                                                    //                    *current_item = i;
+                                                    //                    value_changed = true;
+                                                    //                }
+                                                    //                if (item_selected)
+                                                    //                    SetItemDefaultFocus();
+                                                    //                PopID();
+                                                    //            }
+                                                    //    }
+                                                    //}
+                                                    ev.gid = tmp & max_uint12;
+                                                }
+                                                tableColumnSlider("##eventno", ev.eventno, max_uint12, 40.f);
+                                                tableColumnCheckbox("##beamin", ev.flag_beamin);
+                                                tableColumnCheckbox("##bpcstart", ev.flag_bpc_start);
+                                                tableColumnCheckbox("##reqNoBeam", ev.reqNoBeam);
+                                                tableColumnSlider("##virtAcc", ev.virtAcc, max_uint4, 40.f);
+                                                tableColumnSlider("##bpcts", ev.bpcts, max_uint42, 80.f);
+                                                tableColumnSlider("##fid", ev.fid, max_uint4, 40.f);
+                                                tableColumnString("{:#08x}", ev.id());
+                                                tableColumnString("{:#08x}", ev.param());
+                                                tableColumnCheckbox("##reserved1", ev.flag_reserved1);
+                                                tableColumnCheckbox("##reserved2", ev.flag_reserved2);
+                                                tableColumnCheckbox("##reserved", ev.reserved);
+                                                // interactive settings
+                                                ImGui::TableNextColumn();
+                                                if (ImGui::Button("remove")) {
+                                                    to_remove = true;
+                                                }
+                                                ImGui::TableNextColumn();
+                                                if (ImGui::Button("inject")) {
+                                                    timing.injectEvent(ev, timing.getTAI() + default_offset);
+                                                }
+                                                ImGui::TableNextColumn();
+                                                if (!timing.simulate) {
+                                                    std::string condIO{};
+                                                    std::int64_t risetime = 0, flattop = 0;
+                                                    std::array<std::shared_ptr<saftlib::OutputCondition_Proxy>, 2> trigger_conditions{};
+                                                    bool condition_changed = false;
+                                                    for (auto &[ioName, cond]: conditions) {
+                                                        if ((ev.id() & cond->getMask()) == cond->getID()) {
+                                                            if (condIO.empty()) {
+                                                                condIO = ioName;
+                                                                if (cond->getOn()) {
+                                                                    risetime = cond->getOffset();
+                                                                    trigger_conditions[0] = cond;
+                                                                } else {
+                                                                    flattop = cond->getOffset();
+                                                                    trigger_conditions[1] = cond;
+                                                                }
+                                                            } else if (condIO == ioName) {
+                                                                if (cond->getOn() && !trigger_conditions[0]) {
+                                                                    risetime = cond->getOffset();
+                                                                    flattop -= risetime;
+                                                                    trigger_conditions[0] = cond;
+                                                                    break;
+                                                                } else if (!trigger_conditions[1]) {
+                                                                    flattop = cond->getOffset() - risetime;
+                                                                    trigger_conditions[1] = cond;
+                                                                    break;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    if (!condIO.empty()) {
+                                                        int current = std::distance(ioNames.begin(),
+                                                                                    std::find_if(ioNames.begin(),
+                                                                                                 ioNames.end(),
+                                                                                                 [&condIO](auto e) {
+                                                                                                     return e.first ==
+                                                                                                            condIO;
+                                                                                                 }));
+                                                        current = current >= ioNames.size() ? 0 : current;
+                                                        ImGui::Combo("IO", &current,
+                                                                     [](void *data, int i, const char **out) -> bool {
+                                                                         *out = ((std::vector<std::pair<std::string, std::string>> *) data)->at(
+                                                                                 i).first.c_str();
+                                                                         return true;
+                                                                     }, &ioNames, ioNames.size(), 5);
+                                                        ImGui::SameLine();
+                                                        ImGui::SetNextItemWidth(40);
+                                                        ImGui::DragScalar("risetime", ImGuiDataType_U64, &risetime,
+                                                                          1.0f, &min_uint64, &max_uint64,
+                                                                          "%d", ImGuiSliderFlags_None);
+                                                        ImGui::SameLine();
+                                                        ImGui::SetNextItemWidth(40);
+                                                        ImGui::DragScalar("flattop", ImGuiDataType_U64, &flattop, 1.0f,
+                                                                          &min_uint64, &max_uint64, "%d",
+                                                                          ImGuiSliderFlags_None);
+                                                        ImGui::SameLine();
+                                                        if (risetime != trigger_conditions[0]->getOffset() ||
+                                                            flattop != trigger_conditions[1]->getOffset()) {
+                                                            //condition_changed = true;
+                                                        }
+                                                        if (ImGui::Button("delete") ||
+                                                            ioNames[current].first != condIO) {
+                                                            // todo: remove both conditions
+                                                            trigger_conditions[0]->Destroy();
+                                                            trigger_conditions[1]->Destroy();
+                                                            trigger_conditions[0] = {};
+                                                            trigger_conditions[1] = {};
+                                                            if (ioNames[current].first != condIO) {
+                                                                condition_changed = true;
+                                                            }
+                                                        }
+                                                    } else {
+                                                        ImGui::SameLine();
+                                                        if (ImGui::Button("Add Trigger")) {
+                                                            auto proxy = saftlib::Output_Proxy::create(
+                                                                    ioNames[0].second);
+                                                            proxy->NewCondition(true, ev.id(),
+                                                                                std::numeric_limits<uint64_t>::max(),
+                                                                                default_offset,
+                                                                                true);
+                                                            proxy->NewCondition(true, ev.id(),
+                                                                                std::numeric_limits<uint64_t>::max(),
+                                                                                2 * default_offset,
+                                                                                false);
+                                                        }
+                                                    }
+                                                    if (condition_changed) {
+                                                        auto proxy = saftlib::Output_Proxy::create(
+                                                                ioNames[current].second);
+                                                        if (trigger_conditions[0]) {
+                                                            trigger_conditions[0]->setOffset(risetime);
+                                                        } else {
+                                                            proxy->NewCondition(true, ev.id(),
+                                                                                std::numeric_limits<uint64_t>::max(),
+                                                                                risetime, true);
+                                                        }
+                                                        if (trigger_conditions[1]) {
+                                                            trigger_conditions[1]->setOffset(flattop);
+                                                        } else {
+                                                            proxy->NewCondition(true, ev.id(),
+                                                                                std::numeric_limits<uint64_t>::max(),
+                                                                                flattop + risetime,
+                                                                                false);
+                                                        }
+                                                    }
+                                                }
+                                                ImGui::PopID();
+                                                return to_remove;
+                                            }), events.end());
+            }
         }
-        ImGui::EndDisabled();
     }
     // if running, schedule events up to 500ms ahead
     if (injectState == InjectState::RUNNING || injectState == InjectState::ONCE || injectState == InjectState::SINGLE) {
