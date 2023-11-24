@@ -203,7 +203,7 @@ void showTimingSchedule(Timing &timing) {
     static std::size_t current = 0;
     static uint64_t time_offset = 0;
     static std::vector<Timing::event> events = {};
-    static enum class InjectState { STOPPED, RUNNING, ONCE, SINGLE } injectState = InjectState::STOPPED;
+    static enum class InjectState { STOPPED, RUNNING, SINGLE } injectState = InjectState::STOPPED;
     if (ImGui::CollapsingHeader("Schedule to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SetNextItemWidth(80.f);
         static uint64_t default_offset = 100000000ul; // 100ms
@@ -239,39 +239,29 @@ void showTimingSchedule(Timing &timing) {
         }
         // set state
         ImGui::SameLine(0.f, 10.f);
-        const auto oldInjectState = injectState;
-        if (oldInjectState == InjectState::RUNNING) {
+        if (injectState == InjectState::RUNNING || injectState == InjectState::SINGLE) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
-        }
-        if (ImGui::Button("start")) {
-            current = 0;
-            time_offset = timing.receiver->CurrentTime().getTAI();
-            injectState = InjectState::RUNNING;
-        }
-        if (oldInjectState == InjectState::RUNNING) {
+            if (ImGui::Button("Stop###StartStop")) {
+                current = 0;
+                time_offset = timing.receiver->CurrentTime().getTAI();
+                injectState = InjectState::STOPPED;
+            }
             ImGui::PopStyleColor();
-        }
-        if (oldInjectState == InjectState::ONCE) {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
+        } else {
+            if (ImGui::Button("Start###StartStop")) {
+                current = 0;
+                time_offset = timing.receiver->CurrentTime().getTAI();
+                injectState = InjectState::RUNNING;
+            }
         }
         ImGui::SameLine();
-        if (ImGui::Button("once")) {
-            current = 0;
-            time_offset = timing.getTAI();
-            injectState = InjectState::ONCE;
-        }
-        if (oldInjectState == InjectState::ONCE) {
-            ImGui::PopStyleColor();
-        }
-        if (oldInjectState == InjectState::STOPPED) {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("stop")) {
-            injectState = InjectState::STOPPED;
-        }
-        if (oldInjectState == InjectState::STOPPED) {
-            ImGui::PopStyleColor();
+        {
+            auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
+            if (ImGui::Button("Single")) {
+                current = 0;
+                time_offset = timing.getTAI();
+                injectState = InjectState::SINGLE;
+            }
         }
         // get condition information
         static std::vector<std::pair<std::string, std::string>> ioNames{};
@@ -526,7 +516,7 @@ void showTimingSchedule(Timing &timing) {
         }
     }
     // if running, schedule events up to 500ms ahead
-    if (injectState == InjectState::RUNNING || injectState == InjectState::ONCE || injectState == InjectState::SINGLE) {
+    if (injectState == InjectState::RUNNING || injectState == InjectState::SINGLE) {
         while (events[current].time + time_offset < timing.getTAI() + 500000000ul) {
             auto ev = events[current];
             timing.injectEvent(ev, time_offset);
@@ -535,7 +525,7 @@ void showTimingSchedule(Timing &timing) {
                 break;
             }
             if (current + 1 >= events.size()) {
-                if (injectState == InjectState::ONCE) {
+                if (injectState == InjectState::SINGLE) {
                     injectState = InjectState::STOPPED;
                     break;
                 } else {
