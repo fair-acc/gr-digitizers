@@ -263,21 +263,6 @@ void showTimingSchedule(Timing &timing) {
                 injectState = InjectState::SINGLE;
             }
         }
-        // get condition information
-        static std::vector<std::pair<std::string, std::string>> ioNames{};
-        std::vector<std::pair<std::string, std::shared_ptr<saftlib::OutputCondition_Proxy>>> conditions{};
-        if (!timing.simulate){
-            for (auto &[name, port] : timing.receiver->getOutputs()) {
-                if (std::find_if(ioNames.begin(), ioNames.end(), [&name](auto const &e) {return e.first == name;}) == ioNames.end()) {
-                    ioNames.emplace_back(name, port);
-                }
-                auto port_proxy = saftlib::Output_Proxy::create(port);
-                for (auto & condition : port_proxy->getAllConditions()) {
-                    auto condition_proxy = saftlib::OutputCondition_Proxy::create(condition);
-                    conditions.emplace_back(name, std::move(condition_proxy));
-                }
-            }
-        }
         // schedule table
         static int freeze_cols = 1;
         static int freeze_rows = 1;
@@ -289,7 +274,7 @@ void showTimingSchedule(Timing &timing) {
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         {
             auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
-            if (auto _ = ImScoped::Table("event schedule", 20, flags, outer_size, 0.f)) {
+            if (auto _ = ImScoped::Table("event schedule", 22, flags, outer_size, 0.f)) {
                 ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
                 ImGui::TableSetupColumn("time",
                                         ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
@@ -311,12 +296,14 @@ void showTimingSchedule(Timing &timing) {
                 ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
                 ImGui::TableSetupColumn("##inject", ImGuiTableColumnFlags_NoHide);
                 ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_NoHide);
-                ImGui::TableSetupColumn("Trigger Generation", ImGuiTableColumnFlags_NoHide);
+                ImGui::TableSetupColumn("Trigger Outputs", ImGuiTableColumnFlags_NoHide);
+                ImGui::TableSetupColumn("Trigger Delay", ImGuiTableColumnFlags_NoHide);
+                ImGui::TableSetupColumn("Trigger Flat-Top", ImGuiTableColumnFlags_NoHide);
 
                 ImGui::TableHeadersRow();
 
                 events.erase(std::remove_if(events.begin(), events.end(),
-                                            [&timing, default_offset = default_offset, &conditions, &ioNames = ioNames](
+                                            [&timing, default_offset = default_offset](
                                                     auto &ev) {
                                                 bool to_remove = false;
                                                 ImGui::PushID(&ev);
@@ -402,112 +389,35 @@ void showTimingSchedule(Timing &timing) {
                                                 if (ImGui::Button("inject")) {
                                                     timing.injectEvent(ev, timing.getTAI() + default_offset);
                                                 }
+                                                auto trigger = timing.triggers.contains(ev.id()) ? std::optional<Timing::Trigger>{timing.triggers[ev.id()]} : std::optional<Timing::Trigger>{};
                                                 ImGui::TableNextColumn();
-                                                if (!timing.simulate) {
-                                                    std::string condIO{};
-                                                    std::int64_t risetime = 0, flattop = 0;
-                                                    std::array<std::shared_ptr<saftlib::OutputCondition_Proxy>, 2> trigger_conditions{};
-                                                    bool condition_changed = false;
-                                                    for (auto &[ioName, cond]: conditions) {
-                                                        if ((ev.id() & cond->getMask()) == cond->getID()) {
-                                                            if (condIO.empty()) {
-                                                                condIO = ioName;
-                                                                if (cond->getOn()) {
-                                                                    risetime = cond->getOffset();
-                                                                    trigger_conditions[0] = cond;
-                                                                } else {
-                                                                    flattop = cond->getOffset();
-                                                                    trigger_conditions[1] = cond;
-                                                                }
-                                                            } else if (condIO == ioName) {
-                                                                if (cond->getOn() && !trigger_conditions[0]) {
-                                                                    risetime = cond->getOffset();
-                                                                    flattop -= risetime;
-                                                                    trigger_conditions[0] = cond;
-                                                                    break;
-                                                                } else if (!trigger_conditions[1]) {
-                                                                    flattop = cond->getOffset() - risetime;
-                                                                    trigger_conditions[1] = cond;
-                                                                    break;
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    if (!condIO.empty()) {
-                                                        int current = std::distance(ioNames.begin(),
-                                                                                    std::find_if(ioNames.begin(),
-                                                                                                 ioNames.end(),
-                                                                                                 [&condIO](auto e) {
-                                                                                                     return e.first ==
-                                                                                                            condIO;
-                                                                                                 }));
-                                                        current = current >= ioNames.size() ? 0 : current;
-                                                        ImGui::Combo("IO", &current,
-                                                                     [](void *data, int i, const char **out) -> bool {
-                                                                         *out = ((std::vector<std::pair<std::string, std::string>> *) data)->at(
-                                                                                 i).first.c_str();
-                                                                         return true;
-                                                                     }, &ioNames, ioNames.size(), 5);
+                                                for (auto & [i, name, _] : timing.outputs) {
+                                                    if (trigger) {
+                                                        ImGui::Checkbox(fmt::format("##{}", name).c_str(), &trigger->outputs[i]);
                                                         ImGui::SameLine();
-                                                        ImGui::SetNextItemWidth(40);
-                                                        ImGui::DragScalar("risetime", ImGuiDataType_U64, &risetime,
-                                                                          1.0f, &min_uint64, &max_uint64,
-                                                                          "%d", ImGuiSliderFlags_None);
-                                                        ImGui::SameLine();
-                                                        ImGui::SetNextItemWidth(40);
-                                                        ImGui::DragScalar("flattop", ImGuiDataType_U64, &flattop, 1.0f,
-                                                                          &min_uint64, &max_uint64, "%d",
-                                                                          ImGuiSliderFlags_None);
-                                                        ImGui::SameLine();
-                                                        if (risetime != trigger_conditions[0]->getOffset() ||
-                                                            flattop != trigger_conditions[1]->getOffset()) {
-                                                            //condition_changed = true;
-                                                        }
-                                                        if (ImGui::Button("delete") ||
-                                                            ioNames[current].first != condIO) {
-                                                            // todo: remove both conditions
-                                                            trigger_conditions[0]->Destroy();
-                                                            trigger_conditions[1]->Destroy();
-                                                            trigger_conditions[0] = {};
-                                                            trigger_conditions[1] = {};
-                                                            if (ioNames[current].first != condIO) {
-                                                                condition_changed = true;
-                                                            }
-                                                        }
+                                                        // TODO:: add tooltip
                                                     } else {
+                                                        bool output_selected = false;
+                                                        ImGui::Checkbox(fmt::format("##{}", name).c_str(), &output_selected);
                                                         ImGui::SameLine();
-                                                        if (ImGui::Button("Add Trigger")) {
-                                                            auto proxy = saftlib::Output_Proxy::create(
-                                                                    ioNames[0].second);
-                                                            proxy->NewCondition(true, ev.id(),
-                                                                                std::numeric_limits<uint64_t>::max(),
-                                                                                default_offset,
-                                                                                true);
-                                                            proxy->NewCondition(true, ev.id(),
-                                                                                std::numeric_limits<uint64_t>::max(),
-                                                                                2 * default_offset,
-                                                                                false);
+                                                        // TODO:: add tooltip
+                                                        if (output_selected) {
+                                                            trigger = Timing::Trigger{};
                                                         }
                                                     }
-                                                    if (condition_changed) {
-                                                        auto proxy = saftlib::Output_Proxy::create(
-                                                                ioNames[current].second);
-                                                        if (trigger_conditions[0]) {
-                                                            trigger_conditions[0]->setOffset(risetime);
-                                                        } else {
-                                                            proxy->NewCondition(true, ev.id(),
-                                                                                std::numeric_limits<uint64_t>::max(),
-                                                                                risetime, true);
-                                                        }
-                                                        if (trigger_conditions[1]) {
-                                                            trigger_conditions[1]->setOffset(flattop);
-                                                        } else {
-                                                            proxy->NewCondition(true, ev.id(),
-                                                                                std::numeric_limits<uint64_t>::max(),
-                                                                                flattop + risetime,
-                                                                                false);
-                                                        }
-                                                    }
+                                                }
+                                                ImGui::TableNextColumn();
+                                                if (trigger) {
+                                                    ImGui::SetNextItemWidth(80);
+                                                    ImGui::DragScalar("delay", ImGuiDataType_U64, &trigger->delay, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                                                }
+                                                ImGui::TableNextColumn();
+                                                if (trigger) {
+                                                    ImGui::SetNextItemWidth(80);
+                                                    ImGui::DragScalar("flattop", ImGuiDataType_U64, &trigger->flattop, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                                                }
+                                                if (trigger) {
+                                                    timing.updateTrigger(*trigger);
                                                 }
                                                 ImGui::PopID();
                                                 return to_remove;
@@ -646,12 +556,6 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
     }
 }
 
-void showEBConsole(WBConsole &console) {
-    ImGui::SetNextItemOpen(false, ImGuiCond_Once);
-    if (ImGui::CollapsingHeader("EtherBone Console", ImGuiTreeNodeFlags_CollapsingHeader)) {
-    }
-}
-
 template<gr::Buffer BufferT>
 class TimePlot {
 public:
@@ -718,7 +622,7 @@ public:
     }
 };
 
-int interactive(Timing &timing, WBConsole &console) {
+int interactive(Timing &timing) {
     // Initialize UI
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
@@ -785,7 +689,6 @@ int interactive(Timing &timing, WBConsole &console) {
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     gr::BufferReader auto event_reader = timing.snooped.new_reader();
-    //gr::HistoryBuffer<Timing::event, 1000> snoop_history{};
 
     bool imGuiDemo = false;
     bool imPlotDemo = false;
@@ -825,7 +728,6 @@ int interactive(Timing &timing, WBConsole &console) {
             static TimePlot plot{timing.snooped};
             plot.computeAndDisplay(timing);
             showTRConfig(timing, imGuiDemo, imPlotDemo);
-            //showEBConsole(console);
         }
         if (imGuiDemo){
             ImGui::ShowDemoWindow(&imGuiDemo);
@@ -860,7 +762,6 @@ void draw_plot() {
 
 int main(int argc, char** argv) {
     Timing timing; // an interface to the timing card allowing condition & io configuration and event injection & snooping
-    WBConsole console; // a whishbone console to send raw commands to the timing card and switch it beteween master and slave mode
 
     CLI::App app{"timing receiver saftbus example"};
     bool scope = false;
@@ -881,7 +782,7 @@ int main(int argc, char** argv) {
 
     if (scope) {
         fmt::print("entering interactive timing scope mode\n");
-        return interactive(timing, console);
+        return interactive(timing);
     }
 
     return 0;

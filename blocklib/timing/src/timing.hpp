@@ -99,10 +99,18 @@ public:
             // clang-format:on
         }
     };
+    struct Trigger {
+        std::array<bool, 20> outputs;
+        uint64_t id;
+        uint64_t delay;
+        uint64_t flattop;
+    };
 
     bool initialized = false;
 public:
     gr::CircularBuffer<event, 10000> snooped{10000};
+    std::vector<std::tuple<uint, std::string, std::string>> outputs;
+    std::map<uint64_t, Trigger> triggers;
 private:
     decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
     bool tried = false;
@@ -149,6 +157,10 @@ public:
                                     }, 1);
                         });
                 condition->setActive(true);
+                uint i = 0;
+                for (auto &[name, port] : receiver->getOutputs()) {
+                    outputs.emplace_back(i, name, port);
+                }
                 initialized = true;
             } catch (...) {}
         }
@@ -196,123 +208,116 @@ public:
         }
         return receiver->CurrentTime().getTAI();
     }
-};
 
-class WBConsole {
-    // hardware address of the timing receiver on the wishbone bus
-    static constexpr unsigned int CERN_ID = 0xce42;
-    static constexpr unsigned int UART_ID = 0xe2d13d04;
-    static constexpr unsigned int VUART_TX = 0x10;
-    static constexpr unsigned int VUART_RX = 0x14;
-    sdb_device sdbDevice{};
-    eb_socket_t socket{};
-    eb_device_t device{};
-    eb_address_t tx{}, rx{};
-
-    gr::CircularBuffer<char, 10000> input{10000};
-    decltype(input.new_writer()) writer = input.new_writer();
-    gr::CircularBuffer<char, 10000> output{10000};
-    decltype(output.new_reader()) reader = output.new_reader();
-
-    bool initialized = false;
-    bool tried = false;
-
-public:
-    void initialize() {
-        if (eb_status_t status{}; (status = eb_socket_open(EB_ABI_CODE, 0, EB_DATAX|EB_ADDRX, &socket)) != EB_OK) {
-            fmt::print("eb_socket_open failed: {}", status);
-            //throw std::logic_error("failed to open socket");
-            return;
-        }
-
-        if (eb_status_t status{}; (status = eb_device_open(socket, "dev/wbm0", EB_DATAX|EB_ADDRX, 3, &device)) != EB_OK) {
-            fmt::print("failed to open etherbone device: {} status: {}", "dev/wbm0", status);
-            //throw std::logic_error("failed to open device");
-            return;
-        }
-
-        std::array<sdb_device, 1> sdb{};
-        int c = sdb.size();
-        if (eb_status_t status{}; (status = eb_sdb_find_by_identity(device, CERN_ID, UART_ID, sdb.data(), &c)) != EB_OK) {
-            fmt::print("eb_sdb_find_by_identity", status);
-            //throw std::logic_error("failed to find by identity");
-            return;
-        }
-
-        if (c > 1) {
-            fprintf(stderr, "found %d UARTs on that device; pick one with -i #\n", c);
-            //throw std::logic_error("uart name not ambiguous");
-            return;
-        } else if (c < 1) {
-            fprintf(stderr, "could not find UART #%d on that device (%d total)\n", 1, c);
-            //throw std::logic_error("want to use nonexisting uart");
-            return;
-        }
-
-        printf("Connected to uart at address %" PRIx64"\n", sdb[0].sdb_component.addr_first);
-        tx = sdb[0].sdb_component.addr_first + VUART_TX;
-        rx = sdb[0].sdb_component.addr_first + VUART_RX;
-        initialized = true;
-    }
-
-    ~WBConsole() {
-        if (initialized) {
-            eb_device_close(device);
-            eb_socket_close(socket);
-        }
-    }
-
-    void process() {
-        if (!initialized && !tried) {
-            tried = true;
-            initialize();
-        } else if (initialized) {
-            std::array<eb_data_t, 200> rx_data{};
-            bool busy = false;
-            eb_data_t done{};
-            eb_cycle_t cycle{};
-            /* Poll for status */
-            eb_cycle_open(device, nullptr, eb_block, &cycle);
-            eb_cycle_read(cycle, rx, EB_BIG_ENDIAN|EB_DATA32, &rx_data[0]);
-            eb_cycle_read(cycle, tx, EB_BIG_ENDIAN|EB_DATA32, &done);
-            eb_cycle_close(cycle);
-
-            /* Bulk read anything extra */
-            if ((rx_data[0] & 0x100) != 0) {
-                eb_cycle_open(device, nullptr, eb_block, &cycle);
-                for (uint i = 1; i < rx_data.size(); ++i) {
-                    eb_cycle_read(cycle, rx, EB_BIG_ENDIAN|EB_DATA32, &rx_data[i]);
-                }
-                eb_cycle_close(cycle);
-
-                for (unsigned long data : rx_data) {
-                    if ((data & 0x100) == 0) {
-                        continue;
-                    }
-                    char byte = data & 0xFF;
-                    // copy received byte to ringbuffer
-                    output.new_writer().publish([byte](std::span<char> buffer) {buffer[0] = byte;}, 1);
-                }
-            }
-
-            busy = busy && (done & 0x100) == 0;
-            if (!busy) {
-                eb_cycle_open(device, nullptr, eb_block, &cycle);
-                for (auto tx_data : reader.get()) {
-                    eb_device_write(device, tx, EB_BIG_ENDIAN|EB_DATA32, static_cast<eb_data_t>(tx_data), eb_block, nullptr);
-                }
-                eb_cycle_close(cycle);
-                busy = true;
-                eb_cycle_close(cycle);
-            }
-        }
-    }
-
-    void send_command(std::string_view cmd) {
-        output.new_writer().publish([&cmd](std::span<char> buf) { std::copy(cmd.begin(), cmd.end(), buf.begin()); }, cmd.size());
-    }
-
-    void setMasterMode(bool enable) {
-        send_command(enable ? "mode master" : "mode slave");
+    void updateTrigger(Trigger &trigger) {
+        triggers.insert({trigger.id, trigger});
+        // // get condition information
+        // static std::vector<std::pair<std::string, std::string>> ioNames{};
+        // std::vector<std::pair<std::string, std::shared_ptr<saftlib::OutputCondition_Proxy>>> conditions{};
+        // if (!timing.simulate){
+        //     for (auto &[name, port] : timing.receiver->getOutputs()) {
+        //         if (std::find_if(ioNames.begin(), ioNames.end(), [&name](auto const &e) {return e.first == name;}) == ioNames.end()) {
+        //             ioNames.emplace_back(name, port);
+        //         }
+        //         auto port_proxy = saftlib::Output_Proxy::create(port);
+        //         for (auto & condition : port_proxy->getAllConditions()) {
+        //             auto condition_proxy = saftlib::OutputCondition_Proxy::create(condition);
+        //             conditions.emplace_back(name, std::move(condition_proxy));
+        //         }
+        //     }
+        // }
+        //% std::string condIO{};
+        //% std::int64_t delay = 0, flattop = 0;
+        //% std::array<std::shared_ptr<saftlib::OutputCondition_Proxy>, 2> trigger_conditions{};
+        //% bool condition_changed = false;
+        //% for (auto &[ioName, cond]: conditions) {
+        //%     if ((ev.id() & cond->getMask()) == cond->getID()) {
+        //%         if (condIO.empty()) {
+        //%             condIO = ioName;
+        //%             if (cond->getOn()) {
+        //%                 delay = cond->getOffset();
+        //%                 trigger_conditions[0] = cond;
+        //%             } else {
+        //%                 flattop = cond->getOffset();
+        //%                 trigger_conditions[1] = cond;
+        //%             }
+        //%         } else if (condIO == ioName) {
+        //%             if (cond->getOn() && !trigger_conditions[0]) {
+        //%                 delay = cond->getOffset();
+        //%                 flattop -= delay;
+        //%                 trigger_conditions[0] = cond;
+        //%                 break;
+        //%             } else if (!trigger_conditions[1]) {
+        //%                 flattop = cond->getOffset() - delay;
+        //%                 trigger_conditions[1] = cond;
+        //%                 break;
+        //%             }
+        //%         }
+        //%     }
+        //% }
+        //% if (!condIO.empty()) {
+        //%     int current = std::distance(ioNames.begin(),
+        //%                                 std::find_if(ioNames.begin(),
+        //%                                              ioNames.end(),
+        //%                                              [&condIO](auto e) {
+        //%                                                  return e.first ==
+        //%                                                         condIO;
+        //%                                              }));
+        //%     current = current >= ioNames.size() ? 0 : current;
+        //%     ImGui::Combo("IO", &current,
+        //%                  [](void *data, int i, const char **out) -> bool {
+        //%                      *out = ((std::vector<std::pair<std::string, std::string>> *) data)->at(
+        //%                              i).first.c_str();
+        //%                      return true;
+        //%                  }, &ioNames, ioNames.size(), 5);
+        //%     if (delay != trigger_conditions[0]->getOffset() ||
+        //%         flattop != trigger_conditions[1]->getOffset()) {
+        //%         //condition_changed = true;
+        //%     }
+        //%     if (ImGui::Button("delete") ||
+        //%         ioNames[current].first != condIO) {
+        //%         // todo: remove both conditions
+        //%         trigger_conditions[0]->Destroy();
+        //%         trigger_conditions[1]->Destroy();
+        //%         trigger_conditions[0] = {};
+        //%         trigger_conditions[1] = {};
+        //%         if (ioNames[current].first != condIO) {
+        //%             condition_changed = true;
+        //%         }
+        //%     }
+        //% } else {
+        //%     ImGui::SameLine();
+        //%     if (ImGui::Button("Add Trigger")) {
+        //%         auto proxy = saftlib::Output_Proxy::create(
+        //%                 ioNames[0].second);
+        //%         proxy->NewCondition(true, ev.id(),
+        //%                             std::numeric_limits<uint64_t>::max(),
+        //%                             default_offset,
+        //%                             true);
+        //%         proxy->NewCondition(true, ev.id(),
+        //%                             std::numeric_limits<uint64_t>::max(),
+        //%                             2 * default_offset,
+        //%                             false);
+        //%     }
+        //% }
+        //% if (condition_changed) {
+        //%     auto proxy = saftlib::Output_Proxy::create(
+        //%             ioNames[current].second);
+        //%     if (trigger_conditions[0]) {
+        //%         trigger_conditions[0]->setOffset(delay);
+        //%     } else {
+        //%         proxy->NewCondition(true, ev.id(),
+        //%                             std::numeric_limits<uint64_t>::max(),
+        //%                             delay, true);
+        //%     }
+        //%     if (trigger_conditions[1]) {
+        //%         trigger_conditions[1]->setOffset(flattop);
+        //%     } else {
+        //%         proxy->NewCondition(true, ev.id(),
+        //%                             std::numeric_limits<uint64_t>::max(),
+        //%                             flattop + delay,
+        //%                             false);
+        //%     }
+        //% }
     }
 };
