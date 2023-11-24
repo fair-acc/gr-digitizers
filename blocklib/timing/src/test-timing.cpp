@@ -202,11 +202,7 @@ void showTimingSchedule(Timing &timing) {
 
     static std::size_t current = 0;
     static uint64_t time_offset = 0;
-    static std::vector<Timing::event> events = []() {
-        std::vector<Timing::event> evs{};
-        loadEventsFromString(evs, defaultSchedule);
-        return evs;
-    }();
+    static std::vector<Timing::event> events = {};
     static enum class InjectState { STOPPED, RUNNING, ONCE, SINGLE } injectState = InjectState::STOPPED;
     if (ImGui::CollapsingHeader("Schedule to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SetNextItemWidth(80.f);
@@ -217,15 +213,24 @@ void showTimingSchedule(Timing &timing) {
             events.emplace_back(default_offset + (events.empty() ? 0ul : events.back().time));
         }
         ImGui::SameLine(0.f, 10.f);
-        if (ImGui::Button("clear##schedule")) {
+        if (ImGui::Button("Clear##schedule")) {
             events.clear();
         }
         ImGui::SameLine();
-        if (ImGui::Button("load")) {
-            loadEventsFromString(events, ImGui::GetClipboardText());
+        ImGui::Button("Load");
+        if (ImGui::BeginPopupContextItem("load schedule popup", ImGuiPopupFlags_MouseButtonLeft)) {
+            if (ImGui::Button("from Clipboard")) {
+                loadEventsFromString(events, ImGui::GetClipboardText());
+            }
+            for (const auto & [scheduleName, schedule] : demoSchedules) {
+                if (ImGui::Button(scheduleName.c_str())) {
+                    loadEventsFromString(events, schedule);
+                }
+            }
+            ImGui::EndPopup();
         }
         ImGui::SameLine();
-        if (ImGui::Button("store")) {
+        if (ImGui::Button("Save to Clipboard")) {
             std::string string;
             for (auto &ev: events) {
                 string.append(fmt::format("{:#x} {:#x} {}\n", ev.id(), ev.param(), ev.time));

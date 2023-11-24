@@ -38,6 +38,7 @@ using Window = detail::Widget<ImGui::Begin, ImGui::End, true>;
 using TabBar = detail::Widget<ImGui::BeginTabBar, ImGui::EndTabBar>;
 using TabItem = detail::Widget<ImGui::BeginTabItem, ImGui::EndTabItem>;
 using Table = detail::Widget<ImGui::BeginTable, ImGui::EndTable>;
+using Menu = detail::Widget<ImGui::BeginMenu, ImGui::EndMenu>;
 using ListBox= detail::Widget<ImGui::BeginListBox, ImGui::EndListBox>;
 using Disabled = detail::WidgetVoid<ImGui::BeginDisabled, ImGui::EndDisabled>;
 using Tooltip = detail::WidgetVoid<ImGui::BeginTooltip, ImGui::EndTooltip>;
