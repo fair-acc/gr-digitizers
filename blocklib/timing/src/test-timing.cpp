@@ -545,9 +545,13 @@ void showTimingSchedule(Timing &timing) {
     }
 }
 
-void showTRConfig(Timing &timing) {
+void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
     ImGui::SetNextItemOpen(false, ImGuiCond_Once);
     if (ImGui::CollapsingHeader("Timing Receiver IO configuration", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Checkbox("ShowImGuiDemo", &imGuiDemo);
+        ImGui::SameLine();
+        ImGui::Checkbox("ShowImPlotDemo", &imPlotDemo);
+
         if (!timing.initialized) {
             ImGui::TextUnformatted("No timing receiver found");
             return;
@@ -766,6 +770,9 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     gr::BufferReader auto digitizer_reader = digitizer.buffer().new_reader();
     //gr::HistoryBuffer<Timing::event, 1000> snoop_history{};
 
+    bool imGuiDemo = false;
+    bool imPlotDemo = false;
+
     // Main loop
     bool done = false;
     while (!done) {
@@ -791,7 +798,7 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         ImGui::NewFrame();
-        static ImGuiWindowFlags imGuiWindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings;
+        static ImGuiWindowFlags imGuiWindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus;
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
         if (auto _ = ImScoped::Window("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
@@ -800,12 +807,15 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
             showTimingEventTable(event_reader);
             showTimingSchedule(timing);
             showTimePlot(digitizer_reader, timing, event_reader);
-            showTRConfig(timing);
+            showTRConfig(timing, imGuiDemo, imPlotDemo);
             //showEBConsole(console);
         }
-
-        ImGui::ShowDemoWindow();
-        ImPlot::ShowDemoWindow();
+        if (imGuiDemo){
+            ImGui::ShowDemoWindow(&imGuiDemo);
+        }
+        if (imPlotDemo) {
+            ImPlot::ShowDemoWindow(&imPlotDemo);
+        }
 
         // Rendering
         ImGui::Render();
