@@ -27,7 +27,6 @@
 #include <OutputCondition_Proxy.hpp>
 
 #include "timing.hpp"
-#include "ps4000a.hpp"
 #include "fair_header.h"
 #include "plot.hpp"
 #include "event_definitions.hpp"
@@ -658,49 +657,73 @@ void showEBConsole(WBConsole &console) {
     }
 }
 
-void showTimePlot(gr::BufferReader auto &picoscope_reader, Timing &timing, gr::BufferReader auto &event_reader) {
-    auto data = picoscope_reader.get();
-    double plot_depth = 20; // [ms] = 5 s
-    double time = timing.getTAI() * 1e-9;
-    if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
-            ImPlot::SetupAxes("x","y");
-            ImPlot::SetupAxisLimits(ImAxis_X1, time, time - plot_depth, ImGuiCond_Always);
-            auto d= event_reader.get();
+template<gr::Buffer BufferT>
+class TimePlot {
+public:
+    enum class Mode {TRIGGERED, STREAMING, SNAPSHOT} mode = Mode::STREAMING;
+    std::size_t duration = 5000000000000ul; // default duration to show in streaming/snapshot mode
+    std::vector<uint16_t> contextStartEvents{}; // Event types that should trigger an update of the context
+    std::vector<uint16_t> singleEventFilter{}; // event types that should be displayed as individual labeled lines
+    bool show = true; // controls if the plot is expanded or collapsed
+    using Reader = decltype(std::declval<BufferT>().new_reader());
+private:
+    gr::HistoryBuffer<Timing::event, 10000> contextEvents{};
+    gr::HistoryBuffer<Timing::event, 10000> freestandingEvents{};
+    Reader snoopReader;
+    // buffer reader
+public:
+    explicit TimePlot(BufferT &events) : snoopReader{events.new_reader()} { }
 
-            ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, 16.0f);
-            ImPlot::PushStyleColor(ImPlotCol_Line, {1.0,0,0,0.6f});
-            ImPlot::PushStyleColor(ImPlotCol_Fill, {0,1.0,0,0.6f});
-            ImPlot::PlotStatusBarG("beamin", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.flag_beamin * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Bool);
-            ImPlot::PopStyleColor(2);
+    void clear() {
+        // it seems like the history buffer does not support clearing its state (or assigning an empty buffer)...
+    }
 
-            ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpcid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Discrete);
+    void updateTriggered() {
 
-            ImPlot::PushStyleColor(ImPlotCol_Line, {0.7f,0.2f,0,0.6f});
-            ImPlot::PushStyleColor(ImPlotCol_Fill, {0.2f,0.1f,0,0.6f});
-            ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.sid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
-            ImPlot::PopStyleColor(2);
+    }
 
-            ImPlot::PushStyleColor(ImPlotCol_Line, {0,0.7f,0.2f,0.6f});
-            ImPlot::PushStyleColor(ImPlotCol_Fill, {0,0.2f,0.7f,0.6f});
-            ImPlot::PlotStatusBarG("pbid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
-            ImPlot::PopStyleColor(2);
-            ImPlot::PopStyleVar();
+    void updateStreaming() {
+        std::optional<Timing::event> last = contextEvents.size() == 0 ? std::optional<Timing::event>{} : contextEvents[contextEvents.size()-1];
+        auto data = snoopReader.get();
+    }
 
-            // plot non-beam process events
+    void computeAndDisplay(Timing &timing) {
+        auto d = snoopReader.get();
+        double plot_depth = 20; // [ms] = 5 s
+        double time = timing.getTAI() * 1e-9;
+        if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
+                ImPlot::SetupAxes("x","y");
+                ImPlot::SetupAxisLimits(ImAxis_X1, time, time - plot_depth, ImGuiCond_Always);
 
-            // TODO: reenable picoscope data
-            //ImPlot::PlotLine("IO1", data.data(), data.size());
-            ImPlot::EndPlot();
+                ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, 16.0f);
+                ImPlot::PushStyleColor(ImPlotCol_Line, {1.0,0,0,0.6f});
+                ImPlot::PushStyleColor(ImPlotCol_Fill, {0,1.0,0,0.6f});
+                ImPlot::PlotStatusBarG("beamin", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.flag_beamin * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Bool);
+                ImPlot::PopStyleColor(2);
+
+                ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpcid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Discrete);
+
+                ImPlot::PushStyleColor(ImPlotCol_Line, {0.7f,0.2f,0,0.6f});
+                ImPlot::PushStyleColor(ImPlotCol_Fill, {0.2f,0.1f,0,0.6f});
+                ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.sid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
+                ImPlot::PopStyleColor(2);
+
+                ImPlot::PushStyleColor(ImPlotCol_Line, {0,0.7f,0.2f,0.6f});
+                ImPlot::PushStyleColor(ImPlotCol_Fill, {0,0.2f,0.7f,0.6f});
+                ImPlot::PlotStatusBarG("pbid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
+                ImPlot::PopStyleColor(2);
+                ImPlot::PopStyleVar();
+
+                // plot non-beam process events
+
+                ImPlot::EndPlot();
+            }
         }
     }
-    // remove as many items from the buffer s.t. it only half full so that new samples can be added
-    if (data.size() > picoscope_reader.buffer().size() / 2) {
-        std::ignore = picoscope_reader.consume(data.size() - picoscope_reader.buffer().size() / 2);
-    }
-}
+};
 
-int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
+int interactive(Timing &timing, WBConsole &console) {
     // Initialize UI
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
@@ -767,7 +790,6 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     gr::BufferReader auto event_reader = timing.snooped.new_reader();
-    gr::BufferReader auto digitizer_reader = digitizer.buffer().new_reader();
     //gr::HistoryBuffer<Timing::event, 1000> snoop_history{};
 
     bool imGuiDemo = false;
@@ -776,7 +798,6 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
     // Main loop
     bool done = false;
     while (!done) {
-        digitizer.process();
         //console.process();
         timing.process();
 
@@ -806,7 +827,8 @@ int interactive(Ps4000a &digitizer, Timing &timing, WBConsole &console) {
             app_header::draw_header_bar("Digitizer Timing Debug", headerFont);
             showTimingEventTable(event_reader);
             showTimingSchedule(timing);
-            showTimePlot(digitizer_reader, timing, event_reader);
+            static TimePlot plot{timing.snooped};
+            plot.computeAndDisplay(timing);
             showTRConfig(timing, imGuiDemo, imPlotDemo);
             //showEBConsole(console);
         }
@@ -842,7 +864,6 @@ void draw_plot() {
 }
 
 int main(int argc, char** argv) {
-    Ps4000a picoscope; // a picoscope to examine generated timing signals
     Timing timing; // an interface to the timing card allowing condition & io configuration and event injection & snooping
     WBConsole console; // a whishbone console to send raw commands to the timing card and switch it beteween master and slave mode
 
@@ -865,7 +886,7 @@ int main(int argc, char** argv) {
 
     if (scope) {
         fmt::print("entering interactive timing scope mode\n");
-        return interactive(picoscope, timing, console);
+        return interactive(timing, console);
     }
 
     return 0;

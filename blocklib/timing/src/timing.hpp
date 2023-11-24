@@ -15,6 +15,7 @@
 
 // gr
 #include <gnuradio-4.0/CircularBuffer.hpp>
+#include <gnuradio-4.0/HistoryBuffer.hpp>
 
 using saftlib::SAFTd_Proxy;
 using saftlib::TimingReceiver_Proxy;
