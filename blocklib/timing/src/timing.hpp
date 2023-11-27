@@ -104,9 +104,9 @@ public:
         uint64_t id;
         uint64_t delay;
         uint64_t flattop;
-    };
 
-    bool initialized = false;
+        bool operator<=>(const Trigger&) const = default;
+    };
 public:
     gr::CircularBuffer<event, 10000> snooped{10000};
     std::vector<std::tuple<uint, std::string, std::string>> outputs;
@@ -116,11 +116,8 @@ private:
     decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
     bool tried = false;
 public:
+    bool initialized = false;
     bool simulate = false;
-    bool ppsAlign= false;
-    bool absoluteTime = false;
-    bool UTC = false;
-    bool UTCleap = false;
     uint64_t snoopID     = 0x0;
     uint64_t snoopMask   = 0x0;
     int64_t  snoopOffset = 0x0;
@@ -131,7 +128,6 @@ public:
     std::shared_ptr<SoftwareCondition_Proxy> condition;
 
     void initialize() {
-        // open connection to saftlib
         if (simulate) {
             initialized = true;
         } else {
@@ -150,10 +146,10 @@ public:
                 condition->setAcceptConflict(true);
                 condition->setAcceptDelayed(true);
                 condition->SigAction.connect(
-                        [this](uint64_t id, uint64_t param, saftlib::Time deadline, saftlib::Time executed,
+                        [this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed,
                                uint16_t flags) {
                             this->snoop_writer.publish(
-                                    [this, id, param, deadline, executed, flags](std::span<event> buffer) {
+                                    [id, param, &deadline, &executed, flags](std::span<event> buffer) {
                                         buffer[0] = Timing::event{deadline.getTAI(), id, param, flags, executed.getTAI()};
                                     }, 1);
                         });
@@ -183,7 +179,7 @@ public:
         while(true) {
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
             if (duration > 0) {
-                saftlib::wait_for_signal(std::clamp(duration, std::numeric_limits<int>::max()+0l, 50l));
+                saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50l, std::numeric_limits<int>::max()+0l)));
             } else {
                 break;
             }
@@ -205,120 +201,52 @@ public:
 
     unsigned long getTAI() {
         if (simulate) {
-            return duration_cast<std::chrono::nanoseconds>(std::chrono::utc_clock::now().time_since_epoch()).count();
+            return static_cast<unsigned long>(std::max(0l, duration_cast<std::chrono::nanoseconds>(
+                    std::chrono::utc_clock::now().time_since_epoch()).count()));
         }
         return receiver->CurrentTime().getTAI();
     }
 
     void updateTrigger(Trigger &trigger) {
+        auto existing = triggers.find(trigger.id);
+        if (existing != triggers.end() && existing->second == trigger) {
+            return; // nothing changed
+        }
+        if (!simulate) {
+            for (auto [i, enabled] : std::views::enumerate(trigger.outputs)) {
+                if (enabled && (existing == triggers.end() || !existing->second.outputs[i])) { // newly enabled
+                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(outputs[static_cast<unsigned long>(i)]));
+                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), trigger.delay, true);
+                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), trigger.delay + trigger.flattop, false);
+                } else if (!enabled && (existing != triggers.end() || existing->second.outputs[i])) { // newly disabled
+                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(outputs[static_cast<unsigned long>(i)]));
+                    auto matchingConditions = proxy->getAllConditions()
+                            | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
+                            | std::views::filter([&trigger](const auto &cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+                    std::ranges::for_each(matchingConditions, [](const auto &cond) {
+                        cond->Destroy();
+                    });
+                } else {
+                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(outputs[static_cast<unsigned long>(i)]));
+                    if (trigger.delay != existing->second.delay) { // update condition for rising edge
+                        auto matchingOnConditions = proxy->getAllConditions()
+                                                    | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
+                                                    | std::views::filter([&trigger](const auto &cond) { return cond->getOn() && cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+                        std::ranges::for_each(matchingOnConditions, [&trigger](const auto &cond) {
+                            cond->setID(trigger.id);
+                        });
+                    }
+                    if (trigger.flattop != existing->second.flattop) { // update condition for flattop
+                        auto matchingOffConditions = proxy->getAllConditions()
+                                                    | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
+                                                    | std::views::filter([&trigger](const auto &cond) { return !cond->getOn() && cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+                        std::ranges::for_each(matchingOffConditions, [&trigger](const auto &cond) {
+                            cond->setID(trigger.id);
+                        });
+                    }
+                }
+            }
+        }
         triggers.insert({trigger.id, trigger});
-        // // get condition information
-        // static std::vector<std::pair<std::string, std::string>> ioNames{};
-        // std::vector<std::pair<std::string, std::shared_ptr<saftlib::OutputCondition_Proxy>>> conditions{};
-        // if (!timing.simulate){
-        //     for (auto &[name, port] : timing.receiver->getOutputs()) {
-        //         if (std::find_if(ioNames.begin(), ioNames.end(), [&name](auto const &e) {return e.first == name;}) == ioNames.end()) {
-        //             ioNames.emplace_back(name, port);
-        //         }
-        //         auto port_proxy = saftlib::Output_Proxy::create(port);
-        //         for (auto & condition : port_proxy->getAllConditions()) {
-        //             auto condition_proxy = saftlib::OutputCondition_Proxy::create(condition);
-        //             conditions.emplace_back(name, std::move(condition_proxy));
-        //         }
-        //     }
-        // }
-        //% std::string condIO{};
-        //% std::int64_t delay = 0, flattop = 0;
-        //% std::array<std::shared_ptr<saftlib::OutputCondition_Proxy>, 2> trigger_conditions{};
-        //% bool condition_changed = false;
-        //% for (auto &[ioName, cond]: conditions) {
-        //%     if ((ev.id() & cond->getMask()) == cond->getID()) {
-        //%         if (condIO.empty()) {
-        //%             condIO = ioName;
-        //%             if (cond->getOn()) {
-        //%                 delay = cond->getOffset();
-        //%                 trigger_conditions[0] = cond;
-        //%             } else {
-        //%                 flattop = cond->getOffset();
-        //%                 trigger_conditions[1] = cond;
-        //%             }
-        //%         } else if (condIO == ioName) {
-        //%             if (cond->getOn() && !trigger_conditions[0]) {
-        //%                 delay = cond->getOffset();
-        //%                 flattop -= delay;
-        //%                 trigger_conditions[0] = cond;
-        //%                 break;
-        //%             } else if (!trigger_conditions[1]) {
-        //%                 flattop = cond->getOffset() - delay;
-        //%                 trigger_conditions[1] = cond;
-        //%                 break;
-        //%             }
-        //%         }
-        //%     }
-        //% }
-        //% if (!condIO.empty()) {
-        //%     int current = std::distance(ioNames.begin(),
-        //%                                 std::find_if(ioNames.begin(),
-        //%                                              ioNames.end(),
-        //%                                              [&condIO](auto e) {
-        //%                                                  return e.first ==
-        //%                                                         condIO;
-        //%                                              }));
-        //%     current = current >= ioNames.size() ? 0 : current;
-        //%     ImGui::Combo("IO", &current,
-        //%                  [](void *data, int i, const char **out) -> bool {
-        //%                      *out = ((std::vector<std::pair<std::string, std::string>> *) data)->at(
-        //%                              i).first.c_str();
-        //%                      return true;
-        //%                  }, &ioNames, ioNames.size(), 5);
-        //%     if (delay != trigger_conditions[0]->getOffset() ||
-        //%         flattop != trigger_conditions[1]->getOffset()) {
-        //%         //condition_changed = true;
-        //%     }
-        //%     if (ImGui::Button("delete") ||
-        //%         ioNames[current].first != condIO) {
-        //%         // todo: remove both conditions
-        //%         trigger_conditions[0]->Destroy();
-        //%         trigger_conditions[1]->Destroy();
-        //%         trigger_conditions[0] = {};
-        //%         trigger_conditions[1] = {};
-        //%         if (ioNames[current].first != condIO) {
-        //%             condition_changed = true;
-        //%         }
-        //%     }
-        //% } else {
-        //%     ImGui::SameLine();
-        //%     if (ImGui::Button("Add Trigger")) {
-        //%         auto proxy = saftlib::Output_Proxy::create(
-        //%                 ioNames[0].second);
-        //%         proxy->NewCondition(true, ev.id(),
-        //%                             std::numeric_limits<uint64_t>::max(),
-        //%                             default_offset,
-        //%                             true);
-        //%         proxy->NewCondition(true, ev.id(),
-        //%                             std::numeric_limits<uint64_t>::max(),
-        //%                             2 * default_offset,
-        //%                             false);
-        //%     }
-        //% }
-        //% if (condition_changed) {
-        //%     auto proxy = saftlib::Output_Proxy::create(
-        //%             ioNames[current].second);
-        //%     if (trigger_conditions[0]) {
-        //%         trigger_conditions[0]->setOffset(delay);
-        //%     } else {
-        //%         proxy->NewCondition(true, ev.id(),
-        //%                             std::numeric_limits<uint64_t>::max(),
-        //%                             delay, true);
-        //%     }
-        //%     if (trigger_conditions[1]) {
-        //%         trigger_conditions[1]->setOffset(flattop);
-        //%     } else {
-        //%         proxy->NewCondition(true, ev.id(),
-        //%                             std::numeric_limits<uint64_t>::max(),
-        //%                             flattop + delay,
-        //%                             false);
-        //%     }
-        //% }
     }
 };

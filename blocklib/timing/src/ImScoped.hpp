@@ -42,5 +42,4 @@ using Menu = detail::Widget<ImGui::BeginMenu, ImGui::EndMenu>;
 using ListBox= detail::Widget<ImGui::BeginListBox, ImGui::EndListBox>;
 using Disabled = detail::WidgetVoid<ImGui::BeginDisabled, ImGui::EndDisabled>;
 using Tooltip = detail::WidgetVoid<ImGui::BeginTooltip, ImGui::EndTooltip>;
-// etc.
 } // namespace ImScoped

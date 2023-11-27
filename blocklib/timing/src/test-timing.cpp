@@ -318,61 +318,7 @@ void showTimingSchedule(Timing &timing) {
                                                 tableColumnSlider<uint32_t, max_uint22>("##bpcid", ev.bpcid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint12>("##sid", ev.sid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint14>("##pbid", ev.bpid, 40.f);
-                                                if (ImGui::TableNextColumn()) {
-                                                    ImGui::SetNextItemWidth(80.f);
-                                                    uint64_t tmp = ev.gid;
-                                                    ImGui::DragScalar("##gid", ImGuiDataType_U64, &tmp, 1.0f,
-                                                                      &min_uint64, &max_uint12, "%d",
-                                                                      ImGuiSliderFlags_None);
-                                                    // trying to make selection of group-ids and events more user-friendly
-                                                    //std::array<char, 32> buf{};
-                                                    //ImGui::InputText("##gidtxt", buf.data(), buf.size(), 0, [](ImGuiInputTextCallbackData *edit) {
-                                                    //    fmt::print("{}\n", edit->Buf[0]);
-                                                    //    *((std::size_t*) edit->UserData) = edit->BufTextLen;
-                                                    //    return 0;
-                                                    //}, &textlen);
-                                                    //if (ImGui::IsItemHovered() || ImGui::IsItemActive()) {
-                                                    //    auto _ = ImScoped::Tooltip();
-                                                    //    std::size_t parsed;
-                                                    //    long number = std::stol(std::string{buf.data(), buf.size()}, &parsed);
-                                                    //    std::vector<uint16_t> available;
-                                                    //    if (parsed == textlen) { // is a number
-                                                    //        available.push_back(number);
-                                                    //    } else { // search for the string in enum
-                                                    //        for (auto & [id, pair] : timingGroupTable) {
-                                                    //            auto & [name, _] = pair;
-                                                    //            if (name.contains(std::string(buf.data(), std::min(textlen, buf.size())))) {
-                                                    //                available.push_back(number);
-                                                    //            }
-                                                    //        }
-                                                    //    }
-                                                    //    int listCurrent = 0;
-                                                    //    if (auto _ = ImScoped::ListBox("##gidList", ImVec2{0.f,0.f})) {
-                                                    //        for
-                                                    //        ImGuiListClipper clipper;
-                                                    //        clipper.Begin(items_count, GetTextLineHeightWithSpacing()); // We know exactly our line height here so we pass it as a minor optimization, but generally you don't need to.
-                                                    //        while (clipper.Step())
-                                                    //            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++)
-                                                    //            {
-                                                    //                const char* item_text;
-                                                    //                if (!items_getter(data, i, &item_text))
-                                                    //                    item_text = "*Unknown item*";
-
-                                                    //                PushID(i);
-                                                    //                const bool item_selected = (i == *current_item);
-                                                    //                if (Selectable(item_text, item_selected))
-                                                    //                {
-                                                    //                    *current_item = i;
-                                                    //                    value_changed = true;
-                                                    //                }
-                                                    //                if (item_selected)
-                                                    //                    SetItemDefaultFocus();
-                                                    //                PopID();
-                                                    //            }
-                                                    //    }
-                                                    //}
-                                                    ev.gid = tmp & max_uint12;
-                                                }
+                                                tableColumnSlider<uint16_t, max_uint12>("##gid", ev.gid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint12>("##eventno", ev.eventno, 40.f);
                                                 tableColumnCheckbox("##beamin", ev.flag_beamin);
                                                 tableColumnCheckbox("##bpcstart", ev.flag_bpc_start);
@@ -399,6 +345,9 @@ void showTimingSchedule(Timing &timing) {
                                                 for (auto & [i, name, _2] : timing.outputs) {
                                                     if (trigger) {
                                                         ImGui::Checkbox(fmt::format("##{}", name).c_str(), &trigger->outputs[i]);
+                                                        if (ImGui::IsItemHovered()) {
+                                                            ImGui::SetTooltip("%s", fmt::format("Output: {}", name).c_str());
+                                                        }
                                                         ImGui::SameLine();
                                                         // TODO:: add tooltip
                                                     } else {
@@ -623,14 +572,10 @@ public:
     }
 };
 
-int interactive(Timing &timing) {
-    // Initialize UI
-    // Setup SDL
-    // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
-    // depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled. updating to latest version of SDL is recommended!)
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
+std::pair<SDL_Window*, SDL_GLContext> openSDLWindow() {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
         printf("Error: %s\n", SDL_GetError());
-        return -1;
+        return {};
     }
     // Decide GL+GLSL versions
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -670,50 +615,68 @@ int interactive(Timing &timing) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImPlot::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsClassic();
-
     // Setup Platform/Renderer backends
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
     ImGui_ImplOpenGL3_Init(glsl_version);
-    ImGui::StyleColorsLight();
 
-    app_header::loadHeaderFont(13.f);
+    return {window, gl_context};
+}
+
+void processSDLEvents(SDL_Window * window, bool &done) {
+    for(SDL_Event event; SDL_PollEvent(&event); ) {
+        ImGui_ImplSDL2_ProcessEvent(&event);
+        if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE &&
+                                       event.window.windowID == SDL_GetWindowID(window))) {
+            done = true;
+        }
+    }
+}
+
+void startImGuiFrame() {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+}
+
+void RenderToSDL(const ImGuiIO& io, SDL_Window *window) {
+    ImGui::Render();
+    static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
+    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    SDL_GL_SwapWindow(window);
+}
+
+void shutdownSDL(SDL_Window *window, SDL_GLContext gl_context) {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
+    SDL_GL_DeleteContext(gl_context);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+int showUI(Timing &timing) {
+    auto [window, gl_context] = openSDLWindow();
+    if (!window) return 200;
+
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+    ImGui::StyleColorsLight(); // set light color scheme, alt: ImGui::StyleColorsDark() ImGui::StyleColorsClassic();
+    app_header::loadHeaderFont(13.f); // default font for the application
     auto headerFont = app_header::loadHeaderFont(32.f);
-
-    // Our state
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     bool imGuiDemo = false;
     bool imPlotDemo = false;
-
-    // Main loop
     bool done = false;
-    while (!done) {
-        //console.process();
+    while (!done) { // main ui loop
         timing.process();
-
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))) {
-                done = true;
-            }
-        }
-        // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplSDL2_NewFrame();
-        ImGui::NewFrame();
+        processSDLEvents(window, done);
+        startImGuiFrame();
+        // create imgui "window" filling the whole platform window in the background s.t. other imgui windows may be put in front of it
         static ImGuiWindowFlags imGuiWindowFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus;
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
@@ -732,58 +695,22 @@ int interactive(Timing &timing) {
         if (imPlotDemo) {
             ImPlot::ShowDemoWindow(&imPlotDemo);
         }
-
-        // Rendering
-        ImGui::Render();
-        glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
-        glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        SDL_GL_SwapWindow(window);
-    }
-
-    // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
-
-    SDL_GL_DeleteContext(gl_context);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
+        RenderToSDL(io, window);
+    } // main ui loop
+    shutdownSDL(window, gl_context);
     return 0;
-}
-
-void draw_plot() {
 }
 
 int main(int argc, char** argv) {
     Timing timing; // an interface to the timing card allowing condition & io configuration and event injection & snooping
 
     CLI::App app{"timing receiver saftbus example"};
-    bool scope = false;
-    app.add_flag("--scope", scope, "enter interactive scope mode showing the timing input connected to a picoscope and the generated and received timing msgs");
     app.add_flag("--simulate", timing.simulate, "mock the timing card to test the gui by directly inserting the scheduled events into the snooped events");
-    app.add_flag("--pps", timing.ppsAlign, "add time to next pps pulse");
-    app.add_flag("--abs", timing.absoluteTime, "time is an absolute time instead of an offset");
-    app.add_flag("--utc", timing.UTC, "absolute time is in utc, default is tai");
-    app.add_flag("--leap", timing.UTCleap, "utc calculation leap second flag");
-
-    bool snoop = false;
-    app.add_flag("-s", snoop, "snoop");
-    app.add_option("-f", timing.snoopID, "id filter");
-    app.add_option("-m", timing.snoopMask, "snoop mask");
-    app.add_option("-o", timing.snoopOffset, "snoop offset");
-
-    try {                                                                                                              \
-        (app).parse((argc), (argv));                                                                                   \
-    } catch(const CLI::ParseError &e) {                                                                                \
-        return (app).exit(e);                                                                                          \
+    try {
+        (app).parse((argc), (argv));
+    } catch(const CLI::ParseError &e) {
+        return (app).exit(e);
     }
 
-    if (scope) {
-        fmt::print("entering interactive timing scope mode\n");
-        return interactive(timing);
-    }
-    return 0;
+    return showUI(timing);
 }
