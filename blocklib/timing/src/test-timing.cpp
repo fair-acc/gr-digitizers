@@ -1,6 +1,5 @@
 #include <format>
 #include <thread>
-#include <iostream>
 #include <cstdio>
 #include <unordered_set>
 #include <ranges>
@@ -55,13 +54,14 @@ void tableColumnBool(bool state, ImColor trueColor, ImColor falseColor) {
         ImGui::TextUnformatted(fmt::format("{}", state ? "y" : "n").c_str());
     }
 }
-template <typename T>
-void tableColumnSlider(const std::string &id, T &field, const uint64_t &max, float width) {
-    static constexpr uint64_t min_uint64 = 0;
+template <typename T, T max>
+void tableColumnSlider(const std::string &id, T &field, float width) {
+    static constexpr T min_T = 0;
+    static constexpr T max_T = max;
     if (ImGui::TableNextColumn()) {
         ImGui::SetNextItemWidth(width);
         uint64_t tmp = field;
-        ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, &tmp, 1.0f, &min_uint64, &max, "%d", ImGuiSliderFlags_None);
+        ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, &tmp, 1.0f, &min_T, &max_T, "%d", ImGuiSliderFlags_None);
         field = tmp & max;
     }
 }
@@ -72,8 +72,21 @@ void tableColumnCheckbox(const std::string &id, bool &field) {
         field = flag_beamin;
     }
 }
+template<typename T>
+ImColor getStableColor(T id, std::map<T, ImColor> &colors, std::span<const ImColor> colormap, ImColor defaultColor) {
+    if (colors.contains(id)) {
+        return colors[id];
+    } else {
+        if (colormap.size() > colors.size()) {
+            colors.insert({id, ImColor{colormap[colors.size()]}});
+            return colors[id];
+        }
+    }
+    return defaultColor;
+}
 
-void showTimingEventTable(gr::BufferReader auto &event_reader, Timing &timing) {
+void showTimingEventTable(Timing &timing) {
+    static gr::BufferReader auto event_reader = timing.snooped.new_reader();
     if (ImGui::Button("clear")) {
         std::ignore = event_reader.consume(event_reader.available());
     }
@@ -83,7 +96,6 @@ void showTimingEventTable(gr::BufferReader auto &event_reader, Timing &timing) {
 
         static std::map<uint16_t, ImColor> colors;
 
-        const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
         ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 20);
         static ImGuiTableFlags flags =
@@ -164,38 +176,22 @@ void showTimingEventTable(gr::BufferReader auto &event_reader, Timing &timing) {
     }
 }
 
-template<typename T>
-ImColor getStableColor(T id, std::map<T, ImColor> &colors, std::span<const ImColor> colormap, ImColor defaultColor) {
-    if (colors.contains(id)) {
-        return colors[id];
-    } else {
-        if (colormap.size() > colors.size()) {
-            colors.insert({id, ImColor{colormap[colors.size()]}});
-            return colors[id];
-        }
-    }
-    return defaultColor;
-}
-
 void loadEventsFromString(std::vector<Timing::event> &events, std::string_view string) {
     events.clear();
     using std::operator""sv;
     try {
         for (auto line: std::views::split(string, "\n"sv)) {
-            std::string_view line_sv(line);
-            if (line_sv.empty()) continue;
-            std::array<uint64_t, 3> numbers{};
-            for (auto [i, number]: std::views::split(line_sv, " "sv) | std::views::enumerate) {
-                std::string_view number_sv(number);
-                numbers[i] = std::stoul(std::string(number_sv), nullptr, 0);
+            auto event = std::views::split(std::string_view{line}, " "sv) | std::views::take(3)
+                    | std::views::transform([](auto n) { return std::stoul(std::string(std::string_view(n)), nullptr, 0); })
+                    | std::views::adjacent_transform<3>([](auto a, auto b, auto c) {return Timing::event{c, a, b};});
+            if (!event.empty()) {
+                events.push_back(event.front());
             }
-            events.emplace_back(numbers[2], numbers[0], numbers[1]);
         }
     } catch (std::exception &e) {
         events.clear();
         fmt::print("Error parsing clipboard data: {}", string);
     }
-
 }
 
 void showTimingSchedule(Timing &timing) {
@@ -245,11 +241,9 @@ void showTimingSchedule(Timing &timing) {
         }
         // set state
         ImGui::SameLine(0.f, 10.f);
-        if (injectState == InjectState::RUNNING || injectState == InjectState::SINGLE) {
+        if (injectState == InjectState::RUNNING) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
             if (ImGui::Button("Stop###StartStop")) {
-                current = 0;
-                time_offset = timing.getTAI();
                 injectState = InjectState::STOPPED;
             }
             ImGui::PopStyleColor();
@@ -261,9 +255,15 @@ void showTimingSchedule(Timing &timing) {
             }
         }
         ImGui::SameLine();
-        {
+        if (injectState == InjectState::SINGLE) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
+            if (ImGui::Button("Stop###SingleStop")) {
+                injectState = InjectState::STOPPED;
+            }
+            ImGui::PopStyleColor();
+        } else {
             auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
-            if (ImGui::Button("Single")) {
+            if (ImGui::Button("Single###SingleStop")) {
                 current = 0;
                 time_offset = timing.getTAI();
                 injectState = InjectState::SINGLE;
@@ -280,7 +280,7 @@ void showTimingSchedule(Timing &timing) {
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         {
             auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
-            if (auto _ = ImScoped::Table("event schedule", 22, flags, outer_size, 0.f)) {
+            if (auto _1 = ImScoped::Table("event schedule", 22, flags, outer_size, 0.f)) {
                 ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
                 ImGui::TableSetupColumn("time",
                                         ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
@@ -314,13 +314,12 @@ void showTimingSchedule(Timing &timing) {
                                                 bool to_remove = false;
                                                 ImGui::PushID(&ev);
                                                 ImGui::TableNextRow();
-                                                tableColumnSlider("##time", ev.time, max_uint64, 80.f);
-                                                tableColumnSlider("##bpcid", ev.bpcid, max_uint22, 40.f);
-                                                tableColumnSlider("##sid", ev.sid, max_uint12, 40.f);
-                                                tableColumnSlider("##pbid", ev.bpid, max_uint14, 40.f);
+                                                tableColumnSlider<uint64_t, max_uint64>("##time", ev.time, 80.f);
+                                                tableColumnSlider<uint32_t, max_uint22>("##bpcid", ev.bpcid, 40.f);
+                                                tableColumnSlider<uint16_t, max_uint12>("##sid", ev.sid, 40.f);
+                                                tableColumnSlider<uint16_t, max_uint14>("##pbid", ev.bpid, 40.f);
                                                 if (ImGui::TableNextColumn()) {
                                                     ImGui::SetNextItemWidth(80.f);
-                                                    std::size_t textlen;
                                                     uint64_t tmp = ev.gid;
                                                     ImGui::DragScalar("##gid", ImGuiDataType_U64, &tmp, 1.0f,
                                                                       &min_uint64, &max_uint12, "%d",
@@ -374,13 +373,13 @@ void showTimingSchedule(Timing &timing) {
                                                     //}
                                                     ev.gid = tmp & max_uint12;
                                                 }
-                                                tableColumnSlider("##eventno", ev.eventno, max_uint12, 40.f);
+                                                tableColumnSlider<uint16_t, max_uint12>("##eventno", ev.eventno, 40.f);
                                                 tableColumnCheckbox("##beamin", ev.flag_beamin);
                                                 tableColumnCheckbox("##bpcstart", ev.flag_bpc_start);
                                                 tableColumnCheckbox("##reqNoBeam", ev.reqNoBeam);
-                                                tableColumnSlider("##virtAcc", ev.virtAcc, max_uint4, 40.f);
-                                                tableColumnSlider("##bpcts", ev.bpcts, max_uint42, 80.f);
-                                                tableColumnSlider("##fid", ev.fid, max_uint4, 40.f);
+                                                tableColumnSlider<uint8_t, max_uint4>("##virtAcc", ev.virtAcc, 40.f);
+                                                tableColumnSlider<uint64_t, max_uint42>("##bpcts", ev.bpcts, 80.f);
+                                                tableColumnSlider<uint8_t, max_uint4>("##fid", ev.fid, 40.f);
                                                 tableColumnString("{:#08x}", ev.id());
                                                 tableColumnString("{:#08x}", ev.param());
                                                 tableColumnCheckbox("##reserved1", ev.flag_reserved1);
@@ -397,7 +396,7 @@ void showTimingSchedule(Timing &timing) {
                                                 }
                                                 auto trigger = timing.triggers.contains(ev.id()) ? std::optional<Timing::Trigger>{timing.triggers[ev.id()]} : std::optional<Timing::Trigger>{};
                                                 ImGui::TableNextColumn();
-                                                for (auto & [i, name, _] : timing.outputs) {
+                                                for (auto & [i, name, _2] : timing.outputs) {
                                                     if (trigger) {
                                                         ImGui::Checkbox(fmt::format("##{}", name).c_str(), &trigger->outputs[i]);
                                                         ImGui::SameLine();
@@ -504,10 +503,10 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
                 tableColumnString("{}", name);
                 tableColumnString(""); //{}", port_proxy->direction);
                 tableColumnString("{}", port_proxy->getOutputEnable());
-                tableColumnString("{}", input_proxy ? input_proxy->getInputTermination() : false);
-                tableColumnString("{}", input_proxy ? port_proxy->getSpecialPurposeOut() : false);
-                tableColumnString("{}", input_proxy ? input_proxy->getSpecialPurposeIn() : false);
-                tableColumnString("{}", input_proxy ? input_proxy->getResolution() : false);
+                tableColumnString("{}", input_proxy && input_proxy->getInputTermination());
+                tableColumnString("{}", input_proxy && port_proxy->getSpecialPurposeOut());
+                tableColumnString("{}", input_proxy && input_proxy->getSpecialPurposeIn());
+                tableColumnString("{}", input_proxy && input_proxy->getResolution());
                 tableColumnString("{}", port_proxy->getLogicLevelOut());
                 ImGui::PopID();
             }
@@ -585,13 +584,13 @@ public:
 
     void updateStreaming() {
         std::optional<Timing::event> last = contextEvents.size() == 0 ? std::optional<Timing::event>{} : contextEvents[contextEvents.size()-1];
-        auto data = snoopReader.get();
+        snoopReader.get();
     }
 
     void computeAndDisplay(Timing &timing) {
         auto d = snoopReader.get();
         double plot_depth = 20; // [ms] = 5 s
-        double time = timing.getTAI() * 1e-9;
+        double time = static_cast<double>(timing.getTAI()) * 1e-9;
         if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
                 ImPlot::SetupAxes("x","y");
@@ -628,7 +627,7 @@ int interactive(Timing &timing) {
     // Initialize UI
     // Setup SDL
     // (Some versions of SDL before <2.0.10 appears to have performance/stalling issues on a minority of Windows systems,
-    // depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled.. updating to latest version of SDL is recommended!)
+    // depending on whether SDL_INIT_GAMECONTROLLER is enabled or disabled. updating to latest version of SDL is recommended!)
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         printf("Error: %s\n", SDL_GetError());
         return -1;
@@ -661,7 +660,7 @@ int interactive(Timing &timing) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    auto window_flags = static_cast<SDL_WindowFlags>(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_Window* window = SDL_CreateWindow("Dear ImGui SDL2+OpenGL3 example", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, window_flags);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
@@ -684,13 +683,11 @@ int interactive(Timing &timing) {
     ImGui_ImplOpenGL3_Init(glsl_version);
     ImGui::StyleColorsLight();
 
-    auto defaultFont = app_header::loadHeaderFont(13.f);
+    app_header::loadHeaderFont(13.f);
     auto headerFont = app_header::loadHeaderFont(32.f);
 
     // Our state
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-
-    gr::BufferReader auto event_reader = timing.snooped.new_reader();
 
     bool imGuiDemo = false;
     bool imPlotDemo = false;
@@ -709,9 +706,7 @@ int interactive(Timing &timing) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT) {
-                done = true;
-            } else if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) {
+            if (event.type == SDL_QUIT || (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window))) {
                 done = true;
             }
         }
@@ -725,7 +720,7 @@ int interactive(Timing &timing) {
         if (auto _ = ImScoped::Window("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
             // TODO: include FAIR header
             app_header::draw_header_bar("Digitizer Timing Debug", headerFont);
-            showTimingEventTable(event_reader, timing);
+            showTimingEventTable(timing);
             showTimingSchedule(timing);
             static TimePlot plot{timing.snooped};
             plot.computeAndDisplay(timing);
@@ -740,7 +735,7 @@ int interactive(Timing &timing) {
 
         // Rendering
         ImGui::Render();
-        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
+        glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
         glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -780,12 +775,15 @@ int main(int argc, char** argv) {
     app.add_option("-m", timing.snoopMask, "snoop mask");
     app.add_option("-o", timing.snoopOffset, "snoop offset");
 
-    CLI11_PARSE(app, argc, argv);
+    try {                                                                                                              \
+        (app).parse((argc), (argv));                                                                                   \
+    } catch(const CLI::ParseError &e) {                                                                                \
+        return (app).exit(e);                                                                                          \
+    }
 
     if (scope) {
         fmt::print("entering interactive timing scope mode\n");
         return interactive(timing);
     }
-
     return 0;
 }
