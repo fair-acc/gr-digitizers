@@ -243,14 +243,14 @@ void showTimingSchedule(Timing &timing) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
             if (ImGui::Button("Stop###StartStop")) {
                 current = 0;
-                time_offset = timing.receiver->CurrentTime().getTAI();
+                time_offset = timing.getTAI();
                 injectState = InjectState::STOPPED;
             }
             ImGui::PopStyleColor();
         } else {
             if (ImGui::Button("Start###StartStop")) {
                 current = 0;
-                time_offset = timing.receiver->CurrentTime().getTAI();
+                time_offset = timing.getTAI();
                 injectState = InjectState::RUNNING;
             }
         }
@@ -430,10 +430,6 @@ void showTimingSchedule(Timing &timing) {
         while (events[current].time + time_offset < timing.getTAI() + 500000000ul) {
             auto ev = events[current];
             timing.injectEvent(ev, time_offset);
-            if (injectState == InjectState::SINGLE) {
-                injectState = InjectState::STOPPED;
-                break;
-            }
             if (current + 1 >= events.size()) {
                 if (injectState == InjectState::SINGLE) {
                     injectState = InjectState::STOPPED;
