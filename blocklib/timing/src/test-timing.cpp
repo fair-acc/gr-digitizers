@@ -73,7 +73,7 @@ void tableColumnCheckbox(const std::string &id, bool &field) {
     }
 }
 
-void showTimingEventTable(gr::BufferReader auto &event_reader) {
+void showTimingEventTable(gr::BufferReader auto &event_reader, Timing &timing) {
     if (ImGui::Button("clear")) {
         std::ignore = event_reader.consume(event_reader.available());
     }
@@ -90,7 +90,7 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
-        if (auto _ = ImScoped::Table("received_events", 19, flags, outer_size, 0.f)) {
+        if (auto _ = ImScoped::Table("received_events", 20, flags, outer_size, 0.f)) {
             ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
             ImGui::TableSetupColumn("timestamp", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
             ImGui::TableSetupColumn("executed at", ImGuiTableColumnFlags_DefaultHide);
@@ -111,12 +111,14 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
             ImGui::TableSetupColumn("reserved2", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
             ImGui::TableSetupColumn("flags");
+            ImGui::TableSetupColumn("##addToSchedule");
 
             ImGui::TableHeadersRow();
             auto data = event_reader.get();
 
             for (auto &evt : std::ranges::reverse_view{data}) {
                 ImGui::TableNextRow();
+                ImGui::PushID(&evt);
                 tableColumnString("{}", tai_ns_to_utc(evt.time));
                 tableColumnString("{}", tai_ns_to_utc(evt.executed));
                 tableColumnString("{}", evt.bpcid);
@@ -149,6 +151,11 @@ void showTimingEventTable(gr::BufferReader auto &event_reader) {
                         ImGui::Text("%s", fmt::format(" !delayed (by {} ms)", delay).c_str());
                     }
                 }
+                ImGui::TableNextColumn();
+                if (ImGui::Button("add to Schedule##addSchedule")) {
+                    timing.events.emplace_back(100000000ull + (timing.events.empty() ? 0ul : timing.events.back().time), evt.id(), evt.param());
+                }
+                ImGui::PopID();
             }
             if (data.size() > event_reader.buffer().size() / 2) {
                 std::ignore = event_reader.consume(data.size() - event_reader.buffer().size() / 2);
@@ -202,7 +209,6 @@ void showTimingSchedule(Timing &timing) {
 
     static std::size_t current = 0;
     static uint64_t time_offset = 0;
-    static std::vector<Timing::event> events = {};
     static enum class InjectState { STOPPED, RUNNING, SINGLE } injectState = InjectState::STOPPED;
     if (ImGui::CollapsingHeader("Schedule to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SetNextItemWidth(80.f);
@@ -210,21 +216,21 @@ void showTimingSchedule(Timing &timing) {
         ImGui::DragScalar("default event offset", ImGuiDataType_U64, &default_offset, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
         ImGui::SameLine();
         if (ImGui::Button("+")) {
-            events.emplace_back(default_offset + (events.empty() ? 0ul : events.back().time));
+            timing.events.emplace_back(default_offset + (timing.events.empty() ? 0ul : timing.events.back().time));
         }
         ImGui::SameLine(0.f, 10.f);
         if (ImGui::Button("Clear##schedule")) {
-            events.clear();
+            timing.events.clear();
         }
         ImGui::SameLine();
         ImGui::Button("Load");
         if (ImGui::BeginPopupContextItem("load schedule popup", ImGuiPopupFlags_MouseButtonLeft)) {
             if (ImGui::Button("from Clipboard")) {
-                loadEventsFromString(events, ImGui::GetClipboardText());
+                loadEventsFromString(timing.events, ImGui::GetClipboardText());
             }
             for (const auto & [scheduleName, schedule] : demoSchedules) {
                 if (ImGui::Button(scheduleName.c_str())) {
-                    loadEventsFromString(events, schedule);
+                    loadEventsFromString(timing.events, schedule);
                 }
             }
             ImGui::EndPopup();
@@ -232,7 +238,7 @@ void showTimingSchedule(Timing &timing) {
         ImGui::SameLine();
         if (ImGui::Button("Save to Clipboard")) {
             std::string string;
-            for (auto &ev: events) {
+            for (auto &ev: timing.events) {
                 string.append(fmt::format("{:#x} {:#x} {}\n", ev.id(), ev.param(), ev.time));
             }
             ImGui::SetClipboardText(string.c_str());
@@ -302,7 +308,7 @@ void showTimingSchedule(Timing &timing) {
 
                 ImGui::TableHeadersRow();
 
-                events.erase(std::remove_if(events.begin(), events.end(),
+                timing.events.erase(std::remove_if(timing.events.begin(), timing.events.end(),
                                             [&timing, default_offset = default_offset](
                                                     auto &ev) {
                                                 bool to_remove = false;
@@ -421,21 +427,21 @@ void showTimingSchedule(Timing &timing) {
                                                 }
                                                 ImGui::PopID();
                                                 return to_remove;
-                                            }), events.end());
+                                            }), timing.events.end());
             }
         }
     }
     // if running, schedule events up to 500ms ahead
     if (injectState == InjectState::RUNNING || injectState == InjectState::SINGLE) {
-        while (events[current].time + time_offset < timing.getTAI() + 500000000ul) {
-            auto ev = events[current];
+        while (timing.events[current].time + time_offset < timing.getTAI() + 500000000ul) {
+            auto ev = timing.events[current];
             timing.injectEvent(ev, time_offset);
-            if (current + 1 >= events.size()) {
+            if (current + 1 >= timing.events.size()) {
                 if (injectState == InjectState::SINGLE) {
                     injectState = InjectState::STOPPED;
                     break;
                 } else {
-                    time_offset += events[current].time;
+                    time_offset += timing.events[current].time;
                     current = 0;
                 }
             } else {
@@ -719,7 +725,7 @@ int interactive(Timing &timing) {
         if (auto _ = ImScoped::Window("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
             // TODO: include FAIR header
             app_header::draw_header_bar("Digitizer Timing Debug", headerFont);
-            showTimingEventTable(event_reader);
+            showTimingEventTable(event_reader, timing);
             showTimingSchedule(timing);
             static TimePlot plot{timing.snooped};
             plot.computeAndDisplay(timing);

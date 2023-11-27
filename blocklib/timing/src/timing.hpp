@@ -111,6 +111,7 @@ public:
     gr::CircularBuffer<event, 10000> snooped{10000};
     std::vector<std::tuple<uint, std::string, std::string>> outputs;
     std::map<uint64_t, Trigger> triggers;
+    std::vector<Timing::event> events = {};
 private:
     decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
     bool tried = false;
