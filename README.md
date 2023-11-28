@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-
 # gr-digitizers
 
 `gr-digitizers` is a collection of gnuradio blocks for signal processing.
