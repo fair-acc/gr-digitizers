@@ -349,14 +349,19 @@ void showTimingSchedule(Timing &timing) {
                                                             ImGui::SetTooltip("%s", fmt::format("Output: {}", name).c_str());
                                                         }
                                                         ImGui::SameLine();
-                                                        // TODO:: add tooltip
                                                     } else {
                                                         bool output_selected = false;
                                                         ImGui::Checkbox(fmt::format("##{}", name).c_str(), &output_selected);
+                                                        if (ImGui::IsItemHovered()) {
+                                                            ImGui::SetTooltip("%s", fmt::format("Output: {}", name).c_str());
+                                                        }
                                                         ImGui::SameLine();
-                                                        // TODO:: add tooltip
                                                         if (output_selected) {
                                                             trigger = Timing::Trigger{};
+                                                            trigger->id = ev.id();
+                                                            trigger->outputs[i] = true;
+                                                            trigger->delay = default_offset;
+                                                            trigger->flattop = default_offset;
                                                         }
                                                     }
                                                 }

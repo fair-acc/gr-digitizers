@@ -156,7 +156,7 @@ public:
                 condition->setActive(true);
                 uint i = 0;
                 for (auto &[name, port] : receiver->getOutputs()) {
-                    outputs.emplace_back(i, name, port);
+                    outputs.emplace_back(i++, name, port);
                 }
                 initialized = true;
             } catch (...) {}
@@ -213,40 +213,38 @@ public:
             return; // nothing changed
         }
         if (!simulate) {
-            for (auto [i, enabled] : std::views::enumerate(trigger.outputs)) {
-                if (enabled && (existing == triggers.end() || !existing->second.outputs[i])) { // newly enabled
-                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(outputs[static_cast<unsigned long>(i)]));
-                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), trigger.delay, true);
-                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), trigger.delay + trigger.flattop, false);
-                } else if (!enabled && (existing != triggers.end() || existing->second.outputs[i])) { // newly disabled
-                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(outputs[static_cast<unsigned long>(i)]));
+            for (auto [i, output, enabled] : std::views::zip(std::views::iota(0), outputs, trigger.outputs)) {
+                if (enabled && (existing == triggers.end() || !existing->second.outputs[static_cast<unsigned long>(i)])) { // newly enabled
+                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));
+                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay), true);
+                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay + trigger.flattop), false);
+                    auto [inserted, _] = triggers.insert({trigger.id, trigger});
+                    existing = inserted;
+                } else if (!enabled && existing != triggers.end() && existing->second.outputs[static_cast<unsigned long>(i)]) { // newly disabled
+                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));
                     auto matchingConditions = proxy->getAllConditions()
                             | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
                             | std::views::filter([&trigger](const auto &cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
                     std::ranges::for_each(matchingConditions, [](const auto &cond) {
                         cond->Destroy();
                     });
-                } else {
-                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(outputs[static_cast<unsigned long>(i)]));
-                    if (trigger.delay != existing->second.delay) { // update condition for rising edge
-                        auto matchingOnConditions = proxy->getAllConditions()
+                } else if (existing != triggers.end()) {
+                    auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));
+                    if (trigger.delay != existing->second.delay || trigger.flattop != existing->second.flattop) { // update condition for rising edge
+                        auto matchingConditions = proxy->getAllConditions()
                                                     | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
-                                                    | std::views::filter([&trigger](const auto &cond) { return cond->getOn() && cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
-                        std::ranges::for_each(matchingOnConditions, [&trigger](const auto &cond) {
-                            cond->setID(trigger.id);
-                        });
-                    }
-                    if (trigger.flattop != existing->second.flattop) { // update condition for flattop
-                        auto matchingOffConditions = proxy->getAllConditions()
-                                                    | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
-                                                    | std::views::filter([&trigger](const auto &cond) { return !cond->getOn() && cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
-                        std::ranges::for_each(matchingOffConditions, [&trigger](const auto &cond) {
-                            cond->setID(trigger.id);
+                                                    | std::views::filter([&trigger](const auto &cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+                        std::ranges::for_each(matchingConditions, [&trigger](const auto &cond) {
+                            if (cond->getOn()) {
+                                cond->setOffset(static_cast<int64_t>(trigger.delay));
+                            } else {
+                                cond->setOffset(static_cast<int64_t>(trigger.delay + trigger.flattop));
+                            }
                         });
                     }
                 }
             }
         }
-        triggers.insert({trigger.id, trigger});
+        triggers.insert_or_assign(trigger.id, trigger);
     }
 };
