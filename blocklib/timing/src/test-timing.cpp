@@ -729,7 +729,6 @@ int showUI(Timing &timing) {
         ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos);
         ImGui::SetNextWindowSize(ImGui::GetMainViewport()->WorkSize);
         if (auto _ = ImScoped::Window("Example: Fullscreen window", nullptr, imGuiWindowFlags)) {
-            // TODO: include FAIR header
             app_header::draw_header_bar("Digitizer Timing Debug", headerFont);
             showTimingEventTable(timing);
             showTimingSchedule(timing);

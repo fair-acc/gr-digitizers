@@ -6,7 +6,6 @@
  * Taken from: https://github.com/ocornut/imgui/issues/2096#issuecomment-1463837461
  * TODO:
  * - implot support
- * - support for unconditional scopes like BeginDisabled which does not return bool
  * - BeginChild needs a more manual wrapper because of varargs
  * - small issue: this wrapper breaks default arguments, they have to be always specified
  */

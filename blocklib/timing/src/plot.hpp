@@ -135,9 +135,6 @@ namespace ImPlot {
 //-----------------------------------------------------------------------------
 // [SECTION] PlotStateBars
 //-----------------------------------------------------------------------------
-
-// TODO: Make this behave like all the other plot types (.e. not fixed in y axis)
-
     template <typename Getter>
     void PlotStatusBarEx(const char* label_id, Getter getter, ImPlotStatusBarFlags flags) {
         if (BeginItem(label_id, flags, ImPlotCol_Fill)) {
