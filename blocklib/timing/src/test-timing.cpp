@@ -72,17 +72,29 @@ void tableColumnCheckbox(const std::string &id, bool &field) {
         field = flag_beamin;
     }
 }
+
 template<typename T>
-ImColor getStableColor(T id, std::map<T, ImColor> &colors, std::span<const ImColor> colormap, ImColor defaultColor) {
+uint getStableColorIndex(T id, std::map<T, int> &colors, std::size_t colormapSize) {
     if (colors.contains(id)) {
         return colors[id];
     } else {
-        if (colormap.size() > colors.size()) {
-            colors.insert({id, ImColor{colormap[colors.size()]}});
+        if (colormapSize - 1 > colors.size()) {
+            colors.insert({id, colors.size()});
             return colors[id];
         }
     }
-    return defaultColor;
+    return colormapSize - 1u;
+}
+
+template<typename T>
+uint getStableBPCIDColorIndex(T id) {
+    static std::map<T, int> colors{};
+    return getStableColorIndex(id, colors, bpcidColors.size());
+}
+
+template<typename T>
+ImColor getStableBPCIDColor(T id) {
+    return ImColor{bpcidColors[getStableBPCIDColorIndex(id)]};
 }
 
 void showTimingEventTable(Timing &timing) {
@@ -93,8 +105,6 @@ void showTimingEventTable(Timing &timing) {
     if (ImGui::CollapsingHeader("Received Timing Events", ImGuiTreeNodeFlags_DefaultOpen)) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
-
-        static std::map<uint16_t, ImColor> colors;
 
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
         ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 20);
@@ -133,9 +143,9 @@ void showTimingEventTable(Timing &timing) {
                 ImGui::PushID(&evt);
                 tableColumnString("{}", tai_ns_to_utc(evt.time));
                 tableColumnString("{}", tai_ns_to_utc(evt.executed));
-                tableColumnString("{}", evt.bpcid);
+                tableColumnStringColor(getStableBPCIDColor(evt.bpcid),"{}", evt.bpcid);
                 tableColumnString("{}", evt.sid);
-                tableColumnStringColor(getStableColor(evt.bpid, colors, bpcidColors, ImGui::GetStyle().Colors[ImGuiCol_TableRowBg]),"{}", evt.bpid);
+                tableColumnString("{}", evt.bpid);
                 tableColumnString("{1}({0})", evt.gid, timingGroupTable.contains(evt.gid) ? timingGroupTable.at(evt.gid).first : "UNKNOWN");
                 tableColumnString("{1}({0})", evt.eventno, eventNrTable.contains(evt.eventno) ? eventNrTable.at(evt.eventno).first : "UNKNOWN");
                 tableColumnBool(evt.flag_beamin, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
@@ -386,19 +396,23 @@ void showTimingSchedule(Timing &timing) {
     }
     // if running, schedule events up to 500ms ahead
     if (injectState == InjectState::RUNNING || injectState == InjectState::SINGLE) {
-        while (timing.events[current].time + time_offset < timing.getTAI() + 500000000ul) {
-            auto ev = timing.events[current];
-            timing.injectEvent(ev, time_offset);
-            if (current + 1 >= timing.events.size()) {
-                if (injectState == InjectState::SINGLE) {
-                    injectState = InjectState::STOPPED;
-                    break;
+        if (current >= timing.events.size()) {
+            injectState = InjectState::STOPPED;
+        } else {
+            while (timing.events[current].time + time_offset < timing.getTAI() + 500000000ul) {
+                auto ev = timing.events[current];
+                timing.injectEvent(ev, time_offset);
+                if (current + 1 >= timing.events.size()) {
+                    if (injectState == InjectState::SINGLE) {
+                        injectState = InjectState::STOPPED;
+                        break;
+                    } else {
+                        time_offset += timing.events[current].time;
+                        current = 0;
+                    }
                 } else {
-                    time_offset += timing.events[current].time;
-                    current = 0;
+                    ++current;
                 }
-            } else {
-                ++current;
             }
         }
     }
@@ -514,6 +528,7 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
 template<gr::Buffer BufferT>
 class TimePlot {
 public:
+    const int bufferSize = 5000;
     enum class Mode {TRIGGERED, STREAMING, SNAPSHOT} mode = Mode::STREAMING;
     std::size_t duration = 5000000000000ul; // default duration to show in streaming/snapshot mode
     std::vector<uint16_t> contextStartEvents{}; // Event types that should trigger an update of the context
@@ -521,56 +536,84 @@ public:
     bool show = true; // controls if the plot is expanded or collapsed
     using Reader = decltype(std::declval<BufferT>().new_reader());
 private:
-    gr::HistoryBuffer<Timing::event, 10000> contextEvents{};
-    gr::HistoryBuffer<Timing::event, 10000> freestandingEvents{};
+    uint64_t startTime = 0;
+    ImPlot::ScrollingBuffer beamin{bufferSize};
+    ImPlot::ScrollingBuffer bpcids{bufferSize};
+    ImPlot::ScrollingBuffer sids{bufferSize};
+    ImPlot::ScrollingBuffer bpids{bufferSize};
+    ImPlot::ScrollingBuffer events{bufferSize};
     Reader snoopReader;
-    // buffer reader
+    int bpcidColormap = ImPlot::bpcidColormap();
+    int bpidColormap = ImPlot::bpidColormap();
+    int sidColormap = ImPlot::sidColormap();
+    std::optional<Timing::event> previousContextEvent{};
+    bool previousBPToggle = false;
+    bool previousSIDToggle = false;
 public:
     explicit TimePlot(BufferT &events) : snoopReader{events.new_reader()} { }
 
-    void clear() {
-        // it seems like the history buffer does not support clearing its state (or assigning an empty buffer)...
-    }
-
-    void updateTriggered() {
-
-    }
-
     void updateStreaming() {
-        std::optional<Timing::event> last = contextEvents.size() == 0 ? std::optional<Timing::event>{} : contextEvents[contextEvents.size()-1];
-        snoopReader.get();
+        auto newEvents = snoopReader.get();
+        if (startTime == 0 && !newEvents.empty()) {
+            startTime = newEvents[0].time;
+        }
+        for (auto &event: newEvents) {
+            // filter out starts of new contexts
+            if (!previousContextEvent || (event.eventno == 256 && (event.bpcid != previousContextEvent->bpcid || event.sid != previousContextEvent->sid|| event.bpid != previousContextEvent->bpid))) {
+                previousSIDToggle = (previousContextEvent->sid != event.sid) ? !previousSIDToggle : previousSIDToggle;
+                previousBPToggle = (previousContextEvent->bpid != event.bpid) ? !previousBPToggle : previousBPToggle;
+                beamin.AddPoint((event.time - startTime) * 1e-9f, event.flag_beamin);
+                bpcids.AddPoint((event.time - startTime) * 1e-9f, getStableBPCIDColorIndex(static_cast<uint16_t>(event.bpcid)));
+                sids.AddPoint((event.time - startTime) * 1e-9f, previousSIDToggle);
+                bpids.AddPoint((event.time - startTime) * 1e-9f, previousBPToggle);
+                previousContextEvent = event;
+            }
+            if ((event.eventno != 256)) { // filter out non-BP_START events
+                events.AddPoint((event.time - startTime) * 1e-9f, event.eventno);
+            }
+        }
+        auto _ = snoopReader.consume(newEvents.size()); // consume processed events
     }
 
-    void computeAndDisplay(Timing &timing) {
-        auto d = snoopReader.get();
-        double plot_depth = 20; // [ms] = 5 s
-        double time = static_cast<double>(timing.getTAI()) * 1e-9;
+    void display(Timing &timing) {
+        double plot_depth = 10; // [s]
+        auto currentTime = timing.getTAI();
+        float time = (currentTime - startTime) * 1e-9f;
         if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
-                ImPlot::SetupAxes("x","y");
-                ImPlot::SetupAxisLimits(ImAxis_X1, time, time - plot_depth, ImGuiCond_Always);
+                ImPlot::SetupAxes(fmt::format("t [s] + {}", tai_ns_to_utc(currentTime)).c_str(), nullptr, 0, ImPlotAxisFlags_NoDecorations);
+                ImPlot::SetupAxisLimits(ImAxis_X1, -plot_depth, 0, ImGuiCond_Always);
+
+                // plot freestanding events
+                if (!events.Data.empty()) {
+                    ImPlot::PlotInfLinesOffset("Events", &events.Data[0].x, &events.Data[0].y, events.Data.size(), static_cast<ImPlotInfLinesFlags_>(0), bpids.Offset, 2 * sizeof(float), -time);
+                }
 
                 ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, 16.0f);
-                ImPlot::PushStyleColor(ImPlotCol_Line, {1.0,0,0,0.6f});
-                ImPlot::PushStyleColor(ImPlotCol_Fill, {0,1.0,0,0.6f});
-                ImPlot::PlotStatusBarG("beamin", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.flag_beamin * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Bool);
-                ImPlot::PopStyleColor(2);
 
-                ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpcid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Discrete);
+                if (!beamin.Data.empty()) {
+                    ImPlot::PushStyleColor(ImPlotCol_Line, {1.0,0,0,0.6f});
+                    ImPlot::PushStyleColor(ImPlotCol_Fill, {0,1.0,0,0.6f});
+                    ImPlot::PlotStatusBar("beamin", &beamin.Data[0].x, &beamin.Data[0].y, beamin.Data.size(), ImPlotStatusBarFlags_Bool, beamin.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PopStyleColor(2);
+                }
 
-                ImPlot::PushStyleColor(ImPlotCol_Line, {0.7f,0.2f,0,0.6f});
-                ImPlot::PushStyleColor(ImPlotCol_Fill, {0.2f,0.1f,0,0.6f});
-                ImPlot::PlotStatusBarG("pbcid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.sid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
-                ImPlot::PopStyleColor(2);
-
-                ImPlot::PushStyleColor(ImPlotCol_Line, {0,0.7f,0.2f,0.6f});
-                ImPlot::PushStyleColor(ImPlotCol_Fill, {0,0.2f,0.7f,0.6f});
-                ImPlot::PlotStatusBarG("pbid", [](int i, void* data) {auto ev = ((Timing::event*) data)[i];return ImPlotPoint{ev.time * 1e-9, ev.bpid * 1.0};}, ((void *) d.data()), d.size(), ImPlotStatusBarFlags_Alternate);
-                ImPlot::PopStyleColor(2);
+                ImPlot::PushColormap(bpcidColormap);
+                if (!bpcids.Data.empty()) {
+                    ImPlot::PlotStatusBar("beamin", &bpcids.Data[0].x, &bpcids.Data[0].y, bpcids.Data.size(), ImPlotStatusBarFlags_Discrete, bpcids.Offset, 2 * sizeof(float), -time);
+                }
+                ImPlot::PopColormap();
+                ImPlot::PushColormap(sidColormap);
+                if (!sids.Data.empty()) {
+                    ImPlot::PlotStatusBar("beamin", &sids.Data[0].x, &sids.Data[0].y, sids.Data.size(), ImPlotStatusBarFlags_Discrete, sids.Offset, 2 * sizeof(float), -time);
+                }
+                ImPlot::PopColormap();
+                ImPlot::PushColormap(bpidColormap);
+                if (!bpids.Data.empty()) {
+                    ImPlot::PlotStatusBar("beamin", &bpids.Data[0].x, &bpids.Data[0].y, bpids.Data.size(), ImPlotStatusBarFlags_Discrete, bpids.Offset, 2 * sizeof(float), -time);
+                }
+                ImPlot::PopColormap();
                 ImPlot::PopStyleVar();
-
-                // plot non-beam process events
-
                 ImPlot::EndPlot();
             }
         }
@@ -691,7 +734,8 @@ int showUI(Timing &timing) {
             showTimingEventTable(timing);
             showTimingSchedule(timing);
             static TimePlot plot{timing.snooped};
-            plot.computeAndDisplay(timing);
+            plot.updateStreaming();
+            plot.display(timing);
             showTRConfig(timing, imGuiDemo, imPlotDemo);
         }
         if (imGuiDemo){
