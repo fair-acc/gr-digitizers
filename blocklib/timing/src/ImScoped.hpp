@@ -12,7 +12,7 @@
 namespace ImScoped {
 namespace detail {
 template <auto Begin, auto End, bool UnconditionalEnd = false> class Widget {
-    bool shown;
+    bool shown = false;
 public:
     explicit Widget (auto&&... a)
         : shown{

@@ -74,7 +74,7 @@ void tableColumnCheckbox(const std::string &id, bool &field) {
 }
 
 template<typename T>
-uint getStableColorIndex(T id, std::map<T, int> &colors, std::size_t colormapSize) {
+int getStableColorIndex(T id, std::map<T, int> &colors, int colormapSize) {
     if (colors.contains(id)) {
         return colors[id];
     } else {
@@ -83,11 +83,11 @@ uint getStableColorIndex(T id, std::map<T, int> &colors, std::size_t colormapSiz
             return colors[id];
         }
     }
-    return colormapSize - 1u;
+    return colormapSize - 1;
 }
 
 template<typename T>
-uint getStableBPCIDColorIndex(T id) {
+int getStableBPCIDColorIndex(T id) {
     static std::map<T, int> colors{};
     return getStableColorIndex(id, colors, bpcidColors.size());
 }
@@ -558,18 +558,19 @@ public:
             startTime = newEvents[0].time;
         }
         for (auto &event: newEvents) {
+            float eventtime = (static_cast<float>(event.time - startTime)) * 1e-9f;
             // filter out starts of new contexts
             if (!previousContextEvent || (event.eventno == 256 && (event.bpcid != previousContextEvent->bpcid || event.sid != previousContextEvent->sid|| event.bpid != previousContextEvent->bpid))) {
                 previousSIDToggle = (previousContextEvent->sid != event.sid) ? !previousSIDToggle : previousSIDToggle;
                 previousBPToggle = (previousContextEvent->bpid != event.bpid) ? !previousBPToggle : previousBPToggle;
-                beamin.AddPoint((event.time - startTime) * 1e-9f, event.flag_beamin);
-                bpcids.AddPoint((event.time - startTime) * 1e-9f, getStableBPCIDColorIndex(static_cast<uint16_t>(event.bpcid)));
-                sids.AddPoint((event.time - startTime) * 1e-9f, previousSIDToggle);
-                bpids.AddPoint((event.time - startTime) * 1e-9f, previousBPToggle);
+                beamin.AddPoint(eventtime, event.flag_beamin);
+                bpcids.AddPoint(eventtime, static_cast<float>(getStableBPCIDColorIndex(static_cast<uint16_t>(event.bpcid))));
+                sids.AddPoint(eventtime, previousSIDToggle);
+                bpids.AddPoint(eventtime, previousBPToggle);
                 previousContextEvent = event;
             }
             if ((event.eventno != 256)) { // filter out non-BP_START events
-                events.AddPoint((event.time - startTime) * 1e-9f, event.eventno);
+                events.AddPoint(eventtime, event.eventno);
             }
         }
         auto _ = snoopReader.consume(newEvents.size()); // consume processed events
@@ -578,7 +579,7 @@ public:
     void display(Timing &timing) {
         double plot_depth = 10; // [s]
         auto currentTime = timing.getTAI();
-        float time = (currentTime - startTime) * 1e-9f;
+        float time = (static_cast<float>(currentTime - startTime)) * 1e-9f;
         if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
                 ImPlot::SetupAxes(fmt::format("t [s] + {}", tai_ns_to_utc(currentTime)).c_str(), nullptr, 0, ImPlotAxisFlags_NoDecorations);
