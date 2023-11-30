@@ -25,7 +25,7 @@ FetchContent_Declare( # used for examples and utilities, not for actual blocks
    cli11_proj
    QUIET
    GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-   GIT_TAG v2.3.t 2
+   GIT_TAG v2.3.2
    SOURCE_DIR     cli11_proj
 )
 
