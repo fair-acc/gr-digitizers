@@ -28,11 +28,9 @@
 
 
 enum ImPlotStatusBarFlags {
-    ImPlotStatusBarFlags_None      = 0,      // default
-    ImPlotStatusBarFlags_Bool      = 1 << 0, // Boolean Value: alternate between on of
-    ImPlotStatusBarFlags_Discrete  = 1 << 1, // set discrete colors
-    ImPlotStatusBarFlags_Alternate = 1 << 2, // alternate between to different colors on value change
-    ImPlotStatusBarFlags_Continuous = 1 << 3, // get continuous color from scale
+    ImPlotStatusBarFlags_None       = 0,      // default
+    ImPlotStatusBarFlags_Discrete   = 1 << 0, // set discrete colors
+    ImPlotStatusBarFlags_Continuous = 1 << 1, // get continuous color from scale
 };
 
 namespace ImPlot {
@@ -146,48 +144,54 @@ namespace ImPlot {
                 ImPlotAxis& x_axis = plot.Axes[plot.CurrentX];
                 ImPlotAxis& y_axis = plot.Axes[plot.CurrentY];
 
+                const int pixY_0 = (int)(s.LineWeight);
+                const float pixY_1_float = s.DigitalBitHeight;
+                const int pixY_1 = (int)(pixY_1_float); //allow only positive values
+                const int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
+                const int pixY_Offset = 1; //20 pixel from bottom due to mouse cursor label
+
                 int pixYMax = 0;
                 ImPlotPoint itemData1 = getter(0);
-                bool alternate = false;
-                for (int i = 0; i < getter.Count; ++i) {
-                    ImPlotPoint itemData2 = getter(i);
-                    if (ImNanOrInf(itemData1.y)) {
-                        itemData1 = itemData2;
-                        continue;
+                for (int i = 0; i <= getter.Count; ++i) {
+                    ImVec2 pMin;
+                    ImVec2 pMax;
+                    ImPlotPoint itemData2;
+                    if (i < getter.Count) {
+                        itemData2 = getter(i);
+                        if (ImNanOrInf(itemData1.y)) {
+                            itemData1 = itemData2;
+                            continue;
+                        }
+                        if (ImNanOrInf(itemData2.y)) itemData2.y = ImConstrainNan(ImConstrainInf(itemData2.y));
+                        pixYMax = ImMax(pixYMax, pixY_chPosOffset);
+                        pMin = PlotToPixels(itemData1, IMPLOT_AUTO, IMPLOT_AUTO);
+                        pMax = PlotToPixels(itemData2, IMPLOT_AUTO, IMPLOT_AUTO);
+                        pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_Offset);
+                        pMax.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
+                        //plot only one rectangle for same digital state
+                        while (((i + 2) < getter.Count) && (itemData1.y == itemData2.y)) {
+                            const int in = (i + 1);
+                            itemData2 = getter(in);
+                            if (ImNanOrInf(itemData2.y)) break;
+                            pMax.x = PlotToPixels(itemData2, IMPLOT_AUTO, IMPLOT_AUTO).x;
+                            i++;
+                        }
+                        //do not extend plot outside plot range
+                        if (pMin.x < x_axis.PixelMin) pMin.x = x_axis.PixelMin;
+                        if (pMax.x < x_axis.PixelMin) pMax.x = x_axis.PixelMin;
+                        if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax;
+                        if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax;
+                    } else {
+                        // extend last event to the end of the plot
+                        pMin = PlotToPixels(itemData1, IMPLOT_AUTO, IMPLOT_AUTO);
+                        pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_Offset);
+                        pMax = {x_axis.PixelMax, y_axis.PixelMin + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset)};
                     }
-                    if (ImNanOrInf(itemData2.y)) itemData2.y = ImConstrainNan(ImConstrainInf(itemData2.y));
-                    int pixY_0 = (int)(s.LineWeight);
-                    float pixY_1_float = s.DigitalBitHeight;
-                    int pixY_1 = (int)(pixY_1_float); //allow only positive values
-                    int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
-                    pixYMax = ImMax(pixYMax, pixY_chPosOffset);
-                    ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
-                    ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
-                    int pixY_Offset = 0; //20 pixel from bottom due to mouse cursor label
-                    pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
-                    pMax.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
-                    //plot only one rectangle for same digital state
-                    while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
-                        const int in = (i + 1);
-                        itemData2 = getter(in);
-                        if (ImNanOrInf(itemData2.y)) break;
-                        pMax.x = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO).x;
-                        i++;
-                    }
-                    //do not extend plot outside plot range
-                    if (pMin.x < x_axis.PixelMin) pMin.x = x_axis.PixelMin;
-                    if (pMax.x < x_axis.PixelMin) pMax.x = x_axis.PixelMin;
-                    if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax;
-                    if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax;
                     //plot a rectangle that extends up to x2 with y1 height
                     if ((pMax.x > pMin.x) && (gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                         ImColor color;
-                        if (flags & ImPlotStatusBarFlags_Bool) {
-                            color = ImGui::GetColorU32(s.Colors[itemData1.y > 0.0]);
-                        } else if (flags & ImPlotStatusBarFlags_Discrete) {
+                        if (flags & ImPlotStatusBarFlags_Discrete) {
                             color = ImPlot::GetColormapColorU32(static_cast<int>(itemData1.y) % ImPlot::GetColormapSize(), IMPLOT_AUTO);
-                        } else if (flags & ImPlotStatusBarFlags_Alternate) {
-                            color = ImGui::GetColorU32(s.Colors[alternate = !alternate]);
                         } else if (flags & ImPlotStatusBarFlags_Continuous) {
                             color = ImPlot::SampleColormap(static_cast<float>(itemData1.y));
                         }
@@ -234,17 +238,20 @@ namespace ImPlot {
                 colors[i] = bpcidColors[i];
             return colors;
         }();
-        return ImPlot::AddColormap("BPCIDColormap", colorData.data(), 32);
+        return ImPlot::AddColormap("BPCIDColormap", colorData.data(), colorData.size());
     }
     int bpidColormap() {
         static std::array<ImU32,2> colorData{0xff7dcfb6, 0xff00b2ca};
-        return ImPlot::AddColormap("BPIDColormap", colorData.data(), 32);
+        return ImPlot::AddColormap("BPIDColormap", colorData.data(), colorData.size());
     }
     int sidColormap() {
         static std::array<ImU32,2> colorData{0xfff79256, 0xfffbd1a2};
-        return ImPlot::AddColormap("SIDColormap", colorData.data(), 32);
+        return ImPlot::AddColormap("SIDColormap", colorData.data(), colorData.size());
     }
-
+    int boolColormap() {
+        static std::array<ImU32,2> colorData{0x800000ff, 0x8000ff00};
+        return ImPlot::AddColormap("BoolColormap", colorData.data(), colorData.size());
+    }
 }
 
 #endif //GR_DIGITIZERS_PLOT_HPP

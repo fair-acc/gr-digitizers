@@ -559,6 +559,7 @@ private:
     ImPlot::ScrollingBuffer bpids{bufferSize};
     ImPlot::ScrollingBuffer events{bufferSize};
     Reader snoopReader;
+    int boolColormap = ImPlot::boolColormap();
     int bpcidColormap = ImPlot::bpcidColormap();
     int bpidColormap = ImPlot::bpidColormap();
     int sidColormap = ImPlot::sidColormap();
@@ -609,27 +610,26 @@ public:
                 ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, 16.0f);
 
                 if (!beamin.Data.empty()) {
-                    ImPlot::PushStyleColor(ImPlotCol_Line, {1.0,0,0,0.6f});
-                    ImPlot::PushStyleColor(ImPlotCol_Fill, {0,1.0,0,0.6f});
-                    ImPlot::PlotStatusBar("beamin", &beamin.Data[0].x, &beamin.Data[0].y, beamin.Data.size(), ImPlotStatusBarFlags_Bool, beamin.Offset, 2 * sizeof(float), -time);
-                    ImPlot::PopStyleColor(2);
+                    ImPlot::PushColormap(boolColormap);
+                    ImPlot::PlotStatusBar("beamin_plot", &beamin.Data[0].x, &beamin.Data[0].y, beamin.Data.size(), ImPlotStatusBarFlags_Discrete, beamin.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PopColormap();
                 }
 
-                ImPlot::PushColormap(bpcidColormap);
                 if (!bpcids.Data.empty()) {
-                    ImPlot::PlotStatusBar("beamin", &bpcids.Data[0].x, &bpcids.Data[0].y, bpcids.Data.size(), ImPlotStatusBarFlags_Discrete, bpcids.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PushColormap(bpcidColormap);
+                    ImPlot::PlotStatusBar("bpcid_plot", &bpcids.Data[0].x, &bpcids.Data[0].y, bpcids.Data.size(), ImPlotStatusBarFlags_Discrete, bpcids.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PopColormap();
                 }
-                ImPlot::PopColormap();
-                ImPlot::PushColormap(sidColormap);
                 if (!sids.Data.empty()) {
-                    ImPlot::PlotStatusBar("beamin", &sids.Data[0].x, &sids.Data[0].y, sids.Data.size(), ImPlotStatusBarFlags_Discrete, sids.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PushColormap(sidColormap);
+                    ImPlot::PlotStatusBar("sid_plot", &sids.Data[0].x, &sids.Data[0].y, sids.Data.size(), ImPlotStatusBarFlags_Discrete, sids.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PopColormap();
                 }
-                ImPlot::PopColormap();
-                ImPlot::PushColormap(bpidColormap);
                 if (!bpids.Data.empty()) {
-                    ImPlot::PlotStatusBar("beamin", &bpids.Data[0].x, &bpids.Data[0].y, bpids.Data.size(), ImPlotStatusBarFlags_Discrete, bpids.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PushColormap(bpidColormap);
+                    ImPlot::PlotStatusBar("bpid_plot", &bpids.Data[0].x, &bpids.Data[0].y, bpids.Data.size(), ImPlotStatusBarFlags_Discrete, bpids.Offset, 2 * sizeof(float), -time);
+                    ImPlot::PopColormap();
                 }
-                ImPlot::PopColormap();
                 ImPlot::PopStyleVar();
                 ImPlot::EndPlot();
             }
