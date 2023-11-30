@@ -123,12 +123,32 @@ public:
     bool simulate = false;
     uint64_t snoopID     = 0x0;
     uint64_t snoopMask   = 0x0;
-    int64_t  snoopOffset = 0x0;
 
     std::shared_ptr<SAFTd_Proxy> saftd;
     std::shared_ptr<TimingReceiver_Proxy> receiver;
     std::shared_ptr<SoftwareActionSink_Proxy> sink;
     std::shared_ptr<SoftwareCondition_Proxy> condition;
+
+    void updateSnoopFilter() {
+        if (simulate) return;
+        if (condition) {
+            condition->Destroy();
+        }
+        condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, 0));
+        condition->setAcceptLate(true);
+        condition->setAcceptEarly(true);
+        condition->setAcceptConflict(true);
+        condition->setAcceptDelayed(true);
+        condition->SigAction.connect(
+                [this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed,
+                       uint16_t flags) {
+                    this->snoop_writer.publish(
+                            [id, param, &deadline, &executed, flags](std::span<event> buffer) {
+                                buffer[0] = Timing::event{deadline.getTAI(), id, param, flags, executed.getTAI()};
+                            }, 1);
+                });
+        condition->setActive(true);
+    }
 
     void initialize() {
         if (simulate) {
@@ -143,23 +163,10 @@ public:
                 }
                 receiver = TimingReceiver_Proxy::create(devices.begin()->second);
                 sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
-                condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, snoopOffset));
-                condition->setAcceptLate(true);
-                condition->setAcceptEarly(true);
-                condition->setAcceptConflict(true);
-                condition->setAcceptDelayed(true);
-                condition->SigAction.connect(
-                        [this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed,
-                               uint16_t flags) {
-                            this->snoop_writer.publish(
-                                    [id, param, &deadline, &executed, flags](std::span<event> buffer) {
-                                        buffer[0] = Timing::event{deadline.getTAI(), id, param, flags, executed.getTAI()};
-                                    }, 1);
-                        });
-                condition->setActive(true);
-                uint i = 0;
-                for (auto &[name, port] : receiver->getOutputs()) {
-                    outputs.emplace_back(i++, name, port);
+                updateSnoopFilter();
+                for (const auto & [i, output]: receiver->getOutputs() | std::views::enumerate ) {
+                    const auto &[name, port] = output;
+                    outputs.emplace_back(i, name, port);
                 }
                 initialized = true;
             } catch (...) {}
@@ -190,7 +197,7 @@ public:
     }
 
     void injectEvent(event ev, uint64_t time_offset) {
-        if (simulate) {
+        if (simulate && ((ev.id() | snoopMask) == (snoopID | snoopMask)) ) {
             this->snoop_writer.publish(
                     [ev, time_offset](std::span<event> buffer) {
                         buffer[0] = ev;

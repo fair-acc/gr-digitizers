@@ -112,8 +112,42 @@ ImColor getStableBPCIDColor(T id) {
     return ImColor{bpcidColors[getStableBPCIDColorIndex(id)]};
 }
 
+std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
+    static int current = 0;
+    static std::vector<const char*> items{};
+    static std::vector<std::string> displayStrings{timingGroupTable.size() + 1};
+
+    static std::vector<std::pair<uint64_t, uint64_t>> result = [&items = items, &displayStrings = displayStrings]() {
+       std::vector<std::pair<uint64_t, uint64_t>> result{};
+       displayStrings.push_back("Events form all timing groups");
+       items.push_back(displayStrings.back().c_str());
+       result.emplace_back(0x0, 0x0);
+       for (auto & [gid, strings] : timingGroupTable) {
+           auto & [enumName, description] = strings;
+           displayStrings.push_back(fmt::format("{} ({})", enumName, gid));
+           items.push_back(displayStrings.back().c_str());
+           uint64_t id = ((gid & ((1ul << 12) - 1)) << 48)
+                       + ((1   & ((1ul <<  4) - 1)) << 60);
+           uint64_t mask = ((1ul << 16) - 1 ) << (64-16);
+           result.emplace_back(id, mask);
+       }
+       return result;
+    }();
+    ImGui::SetNextItemWidth(200);
+    ImGui::Combo("TimingGroup", &current, items.data(), static_cast<int>(items.size()));
+    return result[static_cast<std::size_t>(current)];
+}
+
+
 void showTimingEventTable(Timing &timing) {
     static gr::BufferReader auto event_reader = timing.snooped.new_reader();
+    auto [id_filter, mask] = TimingGroupFilterDropdown();
+    if (id_filter != timing.snoopID || mask != timing.snoopMask) {
+        timing.snoopID = id_filter;
+        timing.snoopMask = mask;
+        timing.updateSnoopFilter();
+    }
+    ImGui::SameLine();
     if (ImGui::Button("clear")) {
         std::ignore = event_reader.consume(event_reader.available());
     }
