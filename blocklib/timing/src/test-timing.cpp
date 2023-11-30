@@ -65,6 +65,21 @@ void tableColumnSlider(const std::string &id, T &field, float width) {
         field = tmp & max;
     }
 }
+template <typename T, T max, T scale>
+void sliderScaled(const std::string &id, T &field) {
+    static constexpr T min_T = 0;
+    static constexpr T max_T = max;
+    uint64_t tmp = field / scale;
+    ImGui::DragScalar(id.c_str(), ImGuiDataType_U64, &tmp, 1.0f, &min_T, &max_T, "%d", ImGuiSliderFlags_None);
+    field = (tmp * scale) & max;
+}
+template <typename T, T max, T scale>
+void tableColumnSliderScaled(const std::string &id, T &field, float width) {
+    if (ImGui::TableNextColumn()) {
+        ImGui::SetNextItemWidth(width);
+        sliderScaled<T, max, scale>(id, field);
+    }
+}
 void tableColumnCheckbox(const std::string &id, bool &field) {
     if (ImGui::TableNextColumn()) {
         bool flag_beamin = field;
@@ -219,7 +234,7 @@ void showTimingSchedule(Timing &timing) {
     if (ImGui::CollapsingHeader("Schedule to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SetNextItemWidth(80.f);
         static uint64_t default_offset = 100000000ul; // 100ms
-        ImGui::DragScalar("default event offset", ImGuiDataType_U64, &default_offset, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+        sliderScaled<uint64_t, max_uint64, 1000000>("[ms] default event offset", default_offset);
         ImGui::SameLine();
         if (ImGui::Button("+")) {
             timing.events.emplace_back(default_offset + (timing.events.empty() ? 0ul : timing.events.back().time));
@@ -290,10 +305,9 @@ void showTimingSchedule(Timing &timing) {
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         {
             auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
-            if (auto _1 = ImScoped::Table("event schedule", 22, flags, outer_size, 0.f)) {
+            if (auto _1 = ImScoped::Table("event schedule", 21 + timing.outputs.size(), flags, outer_size, 0.f)) {
                 ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
-                ImGui::TableSetupColumn("time",
-                                        ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
+                ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
                 ImGui::TableSetupColumn("bpcid");
                 ImGui::TableSetupColumn("sid");
                 ImGui::TableSetupColumn("bpid");
@@ -312,7 +326,10 @@ void showTimingSchedule(Timing &timing) {
                 ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
                 ImGui::TableSetupColumn("##inject", ImGuiTableColumnFlags_NoHide);
                 ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_NoHide);
-                ImGui::TableSetupColumn("Trigger Outputs", ImGuiTableColumnFlags_NoHide);
+                for (auto & [_2, outputName, _3] : timing.outputs) {
+                    auto [name, show] = outputConfig.contains(outputName) ? outputConfig.at(outputName) : std::pair{outputName, false};
+                    ImGui::TableSetupColumn(name.c_str(), show ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_NoHide);
+                }
                 ImGui::TableSetupColumn("Trigger Delay", ImGuiTableColumnFlags_NoHide);
                 ImGui::TableSetupColumn("Trigger Flat-Top", ImGuiTableColumnFlags_NoHide);
 
@@ -324,7 +341,7 @@ void showTimingSchedule(Timing &timing) {
                                                 bool to_remove = false;
                                                 ImGui::PushID(&ev);
                                                 ImGui::TableNextRow();
-                                                tableColumnSlider<uint64_t, max_uint64>("##time", ev.time, 80.f);
+                                                tableColumnSliderScaled<uint64_t, max_uint64, 1000000>("[ms]###time", ev.time, 80.f);
                                                 tableColumnSlider<uint32_t, max_uint22>("##bpcid", ev.bpcid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint12>("##sid", ev.sid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint14>("##pbid", ev.bpid, 40.f);
@@ -351,39 +368,38 @@ void showTimingSchedule(Timing &timing) {
                                                     timing.injectEvent(ev, timing.getTAI() + default_offset);
                                                 }
                                                 auto trigger = timing.triggers.contains(ev.id()) ? std::optional<Timing::Trigger>{timing.triggers[ev.id()]} : std::optional<Timing::Trigger>{};
-                                                ImGui::TableNextColumn();
-                                                for (auto & [i, name, _2] : timing.outputs) {
+                                                for (auto & [i, outputName, _2] : timing.outputs) {
+                                                    ImGui::TableNextColumn();
+                                                    auto [name, _3] = outputConfig.at(outputName);
                                                     if (trigger) {
                                                         ImGui::Checkbox(fmt::format("##{}", name).c_str(), &trigger->outputs[i]);
                                                         if (ImGui::IsItemHovered()) {
-                                                            ImGui::SetTooltip("%s", fmt::format("Output: {}", name).c_str());
+                                                            ImGui::SetTooltip("%s", fmt::format("Output: {}", outputName).c_str());
                                                         }
-                                                        ImGui::SameLine();
                                                     } else {
                                                         bool output_selected = false;
                                                         ImGui::Checkbox(fmt::format("##{}", name).c_str(), &output_selected);
                                                         if (ImGui::IsItemHovered()) {
-                                                            ImGui::SetTooltip("%s", fmt::format("Output: {}", name).c_str());
+                                                            ImGui::SetTooltip("%s", fmt::format("Output: {}", outputName).c_str());
                                                         }
-                                                        ImGui::SameLine();
                                                         if (output_selected) {
                                                             trigger = Timing::Trigger{};
                                                             trigger->id = ev.id();
                                                             trigger->outputs[i] = true;
-                                                            trigger->delay = default_offset;
-                                                            trigger->flattop = default_offset;
+                                                            trigger->delay = default_offset / 1000000;
+                                                            trigger->flattop = default_offset / 1000000;
                                                         }
                                                     }
                                                 }
                                                 ImGui::TableNextColumn();
                                                 if (trigger) {
                                                     ImGui::SetNextItemWidth(80);
-                                                    ImGui::DragScalar("delay", ImGuiDataType_U64, &trigger->delay, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                                                    ImGui::DragScalar("[ms]###delay", ImGuiDataType_U64, &trigger->delay, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
                                                 }
                                                 ImGui::TableNextColumn();
                                                 if (trigger) {
                                                     ImGui::SetNextItemWidth(80);
-                                                    ImGui::DragScalar("flattop", ImGuiDataType_U64, &trigger->flattop, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                                                    ImGui::DragScalar("[ms]###flattop", ImGuiDataType_U64, &trigger->flattop, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
                                                 }
                                                 if (trigger) {
                                                     timing.updateTrigger(*trigger);

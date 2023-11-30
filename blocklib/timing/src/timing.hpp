@@ -25,6 +25,8 @@ using saftlib::SoftwareCondition_Proxy;
 
 class Timing {
 public:
+    static const int milliToNano = 1000000;
+    static const int minTriggerOffset = 100;
     struct event {
         // eventid - 64
         uint8_t fid = 1;   // 4
@@ -103,8 +105,8 @@ public:
     struct Trigger {
         std::array<bool, 20> outputs;
         uint64_t id;
-        uint64_t delay;
-        uint64_t flattop;
+        uint64_t delay; // [ms]
+        uint64_t flattop; // [ms]
 
         bool operator<=>(const Trigger&) const = default;
     };
@@ -217,8 +219,8 @@ public:
             for (auto [i, output, enabled] : std::views::zip(std::views::iota(0), outputs, trigger.outputs)) {
                 if (enabled && (existing == triggers.end() || !existing->second.outputs[static_cast<unsigned long>(i)])) { // newly enabled
                     auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));
-                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay), true);
-                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay + trigger.flattop), false);
+                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset, true);
+                    proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay + trigger.flattop) * milliToNano + minTriggerOffset, false);
                     auto [inserted, _] = triggers.insert({trigger.id, trigger});
                     existing = inserted;
                 } else if (!enabled && existing != triggers.end() && existing->second.outputs[static_cast<unsigned long>(i)]) { // newly disabled
@@ -237,9 +239,9 @@ public:
                                                     | std::views::filter([&trigger](const auto &cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
                         std::ranges::for_each(matchingConditions, [&trigger](const auto &cond) {
                             if (cond->getOn()) {
-                                cond->setOffset(static_cast<int64_t>(trigger.delay));
+                                cond->setOffset(static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset);
                             } else {
-                                cond->setOffset(static_cast<int64_t>(trigger.delay + trigger.flattop));
+                                cond->setOffset(static_cast<int64_t>(trigger.delay + trigger.flattop) * milliToNano + minTriggerOffset);
                             }
                         });
                     }
