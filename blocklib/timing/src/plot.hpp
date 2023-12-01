@@ -155,7 +155,7 @@ namespace ImPlot {
                     ImVec2 pMax;
                     ImPlotPoint itemData2;
                     if (i < getter.Count) {
-                        itemData2 = getter(i);
+                        itemData2 = getter(std::min(i, getter.Count - 1));
                         if (ImNanOrInf(itemData1.y)) {
                             itemData1 = itemData2;
                             continue;
@@ -179,8 +179,7 @@ namespace ImPlot {
                         if (pMax.x < x_axis.PixelMin) pMax.x = x_axis.PixelMin;
                         if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax;
                         if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax;
-                    } else {
-                        // extend last event to the end of the plot
+                    } else { // extend last event to the end of the plot
                         pMin = PlotToPixels(itemData1, IMPLOT_AUTO, IMPLOT_AUTO);
                         pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_Offset);
                         pMax = {x_axis.PixelMax, y_axis.PixelMin + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset)};

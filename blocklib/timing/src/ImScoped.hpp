@@ -17,6 +17,7 @@ class Widget {
 public:
     template <typename... A>
     explicit Widget (A&&... a)
+    requires (!std::same_as<Widget, std::remove_cvref_t<A>> && ...)
         : shown{
             []<typename... AA> (AA&&... aa) {
                 return Begin(std::forward<AA>(aa)...);
@@ -33,6 +34,7 @@ public:
 template <auto Begin, auto End> class WidgetVoid {
 public:
     template <typename... A>
+    requires (!std::same_as<WidgetVoid, std::remove_cvref_t<A>> && ...)
     [[nodiscard]] explicit WidgetVoid (A&&... a) {
         Begin(std::forward<A>(a)...);
     }
