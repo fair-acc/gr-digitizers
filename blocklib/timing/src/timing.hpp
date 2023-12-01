@@ -54,51 +54,51 @@ public:
         Event& operator=(const Event&) = default;
         Event& operator=(Event&&) = default;
 
-        explicit Event(uint64_t timestamp = 0, uint64_t id = 1ul << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) {
+        explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) {
             time = timestamp;
             flags = _flags;
             executed = _executed;
             // id
-            virtAcc        = (id >>  0) & ((1ul <<  4) - 1);
-            reqNoBeam      = (id >> 4) & ((1ul << 1) - 1);
-            reserved       = (id >>  5) & ((1ul <<  1) - 1);
-            bpid           = (id >>  6) & ((1ul << 14) - 1);
-            sid            = (id >> 20) & ((1ul << 12) - 1);
-            flagReserved2 = (id >> 32) & ((1ul << 1) - 1);
-            flagReserved1 = (id >> 33) & ((1ul << 1) - 1);
-            flagBpcStart = (id >> 34) & ((1ul << 1) - 1);
-            flagBeamin    = (id >> 35) & ((1ul << 1) - 1);
-            eventNo        = (id >> 36) & ((1ul << 12) - 1);
-            gid            = (id >> 48) & ((1ul << 12) - 1);
-            fid            = (id >> 60) & ((1ul <<  4) - 1);
+            virtAcc        = (id >>  0) & ((1UL <<  4) - 1);
+            reqNoBeam      = (id >> 4) & ((1UL << 1) - 1);
+            reserved       = (id >>  5) & ((1UL <<  1) - 1);
+            bpid           = (id >>  6) & ((1UL << 14) - 1);
+            sid            = (id >> 20) & ((1UL << 12) - 1);
+            flagReserved2 = (id >> 32) & ((1UL << 1) - 1);
+            flagReserved1 = (id >> 33) & ((1UL << 1) - 1);
+            flagBpcStart = (id >> 34) & ((1UL << 1) - 1);
+            flagBeamin    = (id >> 35) & ((1UL << 1) - 1);
+            eventNo        = (id >> 36) & ((1UL << 12) - 1);
+            gid            = (id >> 48) & ((1UL << 12) - 1);
+            fid            = (id >> 60) & ((1UL <<  4) - 1);
             // param
-            bpcts          = (param  >>  0) & ((1ul << 42) - 1);
-            bpcid          = (param  >> 42) & ((1ul << 22) - 1);
+            bpcts          = (param  >>  0) & ((1UL << 42) - 1);
+            bpcid          = (param  >> 42) & ((1UL << 22) - 1);
         }
 
         [[nodiscard]] uint64_t id() const {
             // clang-format:off
             //       field             width        position
-            return ((virtAcc & ((1ul <<  4) - 1)) <<  0)
-                 + ((reqNoBeam + 0ul) << 4)
-                 + ((reserved + 0ul)              <<  5)
-                 + ((bpid    & ((1ul << 14) - 1)) <<  6)
-                 + ((sid     & ((1ul << 12) - 1)) << 20)
-                 + ((flagReserved2 + 0ul) << 32)
-                 + ((flagReserved1 + 0ul) << 33)
-                 + ((flagBpcStart + 0ul) << 34)
-                 + ((flagBeamin + 0ul) << 35)
-                 + ((eventNo & ((1ul << 12) - 1)) << 36)
-                 + ((gid     & ((1ul << 12) - 1)) << 48)
-                 + ((fid     & ((1ul <<  4) - 1)) << 60);
+            return ((virtAcc & ((1UL <<  4) - 1)) <<  0)
+                 + ((reqNoBeam + 0UL) << 4)
+                 + ((reserved + 0UL)              <<  5)
+                 + ((bpid    & ((1UL << 14) - 1)) <<  6)
+                 + ((sid     & ((1UL << 12) - 1)) << 20)
+                 + ((flagReserved2 + 0UL) << 32)
+                 + ((flagReserved1 + 0UL) << 33)
+                 + ((flagBpcStart + 0UL) << 34)
+                 + ((flagBeamin + 0UL) << 35)
+                 + ((eventNo & ((1UL << 12) - 1)) << 36)
+                 + ((gid     & ((1UL << 12) - 1)) << 48)
+                 + ((fid     & ((1UL <<  4) - 1)) << 60);
             // clang-format:on
         }
 
         [[nodiscard]] uint64_t param() const {
             // clang-format:off
             //       field             width        position
-            return ((bpcts & ((1ul << 42) - 1)) <<  0)
-                 + ((bpcid & ((1ul << 22) - 1)) << 42);
+            return ((bpcts & ((1UL << 42) - 1)) <<  0)
+                 + ((bpcid & ((1UL << 22) - 1)) << 42);
             // clang-format:on
         }
     };
@@ -190,7 +190,7 @@ public:
         }
     }
 
-    void injectEvent(Event ev, uint64_t time_offset) {
+    void injectEvent(const Event &ev, uint64_t time_offset) {
         if (simulate && ((ev.id() | snoopMask) == (snoopID | snoopMask)) ) {
             this->snoop_writer.publish(
                     [ev, time_offset](std::span<Event> buffer) {
@@ -224,7 +224,7 @@ public:
                     auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));
                     proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset, true);
                     proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay + trigger.flattop) * milliToNano + minTriggerOffset, false);
-                    auto [inserted, _] = triggers.insert({trigger.id, trigger});
+                    auto [inserted, _] = triggers.try_emplace(trigger.id, trigger);
                     existing = inserted;
                 } else if (!enabled && existing != triggers.end() && existing->second.outputs[static_cast<unsigned long>(i)]) { // newly disabled
                     auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));

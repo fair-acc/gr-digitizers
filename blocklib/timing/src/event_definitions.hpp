@@ -19,7 +19,7 @@ static const std::array<ImColor, 13> bpcidColors{
 };
 
 // generic colormap for timing ids
-static std::array<ImColor, 20> colorlist { // gemerated with http://medialab.github.io/iwanthue/
+static const std::array<ImColor, 20> colorlist { // gemerated with http://medialab.github.io/iwanthue/
         ImColor{78,172,215,120}, ImColor{200,76,41,120}, ImColor{85,199,102,120}, ImColor{186,84,191,120},
         ImColor{101,173,51,120}, ImColor{117,98,204,120}, ImColor{169,180,56,120}, ImColor{211,76,146,120},
         ImColor{71,136,57,120}, ImColor{209,69,88,120}, ImColor{86,192,158,120}, ImColor{217,132,45,120},

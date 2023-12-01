@@ -38,14 +38,14 @@ static auto taiNsToUtc(auto input) {
 template <typename... T>
 void tableColumnString(fmt::format_string<T...> &&fmt, T&&... args) {
     if (ImGui::TableNextColumn()) {
-        ImGui::TextUnformatted(fmt::vformat(fmt, fmt::make_format_args(args...)).c_str());
+        ImGui::TextUnformatted(fmt::vformat(std::forward<fmt::format_string<T...>>(fmt), fmt::make_format_args(args...)).c_str());
     }
 }
 template <typename... T>
 void tableColumnStringColor(ImColor color, fmt::format_string<T...> &&fmt, T&&... args) {
 if (ImGui::TableNextColumn()) {
         ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
-        ImGui::TextUnformatted(fmt::vformat(fmt, fmt::make_format_args(args...)).c_str());
+        ImGui::TextUnformatted(fmt::vformat(std::forward<fmt::format_string<T...>>(fmt), fmt::make_format_args(args...)).c_str());
     }
 }
 void tableColumnBool(bool state, ImColor trueColor, ImColor falseColor) {
@@ -117,18 +117,18 @@ std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
     static std::vector<const char*> items{};
     static std::vector<std::string> displayStrings{timingGroupTable.size() + 1};
 
-    static std::vector<std::pair<uint64_t, uint64_t>> result = [&items = items, &displayStrings = displayStrings]() {
+    static std::vector<std::pair<uint64_t, uint64_t>> result = [&itms = items, &dispStrings = displayStrings]() {
        std::vector<std::pair<uint64_t, uint64_t>> result{};
-       displayStrings.push_back("Events form all timing groups");
-       items.push_back(displayStrings.back().c_str());
+       dispStrings.emplace_back("Events form all timing groups");
+       itms.push_back(dispStrings.back().c_str());
        result.emplace_back(0x0, 0x0);
        for (auto & [gid, strings] : timingGroupTable) {
            auto & [enumName, description] = strings;
-           displayStrings.push_back(fmt::format("{} ({})", enumName, gid));
-           items.push_back(displayStrings.back().c_str());
-           uint64_t id = ((gid & ((1ul << 12) - 1)) << 48)
-                       + ((1   & ((1ul <<  4) - 1)) << 60);
-           uint64_t mask = ((1ul << 16) - 1 ) << (64-16);
+           dispStrings.push_back(fmt::format("{} ({})", enumName, gid));
+           itms.push_back(dispStrings.back().c_str());
+           uint64_t id = ((gid & ((1UL << 12) - 1)) << 48)
+                       + ((1   & ((1UL <<  4) - 1)) << 60);
+           uint64_t mask = ((1ULL << 16) - 1 ) << (64-16);
            result.emplace_back(id, mask);
        }
        return result;
@@ -155,7 +155,7 @@ void showTimingEventTable(Timing &timing) {
         static int freeze_rows = 1;
 
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 20);
+        ImVec2 outer_size{0.0f, TEXT_BASE_HEIGHT * 20};
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
@@ -223,7 +223,7 @@ void showTimingEventTable(Timing &timing) {
                 }
                 ImGui::TableNextColumn();
                 if (ImGui::Button("add to Schedule##addSchedule")) {
-                    timing.events.emplace_back(100000000ull + (timing.events.empty() ? 0ul : timing.events.back().time), evt.id(), evt.param());
+                    timing.events.emplace_back(100000000ULL + (timing.events.empty() ? 0UL : timing.events.back().time), evt.id(), evt.param());
                 }
                 ImGui::PopID();
             }
@@ -255,22 +255,22 @@ void loadEventsFromString(std::vector<Timing::Event> &events, std::string_view s
 void showTimingSchedule(Timing &timing) {
     static constexpr uint64_t min_uint64 = 0;
     static constexpr uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
-    static constexpr uint64_t max_uint42 = (1ul << 42) - 1;
-    static constexpr uint64_t max_uint22 = (1ul << 22) - 1;
-    static constexpr uint64_t max_uint14 = (1ul << 14) - 1;
-    static constexpr uint64_t max_uint12 = (1ul << 12) - 1;
-    static constexpr uint64_t max_uint4 = (1ul << 4) - 1;
+    static constexpr uint64_t max_uint42 = (1UL << 42) - 1;
+    static constexpr uint64_t max_uint22 = (1UL << 22) - 1;
+    static constexpr uint64_t max_uint14 = (1UL << 14) - 1;
+    static constexpr uint64_t max_uint12 = (1UL << 12) - 1;
+    static constexpr uint64_t max_uint4 = (1UL << 4) - 1;
 
     static std::size_t current = 0;
     static uint64_t time_offset = 0;
     static enum class InjectState { STOPPED, RUNNING, SINGLE } injectState = InjectState::STOPPED;
-    if (ImGui::CollapsingHeader("Schedule to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("SchedULe to inject", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SetNextItemWidth(80.f);
-        static uint64_t default_offset = 100000000ul; // 100ms
+        static uint64_t default_offset = 100000000UL; // 100ms
         sliderScaled<uint64_t, max_uint64, 1000000>("[ms] default event offset", default_offset);
         ImGui::SameLine();
         if (ImGui::Button("+")) {
-            timing.events.emplace_back(default_offset + (timing.events.empty() ? 0ul : timing.events.back().time));
+            timing.events.emplace_back(default_offset + (timing.events.empty() ? 0UL : timing.events.back().time));
         }
         ImGui::SameLine(0.f, 10.f);
         if (ImGui::Button("Clear##schedule")) {
@@ -331,7 +331,7 @@ void showTimingSchedule(Timing &timing) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        ImVec2 outer_size = ImVec2(0.0f, TEXT_BASE_HEIGHT * 15);
+        ImVec2 outer_size{0.0f, TEXT_BASE_HEIGHT * 15};
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
@@ -448,7 +448,7 @@ void showTimingSchedule(Timing &timing) {
         if (current >= timing.events.size()) {
             injectState = InjectState::STOPPED;
         } else {
-            while (timing.events[current].time + time_offset < timing.getTAI() + 500000000ul) {
+            while (timing.events[current].time + time_offset < timing.getTAI() + 500000000UL) {
                 auto ev = timing.events[current];
                 timing.injectEvent(ev, time_offset);
                 if (current + 1 >= timing.events.size()) {
@@ -492,7 +492,7 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        ImVec2 outer_size = ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, TEXT_BASE_HEIGHT * 10);
+        ImVec2 outer_size{ImGui::GetWindowContentRegionWidth() * 0.5f, TEXT_BASE_HEIGHT * 10};
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
@@ -532,7 +532,7 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
         ImGui::SameLine();
         static int freeze_cols_conds = 1;
         static int freeze_rows_conds = 1;
-        ImVec2 outer_size_conds = ImVec2(0.0f, TEXT_BASE_HEIGHT * 10);
+        ImVec2 outer_size_conds{0.0f, TEXT_BASE_HEIGHT * 10};
         static ImGuiTableFlags flags_conds =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |

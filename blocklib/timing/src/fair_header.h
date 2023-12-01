@@ -24,7 +24,6 @@ namespace detail {
         ImGui::Text("%s", text.data());
     }
 }
-ImVec2 logoSize{ 0.f, 0.f };
 
 ImFont* loadHeaderFont(float size) {
     ImFontConfig config;
@@ -66,7 +65,8 @@ void draw_header_bar(std::string_view title, ImFont *headerFont) {
     pos.y += ImGui::GetTextLineHeightWithSpacing();
     ImGui::SetCursorPos(pos);
     const auto utc = std::chrono::system_clock::to_time_t(clock);
-    const auto len = strftime(utctime.data(), utctime.size(), "%H:%M:%S (UTC)", gmtime(&utc));
+    struct tm localtime{};
+    const auto len = strftime(utctime.data(), utctime.size(), "%H:%M:%S (UTC)", gmtime_r(&utc, &localtime));
     TextRight(std::string_view(utctime.data(), len));
     auto posBeneathClock = ImGui::GetCursorPos();
 

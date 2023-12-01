@@ -38,9 +38,7 @@ namespace ImPlot {
         int MaxSize;
         int Offset;
         ImVector<ImVec2> Data;
-        ScrollingBuffer(int max_size = 2000) {
-            MaxSize = max_size;
-            Offset  = 0;
+        explicit ScrollingBuffer(int max_size = 2000) : MaxSize{max_size}, Offset{0} {
             Data.reserve(MaxSize);
         }
         void AddPoint(float x, float y) {
@@ -52,7 +50,7 @@ namespace ImPlot {
             }
         }
         void Erase() {
-            if (Data.size() > 0) {
+            if (!Data.empty()) {
                 Data.shrink(0);
                 Offset  = 0;
             }
@@ -106,7 +104,7 @@ namespace ImPlot {
     }
 
     struct IndexerConst {
-        IndexerConst(double ref) : Ref(ref) { }
+        explicit IndexerConst(double ref) : Ref(ref) { }
         template <typename I> IMPLOT_INLINE double operator()(I) const { return Ref; }
         const double Ref;
     };
