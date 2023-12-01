@@ -36,16 +36,16 @@ static auto taiNsToUtc(auto input) {
 }
 
 template <typename... T>
-void tableColumnString(fmt::format_string<T...> &&fmt, T&&... args) {
+void tableColumnString(const fmt::format_string<T...> &fmt, T&&... args) {
     if (ImGui::TableNextColumn()) {
-        ImGui::TextUnformatted(fmt::vformat(std::forward<fmt::format_string<T...>>(fmt), fmt::make_format_args(args...)).c_str());
+        ImGui::TextUnformatted(fmt::format(fmt, std::forward<T>(args)...).c_str());
     }
 }
 template <typename... T>
-void tableColumnStringColor(ImColor color, fmt::format_string<T...> &&fmt, T&&... args) {
+void tableColumnStringColor(ImColor color, const fmt::format_string<T...> &fmt, T&&... args) {
 if (ImGui::TableNextColumn()) {
         ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
-        ImGui::TextUnformatted(fmt::vformat(std::forward<fmt::format_string<T...>>(fmt), fmt::make_format_args(args...)).c_str());
+        ImGui::TextUnformatted(fmt::format(fmt, std::forward<T>(args)...).c_str());
     }
 }
 void tableColumnBool(bool state, ImColor trueColor, ImColor falseColor) {
@@ -239,12 +239,31 @@ void loadEventsFromString(std::vector<Timing::Event> &events, std::string_view s
     using std::operator""sv;
     try {
         for (auto line: std::views::split(string, "\n"sv)) {
+#if defined(__clang__)
+            std::string_view line_sv{line};
+            std::array<uint64_t, 3> elements{};
+            std::size_t found = 0;
+            std::size_t startingIndex = 0;
+            for (std::size_t i = 0; i <= line_sv.size() && found < elements.size(); i++) {
+                if (i == line_sv.size() || line_sv[i] == ' ') {
+                    if (startingIndex < i) {
+                        auto parse = [](auto el) { return std::stoul(std::string(std::string_view(el)), nullptr, 0); };
+                        elements[found++] = parse(line_sv.substr(startingIndex, i - startingIndex));
+                    }
+                    startingIndex = i;
+                }
+            }
+            if (found >= 3) {
+                events.emplace_back((elements[2]), (elements[0]), (elements[1]));
+            }
+#else
             auto event = std::views::split(std::string_view{line}, " "sv) | std::views::take(3)
                     | std::views::transform([](auto n) { return std::stoul(std::string(std::string_view(n)), nullptr, 0); })
                     | std::views::adjacent_transform<3>([](auto a, auto b, auto c) {return Timing::Event{c, a, b};});
             if (!event.empty()) {
                 events.push_back(event.front());
             }
+#endif
         }
     } catch (std::exception &e) {
         events.clear();

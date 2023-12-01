@@ -217,9 +217,13 @@ public:
             return; // nothing changed
         }
         if (!simulate) {
+#if defined(__clang__)
             std::size_t i = 0;
-            for (const auto &output : outputs) { // clang does not support `(auto [i, output, enabled] : std::views::zip(std::views::iota(0), outputs, trigger.outputs))`
+            for (const auto &output : outputs) {
                 bool enabled = trigger.outputs[i++];
+#else
+            for (const auto [i, output, enabled] : std::views::zip(std::views::iota(0), outputs, trigger.outputs)) {
+#endif
                 if (enabled && (existing == triggers.end() || !existing->second.outputs[static_cast<unsigned long>(i)])) { // newly enabled
                     auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));
                     proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset, true);
