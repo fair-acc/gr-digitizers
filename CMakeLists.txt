@@ -40,7 +40,6 @@ else ()
 
     # Enables 32 bit vertex indices for ImGui
     add_compile_definitions("ImDrawIdx=unsigned int")
-
     FetchContent_Declare(
             implot
             GIT_REPOSITORY  https://github.com/epezent/implot.git
