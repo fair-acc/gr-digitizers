@@ -118,10 +118,10 @@ std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
     static std::vector<std::string> displayStrings{timingGroupTable.size() + 1};
 
     static std::vector<std::pair<uint64_t, uint64_t>> result = [&itms = items, &dispStrings = displayStrings]() {
-       std::vector<std::pair<uint64_t, uint64_t>> result{};
+       std::vector<std::pair<uint64_t, uint64_t>> res{};
        dispStrings.emplace_back("Events form all timing groups");
        itms.push_back(dispStrings.back().c_str());
-       result.emplace_back(0x0, 0x0);
+       res.emplace_back(0x0, 0x0);
        for (auto & [gid, strings] : timingGroupTable) {
            auto & [enumName, description] = strings;
            dispStrings.push_back(fmt::format("{} ({})", enumName, gid));
@@ -129,9 +129,9 @@ std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
            uint64_t id = ((gid & ((1UL << 12) - 1)) << 48)
                        + ((1   & ((1UL <<  4) - 1)) << 60);
            uint64_t mask = ((1ULL << 16) - 1 ) << (64-16);
-           result.emplace_back(id, mask);
+           res.emplace_back(id, mask);
        }
-       return result;
+       return res;
     }();
     ImGui::SetNextItemWidth(200);
     ImGui::Combo("TimingGroup", &current, items.data(), static_cast<int>(items.size()));
@@ -774,7 +774,7 @@ int showUI(Timing &timing) {
     auto [window, gl_context] = openSDLWindow();
     if (!window) return 200;
 
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    const ImGuiIO& io = ImGui::GetIO(); (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
     ImGui::StyleColorsLight(); // set light color scheme, alt: ImGui::StyleColorsDark() ImGui::StyleColorsClassic();
@@ -819,9 +819,9 @@ int main(int argc, char** argv) {
     CLI::App app{"timing receiver saftbus example"};
     app.add_flag("--simulate", timing.simulate, "mock the timing card to test the gui by directly inserting the scheduled events into the snooped events");
     try {
-        (app).parse((argc), (argv));
+        app.parse(argc, argv);
     } catch(const CLI::ParseError &e) {
-        return (app).exit(e);
+        return app.exit(e);
     }
 
     return showUI(timing);

@@ -54,27 +54,26 @@ public:
         Event& operator=(const Event&) = default;
         Event& operator=(Event&&) = default;
 
-        explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) {
-            time = timestamp;
-            flags = _flags;
-            executed = _executed;
+        explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) :
             // id
-            virtAcc        = (id >>  0) & ((1UL <<  4) - 1);
-            reqNoBeam      = (id >> 4) & ((1UL << 1) - 1);
-            reserved       = (id >>  5) & ((1UL <<  1) - 1);
-            bpid           = (id >>  6) & ((1UL << 14) - 1);
-            sid            = (id >> 20) & ((1UL << 12) - 1);
-            flagReserved2 = (id >> 32) & ((1UL << 1) - 1);
-            flagReserved1 = (id >> 33) & ((1UL << 1) - 1);
-            flagBpcStart = (id >> 34) & ((1UL << 1) - 1);
-            flagBeamin    = (id >> 35) & ((1UL << 1) - 1);
-            eventNo        = (id >> 36) & ((1UL << 12) - 1);
-            gid            = (id >> 48) & ((1UL << 12) - 1);
-            fid            = (id >> 60) & ((1UL <<  4) - 1);
+            fid           { static_cast<uint8_t>((id >> 60) & ((1UL <<  4) - 1))},
+            gid           { static_cast<uint16_t>((id >> 48) & ((1UL << 12) - 1))},
+            eventNo       { static_cast<uint16_t>((id >> 36) & ((1UL << 12) - 1))},
+            flagBeamin    { static_cast<bool>((id >> 35) & ((1UL << 1) - 1))},
+            flagBpcStart  { static_cast<bool>((id >> 34) & ((1UL << 1) - 1))},
+            flagReserved1 { static_cast<bool>((id >> 33) & ((1UL << 1) - 1))},
+            flagReserved2 { static_cast<bool>((id >> 32) & ((1UL << 1) - 1))},
+            sid           { static_cast<uint16_t>((id >> 20) & ((1UL << 12) - 1))},
+            bpid          { static_cast<uint16_t>((id >>  6) & ((1UL << 14) - 1))},
+            reserved      { static_cast<bool>((id >>  5) & ((1UL <<  1) - 1))},
+            reqNoBeam     { static_cast<bool>((id >> 4) & ((1UL << 1) - 1))},
+            virtAcc       { static_cast<uint8_t>((id >>  0) & ((1UL <<  4) - 1))},
             // param
-            bpcts          = (param  >>  0) & ((1UL << 42) - 1);
-            bpcid          = (param  >> 42) & ((1UL << 22) - 1);
-        }
+            bpcid         { static_cast<uint32_t>((param  >> 42) & ((1UL << 22) - 1))},
+            bpcts         { (param  >>  0) & ((1UL << 42) - 1)},
+            time { timestamp},
+            executed { _executed},
+            flags { _flags} { }
 
         [[nodiscard]] uint64_t id() const {
             // clang-format:off
@@ -182,7 +181,7 @@ public:
             while(true) {
                 auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
                 if (duration > 0) {
-                    saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50l, std::numeric_limits<int>::max()+0l)));
+                    saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50L, std::numeric_limits<int>::max()+0L)));
                 } else {
                     break;
                 }
@@ -205,7 +204,7 @@ public:
 
     unsigned long getTAI() {
         if (simulate) {
-            return static_cast<unsigned long>(std::max(0l, duration_cast<std::chrono::nanoseconds>(
+            return static_cast<unsigned long>(std::max(0L, duration_cast<std::chrono::nanoseconds>(
                     std::chrono::utc_clock::now().time_since_epoch()).count()));
         }
         return receiver->CurrentTime().getTAI();

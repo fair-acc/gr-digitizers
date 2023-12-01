@@ -36,9 +36,9 @@ enum ImPlotStatusBarFlags {
 namespace ImPlot {
     struct ScrollingBuffer {
         int MaxSize;
-        int Offset;
+        int Offset{0};
         ImVector<ImVec2> Data;
-        explicit ScrollingBuffer(int max_size = 2000) : MaxSize{max_size}, Offset{0} {
+        explicit ScrollingBuffer(int max_size = 2000) : MaxSize{max_size} {
             Data.reserve(MaxSize);
         }
         void AddPoint(float x, float y) {
@@ -138,14 +138,14 @@ namespace ImPlot {
             ImDrawList& draw_list = *GetPlotDrawList();
             const ImPlotNextItemData& s = GetItemData();
             if (getter.Count > 1 && s.RenderFill) {
-                ImPlotPlot& plot   = *gp.CurrentPlot;
-                ImPlotAxis& x_axis = plot.Axes[plot.CurrentX];
-                ImPlotAxis& y_axis = plot.Axes[plot.CurrentY];
+                const ImPlotPlot& plot   = *gp.CurrentPlot;
+                const ImPlotAxis& x_axis = plot.Axes[plot.CurrentX];
+                const ImPlotAxis& y_axis = plot.Axes[plot.CurrentY];
 
-                const int pixY_0 = (int)(s.LineWeight);
+                const auto pixY_0 = (int)(s.LineWeight);
                 const float pixY_1_float = s.DigitalBitHeight;
-                const int pixY_1 = (int)(pixY_1_float); //allow only positive values
-                const int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
+                const auto pixY_1 = (int)(pixY_1_float); //allow only positive values
+                const auto pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
                 const int pixY_Offset = 1; //20 pixel from bottom due to mouse cursor label
 
                 int pixYMax = 0;
