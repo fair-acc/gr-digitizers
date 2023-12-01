@@ -29,7 +29,6 @@ else ()
        QUIET
        GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
        GIT_TAG v2.3.2
-       SOURCE_DIR     cli11_proj
     )
 
     FetchContent_Declare(
