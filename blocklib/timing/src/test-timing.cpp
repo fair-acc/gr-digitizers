@@ -31,7 +31,7 @@
 #include "event_definitions.hpp"
 
 
-static auto tai_ns_to_utc(auto input) {
+static auto taiNsToUtc(auto input) {
     return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
 }
 
@@ -138,7 +138,6 @@ std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
     return result[static_cast<std::size_t>(current)];
 }
 
-
 void showTimingEventTable(Timing &timing) {
     static gr::BufferReader auto event_reader = timing.snooped.new_reader();
     auto [id_filter, mask] = TimingGroupFilterDropdown();
@@ -190,23 +189,23 @@ void showTimingEventTable(Timing &timing) {
             for (auto &evt : std::ranges::reverse_view{data}) {
                 ImGui::TableNextRow();
                 ImGui::PushID(&evt);
-                tableColumnString("{}", tai_ns_to_utc(evt.time));
-                tableColumnString("{}", tai_ns_to_utc(evt.executed));
+                tableColumnString("{}", taiNsToUtc(evt.time));
+                tableColumnString("{}", taiNsToUtc(evt.executed));
                 tableColumnStringColor(getStableBPCIDColor(evt.bpcid),"{}", evt.bpcid);
                 tableColumnString("{}", evt.sid);
                 tableColumnString("{}", evt.bpid);
                 tableColumnString("{1}({0})", evt.gid, timingGroupTable.contains(evt.gid) ? timingGroupTable.at(evt.gid).first : "UNKNOWN");
-                tableColumnString("{1}({0})", evt.eventno, eventNrTable.contains(evt.eventno) ? eventNrTable.at(evt.eventno).first : "UNKNOWN");
-                tableColumnBool(evt.flag_beamin, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
-                tableColumnBool(evt.flag_bpc_start, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
+                tableColumnString("{1}({0})", evt.eventNo, eventNrTable.contains(evt.eventNo) ? eventNrTable.at(evt.eventNo).first : "UNKNOWN");
+                tableColumnBool(evt.flagBeamin, ImGui::GetColorU32({0, 1.0, 0, 0.4f}), ImGui::GetColorU32({1.0, 0, 0, 0.4f}));
+                tableColumnBool(evt.flagBpcStart, ImGui::GetColorU32({0, 1.0, 0, 0.4f}), ImGui::GetColorU32({1.0, 0, 0, 0.4f}));
                 tableColumnBool(evt.reqNoBeam, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
                 tableColumnString("{}", evt.virtAcc);
                 tableColumnString("{}", evt.bpcts);
                 tableColumnString("{}", evt.fid);
                 tableColumnString("{:#08x}", evt.id());
                 tableColumnString("{:#08x}", evt.param());
-                tableColumnBool(evt.flag_reserved1, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
-                tableColumnBool(evt.flag_reserved2, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
+                tableColumnBool(evt.flagReserved1, ImGui::GetColorU32({0, 1.0, 0, 0.4f}), ImGui::GetColorU32({1.0, 0, 0, 0.4f}));
+                tableColumnBool(evt.flagReserved2, ImGui::GetColorU32({0, 1.0, 0, 0.4f}), ImGui::GetColorU32({1.0, 0, 0, 0.4f}));
                 tableColumnBool(evt.reserved, ImGui::GetColorU32({0,1.0,0,0.4f}), ImGui::GetColorU32({1.0,0,0,0.4f}));
                 if (ImGui::TableNextColumn()) { // flags
                     // print flags
@@ -235,14 +234,14 @@ void showTimingEventTable(Timing &timing) {
     }
 }
 
-void loadEventsFromString(std::vector<Timing::event> &events, std::string_view string) {
+void loadEventsFromString(std::vector<Timing::Event> &events, std::string_view string) {
     events.clear();
     using std::operator""sv;
     try {
         for (auto line: std::views::split(string, "\n"sv)) {
             auto event = std::views::split(std::string_view{line}, " "sv) | std::views::take(3)
                     | std::views::transform([](auto n) { return std::stoul(std::string(std::string_view(n)), nullptr, 0); })
-                    | std::views::adjacent_transform<3>([](auto a, auto b, auto c) {return Timing::event{c, a, b};});
+                    | std::views::adjacent_transform<3>([](auto a, auto b, auto c) {return Timing::Event{c, a, b};});
             if (!event.empty()) {
                 events.push_back(event.front());
             }
@@ -380,17 +379,17 @@ void showTimingSchedule(Timing &timing) {
                                                 tableColumnSlider<uint16_t, max_uint12>("##sid", ev.sid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint14>("##pbid", ev.bpid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint12>("##gid", ev.gid, 40.f);
-                                                tableColumnSlider<uint16_t, max_uint12>("##eventno", ev.eventno, 40.f);
-                                                tableColumnCheckbox("##beamin", ev.flag_beamin);
-                                                tableColumnCheckbox("##bpcstart", ev.flag_bpc_start);
+                                                tableColumnSlider<uint16_t, max_uint12>("##eventno", ev.eventNo, 40.f);
+                                                tableColumnCheckbox("##beamin", ev.flagBeamin);
+                                                tableColumnCheckbox("##bpcstart", ev.flagBpcStart);
                                                 tableColumnCheckbox("##reqNoBeam", ev.reqNoBeam);
                                                 tableColumnSlider<uint8_t, max_uint4>("##virtAcc", ev.virtAcc, 40.f);
                                                 tableColumnSlider<uint64_t, max_uint42>("##bpcts", ev.bpcts, 80.f);
                                                 tableColumnSlider<uint8_t, max_uint4>("##fid", ev.fid, 40.f);
                                                 tableColumnString("{:#08x}", ev.id());
                                                 tableColumnString("{:#08x}", ev.param());
-                                                tableColumnCheckbox("##reserved1", ev.flag_reserved1);
-                                                tableColumnCheckbox("##reserved2", ev.flag_reserved2);
+                                                tableColumnCheckbox("##reserved1", ev.flagReserved1);
+                                                tableColumnCheckbox("##reserved2", ev.flagReserved2);
                                                 tableColumnCheckbox("##reserved", ev.reserved);
                                                 // interactive settings
                                                 ImGui::TableNextColumn();
@@ -483,9 +482,9 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
             ImGui::TextUnformatted("Mocking the timing card by directly forwarding injected events");
             return;
         }
-        auto trTime = timing.receiver->CurrentTime().getTAI();
+        auto trTime = timing.getTAI();
         ImGui::TextUnformatted(fmt::format("{} -- ({} ns)\nTemperature: {}°C,\nGateware: {},\n(\"version\", \"{}\")",
-                                           trTime, tai_ns_to_utc(trTime),
+                                           trTime, taiNsToUtc(trTime),
                                            timing.receiver->CurrentTemperature(),
                                            fmt::join(timing.receiver->getGatewareInfo(), ",\n"),
                                            timing.receiver->getGatewareVersion()).c_str());
@@ -579,11 +578,6 @@ template<gr::Buffer BufferT>
 class TimePlot {
 public:
     const int bufferSize = 5000;
-    enum class Mode {TRIGGERED, STREAMING, SNAPSHOT} mode = Mode::STREAMING;
-    std::size_t duration = 5000000000000ul; // default duration to show in streaming/snapshot mode
-    std::vector<uint16_t> contextStartEvents{}; // Event types that should trigger an update of the context
-    std::vector<uint16_t> singleEventFilter{}; // event types that should be displayed as individual labeled lines
-    bool show = true; // controls if the plot is expanded or collapsed
     using Reader = decltype(std::declval<BufferT>().new_reader());
 private:
     uint64_t startTime = 0;
@@ -597,7 +591,7 @@ private:
     int bpcidColormap = ImPlot::bpcidColormap();
     int bpidColormap = ImPlot::bpidColormap();
     int sidColormap = ImPlot::sidColormap();
-    std::optional<Timing::event> previousContextEvent{};
+    std::optional<Timing::Event> previousContextEvent{};
     bool previousBPToggle = false;
     bool previousSIDToggle = false;
 public:
@@ -611,17 +605,17 @@ public:
         for (auto &event: newEvents) {
             float eventtime = (static_cast<float>(event.time - startTime)) * 1e-9f;
             // filter out starts of new contexts
-            if (!previousContextEvent || (event.eventno == 256 && (event.bpcid != previousContextEvent->bpcid || event.sid != previousContextEvent->sid|| event.bpid != previousContextEvent->bpid))) {
+            if (!previousContextEvent || (event.eventNo == 256 && (event.bpcid != previousContextEvent->bpcid || event.sid != previousContextEvent->sid || event.bpid != previousContextEvent->bpid))) {
                 previousSIDToggle = (previousContextEvent->sid != event.sid) ? !previousSIDToggle : previousSIDToggle;
                 previousBPToggle = (previousContextEvent->bpid != event.bpid) ? !previousBPToggle : previousBPToggle;
-                beamin.AddPoint(eventtime, event.flag_beamin);
+                beamin.AddPoint(eventtime, event.flagBeamin);
                 bpcids.AddPoint(eventtime, static_cast<float>(getStableBPCIDColorIndex(static_cast<uint16_t>(event.bpcid))));
                 sids.AddPoint(eventtime, previousSIDToggle);
                 bpids.AddPoint(eventtime, previousBPToggle);
                 previousContextEvent = event;
             }
-            if ((event.eventno != 256)) { // filter out non-BP_START events
-                events.AddPoint(eventtime, event.eventno);
+            if ((event.eventNo != 256)) { // filter out non-BP_START events
+                events.AddPoint(eventtime, event.eventNo);
             }
         }
         auto _ = snoopReader.consume(newEvents.size()); // consume processed events
@@ -633,7 +627,7 @@ public:
         float time = (static_cast<float>(currentTime - startTime)) * 1e-9f;
         if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
-                ImPlot::SetupAxes(fmt::format("t [s] + {}", tai_ns_to_utc(currentTime)).c_str(), nullptr, 0, ImPlotAxisFlags_NoDecorations);
+                ImPlot::SetupAxes(fmt::format("t [s] + {}", taiNsToUtc(currentTime)).c_str(), nullptr, 0, ImPlotAxisFlags_NoDecorations);
                 ImPlot::SetupAxisLimits(ImAxis_X1, -plot_depth, 0, ImGuiCond_Always);
 
                 // plot freestanding events

@@ -27,15 +27,15 @@ class Timing {
 public:
     static const int milliToNano = 1000000;
     static const int minTriggerOffset = 100;
-    struct event {
+    struct Event {
         // eventid - 64
         uint8_t fid = 1;   // 4
         uint16_t gid;  // 12
-        uint16_t eventno; // 12
-        bool flag_beamin;
-        bool flag_bpc_start;
-        bool flag_reserved1;
-        bool flag_reserved2;
+        uint16_t eventNo; // 12
+        bool flagBeamin;
+        bool flagBpcStart;
+        bool flagReserved1;
+        bool flagReserved2;
         uint16_t sid; //12
         uint16_t bpid; //14
         bool reserved;
@@ -49,12 +49,12 @@ public:
         uint64_t executed = 0;
         uint16_t flags = 0x0;
 
-        event(const event&) = default;
-        event(event&&) = default;
-        event& operator=(const event&) = default;
-        event& operator=(event&&) = default;
+        Event(const Event&) = default;
+        Event(Event&&) = default;
+        Event& operator=(const Event&) = default;
+        Event& operator=(Event&&) = default;
 
-        explicit event(uint64_t timestamp = 0, uint64_t id = 1ul << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) {
+        explicit Event(uint64_t timestamp = 0, uint64_t id = 1ul << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) {
             time = timestamp;
             flags = _flags;
             executed = _executed;
@@ -64,11 +64,11 @@ public:
             reserved       = (id >>  5) & ((1ul <<  1) - 1);
             bpid           = (id >>  6) & ((1ul << 14) - 1);
             sid            = (id >> 20) & ((1ul << 12) - 1);
-            flag_reserved2 = (id >> 32) & ((1ul <<  1) - 1);
-            flag_reserved1 = (id >> 33) & ((1ul <<  1) - 1);
-            flag_bpc_start = (id >> 34) & ((1ul <<  1) - 1);
-            flag_beamin    = (id >> 35) & ((1ul <<  1) - 1);
-            eventno        = (id >> 36) & ((1ul << 12) - 1);
+            flagReserved2 = (id >> 32) & ((1ul << 1) - 1);
+            flagReserved1 = (id >> 33) & ((1ul << 1) - 1);
+            flagBpcStart = (id >> 34) & ((1ul << 1) - 1);
+            flagBeamin    = (id >> 35) & ((1ul << 1) - 1);
+            eventNo        = (id >> 36) & ((1ul << 12) - 1);
             gid            = (id >> 48) & ((1ul << 12) - 1);
             fid            = (id >> 60) & ((1ul <<  4) - 1);
             // param
@@ -84,11 +84,11 @@ public:
                  + ((reserved + 0ul)              <<  5)
                  + ((bpid    & ((1ul << 14) - 1)) <<  6)
                  + ((sid     & ((1ul << 12) - 1)) << 20)
-                 + ((flag_reserved2 + 0ul)        << 32)
-                 + ((flag_reserved1 + 0ul)        << 33)
-                 + ((flag_bpc_start + 0ul)        << 34)
-                 + ((flag_beamin + 0ul)           << 35)
-                 + ((eventno & ((1ul << 12) - 1)) << 36)
+                 + ((flagReserved2 + 0ul) << 32)
+                 + ((flagReserved1 + 0ul) << 33)
+                 + ((flagBpcStart + 0ul) << 34)
+                 + ((flagBeamin + 0ul) << 35)
+                 + ((eventNo & ((1ul << 12) - 1)) << 36)
                  + ((gid     & ((1ul << 12) - 1)) << 48)
                  + ((fid     & ((1ul <<  4) - 1)) << 60);
             // clang-format:on
@@ -102,6 +102,7 @@ public:
             // clang-format:on
         }
     };
+
     struct Trigger {
         std::array<bool, 20> outputs;
         uint64_t id;
@@ -110,24 +111,23 @@ public:
 
         bool operator<=>(const Trigger&) const = default;
     };
-public:
-    gr::CircularBuffer<event, 10000> snooped{10000};
+
+    gr::CircularBuffer<Event, 10000> snooped{10000};
     std::vector<std::tuple<uint, std::string, std::string>> outputs;
     std::map<uint64_t, Trigger> triggers;
-    std::vector<Timing::event> events = {};
+    std::vector<Timing::Event> events = {};
 private:
     decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
     bool tried = false;
+    std::shared_ptr<SAFTd_Proxy> saftd;
+    std::shared_ptr<SoftwareActionSink_Proxy> sink;
+    std::shared_ptr<SoftwareCondition_Proxy> condition;
 public:
     bool initialized = false;
     bool simulate = false;
-    uint64_t snoopID     = 0x0;
-    uint64_t snoopMask   = 0x0;
-
-    std::shared_ptr<SAFTd_Proxy> saftd;
+    uint64_t snoopID = 0x0;
+    uint64_t snoopMask = 0x0;
     std::shared_ptr<TimingReceiver_Proxy> receiver;
-    std::shared_ptr<SoftwareActionSink_Proxy> sink;
-    std::shared_ptr<SoftwareCondition_Proxy> condition;
 
     void updateSnoopFilter() {
         if (simulate) return;
@@ -143,8 +143,8 @@ public:
                 [this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed,
                        uint16_t flags) {
                     this->snoop_writer.publish(
-                            [id, param, &deadline, &executed, flags](std::span<event> buffer) {
-                                buffer[0] = Timing::event{deadline.getTAI(), id, param, flags, executed.getTAI()};
+                            [id, param, &deadline, &executed, flags](std::span<Event> buffer) {
+                                buffer[0] = Timing::Event{deadline.getTAI(), id, param, flags, executed.getTAI()};
                             }, 1);
                 });
         condition->setActive(true);
@@ -177,29 +177,23 @@ public:
         if (!initialized && !tried) {
             tried = true;
             initialize();
-        } else if (initialized) {
-            if (!simulate) {
-                snoop();
+        } else if (initialized & !simulate) {
+            const auto startTime = std::chrono::system_clock::now();
+            while(true) {
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
+                if (duration > 0) {
+                    saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50l, std::numeric_limits<int>::max()+0l)));
+                } else {
+                    break;
+                }
             }
         }
     }
 
-    static void snoop() {
-        const auto startTime = std::chrono::system_clock::now();
-        while(true) {
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
-            if (duration > 0) {
-                saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50l, std::numeric_limits<int>::max()+0l)));
-            } else {
-                break;
-            }
-        }
-    }
-
-    void injectEvent(event ev, uint64_t time_offset) {
+    void injectEvent(Event ev, uint64_t time_offset) {
         if (simulate && ((ev.id() | snoopMask) == (snoopID | snoopMask)) ) {
             this->snoop_writer.publish(
-                    [ev, time_offset](std::span<event> buffer) {
+                    [ev, time_offset](std::span<Event> buffer) {
                         buffer[0] = ev;
                         buffer[0].time += time_offset;
                         buffer[0].executed = buffer[0].time;
@@ -223,7 +217,9 @@ public:
             return; // nothing changed
         }
         if (!simulate) {
-            for (auto [i, output, enabled] : std::views::zip(std::views::iota(0), outputs, trigger.outputs)) {
+            std::size_t i = 0;
+            for (const auto &output : outputs) { // clang does not support `(auto [i, output, enabled] : std::views::zip(std::views::iota(0), outputs, trigger.outputs))`
+                bool enabled = trigger.outputs[i++];
                 if (enabled && (existing == triggers.end() || !existing->second.outputs[static_cast<unsigned long>(i)])) { // newly enabled
                     auto proxy = saftlib::Output_Proxy::create(std::get<2>(output));
                     proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset, true);
