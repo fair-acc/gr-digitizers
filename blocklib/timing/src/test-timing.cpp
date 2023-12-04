@@ -25,15 +25,11 @@
 #include <fmt/ranges.h>
 #include <OutputCondition_Proxy.hpp>
 
-#include "timing.hpp"
+#include <timing.hpp>
 #include "fair_header.h"
 #include "plot.hpp"
 #include "event_definitions.hpp"
 
-
-static auto taiNsToUtc(auto input) {
-    return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
-}
 
 template <typename... T>
 void tableColumnString(const fmt::format_string<T...> &fmt, T&&... args) {
@@ -89,7 +85,7 @@ void tableColumnCheckbox(const std::string &id, bool &field) {
 }
 
 template<typename T>
-int getStableColorIndex(T id, std::map<T, int> &colors, int colormapSize) {
+std::size_t getStableColorIndex(T id, std::map<T, std::size_t> &colors, std::size_t colormapSize) {
     if (colors.contains(id)) {
         return colors[id];
     } else {
@@ -102,14 +98,14 @@ int getStableColorIndex(T id, std::map<T, int> &colors, int colormapSize) {
 }
 
 template<typename T>
-int getStableBPCIDColorIndex(T id) {
-    static std::map<T, int> colors{};
+std::size_t getStableBPCIDColorIndex(T id) {
+    static std::map<T, std::size_t> colors{};
     return getStableColorIndex(id, colors, bpcidColors.size());
 }
 
 template<typename T>
 ImColor getStableBPCIDColor(T id) {
-    return ImColor{bpcidColors[getStableBPCIDColorIndex(id)]};
+    return ImColor{bpcidColors[getStableBPCIDColorIndex(static_cast<std::size_t>(id))]};
 }
 
 std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
@@ -234,43 +230,6 @@ void showTimingEventTable(Timing &timing) {
     }
 }
 
-void loadEventsFromString(std::vector<Timing::Event> &events, std::string_view string) {
-    events.clear();
-    using std::operator""sv;
-    try {
-        for (auto line: std::views::split(string, "\n"sv)) {
-#if defined(__clang__)
-            std::string_view line_sv{line};
-            std::array<uint64_t, 3> elements{};
-            std::size_t found = 0;
-            std::size_t startingIndex = 0;
-            for (std::size_t i = 0; i <= line_sv.size() && found < elements.size(); i++) {
-                if (i == line_sv.size() || line_sv[i] == ' ') {
-                    if (startingIndex < i) {
-                        auto parse = [](auto el) { return std::stoul(std::string(std::string_view(el)), nullptr, 0); };
-                        elements[found++] = parse(line_sv.substr(startingIndex, i - startingIndex));
-                    }
-                    startingIndex = i;
-                }
-            }
-            if (found >= 3) {
-                events.emplace_back((elements[2]), (elements[0]), (elements[1]));
-            }
-#else
-            auto event = std::views::split(std::string_view{line}, " "sv) | std::views::take(3)
-                    | std::views::transform([](auto n) { return std::stoul(std::string(std::string_view(n)), nullptr, 0); })
-                    | std::views::adjacent_transform<3>([](auto a, auto b, auto c) {return Timing::Event{c, a, b};});
-            if (!event.empty()) {
-                events.push_back(event.front());
-            }
-#endif
-        }
-    } catch (std::exception &e) {
-        events.clear();
-        fmt::print("Error parsing clipboard data: {}", string);
-    }
-}
-
 void showTimingSchedule(Timing &timing) {
     static constexpr uint64_t min_uint64 = 0;
     static constexpr uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
@@ -299,11 +258,11 @@ void showTimingSchedule(Timing &timing) {
         ImGui::Button("Load");
         if (ImGui::BeginPopupContextItem("load schedule popup", ImGuiPopupFlags_MouseButtonLeft)) {
             if (ImGui::Button("from Clipboard")) {
-                loadEventsFromString(timing.events, ImGui::GetClipboardText());
+                Timing::Event::loadEventsFromString(timing.events, ImGui::GetClipboardText());
             }
             for (const auto & [scheduleName, schedule] : demoSchedules) {
                 if (ImGui::Button(scheduleName.c_str())) {
-                    loadEventsFromString(timing.events, schedule);
+                    Timing::Event::loadEventsFromString(timing.events, schedule);
                 }
             }
             ImGui::EndPopup();

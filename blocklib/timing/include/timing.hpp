@@ -1,3 +1,6 @@
+#ifndef GR_DIGITIZERS_TIMING_HPP
+#define GR_DIGITIZERS_TIMING_HPP
+#include <string_view>
 // gr
 #include <gnuradio-4.0/CircularBuffer.hpp>
 // timing
@@ -11,17 +14,21 @@
 #include <Input_Proxy.hpp>
 #include <Output.hpp>
 #include <Input.hpp>
+#include <OutputCondition_Proxy.hpp>
 #include <OutputCondition.hpp>
 
 // gr
 #include <gnuradio-4.0/CircularBuffer.hpp>
 #include <gnuradio-4.0/HistoryBuffer.hpp>
-#include "plot.hpp"
 
 using saftlib::SAFTd_Proxy;
 using saftlib::TimingReceiver_Proxy;
 using saftlib::SoftwareActionSink_Proxy;
 using saftlib::SoftwareCondition_Proxy;
+
+static auto taiNsToUtc(auto input) {
+    return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
+}
 
 class Timing {
 public:
@@ -100,6 +107,52 @@ public:
                  + ((bpcid & ((1UL << 22) - 1)) << 42);
             // clang-format:on
         }
+
+        static std::optional<Event> fromString(std::string_view line) {
+            using std::operator""sv;
+#if defined(__clang__)
+            std::array<uint64_t, 3> elements{};
+            std::size_t found = 0;
+            std::size_t startingIndex = 0;
+            for (std::size_t i = 0; i <= line.size() && found < elements.size(); i++) {
+                if (i == line.size() || line[i] == ' ') {
+                    if (startingIndex < i) {
+                        auto parse = [](auto el) { return std::stoul(std::string(std::string_view(el)), nullptr, 0); };
+                        elements[found++] = parse(line.substr(startingIndex, i - startingIndex));
+                    }
+                    startingIndex = i;
+                }
+            }
+            if (found >= 3) {
+                return Event{elements[2], elements[0], elements[1]};
+            }
+#else
+            auto event = std::views::split(line, " "sv) | std::views::take(3)
+                         | std::views::transform([](auto n) { return std::stoul(std::string(std::string_view(n)), nullptr, 0); })
+                         | std::views::adjacent_transform<3>([](auto a, auto b, auto c) {return Timing::Event{c, a, b};});
+            if (!event.empty()) {
+                return event.front();
+            }
+#endif
+            return {};
+        }
+
+        static void loadEventsFromString(std::vector<Timing::Event> &events, std::string_view string) {
+            events.clear();
+            using std::operator""sv;
+            try {
+                for (auto line : std::views::split(string, "\n"sv)) {
+                    auto event = Timing::Event::fromString(std::string_view{line});
+                    if (event) {
+                        events.push_back(*event);
+                    }
+                }
+            } catch (std::exception &e) {
+                events.clear();
+                fmt::print("Error parsing data: {}", string);
+            }
+        }
+
     };
 
     struct Trigger {
@@ -190,22 +243,21 @@ public:
     }
 
     void injectEvent(const Event &ev, uint64_t time_offset) {
-        if (simulate && ((ev.id() | snoopMask) == (snoopID | snoopMask)) ) {
+        if (simulate && ((ev.id() & snoopMask) == (snoopID & snoopMask)) ) {
             this->snoop_writer.publish(
                     [ev, time_offset](std::span<Event> buffer) {
                         buffer[0] = ev;
                         buffer[0].time += time_offset;
                         buffer[0].executed = buffer[0].time;
                     }, 1);
-        } else {
+        } else if (!simulate) {
             receiver->InjectEvent(ev.id(), ev.param(), saftlib::makeTimeTAI(ev.time + time_offset));
         }
     }
 
     unsigned long getTAI() {
         if (simulate) {
-            return static_cast<unsigned long>(std::max(0L, duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::utc_clock::now().time_since_epoch()).count()));
+            return static_cast<unsigned long>(std::max(0L, duration_cast<std::chrono::nanoseconds>(std::chrono::utc_clock::now().time_since_epoch()).count()));
         }
         return receiver->CurrentTime().getTAI();
     }
@@ -257,3 +309,5 @@ public:
         triggers.insert_or_assign(trigger.id, trigger);
     }
 };
+
+#endif

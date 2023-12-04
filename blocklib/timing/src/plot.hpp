@@ -164,8 +164,8 @@ namespace ImPlot {
                         pixYMax = ImMax(pixYMax, pixY_chPosOffset);
                         pMin = PlotToPixels(itemData1, IMPLOT_AUTO, IMPLOT_AUTO);
                         pMax = PlotToPixels(itemData2, IMPLOT_AUTO, IMPLOT_AUTO);
-                        pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_Offset);
-                        pMax.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
+                        pMin.y = (y_axis.PixelMin) + (static_cast<float>((-gp.DigitalPlotOffset) - pixY_Offset));
+                        pMax.y = (y_axis.PixelMin) + (static_cast<float>((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset));
                         //plot only one rectangle for same digital state
                         while (((i + 2) < getter.Count) && (itemData1.y == itemData2.y)) {
                             const int in = (i + 1);
@@ -181,8 +181,8 @@ namespace ImPlot {
                         if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax;
                     } else { // extend last event to the end of the plot
                         pMin = PlotToPixels(itemData1, IMPLOT_AUTO, IMPLOT_AUTO);
-                        pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_Offset);
-                        pMax = {x_axis.PixelMax, y_axis.PixelMin + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset)};
+                        pMin.y = (y_axis.PixelMin) + (static_cast<float>((-gp.DigitalPlotOffset) - pixY_Offset));
+                        pMax = {x_axis.PixelMax, y_axis.PixelMin + (static_cast<float>((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset))};
                     }
                     //plot a rectangle that extends up to x2 with y1 height
                     if ((pMax.x > pMin.x) && (gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
