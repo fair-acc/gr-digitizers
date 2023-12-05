@@ -266,7 +266,7 @@ void showTimingSchedule(Timing &timing) {
     static constexpr uint64_t max_uint12 = (1UL << 12) - 1;
     static constexpr uint64_t max_uint4 = (1UL << 4) - 1;
     static constexpr double minDouble = 0;
-    static constexpr double maxDouble = std::numeric_limits<uint64_t>::max();
+    static constexpr double maxDouble = std::numeric_limits<double>::max();
 
 
     static std::size_t current = 0;
