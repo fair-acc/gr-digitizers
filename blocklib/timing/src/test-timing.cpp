@@ -387,7 +387,13 @@ void showTimingSchedule(Timing &timing) {
                                                 tableColumnSlider<uint16_t, max_uint12>("##sid", ev.sid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint14>("##pbid", ev.bpid, 40.f);
                                                 tableColumnSlider<uint16_t, max_uint12>("##gid", ev.gid, 40.f);
+                                                ImGui::SameLine();
+                                                if (ImGui::IsItemHovered()) {
+                                                    ImGui::SetTooltip("%s", fmt::format("{}", timingGroupTable.contains(ev.gid) ? timingGroupTable.at(ev.gid).first : "UNKNOWN").c_str());
+                                                }
                                                 tableColumnSlider<uint16_t, max_uint12>("##eventno", ev.eventNo, 40.f);
+                                                ImGui::SameLine();
+                                                ImGui::TextUnformatted(fmt::format("{}", eventNrTable.contains(ev.eventNo) ? eventNrTable.at(ev.eventNo).first : "UNKNOWN").c_str());
                                                 tableColumnCheckbox("##beamin", ev.flagBeamin);
                                                 tableColumnCheckbox("##bpcstart", ev.flagBpcStart);
                                                 tableColumnCheckbox("##reqNoBeam", ev.reqNoBeam);
