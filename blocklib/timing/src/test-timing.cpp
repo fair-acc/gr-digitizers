@@ -166,7 +166,7 @@ void showTimingEventTable(Timing &timing) {
     if (ImGui::Button("clear")) {
         std::ignore = event_reader.consume(event_reader.available());
     }
-    ImGui::SameLine(ImGui::GetCursorPosX() + 50);
+    ImGui::SameLine(); ImGui::Dummy({50,5});ImGui::SameLine();
     auto [id_filter, mask] = TimingGroupFilterDropdown();
     if (id_filter != timing.snoopID || mask != timing.snoopMask) {
         timing.snoopID = id_filter;
@@ -280,7 +280,7 @@ void showTimingSchedule(Timing &timing) {
         if (ImGui::Button("+")) {
             timing.events.emplace_back(default_offset + (timing.events.empty() ? 0UL : timing.events.back().time));
         }
-        ImGui::SameLine(0.f, 10.f);
+        ImGui::SameLine(); ImGui::Dummy({50,5});ImGui::SameLine();
         if (ImGui::Button("Clear##schedule")) {
             timing.events.clear();
         }
@@ -306,7 +306,7 @@ void showTimingSchedule(Timing &timing) {
             ImGui::SetClipboardText(string.c_str());
         }
         // set state
-        ImGui::SameLine(0.f, 10.f);
+        ImGui::SameLine(); ImGui::Dummy({50,5});ImGui::SameLine();
         if (injectState == InjectState::RUNNING) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.4f, 0.4f, 1.0f,1.0f});
             if (ImGui::Button("Stop###StartStop")) {
