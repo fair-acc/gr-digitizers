@@ -158,8 +158,8 @@ public:
     struct Trigger {
         std::array<bool, 20> outputs;
         uint64_t id;
-        uint64_t delay; // [ms]
-        uint64_t flattop; // [ms]
+        double delay; // [ms]
+        double flattop; // [ms]
 
         bool operator<=>(const Trigger&) const = default;
     };

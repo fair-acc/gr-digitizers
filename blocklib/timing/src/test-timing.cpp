@@ -110,41 +110,68 @@ ImColor getStableBPCIDColor(T id) {
 
 std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
     static int current = 0;
+    static const uint64_t mask = ((1ULL << 16) - 1 ) << (64-16);
+    auto getTimingMask = [&mask = mask](uint64_t gid){
+        uint64_t id = ((gid & ((1UL << 12) - 1)) << 48)
+                      + ((1   & ((1UL <<  4) - 1)) << 60);
+        return std::pair<uint64_t, uint64_t> {id, mask};
+    };
+    static int radioButtonState = 0;
+    ImGui::RadioButton("All Timing Groups", &radioButtonState, 0); ImGui::SameLine();
+    ImGui::RadioButton("SIS18", &radioButtonState, 1); ImGui::SameLine();
+    ImGui::RadioButton("SIS100", &radioButtonState, 2); ImGui::SameLine();
+    ImGui::RadioButton("ESR", &radioButtonState, 3); ImGui::SameLine();
+    ImGui::RadioButton("CRYRING", &radioButtonState, 4); ImGui::SameLine();
+    ImGui::RadioButton("Other:", &radioButtonState, 5); ImGui::SameLine();
     static std::vector<const char*> items{};
-    static std::vector<std::string> displayStrings{timingGroupTable.size() + 1};
-
-    static std::vector<std::pair<uint64_t, uint64_t>> result = [&itms = items, &dispStrings = displayStrings]() {
-       std::vector<std::pair<uint64_t, uint64_t>> res{};
-       dispStrings.emplace_back("Events form all timing groups");
-       itms.push_back(dispStrings.back().c_str());
-       res.emplace_back(0x0, 0x0);
+    static std::vector<std::string> displayStrings{timingGroupTable.size() - 4};
+    static std::vector<uint64_t> result = [&itms = items, &dispStrings = displayStrings]() {
+       std::vector<uint64_t> res{};
        for (auto & [gid, strings] : timingGroupTable) {
+           if (gid == 300 /*SIS18*/ || gid == 310 /*SIS100*/ || gid == 210 /*CRYRING*/ || gid == 340 /*ESR*/) {
+               continue;
+           }
            auto & [enumName, description] = strings;
            dispStrings.push_back(fmt::format("{} ({})", enumName, gid));
            itms.push_back(dispStrings.back().c_str());
            uint64_t id = ((gid & ((1UL << 12) - 1)) << 48)
                        + ((1   & ((1UL <<  4) - 1)) << 60);
-           uint64_t mask = ((1ULL << 16) - 1 ) << (64-16);
-           res.emplace_back(id, mask);
+           res.emplace_back(id);
        }
        return res;
     }();
     ImGui::SetNextItemWidth(200);
-    ImGui::Combo("TimingGroup", &current, items.data(), static_cast<int>(items.size()));
-    return result[static_cast<std::size_t>(current)];
+    {
+        auto _ = ImScoped::Disabled(radioButtonState != 5);
+        ImGui::Combo("##TimingGroup", &current, items.data(), static_cast<int>(items.size()));
+    }
+    switch (radioButtonState) {
+        case 0:
+            return {0,0};
+        case 1:
+            return getTimingMask(300);
+        case 2:
+            return getTimingMask(310);
+        case 3:
+            return getTimingMask(340);
+        case 4:
+            return getTimingMask(210);
+        default:
+            return {result[static_cast<std::size_t>(current)], mask};
+    }
 }
 
 void showTimingEventTable(Timing &timing) {
     static gr::BufferReader auto event_reader = timing.snooped.new_reader();
+    if (ImGui::Button("clear")) {
+        std::ignore = event_reader.consume(event_reader.available());
+    }
+    ImGui::SameLine(ImGui::GetCursorPosX() + 50);
     auto [id_filter, mask] = TimingGroupFilterDropdown();
     if (id_filter != timing.snoopID || mask != timing.snoopMask) {
         timing.snoopID = id_filter;
         timing.snoopMask = mask;
         timing.updateSnoopFilter();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("clear")) {
-        std::ignore = event_reader.consume(event_reader.available());
     }
     if (ImGui::CollapsingHeader("Received Timing Events", ImGuiTreeNodeFlags_DefaultOpen)) {
         static int freeze_cols = 1;
@@ -238,6 +265,9 @@ void showTimingSchedule(Timing &timing) {
     static constexpr uint64_t max_uint14 = (1UL << 14) - 1;
     static constexpr uint64_t max_uint12 = (1UL << 12) - 1;
     static constexpr uint64_t max_uint4 = (1UL << 4) - 1;
+    static constexpr double minDouble = 0;
+    static constexpr double maxDouble = std::numeric_limits<uint64_t>::max();
+
 
     static std::size_t current = 0;
     static uint64_t time_offset = 0;
@@ -397,20 +427,20 @@ void showTimingSchedule(Timing &timing) {
                                                             trigger = Timing::Trigger{};
                                                             trigger->id = ev.id();
                                                             trigger->outputs[i] = true;
-                                                            trigger->delay = default_offset / 1000000;
-                                                            trigger->flattop = default_offset / 1000000;
+                                                            trigger->delay = 0.0;
+                                                            trigger->flattop = 0.003;
                                                         }
                                                     }
                                                 }
                                                 ImGui::TableNextColumn();
                                                 if (trigger) {
                                                     ImGui::SetNextItemWidth(80);
-                                                    ImGui::DragScalar("[ms]###delay", ImGuiDataType_U64, &trigger->delay, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                                                    ImGui::DragScalar("[ms]###delay", ImGuiDataType_Double, &trigger->delay, 1.0f, &minDouble, &maxDouble, "%f", ImGuiSliderFlags_None);
                                                 }
                                                 ImGui::TableNextColumn();
                                                 if (trigger) {
                                                     ImGui::SetNextItemWidth(80);
-                                                    ImGui::DragScalar("[ms]###flattop", ImGuiDataType_U64, &trigger->flattop, 1.0f, &min_uint64, &max_uint64, "%d", ImGuiSliderFlags_None);
+                                                    ImGui::DragScalar("[ms]###flattop", ImGuiDataType_Double, &trigger->flattop, 1.0f, &minDouble, &maxDouble, "%f", ImGuiSliderFlags_None);
                                                 }
                                                 if (trigger) {
                                                     timing.updateTrigger(*trigger);
