@@ -369,7 +369,7 @@ void showTimingSchedule(Timing &timing) {
                 ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_NoHide);
                 for (auto & [_2, outputName, _3] : timing.outputs) {
                     auto [name, show] = outputConfig.contains(outputName) ? outputConfig.at(outputName) : std::pair{outputName, false};
-                    ImGui::TableSetupColumn(name.c_str(), show ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_NoHide);
+                    ImGui::TableSetupColumn(name.c_str(), show ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_DefaultHide);
                 }
                 ImGui::TableSetupColumn("Trigger Delay", ImGuiTableColumnFlags_NoHide);
                 ImGui::TableSetupColumn("Trigger Flat-Top", ImGuiTableColumnFlags_NoHide);
