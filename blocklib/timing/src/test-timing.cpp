@@ -5,9 +5,6 @@
 #include <ranges>
 #include <string>
 
-// CLI - interface
-#include <CLI/CLI.hpp>
-
 // UI
 #include <SDL.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -766,6 +763,7 @@ void shutdownSDL(SDL_Window *window, SDL_GLContext gl_context) {
 }
 
 int showUI(Timing &timing) {
+    timing.initialize();
     auto [window, gl_context] = openSDLWindow();
     if (!window) return 200;
 
@@ -810,14 +808,5 @@ int showUI(Timing &timing) {
 
 int main(int argc, char** argv) {
     Timing timing; // an interface to the timing card allowing condition & io configuration and event injection & snooping
-
-    CLI::App app{"timing receiver saftbus example"};
-    app.add_flag("--simulate", timing.simulate, "mock the timing card to test the gui by directly inserting the scheduled events into the snooped events");
-    try {
-        app.parse(argc, argv);
-    } catch(const CLI::ParseError &e) {
-        return app.exit(e);
-    }
-
     return showUI(timing);
 }

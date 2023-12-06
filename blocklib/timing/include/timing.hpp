@@ -212,6 +212,9 @@ public:
                 std::map<std::string, std::string> devices = saftd->getDevices();
                 if (devices.empty()) {
                     std::cerr << "No devices attached to saftd" << std::endl;
+                    simulate = true;
+                    initialized = true;
+                    return;
                 }
                 receiver = TimingReceiver_Proxy::create(devices.begin()->second);
                 sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
@@ -221,7 +224,12 @@ public:
                     outputs.emplace_back(i, name, port);
                 }
                 initialized = true;
-            } catch (...) {}
+            } catch (...) {
+                std::cerr << "Error initializing saft -> " << std::endl;
+                simulate = true;
+                initialized = true;
+                return;
+            }
         }
     }
 
