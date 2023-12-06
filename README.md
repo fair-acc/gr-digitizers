@@ -36,27 +36,7 @@ sudo ninja install
 ```
 
 ### Build etherbone and saftlib
-These are optional dependencies which are only needed when building with `-Denable_timing=true`.
-For actually using the blocks and utilities built by this you will also need actual timing receiver hardware, the
-wishbone kernel module has to be loaded and the saftlibd daemon has to be running and configured properly.
-
-```shell
-git clone --branch v2.1.3 --depth=1 https://ohwr.org/project/etherbone-core.git
-cd etherbone-core/api
-./autogen.sh
-./configure
-make -j
-sudo make install
-```
-
-```shell
-git clone --branch v3.0.3 --depth=1 https://github.com/GSI-CS-CO/saftlib.git
-cd saftlib
-./autogen.sh
-./configure 
-make -j
-sudo make install
-```
+To build and test the timing related dependencies, see the [readme for the timing block](blocklib/timing/README.md)
 
 ### Build gr-digitizers
 
