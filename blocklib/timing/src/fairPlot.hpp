@@ -55,7 +55,7 @@ namespace FairPlot {
     };
 
     template <std::size_t N>
-    void PlotStatusBar(const char* label_id, const FairPlot::ScrollingBuffer<N>  &pointBuffer, double xOffset) {
+    void plotStatusBar(const char* label_id, const FairPlot::ScrollingBuffer<N>  &pointBuffer, double xOffset) {
         if (ImPlot::BeginItem(label_id, 0, ImPlotCol_Fill)) {
             ImPlotContext& gp = *ImPlot::GetCurrentContext();
             ImDrawList& draw_list = *ImPlot::GetPlotDrawList();
@@ -122,7 +122,7 @@ namespace FairPlot {
     }
 
     template <std::size_t N>
-    void PlotInfLinesOffset(const char* label_id, const FairPlot::ScrollingBuffer<N>  &pointBuffer, ImPlotInfLinesFlags_ flags, double xOffset) {
+    void plotNamedEvents(const char* label_id, const FairPlot::ScrollingBuffer<N>  &pointBuffer, ImPlotInfLinesFlags_ flags, double xOffset) {
         const double yText = ImPlot::GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO).Y.Max;
         const ImVec2 textOffset{-8.f, 120.f};
         std::array<double, N> data;

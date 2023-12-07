@@ -643,30 +643,30 @@ public:
 
                 // plot freestanding events
                 if (!events.empty()) {
-                    FairPlot::PlotInfLinesOffset("Events", events, static_cast<ImPlotInfLinesFlags_>(0), -time);
+                    FairPlot::plotNamedEvents("Events", events, static_cast<ImPlotInfLinesFlags_>(0), -time);
                 }
 
                 ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, 16.0f);
 
                 if (!beamin.empty()) {
                     ImPlot::PushColormap(boolColormap);
-                    FairPlot::PlotStatusBar("beamin_plot", beamin, -time);
+                    FairPlot::plotStatusBar("beamin_plot", beamin, -time);
                     ImPlot::PopColormap();
                 }
 
                 if (!bpcids.empty()) {
                     ImPlot::PushColormap(bpcidColormap);
-                    FairPlot::PlotStatusBar("bpcid_plot", bpcids, -time);
+                    FairPlot::plotStatusBar("bpcid_plot", bpcids, -time);
                     ImPlot::PopColormap();
                 }
                 if (!sids.empty()) {
                     ImPlot::PushColormap(sidColormap);
-                    FairPlot::PlotStatusBar("sid_plot", sids, -time);
+                    FairPlot::plotStatusBar("sid_plot", sids, -time);
                     ImPlot::PopColormap();
                 }
                 if (!bpids.empty()) {
                     ImPlot::PushColormap(bpidColormap);
-                    FairPlot::PlotStatusBar("bpid_plot", bpids, -time);
+                    FairPlot::plotStatusBar("bpid_plot", bpids, -time);
                     ImPlot::PopColormap();
                 }
                 ImPlot::PopStyleVar();
