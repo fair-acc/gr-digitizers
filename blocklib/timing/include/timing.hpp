@@ -263,7 +263,7 @@ public:
         }
     }
 
-    unsigned long getTAI() {
+    unsigned long currentTimeTAI() {
         if (simulate) {
             return static_cast<unsigned long>(std::max(0L, duration_cast<std::chrono::nanoseconds>(std::chrono::utc_clock::now().time_since_epoch()).count()));
         }

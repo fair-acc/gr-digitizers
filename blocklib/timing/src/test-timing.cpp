@@ -313,7 +313,7 @@ void showTimingSchedule(Timing &timing) {
         } else {
             if (ImGui::Button("Start###StartStop")) {
                 current = 0;
-                time_offset = timing.getTAI();
+                time_offset = timing.currentTimeTAI();
                 injectState = InjectState::RUNNING;
             }
         }
@@ -328,7 +328,7 @@ void showTimingSchedule(Timing &timing) {
             auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
             if (ImGui::Button("Single###SingleStop")) {
                 current = 0;
-                time_offset = timing.getTAI();
+                time_offset = timing.currentTimeTAI();
                 injectState = InjectState::SINGLE;
             }
         }
@@ -409,7 +409,8 @@ void showTimingSchedule(Timing &timing) {
                                                 }
                                                 ImGui::TableNextColumn();
                                                 if (ImGui::Button("inject")) {
-                                                    timing.injectEvent(ev, timing.getTAI() + default_offset);
+                                                    timing.injectEvent(ev,
+                                                                       timing.currentTimeTAI() + default_offset);
                                                 }
                                                 auto trigger = timing.triggers.contains(ev.id()) ? std::optional<Timing::Trigger>{timing.triggers[ev.id()]} : std::optional<Timing::Trigger>{};
                                                 for (auto & [i, outputName, _2] : timing.outputs) {
@@ -459,7 +460,7 @@ void showTimingSchedule(Timing &timing) {
         if (current >= timing.events.size()) {
             injectState = InjectState::STOPPED;
         } else {
-            while (timing.events[current].time + time_offset < timing.getTAI() + 500000000UL) {
+            while (timing.events[current].time + time_offset < timing.currentTimeTAI() + 500000000UL) {
                 auto ev = timing.events[current];
                 timing.injectEvent(ev, time_offset);
                 if (current + 1 >= timing.events.size()) {
@@ -493,7 +494,7 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
             ImGui::TextUnformatted("Mocking the timing card by directly forwarding injected events");
             return;
         }
-        uint64_t trTime = timing.getTAI();
+        uint64_t trTime = timing.currentTimeTAI();
         ImGui::TextUnformatted(fmt::format("{} -- ({} ns)\nTemperature: {}°C,\nGateware: {},\n(\"version\", \"{}\")",
                                            trTime, taiNsToUtc(trTime),
                                            timing.receiver->CurrentTemperature(),
@@ -634,7 +635,7 @@ public:
 
     void display(Timing &timing) {
         double plot_depth = 10; // [s]
-        auto currentTime = timing.getTAI();
+        auto currentTime = timing.currentTimeTAI();
         float time = (static_cast<float>(currentTime - startTime)) * 1e-9f;
         if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {

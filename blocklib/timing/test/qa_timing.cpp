@@ -14,8 +14,8 @@ const boost::ut::suite TimingTests = [] {
         Timing timing;
         auto reader = timing.snooped.new_reader();
         timing.initialize();
-        timing.injectEvent(Timing::Event{2000, 0x10, 0x20}, timing.getTAI());
-        timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.getTAI());
+        timing.injectEvent(Timing::Event{2000, 0x10, 0x20}, timing.currentTimeTAI());
+        timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.currentTimeTAI());
         std::this_thread::sleep_for(20ms);
         timing.process();
         auto data = reader.get();
@@ -29,8 +29,8 @@ const boost::ut::suite TimingTests = [] {
         timing.simulate = true;
         auto reader = timing.snooped.new_reader();
         timing.initialize();
-        timing.injectEvent(Timing::Event{2000, 0x10, 0x20}, timing.getTAI());
-        timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.getTAI());
+        timing.injectEvent(Timing::Event{2000, 0x10, 0x20}, timing.currentTimeTAI());
+        timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.currentTimeTAI());
         timing.process();
         auto data = reader.get();
         expect(data.size() == 2_ul);
