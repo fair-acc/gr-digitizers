@@ -24,13 +24,6 @@ FetchContent_Declare(
 if (EMSCRIPTEN)
     FetchContent_MakeAvailable(graph-prototype ut)
 else ()
-    FetchContent_Declare( # used for examples and utilities, not for actual blocks
-       cli11_proj
-       QUIET
-       GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-       GIT_TAG v2.3.2
-    )
-
     FetchContent_Declare(
             imgui
             GIT_REPOSITORY  https://github.com/ocornut/imgui.git
@@ -44,7 +37,7 @@ else ()
             GIT_REPOSITORY  https://github.com/epezent/implot.git
             GIT_TAG         v0.16
     )
-    FetchContent_MakeAvailable(imgui implot graph-prototype ut cli11_proj)
+    FetchContent_MakeAvailable(imgui implot graph-prototype ut)
 
     find_package(SDL2 REQUIRED)
     find_package(OpenGL REQUIRED COMPONENTS OpenGL)
@@ -89,6 +82,7 @@ endif()
 
 if(NOT EMSCRIPTEN)
     option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
+    option(ENABLE_TIMING "Enable TimingReceiver support" ON)
     set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
 endif()
 
