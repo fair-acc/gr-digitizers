@@ -200,13 +200,13 @@ public:
             events.clear();
             using std::operator""sv;
             try {
-                for (auto line : std::views::split(string, "\n"sv)) {
+                for (const auto line : std::views::split(string, "\n"sv)) {
                     auto event = Timing::Event::fromString(std::string_view{line});
                     if (event) {
                         events.push_back(*event);
                     }
                 }
-            } catch (std::exception &e) {
+            } catch (...) {
                 events.clear();
                 fmt::print("Error parsing data: {}", string);
             }

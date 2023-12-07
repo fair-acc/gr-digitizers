@@ -124,7 +124,7 @@ std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
     static std::vector<std::string> displayStrings{timingGroupTable.size() - 4};
     static std::vector<uint64_t> result = [&itms = items, &dispStrings = displayStrings]() {
        std::vector<uint64_t> res{};
-       for (auto & [gid, strings] : timingGroupTable) {
+       for (const auto & [gid, strings] : timingGroupTable) {
            if (gid == 300 /*SIS18*/ || gid == 310 /*SIS100*/ || gid == 210 /*CRYRING*/ || gid == 340 /*ESR*/) {
                continue;
            }
@@ -206,7 +206,7 @@ void showTimingEventTable(Timing &timing) {
             ImGui::TableHeadersRow();
             auto data = event_reader.get();
 
-            for (auto &evt : std::ranges::reverse_view{data}) {
+            for (const auto &evt : std::ranges::reverse_view{data}) {
                 ImGui::TableNextRow();
                 ImGui::PushID(&evt);
                 tableColumnString("{}", taiNsToUtc(evt.time));
@@ -296,7 +296,7 @@ void showTimingSchedule(Timing &timing) {
         ImGui::SameLine();
         if (ImGui::Button("Save to Clipboard")) {
             std::string string;
-            for (auto &ev: timing.events) {
+            for (const auto &ev: timing.events) {
                 string.append(fmt::format("{:#x} {:#x} {}\n", ev.id(), ev.param(), ev.time));
             }
             ImGui::SetClipboardText(string.c_str());
@@ -363,7 +363,7 @@ void showTimingSchedule(Timing &timing) {
                 ImGui::TableSetupColumn("reserved", ImGuiTableColumnFlags_DefaultHide);
                 ImGui::TableSetupColumn("##inject", ImGuiTableColumnFlags_NoHide);
                 ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_NoHide);
-                for (auto & [_2, outputName, _3] : timing.outputs) {
+                for (const auto & [_2, outputName, _3] : timing.outputs) {
                     auto [name, show] = outputConfig.contains(outputName) ? outputConfig.at(outputName) : std::pair{outputName, false};
                     ImGui::TableSetupColumn(name.c_str(), show ? ImGuiTableColumnFlags_None : ImGuiTableColumnFlags_DefaultHide);
                 }
@@ -412,7 +412,7 @@ void showTimingSchedule(Timing &timing) {
                                                                        timing.currentTimeTAI() + default_offset);
                                                 }
                                                 auto trigger = timing.triggers.contains(ev.id()) ? std::optional<Timing::Trigger>{timing.triggers[ev.id()]} : std::optional<Timing::Trigger>{};
-                                                for (auto & [i, outputName, _2] : timing.outputs) {
+                                                for (const auto & [i, outputName, _2] : timing.outputs) {
                                                     ImGui::TableNextColumn();
                                                     auto [name, _3] = outputConfig.at(outputName);
                                                     if (trigger) {
@@ -522,7 +522,7 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
 
             auto outputs = timing.receiver->getOutputs();
 
-            for (auto & [name, port]:outputs) {
+            for (const auto & [name, port]:outputs) {
                 ImGui::PushID(&name);
                 ImGui::TableNextRow();
                 auto port_proxy = saftlib::Output_Proxy::create(port);
@@ -562,9 +562,9 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
             ImGui::TableSetupColumn("OutputState");
             ImGui::TableHeadersRow();
 
-            for (auto &[name, port] : timing.receiver->getOutputs()) {
+            for (const auto &[name, port] : timing.receiver->getOutputs()) {
                 auto port_proxy = saftlib::Output_Proxy::create(port);
-                for (auto & condition : port_proxy->getAllConditions()) {
+                for (const auto & condition : port_proxy->getAllConditions()) {
                     auto condition_proxy = saftlib::OutputCondition_Proxy::create(condition);
                     ImGui::PushID(&condition);
                     ImGui::TableNextRow();
@@ -613,7 +613,7 @@ public:
         if (startTime == 0 && !newEvents.empty()) {
             startTime = newEvents[0].time;
         }
-        for (auto &event: newEvents) {
+        for (const auto &event: newEvents) {
             double eventtime = (static_cast<double>(event.time - startTime)) * 1e-9;
             // filter out starts of new contexts
             if (!previousContextEvent || (event.eventNo == 256 && (event.bpcid != previousContextEvent->bpcid || event.sid != previousContextEvent->sid || event.bpid != previousContextEvent->bpid))) {
@@ -625,7 +625,7 @@ public:
                 bpids.pushBack({eventtime, static_cast<double>(previousBPToggle)});
                 previousContextEvent = event;
             }
-            if ((event.eventNo != 256)) { // filter out non-BP_START events
+            if (event.eventNo != 256) { // filter out non-BP_START events
                 events.pushBack({eventtime, static_cast<double>(event.eventNo)});
             }
         }
@@ -744,7 +744,7 @@ void startImGuiFrame() {
 
 void RenderToSDL(const ImGuiIO& io, SDL_Window *window) {
     ImGui::Render();
-    static ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    static ImVec4 clear_color{0.45f, 0.55f, 0.60f, 1.00f};
     glViewport(0, 0, static_cast<int>(io.DisplaySize.x), static_cast<int>(io.DisplaySize.y));
     glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -768,7 +768,6 @@ int showUI(Timing &timing) {
     if (!window) return 200;
 
     const ImGuiIO& io = ImGui::GetIO(); (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 
     ImGui::StyleColorsLight(); // set light color scheme, alt: ImGui::StyleColorsDark() ImGui::StyleColorsClassic();
     app_header::loadHeaderFont(13.f); // default font for the application

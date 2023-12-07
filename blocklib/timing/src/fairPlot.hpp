@@ -33,7 +33,7 @@ namespace FairPlot {
         std::size_t size = 0;
         std::size_t offset = 0;
 
-        bool empty() { return size == 0; }
+        bool empty() const { return size == 0; }
 
         void pushBack(ImPlotPoint newData) {
             data[(offset + size) % N] = newData;
