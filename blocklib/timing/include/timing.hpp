@@ -34,6 +34,65 @@ class Timing {
 public:
     static const int milliToNano = 1000000;
     static const int minTriggerOffset = 100;
+    /**
+     * Structure to atuomatically encode and decode GSI/FAIR specific timing events as documented in:
+     * https://www-acc.gsi.de/wiki/Timing/TimingSystemEvent
+     *
+     * The Timing system transmits 256 bit of metadata per timing event consisting of the following high level fields:
+     *  bits   |size| name                   | description
+     * --------|----|------------------------|-------------------------------------------------------------------
+     * 000-063 | 64 | EventID                | contains application specific data, Timing Hardware performs a prefix match on this data
+     * 064-127 | 64 | Param                  | application specific data
+     * 128-159 | 32 | Reserved               | unused/not covered here
+     * 160-191 | 32 | Timing Extension Field | used internally/not covered here
+     * 192-255 | 64 | Timestamp              | time in nanoseconds since the origin of the TAI epoch
+     *
+     * At GSI/FAIR the EventID and Param fields are split into different fields:
+     *
+     * EventID:
+     * bitsBE |bitsLE |size| name         | description
+     *  ------|-------|----|--------------|-------------------------------------------------------------------
+     *  00-03 | 60-63 |  4 | FID          | Format ID: always equals 0x1
+     *  04-15 | 48-59 | 12 | GID          | Timing group ID: see event_definitions.hpp for the existing timing groups
+     *  16-27 | 36-47 | 12 | EVENTNO      | Event Number: determines the type of event e.g CME_BP_START, see event_definitions.hpp
+     *  28-31 | 32-35 |  4 | FLAGS        |
+     *     28 |    34 |  1 |   BEAM-IN    |
+     *     29 |    34 |  1 |   BPC-START  | First event in a new Beam Production Chain
+     *     30 |    33 |  1 |   RESERVED 1 |
+     *     31 |    32 |  1 |   RESERVED 2 |
+     *  32-43 | 20-31 | 12 | SID          | Sequence ID
+     *  44-57 |  6-19 | 14 | BPID         | Beam Process ID
+     *  58-63 |  0- 5 |  6 | reserved     |
+     *     58 |     5 |  1 |   reserved   |
+     *     59 |     4 |  1 |   ReqNoBeam  |
+     *  40-63 |  0- 3 |  4 |   VirtAcc    | Virtual Accelerator
+     *
+     * BigEndian    0    4            16           28   32           44                 58
+     * LittleEndian   60           48           36   20           20              6      0
+     *           0x f    f   f   f    f   f   f    f    f   f   f    f   f   f   8  8 f
+     *           0b 1111 111111111111 111111111111 1111 111111111111 11111111111111 111111
+     * size [bits]   4        12           12       4       12             14         6
+     *              FID       GID        EVENTNO   FLAGS    SID           BPID      reserved
+     *
+     * param:
+     *  bits |size| name         | description
+     * ------|----|--------------|-------------------------------------------------------------------
+     *  0-21 | 22 | BPCID        | Beam Production Chain ID
+     * 22-63 | 42 | BPCTS        | Beam Production Chain Timestamp
+     *
+     * BigEndian     0                      22                                      63
+     * LittleEndian  63                  44                                          0
+     * 0x            fffff8                 8ffffffffff
+     * 0b            1111111111111111111111 111111111111111111111111111111111111111111
+     * size [bits]            22                              42
+     *               BPCID                  BPCTS
+     *
+     * The (BPCID, SID, BPID, GID) tuple corresponds to the timing selector (`FAIR.SELECTOR.C=__:S=__;P=__:T=__`)
+     * described in https://github.com/fair-acc/opencmw-cpp/blob/main/assets/F-CS-SIS-en-B_0006_FAIR_Service_Middle_Ware_V1_0.pdf
+     *
+     * The additional fields `executed` and `flags` do not correspond to fields in the timing message but are used to
+     * store local meta-information on whether the event was processed in time.
+     */
     struct Event {
         // eventid - 64
         uint8_t fid = 1;   // 4
