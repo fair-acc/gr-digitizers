@@ -13,7 +13,7 @@
 #include <SDL_opengl.h>
 #endif
 #include <imgui.h>
-#include <imgui_impl_sdl.h>
+#include <imgui_impl_sdl2.h>
 #include <imgui_impl_opengl3.h>
 #include <implot.h>
 #include "ImScoped.hpp"
@@ -503,7 +503,7 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
         static int freeze_cols = 1;
         static int freeze_rows = 1;
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
-        ImVec2 outer_size{ImGui::GetWindowContentRegionWidth() * 0.5f, TEXT_BASE_HEIGHT * 10};
+        ImVec2 outer_size{(ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x) * 0.5f, TEXT_BASE_HEIGHT * 10};
         static ImGuiTableFlags flags =
                 ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV |
