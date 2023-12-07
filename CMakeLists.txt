@@ -55,8 +55,9 @@ else ()
             ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
     )
     target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
+    target_compile_options(imgui PRIVATE -w) # imgui does lots of oldstyle casts and pointer arithmethic leading to many warnings
     target_include_directories(imgui BEFORE
-        PUBLIC
+        PUBLIC SYSTEM
             ${imgui_SOURCE_DIR}
             ${imgui_SOURCE_DIR}/backends
     )
@@ -64,8 +65,9 @@ else ()
     add_library(implot
         OBJECT ${implot_SOURCE_DIR}/implot_demo.cpp ${implot_SOURCE_DIR}/implot_items.cpp ${implot_SOURCE_DIR}/implot.cpp
     )
+    target_compile_options(implot PRIVATE -w) # implot does lots of oldstyle casts and pointer arithmethic leading to many warnings
     target_include_directories(implot BEFORE
-        PUBLIC
+        PUBLIC SYSTEM
             ${implot_SOURCE_DIR}
     )
     target_link_libraries(implot PUBLIC imgui)

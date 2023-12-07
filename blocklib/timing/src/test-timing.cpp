@@ -24,7 +24,7 @@
 
 #include <timing.hpp>
 #include "fair_header.h"
-#include "plot.hpp"
+#include "fairPlot.hpp"
 #include "event_definitions.hpp"
 
 
@@ -255,7 +255,6 @@ void showTimingEventTable(Timing &timing) {
 }
 
 void showTimingSchedule(Timing &timing) {
-    static constexpr uint64_t min_uint64 = 0;
     static constexpr uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
     static constexpr uint64_t max_uint42 = (1UL << 42) - 1;
     static constexpr uint64_t max_uint22 = (1UL << 22) - 1;
@@ -343,7 +342,7 @@ void showTimingSchedule(Timing &timing) {
                 ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable;
         {
             auto _ = ImScoped::Disabled(injectState != InjectState::STOPPED);
-            if (auto _1 = ImScoped::Table("event schedule", 21 + timing.outputs.size(), flags, outer_size, 0.f)) {
+            if (auto _1 = ImScoped::Table("event schedule", static_cast<int>(21 + timing.outputs.size()), flags, outer_size, 0.f)) {
                 ImGui::TableSetupScrollFreeze(freeze_cols, freeze_rows);
                 ImGui::TableSetupColumn("time", ImGuiTableColumnFlags_NoHide); // Make the first column not hideable to match our use of TableSetupScrollFreeze()
                 ImGui::TableSetupColumn("bpcid");
@@ -589,25 +588,25 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
 template<gr::Buffer BufferT>
 class TimePlot {
 public:
-    const int bufferSize = 5000;
+    static constexpr int bufferSize = 5000;
     using Reader = decltype(std::declval<BufferT>().new_reader());
 private:
     uint64_t startTime = 0;
-    ImPlot::ScrollingBuffer beamin{bufferSize};
-    ImPlot::ScrollingBuffer bpcids{bufferSize};
-    ImPlot::ScrollingBuffer sids{bufferSize};
-    ImPlot::ScrollingBuffer bpids{bufferSize};
-    ImPlot::ScrollingBuffer events{bufferSize};
+    FairPlot::ScrollingBuffer<bufferSize> beamin{};
+    FairPlot::ScrollingBuffer<bufferSize> bpcids{};
+    FairPlot::ScrollingBuffer<bufferSize> sids{};
+    FairPlot::ScrollingBuffer<bufferSize> bpids{};
+    FairPlot::ScrollingBuffer<bufferSize> events{};
     Reader snoopReader;
-    int boolColormap = ImPlot::boolColormap();
-    int bpcidColormap = ImPlot::bpcidColormap();
-    int bpidColormap = ImPlot::bpidColormap();
-    int sidColormap = ImPlot::sidColormap();
+    int boolColormap = FairPlot::boolColormap();
+    int bpcidColormap = FairPlot::bpcidColormap();
+    int bpidColormap = FairPlot::bpidColormap();
+    int sidColormap = FairPlot::sidColormap();
     std::optional<Timing::Event> previousContextEvent{};
     bool previousBPToggle = false;
     bool previousSIDToggle = false;
 public:
-    explicit TimePlot(BufferT &events) : snoopReader{events.new_reader()} { }
+    explicit TimePlot(BufferT &_events) : snoopReader{_events.new_reader()} { }
 
     void updateStreaming() {
         auto newEvents = snoopReader.get();
@@ -615,59 +614,59 @@ public:
             startTime = newEvents[0].time;
         }
         for (auto &event: newEvents) {
-            float eventtime = (static_cast<float>(event.time - startTime)) * 1e-9f;
+            double eventtime = (static_cast<double>(event.time - startTime)) * 1e-9;
             // filter out starts of new contexts
             if (!previousContextEvent || (event.eventNo == 256 && (event.bpcid != previousContextEvent->bpcid || event.sid != previousContextEvent->sid || event.bpid != previousContextEvent->bpid))) {
                 previousSIDToggle = (previousContextEvent->sid != event.sid) ? !previousSIDToggle : previousSIDToggle;
                 previousBPToggle = (previousContextEvent->bpid != event.bpid) ? !previousBPToggle : previousBPToggle;
-                beamin.AddPoint(eventtime, event.flagBeamin);
-                bpcids.AddPoint(eventtime, static_cast<float>(getStableBPCIDColorIndex(static_cast<uint16_t>(event.bpcid))));
-                sids.AddPoint(eventtime, previousSIDToggle);
-                bpids.AddPoint(eventtime, previousBPToggle);
+                beamin.pushBack({eventtime, static_cast<double>(event.flagBeamin)});
+                bpcids.pushBack({eventtime, static_cast<double>(getStableBPCIDColorIndex(static_cast<uint16_t>(event.bpcid)))});
+                sids.pushBack({eventtime, static_cast<double>(previousSIDToggle)});
+                bpids.pushBack({eventtime, static_cast<double>(previousBPToggle)});
                 previousContextEvent = event;
             }
             if ((event.eventNo != 256)) { // filter out non-BP_START events
-                events.AddPoint(eventtime, event.eventNo);
+                events.pushBack({eventtime, static_cast<double>(event.eventNo)});
             }
         }
-        auto _ = snoopReader.consume(newEvents.size()); // consume processed events
+        std::ignore = snoopReader.consume(newEvents.size()); // consume processed events
     }
 
     void display(Timing &timing) {
         double plot_depth = 10; // [s]
         auto currentTime = timing.currentTimeTAI();
-        float time = (static_cast<float>(currentTime - startTime)) * 1e-9f;
+        double time = (static_cast<double>(currentTime - startTime)) * 1e-9;
         if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImPlot::BeginPlot("timing markers", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
                 ImPlot::SetupAxes(fmt::format("t [s] + {}", taiNsToUtc(currentTime)).c_str(), nullptr, 0, ImPlotAxisFlags_NoDecorations);
                 ImPlot::SetupAxisLimits(ImAxis_X1, -plot_depth, 0, ImGuiCond_Always);
 
                 // plot freestanding events
-                if (!events.Data.empty()) {
-                    ImPlot::PlotInfLinesOffset("Events", &events.Data[0].x, &events.Data[0].y, events.Data.size(), static_cast<ImPlotInfLinesFlags_>(0), bpids.Offset, 2 * sizeof(float), -time);
+                if (!events.empty()) {
+                    FairPlot::PlotInfLinesOffset("Events", events, static_cast<ImPlotInfLinesFlags_>(0), -time);
                 }
 
                 ImPlot::PushStyleVar(ImPlotStyleVar_DigitalBitHeight, 16.0f);
 
-                if (!beamin.Data.empty()) {
+                if (!beamin.empty()) {
                     ImPlot::PushColormap(boolColormap);
-                    ImPlot::PlotStatusBar("beamin_plot", &beamin.Data[0].x, &beamin.Data[0].y, beamin.Data.size(), ImPlotStatusBarFlags_Discrete, beamin.Offset, 2 * sizeof(float), -time);
+                    FairPlot::PlotStatusBar("beamin_plot", beamin, -time);
                     ImPlot::PopColormap();
                 }
 
-                if (!bpcids.Data.empty()) {
+                if (!bpcids.empty()) {
                     ImPlot::PushColormap(bpcidColormap);
-                    ImPlot::PlotStatusBar("bpcid_plot", &bpcids.Data[0].x, &bpcids.Data[0].y, bpcids.Data.size(), ImPlotStatusBarFlags_Discrete, bpcids.Offset, 2 * sizeof(float), -time);
+                    FairPlot::PlotStatusBar("bpcid_plot", bpcids, -time);
                     ImPlot::PopColormap();
                 }
-                if (!sids.Data.empty()) {
+                if (!sids.empty()) {
                     ImPlot::PushColormap(sidColormap);
-                    ImPlot::PlotStatusBar("sid_plot", &sids.Data[0].x, &sids.Data[0].y, sids.Data.size(), ImPlotStatusBarFlags_Discrete, sids.Offset, 2 * sizeof(float), -time);
+                    FairPlot::PlotStatusBar("sid_plot", sids, -time);
                     ImPlot::PopColormap();
                 }
-                if (!bpids.Data.empty()) {
+                if (!bpids.empty()) {
                     ImPlot::PushColormap(bpidColormap);
-                    ImPlot::PlotStatusBar("bpid_plot", &bpids.Data[0].x, &bpids.Data[0].y, bpids.Data.size(), ImPlotStatusBarFlags_Discrete, bpids.Offset, 2 * sizeof(float), -time);
+                    FairPlot::PlotStatusBar("bpid_plot", bpids, -time);
                     ImPlot::PopColormap();
                 }
                 ImPlot::PopStyleVar();
@@ -807,7 +806,7 @@ int showUI(Timing &timing) {
     return 0;
 }
 
-int main(int argc, char** argv) {
+int main() {
     Timing timing; // an interface to the timing card allowing condition & io configuration and event injection & snooping
     return showUI(timing);
 }
