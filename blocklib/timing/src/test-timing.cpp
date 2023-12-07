@@ -493,7 +493,7 @@ void showTRConfig(Timing &timing, bool &imGuiDemo, bool &imPlotDemo) {
             ImGui::TextUnformatted("Mocking the timing card by directly forwarding injected events");
             return;
         }
-        auto trTime = timing.getTAI();
+        uint64_t trTime = timing.getTAI();
         ImGui::TextUnformatted(fmt::format("{} -- ({} ns)\nTemperature: {}°C,\nGateware: {},\n(\"version\", \"{}\")",
                                            trTime, taiNsToUtc(trTime),
                                            timing.receiver->CurrentTemperature(),
