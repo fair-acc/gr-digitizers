@@ -59,16 +59,14 @@ namespace FairPlot {
         if (ImPlot::BeginItem(label_id, 0, ImPlotCol_Fill)) {
             ImPlotContext& gp = *ImPlot::GetCurrentContext();
             ImDrawList& draw_list = *ImPlot::GetPlotDrawList();
-            const ImPlotNextItemData& s = ImPlot::GetItemData();
-            if (pointBuffer.size > 1 && s.RenderFill) {
+            if (const ImPlotNextItemData& s = ImPlot::GetItemData(); pointBuffer.size > 1 && s.RenderFill) {
                 const ImPlotPlot& plot   = *gp.CurrentPlot;
                 const ImPlotAxis& x_axis = plot.Axes[plot.CurrentX];
                 const ImPlotAxis& y_axis = plot.Axes[plot.CurrentY];
 
                 const auto pixY_0 = static_cast<int>(s.LineWeight);
-                const float pixY_1_float = s.DigitalBitHeight;
-                const auto pixY_1 = static_cast<int>(pixY_1_float); //allow only positive values
-                const auto pixY_chPosOffset = static_cast<int>(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
+                const auto pixY_1 = static_cast<int>(s.DigitalBitHeight);
+                const auto pixY_chPosOffset = static_cast<int>(ImMax(s.DigitalBitHeight, s.DigitalBitHeight) + s.DigitalBitGap);
                 const int pixY_Offset = 1; //20 pixel from bottom due to mouse cursor label
 
                 int pixYMax = 0;
@@ -90,12 +88,8 @@ namespace FairPlot {
                         pMin.y = (y_axis.PixelMin) + (static_cast<float>((-gp.DigitalPlotOffset) - pixY_Offset));
                         pMax.y = (y_axis.PixelMin) + (static_cast<float>((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset));
                         //plot only one rectangle for same digital state
-                        while (((i + 2) < pointBuffer.size) && (itemData1.y == itemData2.y)) {
-                            const std::size_t in = (i + 1);
-                            itemData2 = pointBuffer[in];
-                            if (ImNanOrInf(itemData2.y)) break;
-                            pMax.x = ImPlot::PlotToPixels({itemData2.x + xOffset, itemData2.y}, IMPLOT_AUTO, IMPLOT_AUTO).x;
-                            i++;
+                        if (itemData1.y == itemData2.y && i + 1 < pointBuffer.size) {
+                            continue;
                         }
                         //do not extend plot outside plot range
                         if (pMin.x < x_axis.PixelMin) pMin.x = x_axis.PixelMin;

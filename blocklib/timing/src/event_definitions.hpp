@@ -406,7 +406,7 @@ static const std::map<uint16_t, std::pair<std::string, std::string>> eventNrTabl
         {4000, {"CMD_GMT_INTERNAL1", "internal use by the GMT"}}
 };
 
-static const std::map<std::string, std::pair<std::string, bool>> outputConfig{
+static const std::map<std::string, std::pair<std::string, bool>, std::less<>> outputConfig{
         // {Output Name} -> {Display name, show column by default}
         {"IO1", {"1", true}},
         {"IO2", {"2", true}},
@@ -421,7 +421,7 @@ static const std::map<std::string, std::pair<std::string, bool>> outputConfig{
         {"LED4_BASE_W", {"WB", false}},
 };
 
-static const std::map<std::string, std::string> demoSchedules = {{"Pattern 1", R"(
+static const std::map<std::string, std::string, std::less<>> demoSchedules = {{"Pattern 1", R"(
 0x1136100000000001 0x0 100000000
 0x1136100c00200041 0x140000000000 200000000
 0x1136100800200081 0x140000000000 300000000

@@ -46,28 +46,28 @@ const boost::ut::suite TimingTests = [] {
 
     "TimingEventFromString"_test = [] {
         auto noEvent = Timing::Event::fromString("");
-        expect(!noEvent.has_value());
+        expect(that % !noEvent.has_value());
         auto event = Timing::Event::fromString("0x1 0x123456789 123456789");
-        expect(event.has_value());
-        expect(event->time == 123456789_ul);
-        expect(event->id() == 0x1);
-        expect(event->param() == 0x123456789);
+        expect(that % event.has_value());
+        expect(that % event->time == 123456789);
+        expect(that % event->id() == 0x1);
+        expect(that % event->param() == 0x123456789);
         auto realEvent = Timing::Event::fromString("0x112c100c00300085 0x5c00075bcd15 100000000");
-        expect(realEvent.has_value());
-        expect(realEvent->time == 100000000_ul);
-        expect(realEvent->id() == 0x112c100c00300085);
-        expect(realEvent->param() == 0x5c00075bcd15);
-        expect(realEvent->bpcid == 23);
-        expect(realEvent->sid == 3);
-        expect(realEvent->bpid == 2);
-        expect(realEvent->gid == 300);
-        expect(realEvent->eventNo == 256);
-        expect(realEvent->flagBeamin);
-        expect(realEvent->flagBpcStart);
-        expect(!realEvent->reqNoBeam);
-        expect(realEvent->virtAcc == 5);
-        expect(realEvent->fid == 1);
-        expect(realEvent->bpcts == 123456789);
+        expect(that % realEvent.has_value());
+        expect(that % realEvent->time == 100000000);
+        expect(that % realEvent->id() == 0x112c100c00300085);
+        expect(that % realEvent->param() == 0x5c00075bcd15);
+        expect(that % realEvent->bpcid == 23);
+        expect(that % realEvent->sid == 3);
+        expect(that % realEvent->bpid == 2);
+        expect(that % realEvent->gid == 300);
+        expect(that % realEvent->eventNo == 256);
+        expect(that % realEvent->flagBeamin);
+        expect(that % realEvent->flagBpcStart);
+        expect(that % !realEvent->reqNoBeam);
+        expect(that % realEvent->virtAcc == 5);
+        expect(that % realEvent->fid == 1);
+        expect(that % realEvent->bpcts == 123456789);
     };
 };
 

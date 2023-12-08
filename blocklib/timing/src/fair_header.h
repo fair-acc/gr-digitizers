@@ -33,7 +33,7 @@ ImFont* loadHeaderFont(float size) {
     config.FontDataOwnedByAtlas = false;
     ImGuiIO   &io       = ImGui::GetIO();
     auto primaryFont = cmrc::ui_assets::get_filesystem().open("Roboto-Medium.ttf");
-    return io.Fonts->AddFontFromMemoryTTF(const_cast<char *>(primaryFont.begin()), primaryFont.size(), size, &config);
+    return io.Fonts->AddFontFromMemoryTTF(const_cast<char *>(primaryFont.begin()), static_cast<int>(primaryFont.size()), size, &config);
 }
 
 void draw_header_bar(std::string_view title, ImFont *headerFont) {
@@ -46,9 +46,8 @@ void draw_header_bar(std::string_view title, ImFont *headerFont) {
     const auto topLeft       = ImGui::GetCursorPos();
     // draw title
     ImGui::PushFont(headerFont);
-    const auto titleSize     = ImGui::CalcTextSize(title.data());
     // suppress title if it doesn't fit or is likely to overlap
-    if (0.5f * ImGui::GetIO().DisplaySize.x > (0.5f * titleSize.x + utcStringSize.x)) {
+    if (0.5f * ImGui::GetIO().DisplaySize.x > (0.5f * ImGui::CalcTextSize(title.data()).x + utcStringSize.x)) {
         TextCentered(title);
     }
     ImGui::PopFont();
