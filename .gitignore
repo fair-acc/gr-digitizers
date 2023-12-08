@@ -19,3 +19,7 @@ language.settings.xml
 
 # python venv files
 virtualenv/
+
+# cmake build directories
+cmake-build-*/
+build/

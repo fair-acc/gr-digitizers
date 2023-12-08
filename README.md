@@ -1,4 +1,3 @@
-
 # gr-digitizers
 
 `gr-digitizers` is a collection of gnuradio blocks for signal processing.
@@ -15,6 +14,7 @@ In a nutshell, we have three main dependencies:
  - [ROOT](https://root.cern/)
  - [PicoScope Drivers](https://www.picotech.com/downloads/linux) (optional)
  - [LimeSuite](https://github.com/myriadrf/LimeSuite) (optional)
+ - [etherbone](https://ohwr.org/project/etherbone-core/tree/master/api) and [saftlib](https://github.com/GSI-CS-CO/saftlib) (optional for the timing receiver blocks)
 
 In the following it is assumed that ROOT is installed to `/opt/root`, and the picoscope drivers
 to `/opt/picoscope` (which is e.g. done when using the Ubuntu packages).
@@ -35,15 +35,18 @@ ninja
 sudo ninja install
 ```
 
+### Build etherbone and saftlib
+To build and test the timing related dependencies, see the [readme for the timing block](blocklib/timing/README.md)
+
 ### Build gr-digitizers
 
 To build gr-digitizers, run:
 
 ```shell
-$ meson setup builddir . -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=/opt/root -Dlimesuite_prefix=/opt/limesuite
-$ cd builddir
-$ ninja
-$ LD_LIBRARY_PATH=/opt/root/lib ninja test # run unit tests, optional
+$ cmake -S . -B build -Dlibpicoscope_prefix=/opt/picoscope -Dlibroot_prefix=/opt/root -Dlimesuite_prefix=/opt/limesuite
+$ cmake --build build -j
+$ cd build
+$ LD_LIBRARY_PATH=/opt/root/lib ctest --output-on-failure # run unit tests, optional
 $ ninja install
 ```
 
@@ -55,7 +58,7 @@ By default, only unit tests without any hardware dependencies are executed. In o
 related tests, execute the below command:
 
 ```shell
-$ LD_LIBRARY_PATH=/opt/root/lib PICOSCOPE_RUN_TESTS=3000a ninja test
+$ LD_LIBRARY_PATH=/opt/root/lib PICOSCOPE_RUN_TESTS=3000a ctest --output-on-failure # run unit tests, optional
 ```
 
 Running multiple hardware tests together, like `PICOSCOPE_RUN_TESTS=3000a,4000a`, is technically possible
