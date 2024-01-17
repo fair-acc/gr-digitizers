@@ -1,6 +1,7 @@
 #include <boost/ut.hpp>
 
 #include <gnuradio-4.0/Scheduler.hpp>
+#include <gnuradio-4.0/testing/TagMonitors.hpp>
 
 #include <HelperBlocks.hpp>
 #include <Picoscope4000a.hpp>
@@ -66,35 +67,31 @@ testStreamingBasics() {
                                                                                  { "channel_ranges", std::vector{ 5. } },
                                                                                  { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-    auto            &tagTracker  = flowGraph.emplaceBlock<TagDebug<T>>();
+    auto            &tagMonitor  = flowGraph.emplaceBlock<testing::TagMonitor<T, testing::ProcessFunction::USE_PROCESS_BULK>>();
     auto            &sink        = flowGraph.emplaceBlock<CountSink<T>>();
 
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(tagTracker)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(tagTracker).template to<"in">(sink)));
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(tagMonitor)));
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(tagMonitor).template to<"in">(sink)));
 
     // Explicitly start unit because it takes quite some time
     expect(nothrow([&ps] { ps.start(); }));
 
-    // This either hangs or terminates without producing anything if I increase the number of threads
-    constexpr std::size_t                                        kMinThreads = 2;
-    constexpr std::size_t                                        kMaxThreads = 2;
-    scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{ std::move(flowGraph),
-                                                                        std::make_shared<thread_pool::BasicThreadPool>("simple-scheduler-pool", thread_pool::CPU_BOUND, kMinThreads, kMaxThreads) };
+    scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{ std::move(flowGraph) };
+    sched.init();
     sched.start();
     std::this_thread::sleep_for(kDuration);
-    ps.forceQuit(); // needed, otherwise stop() doesn't terminate (no matter if the PS works blocking or not)
     sched.stop();
 
-    const auto measuredRate = sink.samples_seen / duration<double>(kDuration).count();
+    const auto measuredRate = static_cast<double>(sink.samples_seen) / duration<double>(kDuration).count();
     fmt::println("Produced in worker: {}", ps.producedWorker());
     fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / kSampleRate * 100.,
                  duration_cast<milliseconds>(kDuration).count());
     fmt::println("Total: {}", sink.samples_seen);
 
-    expect(ge(sink.samples_seen, std::size_t{ 80000 }));
-    expect(le(sink.samples_seen, std::size_t{ 160000 }));
-    expect(eq(tagTracker.seen_tags.size(), std::size_t{ 1 }));
-    const auto &tag = tagTracker.seen_tags[0];
+    expect(ge(sink.samples_seen, 80000UZ));
+    expect(le(sink.samples_seen, 160000UZ));
+    expect(eq(tagMonitor.tags.size(), 1UZ));
+    const auto &tag = tagMonitor.tags[0];
     expect(eq(tag.index, int64_t{ 0 }));
     expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.key()))), static_cast<float>(kSampleRate)));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.key()))), "Test signal"s));
@@ -188,17 +185,12 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).to<"in">(sink0)));
 
-        ps.start();
+        scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{ std::move(flowGraph) };
+        sched.init();
+        sched.start();
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        sched.stop();
 
-        // TODO tried multi_threaded scheduler with start(); sleep; stop(), something goes
-        // wrong there (scheduler doesn't shovel data reliably)
-        scheduler::Simple sched{ std::move(flowGraph) };
-        auto              quitter = std::async([&ps] {
-            std::this_thread::sleep_for(std::chrono::seconds(3));
-            ps.forceQuit();
-        });
-
-        sched.runAndWait();
         expect(ge(sink0.samples_seen, std::size_t{ 2000 }));
         expect(le(sink0.samples_seen, std::size_t{ 10000 }));
     };

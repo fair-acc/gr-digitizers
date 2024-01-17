@@ -46,26 +46,6 @@ struct VectorSink : public gr::Block<VectorSink<T>> {
 };
 
 template<typename T>
-struct TagDebug : public gr::Block<TagDebug<T>> {
-    gr::PortIn<T>        in;
-    gr::PortOut<T>       out;
-    std::vector<gr::Tag> seen_tags;
-    std::size_t          samples_seen = 0;
-
-    gr::work::Status
-    processBulk(std::span<const T> input, std::span<T> output) noexcept {
-        std::copy(input.begin(), input.end(), output.begin());
-        if (this->input_tags_present()) {
-            auto tag = this->input_tags()[0];
-            tag.index += static_cast<int64_t>(samples_seen);
-            seen_tags.push_back(std::move(tag));
-        }
-        samples_seen += input.size();
-        return gr::work::Status::OK;
-    }
-};
-
-template<typename T>
 struct CountSink : public gr::Block<CountSink<T>> {
     gr::PortIn<T> in;
     std::size_t   samples_seen = 0;
@@ -81,7 +61,6 @@ struct CountSink : public gr::Block<CountSink<T>> {
 
 ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::VectorSource, out, data);
 ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::VectorSink, in, data);
-ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::TagDebug, in, out);
 ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::CountSink, in);
 
 #endif

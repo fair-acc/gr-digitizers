@@ -149,10 +149,8 @@ struct State {
     double                        actual_sample_rate = 0;
     std::thread                   poller;
     BufferHelper<ErrorWithSample> errors;
-    std::atomic<PollerState>      poller_state = PollerState::Idle;
-    std::atomic<bool>             forced_quit  = false; // TODO transitional until we found out what
-                                                        // goes wrong with multithreaded scheduler
-    std::size_t produced_worker = 0;                    // poller/callback thread
+    std::atomic<PollerState>      poller_state    = PollerState::Idle;
+    std::size_t                   produced_worker = 0; // poller/callback thread
 };
 
 inline AcquisitionMode
@@ -242,14 +240,14 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
     A<std::string, "trigger direction">                               trigger_direction = std::string("Rising");
     A<int, "trigger pin, digital only">                               trigger_pin       = 0;
 
-    detail::State<T>                                                  state;
+    detail::State<T>                                                  ps_state;
     detail::Settings                                                  ps_settings;
 
     ~Picoscope() { stop(); }
 
     void
     settingsChanged(const gr::property_map & /*old_settings*/, const gr::property_map & /*new_settings*/) {
-        const auto wasStarted = state.started;
+        const auto wasStarted = ps_state.started;
         if (wasStarted) {
             stop();
         }
@@ -269,14 +267,14 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             };
             std::swap(ps_settings, s);
 
-            state.channels.reserve(ps_settings.enabled_channels.size());
+            ps_state.channels.reserve(ps_settings.enabled_channels.size());
             std::size_t channelIdx = 0;
             for (const auto &[id, settings] : ps_settings.enabled_channels) {
-                state.channels.emplace_back(detail::Channel<T>{ .id            = id,
-                                                                .settings      = settings,
-                                                                .driver_buffer = std::vector<int16_t>(detail::kDriverBufferSize),
-                                                                .data_writer   = self().analog_out[channelIdx].streamWriter().buffer().new_writer(),
-                                                                .tag_writer    = self().analog_out[channelIdx].tagWriter().buffer().new_writer() });
+                ps_state.channels.emplace_back(detail::Channel<T>{ .id            = id,
+                                                                   .settings      = settings,
+                                                                   .driver_buffer = std::vector<int16_t>(detail::kDriverBufferSize),
+                                                                   .data_writer   = self().analog_out[channelIdx].streamWriter().buffer().new_writer(),
+                                                                   .tag_writer    = self().analog_out[channelIdx].tagWriter().buffer().new_writer() });
                 channelIdx++;
             }
         } catch (const std::exception &e) {
@@ -291,23 +289,21 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
     gr::work::Result
     workImpl() noexcept {
         using enum gr::work::Status;
-        start(); // TODO should be done by scheduler
 
-        if (state.channels.empty()) {
+        if (ps_state.channels.empty()) {
             return { 0, 0, ERROR };
         }
 
-        if (const auto errors_available = state.errors.reader.available(); errors_available > 0) {
-            auto errors = state.errors.reader.get(errors_available);
-            std::ignore = state.errors.reader.consume(errors_available);
+        if (const auto errors_available = ps_state.errors.reader.available(); errors_available > 0) {
+            auto errors = ps_state.errors.reader.get(errors_available);
+            std::ignore = ps_state.errors.reader.consume(errors_available);
             return { 0, 0, ERROR };
         }
 
-        if (state.forced_quit) {
-            return { 0, 0, DONE };
-        }
-
-        if (state.data_finished) {
+        if (ps_state.data_finished) {
+            std::atomic_store_explicit(&this->state, gr::lifecycle::State::STOPPED, std::memory_order_release);
+            this->state.notify_all();
+            this->publishTag({ { gr::tag::END_OF_STREAM, true } }, 0);
             return { 0, 0, DONE };
         }
 
@@ -327,17 +323,12 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
     // TODO only for debugging, maybe remove
     std::size_t
     producedWorker() const {
-        return state.produced_worker;
-    }
-
-    void
-    forceQuit() {
-        state.forced_quit = true;
+        return ps_state.produced_worker;
     }
 
     void
     start() noexcept {
-        if (state.started) {
+        if (ps_state.started) {
             return;
         }
 
@@ -350,7 +341,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
                 startPollThread();
             }
-            state.started = true;
+            ps_state.started = true;
         } catch (const std::exception &e) {
             fmt::println(std::cerr, "{}", e.what());
         }
@@ -358,13 +349,13 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
     void
     stop() noexcept {
-        if (!state.started) {
+        if (!ps_state.started) {
             return;
         }
 
-        state.started = false;
+        ps_state.started = false;
 
-        if (!state.initialized) {
+        if (!ps_state.initialized) {
             return;
         }
 
@@ -378,12 +369,12 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
     void
     startPollThread() {
-        if (state.poller.joinable()) {
+        if (ps_state.poller.joinable()) {
             return;
         }
 
-        if (state.poller_state == detail::PollerState::Exit) {
-            state.poller_state = detail::PollerState::Idle;
+        if (ps_state.poller_state == detail::PollerState::Exit) {
+            ps_state.poller_state = detail::PollerState::Idle;
         }
 #ifdef GR_PICOSCOPE_POLLER_THREAD
         const auto pollDuration = std::chrono::seconds(1) * ps_settings.streaming_mode_poll_rate;
@@ -413,9 +404,9 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
     void
     stopPollThread() {
-        state.poller_state = detail::PollerState::Exit;
-        if (state.poller.joinable()) {
-            state.poller.join();
+        ps_state.poller_state = detail::PollerState::Exit;
+        if (ps_state.poller.joinable()) {
+            ps_state.poller.join();
         }
     }
 
@@ -431,7 +422,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
     void
     initialize() {
-        if (state.initialized) {
+        if (ps_state.initialized) {
             return;
         }
 
@@ -439,24 +430,24 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             throw std::runtime_error(fmt::format("Initialization failed: {}", ec.message()));
         }
 
-        state.initialized = true;
+        ps_state.initialized = true;
     }
 
     void
     close() {
         self().driver_close();
-        state.closed      = true;
-        state.initialized = false;
-        state.configured  = false;
+        ps_state.closed      = true;
+        ps_state.initialized = false;
+        ps_state.configured  = false;
     }
 
     void
     configure() {
-        if (!state.initialized) {
+        if (!ps_state.initialized) {
             throw std::runtime_error("Cannot configure without initialization");
         }
 
-        if (state.armed) {
+        if (ps_state.armed) {
             throw std::runtime_error("Cannot configure armed device");
         }
 
@@ -464,12 +455,12 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             throw std::runtime_error(fmt::format("Configuration failed: {}", ec.message()));
         }
 
-        state.configured = true;
+        ps_state.configured = true;
     }
 
     void
     arm() {
-        if (state.armed) {
+        if (ps_state.armed) {
             return;
         }
 
@@ -477,39 +468,39 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             throw std::runtime_error(fmt::format("Arming failed: {}", ec.message()));
         }
 
-        state.armed = true;
+        ps_state.armed = true;
         if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
-            state.poller_state = detail::PollerState::Running;
+            ps_state.poller_state = detail::PollerState::Running;
         }
     }
 
     void
     disarm() noexcept {
-        if (!state.armed) {
+        if (!ps_state.armed) {
             return;
         }
 
         if (ps_settings.acquisition_mode == AcquisitionMode::Streaming) {
-            state.poller_state = detail::PollerState::Idle;
+            ps_state.poller_state = detail::PollerState::Idle;
         }
 
         if (const auto ec = self().driver_disarm()) {
             fmt::println(std::cerr, "disarm failed: {}", ec.message());
         }
 
-        state.armed = false;
+        ps_state.armed = false;
     }
 
     void
     processDriverData(std::size_t nrSamples, std::size_t offset) {
         std::vector<std::size_t> triggerOffsets;
 
-        using ChannelOutputRange = decltype(state.channels[0].data_writer.reserve_output_range(1));
+        using ChannelOutputRange = decltype(ps_state.channels[0].data_writer.reserve_output_range(1));
         std::vector<ChannelOutputRange> channelOutputs;
-        channelOutputs.reserve(state.channels.size());
+        channelOutputs.reserve(ps_state.channels.size());
 
-        for (std::size_t channelIdx = 0; channelIdx < state.channels.size(); ++channelIdx) {
-            auto &channel = state.channels[channelIdx];
+        for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
+            auto &channel = ps_state.channels[channelIdx];
 
             channelOutputs.push_back(channel.data_writer.reserve_output_range(nrSamples));
             auto      &output     = channelOutputs[channelIdx];
@@ -519,7 +510,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             if constexpr (std::is_same_v<T, int16_t>) {
                 std::copy(driverData.begin(), driverData.end(), output.begin());
             } else {
-                const auto voltageMultiplier = static_cast<T>(channel.settings.range / state.max_value);
+                const auto voltageMultiplier = static_cast<T>(channel.settings.range / ps_state.max_value);
                 // TODO use SIMD
                 for (std::size_t i = 0; i < nrSamples; ++i) {
                     output[i] = voltageMultiplier * driverData[i];
@@ -540,12 +531,13 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
         triggerTags.reserve(triggerOffsets.size());
 
         for (const auto triggerOffset : triggerOffsets) {
-            triggerTags.emplace_back(static_cast<int64_t>(state.produced_worker + triggerOffset), gr::property_map{ // TODO use data from timing message
-                                                                                                                    { gr::tag::TRIGGER_NAME, "PPS" },
-                                                                                                                    { gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count()) } });
+            // raw index is index - 1
+            triggerTags.emplace_back(static_cast<int64_t>(ps_state.produced_worker + triggerOffset - 1), gr::property_map{ // TODO use data from timing message
+                                                                                                                           { gr::tag::TRIGGER_NAME, "PPS" },
+                                                                                                                           { gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count()) } });
         }
 
-        for (auto &channel : state.channels) {
+        for (auto &channel : ps_state.channels) {
             const auto writeSignalInfo = !channel.signal_info_written;
             const auto tagsToWrite     = triggerTags.size() + (writeSignalInfo ? 1 : 0);
             if (tagsToWrite == 0) {
@@ -553,7 +545,8 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             }
             auto writeTags = channel.tag_writer.reserve_output_range(tagsToWrite);
             if (writeSignalInfo) {
-                writeTags[0].index            = static_cast<int64_t>(state.produced_worker);
+                // raw index is index - 1
+                writeTags[0].index            = static_cast<int64_t>(ps_state.produced_worker - 1);
                 writeTags[0].map              = channel.signalInfo();
                 static const auto kSampleRate = std::string(gr::tag::SAMPLE_RATE.key());
                 writeTags[0].map[kSampleRate] = static_cast<float>(sample_rate);
@@ -568,7 +561,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             output.publish(nrSamples);
         }
 
-        state.produced_worker += nrSamples;
+        ps_state.produced_worker += nrSamples;
     }
 
     void
@@ -608,7 +601,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
         }
 
         if (ps_settings.trigger_once) {
-            state.data_finished = true;
+            ps_state.data_finished = true;
         }
     }
 
@@ -620,7 +613,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
         std::vector<std::size_t> triggerOffsets; // relative offset of detected triggers
         const auto               band              = triggerChannel.settings.range / 100.;
-        const auto               voltageMultiplier = triggerChannel.settings.range / state.max_value;
+        const auto               voltageMultiplier = triggerChannel.settings.range / ps_state.max_value;
 
         const auto               toDouble          = [&voltageMultiplier](T raw) {
             if constexpr (std::is_same_v<T, float>) {
@@ -635,21 +628,21 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
         if (ps_settings.trigger.direction == TriggerDirection::Rising || ps_settings.trigger.direction == TriggerDirection::High) {
             for (std::size_t i = 0; i < samples.size(); i++) {
                 const auto value = toDouble(samples[i]);
-                if (state.trigger_state == 0 && value >= ps_settings.trigger.threshold) {
-                    state.trigger_state = 1;
+                if (ps_state.trigger_state == 0 && value >= ps_settings.trigger.threshold) {
+                    ps_state.trigger_state = 1;
                     triggerOffsets.push_back(i);
-                } else if (state.trigger_state == 1 && value <= ps_settings.trigger.threshold - band) {
-                    state.trigger_state = 0;
+                } else if (ps_state.trigger_state == 1 && value <= ps_settings.trigger.threshold - band) {
+                    ps_state.trigger_state = 0;
                 }
             }
         } else if (ps_settings.trigger.direction == TriggerDirection::Falling || ps_settings.trigger.direction == TriggerDirection::Low) {
             for (std::size_t i = 0; i < samples.size(); i++) {
                 const auto value = toDouble(samples[i]);
-                if (state.trigger_state == 1 && value <= ps_settings.trigger.threshold) {
-                    state.trigger_state = 0;
+                if (ps_state.trigger_state == 1 && value <= ps_settings.trigger.threshold) {
+                    ps_state.trigger_state = 0;
                     triggerOffsets.push_back(i);
-                } else if (state.trigger_state == 0 && value >= ps_settings.trigger.threshold + band) {
-                    state.trigger_state = 1;
+                } else if (ps_state.trigger_state == 0 && value >= ps_settings.trigger.threshold + band) {
+                    ps_state.trigger_state = 1;
                 }
             }
         }
@@ -659,8 +652,8 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
     void
     reportError(Error ec) {
-        auto out = state.errors.writer.reserve_output_range(1);
-        out[0]   = { state.produced_worker, ec };
+        auto out = ps_state.errors.writer.reserve_output_range(1);
+        out[0]   = { ps_state.produced_worker, ec };
         out.publish(1);
     }
 
