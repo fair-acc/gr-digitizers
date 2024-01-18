@@ -3,6 +3,15 @@ cmake_minimum_required(VERSION 3.25)
 project(gr-digitizers CXX)
 set(CMAKE_CXX_STANDARD 23)
 
+# Determine if gr-digitizers is built as a subproject (using add_subdirectory) or if it is the top-level project.
+if (NOT DEFINED GR_DIGITIZERS_TOPLEVEL_PROJECT)
+    set(GR_DIGITIZERS_TOPLEVEL_PROJECT OFF)
+    if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+        set(GR_DIGITIZERS_TOPLEVEL_PROJECT ON)
+        message(STATUS "CMake version: ${CMAKE_VERSION}")
+    endif ()
+endif ()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 
 include(cmake/CMakeRC.cmake)
@@ -24,53 +33,55 @@ FetchContent_Declare(
 if (EMSCRIPTEN)
     FetchContent_MakeAvailable(graph-prototype ut)
 else ()
-    FetchContent_Declare(
-            imgui
-            GIT_REPOSITORY  https://github.com/ocornut/imgui.git
-            GIT_TAG         v1.90.1
-    )
+    if (GR_DIGITIZERS_TOPLEVEL_PROJECT)
+        FetchContent_Declare(
+                imgui
+                GIT_REPOSITORY  https://github.com/ocornut/imgui.git
+                GIT_TAG         v1.90.1
+        )
 
-    # Enables 32 bit vertex indices for ImGui
-    add_compile_definitions("ImDrawIdx=unsigned int")
-    FetchContent_Declare(
-            implot
-            GIT_REPOSITORY  https://github.com/epezent/implot.git
-            GIT_TAG         v0.16
-    )
-    FetchContent_MakeAvailable(imgui implot graph-prototype ut)
+        # Enables 32 bit vertex indices for ImGui
+        add_compile_definitions("ImDrawIdx=unsigned int")
+        FetchContent_Declare(
+                implot
+                GIT_REPOSITORY  https://github.com/epezent/implot.git
+                GIT_TAG         v0.16
+        )
+        FetchContent_MakeAvailable(imgui implot graph-prototype ut)
 
-    find_package(SDL2 REQUIRED)
-    find_package(OpenGL REQUIRED COMPONENTS OpenGL)
+        find_package(SDL2 REQUIRED)
+        find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
-    # imgui and implot are not CMake Projects, so we have to define their targets manually here
-    add_library(imgui
-        OBJECT
-            ${imgui_SOURCE_DIR}/imgui_demo.cpp
-            ${imgui_SOURCE_DIR}/imgui_draw.cpp
-            ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-            ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
-            ${imgui_SOURCE_DIR}/imgui_tables.cpp
-            ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-            ${imgui_SOURCE_DIR}/imgui.cpp
-            ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
-    )
-    target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
-    target_compile_options(imgui PRIVATE -w) # imgui does lots of oldstyle casts and pointer arithmethic leading to many warnings
-    target_include_directories(imgui BEFORE
-        PUBLIC SYSTEM
-            ${imgui_SOURCE_DIR}
-            ${imgui_SOURCE_DIR}/backends
-    )
+        # imgui and implot are not CMake Projects, so we have to define their targets manually here
+        add_library(imgui
+            OBJECT
+                ${imgui_SOURCE_DIR}/imgui_demo.cpp
+                ${imgui_SOURCE_DIR}/imgui_draw.cpp
+                ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+                ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+                ${imgui_SOURCE_DIR}/imgui_tables.cpp
+                ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+                ${imgui_SOURCE_DIR}/imgui.cpp
+                ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+        )
+        target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
+        target_compile_options(imgui PRIVATE -w) # imgui does lots of oldstyle casts and pointer arithmethic leading to many warnings
+        target_include_directories(imgui BEFORE
+            PUBLIC SYSTEM
+                ${imgui_SOURCE_DIR}
+                ${imgui_SOURCE_DIR}/backends
+        )
 
-    add_library(implot
-        OBJECT ${implot_SOURCE_DIR}/implot_demo.cpp ${implot_SOURCE_DIR}/implot_items.cpp ${implot_SOURCE_DIR}/implot.cpp
-    )
-    target_compile_options(implot PRIVATE -w) # implot does lots of oldstyle casts and pointer arithmethic leading to many warnings
-    target_include_directories(implot BEFORE
-        PUBLIC SYSTEM
-            ${implot_SOURCE_DIR}
-    )
-    target_link_libraries(implot PUBLIC imgui)
+        add_library(implot
+            OBJECT ${implot_SOURCE_DIR}/implot_demo.cpp ${implot_SOURCE_DIR}/implot_items.cpp ${implot_SOURCE_DIR}/implot.cpp
+        )
+        target_compile_options(implot PRIVATE -w) # implot does lots of oldstyle casts and pointer arithmethic leading to many warnings
+        target_include_directories(implot BEFORE
+            PUBLIC SYSTEM
+                ${implot_SOURCE_DIR}
+        )
+        target_link_libraries(implot PUBLIC imgui)
+    endif ()
 endif ()
 
 add_library(gr-digitizers-options INTERFACE)
@@ -100,7 +111,7 @@ if(ENABLE_TIMING AND NOT EMSCRIPTEN)
     pkg_check_modules(etherbone REQUIRED IMPORTED_TARGET etherbone)
 endif()
 
-option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds" ON)
+option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds" ${GR_DIGITIZERS_TOPLEVEL_PROJECT})
 if (ENABLE_GR_DIGITIZERS_TESTING AND UNIX AND NOT APPLE)
     list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
     enable_testing()
