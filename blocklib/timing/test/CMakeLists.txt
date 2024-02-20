@@ -12,6 +12,7 @@ function(add_ut_test TEST_NAME)
     add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()
 
-add_ut_test(qa_timing)
-target_link_libraries(qa_timing PRIVATE timing PkgConfig::saftlib PkgConfig::etherbone)
-
+if(NOT EMSCRIPTEN AND NOT CLANG) ## clang/libc++ does not support the require <chrono> features to convert from TAI to UTC and 'std::views::enumerate'
+    add_ut_test(qa_timing)
+    target_link_libraries(qa_timing PRIVATE timing PkgConfig::saftlib PkgConfig::etherbone)
+endif()
