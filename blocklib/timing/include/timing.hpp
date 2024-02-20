@@ -124,14 +124,14 @@ public:
             static_assert(position + bitsize <= 64); // assert that we only consider existing bits
             static_assert(std::numeric_limits<ReturnType>::max() >= ((1UL << bitsize) - 1)); // make sure the data fits into the return type
             return static_cast<ReturnType>((value >> position) & ((1UL <<  bitsize) - 1));
-        };
+        }
 
         template <std::size_t position, std::size_t bitsize, typename FieldType>
         static constexpr uint64_t fromField(FieldType value) {
             static_assert(position + bitsize <= 64);
             static_assert(std::numeric_limits<FieldType>::max() >= ((1UL << bitsize) - 1));
             return ((value & ((1UL <<  bitsize) - 1)) <<  position);
-        };
+        }
 
         explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) :
             // id

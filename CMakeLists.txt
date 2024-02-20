@@ -12,6 +12,14 @@ if (NOT DEFINED GR_DIGITIZERS_TOPLEVEL_PROJECT)
     endif ()
 endif ()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang") # set default C++ STL to Clang's libc++ when using Clang
+    add_compile_options(-stdlib=libc++ -fcolor-diagnostics)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++")
+    set(CLANG true)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-fdiagnostics-color=always)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 
 include(cmake/CMakeRC.cmake)
@@ -21,7 +29,7 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-    GIT_TAG c9b2dd33dcfaf7ab56dc6b1c42b73f46e7dfc001 # main as of 2024-02-01
+    GIT_TAG ed9738d809d4f89ddbbee49fd9a3bbd87c27bfab # main as of 2024-02-20
 )
 
 FetchContent_Declare(

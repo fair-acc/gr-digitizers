@@ -301,8 +301,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
         }
 
         if (ps_state.data_finished) {
-            std::atomic_store_explicit(&this->state, gr::lifecycle::State::STOPPED, std::memory_order_release);
-            this->state.notify_all();
+            this->requestStop();
             this->publishTag({ { gr::tag::END_OF_STREAM, true } }, 0);
             return { 0, 0, DONE };
         }
@@ -495,14 +494,14 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
     processDriverData(std::size_t nrSamples, std::size_t offset) {
         std::vector<std::size_t> triggerOffsets;
 
-        using ChannelOutputRange = decltype(ps_state.channels[0].data_writer.reserve_output_range(1));
+        using ChannelOutputRange = decltype(ps_state.channels[0].data_writer.reserve(1));
         std::vector<ChannelOutputRange> channelOutputs;
         channelOutputs.reserve(ps_state.channels.size());
 
         for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
             auto &channel = ps_state.channels[channelIdx];
 
-            channelOutputs.push_back(channel.data_writer.reserve_output_range(nrSamples));
+            channelOutputs.push_back(channel.data_writer.reserve(nrSamples));
             auto      &output     = channelOutputs[channelIdx];
 
             const auto driverData = std::span(channel.driver_buffer).subspan(offset, nrSamples);
@@ -543,7 +542,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             if (tagsToWrite == 0) {
                 continue;
             }
-            auto writeTags = channel.tag_writer.reserve_output_range(tagsToWrite);
+            auto writeTags = channel.tag_writer.reserve(tagsToWrite);
             if (writeSignalInfo) {
                 // raw index is index - 1
                 writeTags[0].index            = static_cast<int64_t>(ps_state.produced_worker - 1);
@@ -652,7 +651,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
     void
     reportError(Error ec) {
-        auto out = ps_state.errors.writer.reserve_output_range(1);
+        auto out = ps_state.errors.writer.reserve(1);
         out[0]   = { ps_state.produced_worker, ec };
         out.publish(1);
     }
