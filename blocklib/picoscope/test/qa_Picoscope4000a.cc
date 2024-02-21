@@ -77,10 +77,10 @@ testStreamingBasics() {
     expect(nothrow([&ps] { ps.start(); }));
 
     scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{ std::move(flowGraph) };
-    sched.init();
-    sched.start();
+    expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
+    expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
     std::this_thread::sleep_for(kDuration);
-    sched.stop();
+    expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
     const auto measuredRate = static_cast<double>(sink.samples_seen) / duration<double>(kDuration).count();
     fmt::println("Produced in worker: {}", ps.producedWorker());
@@ -186,10 +186,10 @@ const boost::ut::suite Picoscope4000aTests = [] {
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).to<"in">(sink0)));
 
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{ std::move(flowGraph) };
-        sched.init();
-        sched.start();
+        expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
+        expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(std::chrono::seconds(3));
-        sched.stop();
+        expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
         expect(ge(sink0.samples_seen, std::size_t{ 2000 }));
         expect(le(sink0.samples_seen, std::size_t{ 10000 }));
