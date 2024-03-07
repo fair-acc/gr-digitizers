@@ -18,7 +18,7 @@ const boost::ut::suite TimingTests = [] {
         timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.currentTimeTAI());
         std::this_thread::sleep_for(20ms);
         timing.process();
-        auto data = reader.get();
+        auto data = reader.get(reader.available());
         expect(data.size() == 2_ul);
         expect(data[0].id() == 0x10);
         expect(data[1].param() == 0x12);
@@ -32,7 +32,7 @@ const boost::ut::suite TimingTests = [] {
         timing.injectEvent(Timing::Event{2000, 0x10, 0x20}, timing.currentTimeTAI());
         timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.currentTimeTAI());
         timing.process();
-        auto data = reader.get();
+        auto data = reader.get(reader.available());
         expect(data.size() == 2_ul);
         expect(data[0].id() == 0x10);
         expect(data[1].param() == 0x12);
