@@ -256,7 +256,7 @@ void showTimingEventTable(Timing &timing) {
             ImGui::TableSetupColumn("##addToSchedule");
 
             ImGui::TableHeadersRow();
-            auto data = event_reader.get();
+            auto data = event_reader.get(event_reader.available());
 
             for (const auto &evt : std::ranges::reverse_view{data}) {
                 drawSnoopedEventTableRow(evt, timing);
@@ -636,7 +636,7 @@ public:
     explicit TimePlot(BufferT &_events) : snoopReader{_events.new_reader()} { }
 
     void updateStreaming() {
-        auto newEvents = snoopReader.get();
+        auto newEvents = snoopReader.get(snoopReader.available());
         if (startTime == 0 && !newEvents.empty()) {
             startTime = newEvents[0].time;
         }

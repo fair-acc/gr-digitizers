@@ -97,10 +97,10 @@ struct Channel {
     gr::property_map
     signalInfo() const {
         using namespace gr;
-        static const auto kSignalName = std::string(tag::SIGNAL_NAME.key());
-        static const auto kSignalUnit = std::string(tag::SIGNAL_UNIT.key());
-        static const auto kSignalMin  = std::string(tag::SIGNAL_MIN.key());
-        static const auto kSignalMax  = std::string(tag::SIGNAL_MAX.key());
+        static const auto kSignalName = std::string(tag::SIGNAL_NAME.shortKey());
+        static const auto kSignalUnit = std::string(tag::SIGNAL_UNIT.shortKey());
+        static const auto kSignalMin  = std::string(tag::SIGNAL_MIN.shortKey());
+        static const auto kSignalMax  = std::string(tag::SIGNAL_MAX.shortKey());
         return {
             { kSignalName, settings.name }, { kSignalUnit, settings.unit }, { kSignalMin, static_cast<float>(settings.offset) }, { kSignalMax, static_cast<float>(settings.offset + settings.range) }
         };
@@ -547,7 +547,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
                 // raw index is index - 1
                 writeTags[0].index            = static_cast<int64_t>(ps_state.produced_worker - 1);
                 writeTags[0].map              = channel.signalInfo();
-                static const auto kSampleRate = std::string(gr::tag::SAMPLE_RATE.key());
+                static const auto kSampleRate = std::string(gr::tag::SAMPLE_RATE.shortKey());
                 writeTags[0].map[kSampleRate] = static_cast<float>(sample_rate);
                 channel.signal_info_written   = true;
             }
