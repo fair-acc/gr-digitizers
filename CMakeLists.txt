@@ -29,13 +29,13 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-    GIT_TAG 1402c524e557b6a81403e52dfe6a7c42c278dafd # main as of 2024-03-26
+    GIT_TAG 3cb5c2aff7046bc3760ccd8f8b701cbde361ecfd # main as of 2024-04-05
 )
 
 FetchContent_Declare(
     ut
     GIT_REPOSITORY https://github.com/boost-ext/ut.git
-    GIT_TAG bf8388f61103571dee3061a4ef23292a320d9dbf # head as of 2023-08-21
+    GIT_TAG v2.0.1 # latest tag as of 2023-12-19
 )
 
 if (EMSCRIPTEN)
