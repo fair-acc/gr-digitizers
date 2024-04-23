@@ -213,7 +213,8 @@ void drawSnoopedEventTableRow(const Timing::Event &evt, Timing &timing) {
 void showTimingEventTable(Timing &timing) {
     static gr::BufferReader auto event_reader = timing.snooped.new_reader();
     if (ImGui::Button("clear")) {
-        std::ignore = event_reader.consume(event_reader.available());
+        auto ignored = event_reader.get();
+        std::ignore  = ignored.consume(ignored.size());
     }
     ImGui::SameLine(); ImGui::Dummy({50,5});ImGui::SameLine();
     auto [id_filter, mask] = TimingGroupFilterDropdown();
@@ -262,7 +263,7 @@ void showTimingEventTable(Timing &timing) {
                 drawSnoopedEventTableRow(evt, timing);
             }
             if (data.size() > event_reader.buffer().size() / 2) {
-                std::ignore = event_reader.consume(data.size() - event_reader.buffer().size() / 2);
+                std::ignore = data.consume(data.size() - event_reader.buffer().size() / 2);
             }
         }
     }
@@ -656,7 +657,7 @@ public:
                 events.pushBack({eventtime, static_cast<double>(event.eventNo)});
             }
         }
-        std::ignore = snoopReader.consume(newEvents.size()); // consume processed events
+        std::ignore = newEvents.consume(newEvents.size()); // consume processed events
     }
 
     void display(Timing &timing) const {

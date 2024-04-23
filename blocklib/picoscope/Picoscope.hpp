@@ -296,7 +296,7 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
 
         if (const auto errors_available = ps_state.errors.reader.available(); errors_available > 0) {
             auto errors = ps_state.errors.reader.get(errors_available);
-            std::ignore = ps_state.errors.reader.consume(errors_available);
+            std::ignore = errors.consume(errors.size());
             return { 0, 0, ERROR };
         }
 
