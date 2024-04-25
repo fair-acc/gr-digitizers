@@ -29,7 +29,7 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
     graph-prototype
     GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-    GIT_TAG 3cb5c2aff7046bc3760ccd8f8b701cbde361ecfd # main as of 2024-04-05
+    GIT_TAG 5e15e8478d267a5e74fdd3b310a7483a690fe1b4 # main as of 2024-04-25
 )
 
 FetchContent_Declare(
@@ -38,8 +38,25 @@ FetchContent_Declare(
     GIT_TAG v2.0.1 # latest tag as of 2023-12-19
 )
 
+add_library(gr-digitizers-options INTERFACE)
+include(cmake/CompilerWarnings.cmake)
+set_project_warnings(gr-digitizers-options)
+
 if (EMSCRIPTEN)
     FetchContent_MakeAvailable(graph-prototype ut)
+    set(CMAKE_EXECUTABLE_SUFFIX ".js")
+    target_compile_options(gr-digitizers-options INTERFACE
+        -fwasm-exceptions
+        -pthread
+    )
+    target_link_options(gr-digitizers-options INTERFACE
+        "SHELL:-s ALLOW_MEMORY_GROWTH=1"
+        -fwasm-exceptions
+        -pthread
+        "SHELL:-s PTHREAD_POOL_SIZE=30"
+        "SHELL:-s FETCH=1"
+        "SHELL:-s ASSERTIONS=1"
+    )
 else ()
     if (GR_DIGITIZERS_TOPLEVEL_PROJECT)
         FetchContent_Declare(
@@ -92,10 +109,6 @@ else ()
     endif ()
 endif ()
 
-add_library(gr-digitizers-options INTERFACE)
-include(cmake/CompilerWarnings.cmake)
-set_project_warnings(gr-digitizers-options)
-
 if(CMAKE_CXX_COMPILER MATCHES "/em\\+\\+(-[a-zA-Z0-9.])?$") # if this hasn't been set before via e.g. emcmake
     message(" Transpiling to WASM: using: Emscripten (${CMAKE_CXX_COMPILER})")
     set(EMSCRIPTEN true)
@@ -125,9 +138,11 @@ if (ENABLE_GR_DIGITIZERS_TESTING AND UNIX AND NOT APPLE)
     enable_testing()
     if (ENABLE_COVERAGE)
         message("Coverage reporting enabled")
+        set(CODE_COVERAGE_VERBOSE ON)
         include(cmake/CodeCoverage.cmake) # https://github.com/bilke/cmake-modules/blob/master/CodeCoverage.cmake # (License: BSL-1.0)
         target_compile_options(gr-digitizers-options INTERFACE --coverage -O0 -g -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0) # fortify_source is not possible without optimization
         target_link_libraries(gr-digitizers-options INTERFACE --coverage)
+        SET(GCOVR_ADDITIONAL_ARGS --print-summary --gcov-ignore-errors=all --verbose)
         append_coverage_compiler_flags()
         setup_target_for_coverage_gcovr_xml(
                 NAME coverage
