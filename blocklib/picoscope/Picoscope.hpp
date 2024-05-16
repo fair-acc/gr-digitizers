@@ -217,7 +217,22 @@ using A = gr::Annotated<T, description, Arguments...>;
 
 using gr::Visible;
 
-template<typename T, typename TPSImpl>
+/**
+ * We only allow a small set of types to be used as the output type for the Picoscope Block:
+ *
+ * - std::int16_t
+ *   This outputs the raw values as-is without any scaling.
+ *
+ * - float
+ *   The physical gain-scaled output of the measured values
+ *
+ * - gr::UncertainValue<float>
+ *   Same as "float", except it also contains the estimated measurement error as an additional component.
+**/
+template<typename T>
+concept PicoscopeOutput = std::disjunction_v<std::is_same<T, std::int16_t>, std::is_same<T, float>, std::is_same<T, gr::UncertainValue<float>>>;
+
+template<PicoscopeOutput T, typename TPSImpl>
 struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::SupportedTypes<int16_t, float, double>> {
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
@@ -509,10 +524,14 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
             if constexpr (std::is_same_v<T, int16_t>) {
                 std::copy(driverData.begin(), driverData.end(), output.begin());
             } else {
-                const auto voltageMultiplier = static_cast<T>(channel.settings.range / ps_state.max_value);
+                const auto voltageMultiplier = static_cast<float>(channel.settings.range / ps_state.max_value);
                 // TODO use SIMD
                 for (std::size_t i = 0; i < nrSamples; ++i) {
-                    output[i] = voltageMultiplier * driverData[i];
+                    if constexpr (std::is_same_v<T, float>) {
+                        output[i] = voltageMultiplier * driverData[i];
+                    } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
+                        output[i] = gr::UncertainValue(voltageMultiplier * driverData[i]);
+                    }
                 }
             }
 
@@ -619,6 +638,8 @@ struct Picoscope : public gr::Block<TPSImpl, gr::BlockingIO<true>, gr::Supported
                 return static_cast<double>(raw);
             } else if constexpr (std::is_same_v<T, double>) {
                 return raw;
+            } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
+                return voltageMultiplier * static_cast<double>(raw.value);
             } else {
                 return voltageMultiplier * raw;
             }

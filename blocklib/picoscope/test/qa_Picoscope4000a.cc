@@ -120,15 +120,15 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 
     "streaming basics"_test = [] {
-        testStreamingBasics<float>();
-        testStreamingBasics<double>();
         testStreamingBasics<int16_t>();
+        testStreamingBasics<float>();
+        testStreamingBasics<gr::UncertainValue<float>>();
     };
 
     "rapid block basics"_test = [] {
-        testRapidBlockBasic<float>(1);
-        testRapidBlockBasic<double>(1);
         testRapidBlockBasic<int16_t>(1);
+        testRapidBlockBasic<float>(1);
+        testRapidBlockBasic<gr::UncertainValue<float>>(1);
     };
 
     "rapid block multiple captures"_test = [] { testRapidBlockBasic<float>(3); };
