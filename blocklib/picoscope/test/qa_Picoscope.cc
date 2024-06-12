@@ -5,10 +5,15 @@
 
 #include <HelperBlocks.hpp>
 #include <Picoscope4000a.hpp>
+#include <Picoscope5000a.hpp>
 
 using namespace std::string_literals;
 
-namespace fair::picoscope4000a::test {
+namespace fair::picoscope::test {
+
+// Replace with your connected Picoscope device
+template<typename T, AcquisitionMode aMode>
+using PicoscopeT = Picoscope4000a<T, aMode>;
 
 template<typename T>
 void
@@ -23,16 +28,16 @@ testRapidBlockBasic(std::size_t nrCaptures) {
     const auto            totalSamples = nrCaptures * (kPreSamples + kPostSamples);
 
     Graph                 flowGraph;
-    auto                 &ps   = flowGraph.emplaceBlock<Picoscope4000a<T>>({ { { "sample_rate", 10000. },
-                                                                               { "pre_samples", kPreSamples },
-                                                                               { "post_samples", kPostSamples },
-                                                                               { "acquisition_mode", "RapidBlock" },
-                                                                               { "rapid_block_nr_captures", nrCaptures },
-                                                                               { "auto_arm", true },
-                                                                               { "trigger_once", true },
-                                                                               { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                               { "channel_ranges", std::vector{ 5. } },
-                                                                               { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
+    auto                 &ps   = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000. },
+                                                                                                        { "pre_samples", kPreSamples },
+                                                                                                        { "post_samples", kPostSamples },
+                                                                                                        { "acquisition_mode", "RapidBlock" },
+                                                                                                        { "rapid_block_nr_captures", nrCaptures },
+                                                                                                        { "auto_arm", true },
+                                                                                                        { "trigger_once", true },
+                                                                                                        { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                                                        { "channel_ranges", std::vector{ 5. } },
+                                                                                                        { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
     auto                 &sink = flowGraph.emplaceBlock<CountSink<T>>();
 
@@ -57,15 +62,15 @@ testStreamingBasics() {
     constexpr double kSampleRate = 80000.;
     constexpr auto   kDuration   = seconds(2);
 
-    auto            &ps          = flowGraph.emplaceBlock<Picoscope4000a<T>>({ { { "sample_rate", kSampleRate },
-                                                                                 { "acquisition_mode", "Streaming" },
-                                                                                 { "streaming_mode_poll_rate", 0.00001 },
-                                                                                 { "auto_arm", true },
-                                                                                 { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                                 { "channel_names", std::vector<std::string>{ "Test signal" } },
-                                                                                 { "channel_units", std::vector<std::string>{ "Test unit" } },
-                                                                                 { "channel_ranges", std::vector{ 5. } },
-                                                                                 { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
+    auto            &ps          = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::Streaming>>({ { { "sample_rate", kSampleRate },
+                                                                                                         { "acquisition_mode", "Streaming" },
+                                                                                                         { "streaming_mode_poll_rate", 0.00001 },
+                                                                                                         { "auto_arm", true },
+                                                                                                         { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                                                         { "channel_names", std::vector<std::string>{ "Test signal" } },
+                                                                                                         { "channel_units", std::vector<std::string>{ "Test unit" } },
+                                                                                                         { "channel_ranges", std::vector{ 5. } },
+                                                                                                         { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
     auto            &tagMonitor  = flowGraph.emplaceBlock<testing::TagMonitor<T, testing::ProcessFunction::USE_PROCESS_BULK>>();
     auto            &sink        = flowGraph.emplaceBlock<CountSink<T>>();
@@ -93,14 +98,14 @@ testStreamingBasics() {
     expect(eq(tagMonitor.tags.size(), 1UZ));
     const auto &tag = tagMonitor.tags[0];
     expect(eq(tag.index, int64_t{ 0 }));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), static_cast<float>(kSampleRate)));
+    expect(eq(std::get<double>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), static_cast<double>(kSampleRate)));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
     expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), 0.f));
     expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.shortKey()))), 5.f));
 }
 
-const boost::ut::suite Picoscope4000aTests = [] {
+const boost::ut::suite PicoscopeTests = [] {
     using namespace boost::ut;
     using namespace gr;
     using namespace fair::helpers;
@@ -108,7 +113,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
     "open and close"_test = [] {
         Graph flowGraph;
-        auto &ps = flowGraph.emplaceBlock<Picoscope4000a<float>>();
+        auto &ps = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>();
 
         // this takes time, so we do it a few times only
         for (auto i = 0; i < 3; i++) {
@@ -140,16 +145,16 @@ const boost::ut::suite Picoscope4000aTests = [] {
         constexpr auto        kTotalSamples = kNrCaptures * (kPreSamples + kPostSamples);
 
         Graph                 flowGraph;
-        auto                 &ps    = flowGraph.emplaceBlock<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
-                                                                                        { "pre_samples", kPreSamples },
-                                                                                        { "post_samples", kPostSamples },
-                                                                                        { "acquisition_mode", "RapidBlock" },
-                                                                                        { "rapid_block_nr_captures", kNrCaptures },
-                                                                                        { "auto_arm", true },
-                                                                                        { "trigger_once", true },
-                                                                                        { "channel_ids", std::vector<std::string>{ "A", "B", "C", "D" } },
-                                                                                        { "channel_ranges", std::vector{ { 5., 5., 5., 5. } } },
-                                                                                        { "channel_couplings", std::vector<std::string>{ "AC_1M", "AC_1M", "AC_1M", "AC_1M" } } } });
+        auto                 &ps    = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000. },
+                                                                                                                 { "pre_samples", kPreSamples },
+                                                                                                                 { "post_samples", kPostSamples },
+                                                                                                                 { "acquisition_mode", "RapidBlock" },
+                                                                                                                 { "rapid_block_nr_captures", kNrCaptures },
+                                                                                                                 { "auto_arm", true },
+                                                                                                                 { "trigger_once", true },
+                                                                                                                 { "channel_ids", std::vector<std::string>{ "A", "B", "C", "D" } },
+                                                                                                                 { "channel_ranges", std::vector{ { 5., 5., 5., 5. } } },
+                                                                                                                 { "channel_couplings", std::vector<std::string>{ "AC_1M", "AC_1M", "AC_1M", "AC_1M" } } } });
 
         auto                 &sink0 = flowGraph.emplaceBlock<CountSink<float>>();
         auto                 &sink1 = flowGraph.emplaceBlock<CountSink<float>>();
@@ -172,14 +177,14 @@ const boost::ut::suite Picoscope4000aTests = [] {
 
     "rapid block continuous"_test = [] {
         Graph flowGraph;
-        auto &ps    = flowGraph.emplaceBlock<Picoscope4000a<float>>({ { { "sample_rate", 10000. },
-                                                                        { "post_samples", std::size_t{ 1000 } },
-                                                                        { "acquisition_mode", "RapidBlock" },
-                                                                        { "rapid_block_nr_captures", std::size_t{ 1 } },
-                                                                        { "auto_arm", true },
-                                                                        { "channel_ids", std::vector<std::string>{ "A" } },
-                                                                        { "channel_ranges", std::vector{ 5. } },
-                                                                        { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
+        auto &ps    = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000. },
+                                                                                                 { "post_samples", std::size_t{ 1000 } },
+                                                                                                 { "acquisition_mode", "RapidBlock" },
+                                                                                                 { "rapid_block_nr_captures", std::size_t{ 1 } },
+                                                                                                 { "auto_arm", true },
+                                                                                                 { "channel_ids", std::vector<std::string>{ "A" } },
+                                                                                                 { "channel_ranges", std::vector{ 5. } },
+                                                                                                 { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
         auto &sink0 = flowGraph.emplaceBlock<CountSink<float>>();
 
@@ -196,7 +201,7 @@ const boost::ut::suite Picoscope4000aTests = [] {
     };
 };
 
-} // namespace fair::picoscope4000a::test
+} // namespace fair::picoscope::test
 
 int
 main() { /* tests are statically executed */

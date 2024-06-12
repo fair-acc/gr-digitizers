@@ -7,4 +7,4 @@ function(add_ut_test_tool TEST_NAME)
     target_link_libraries(${TEST_NAME} PRIVATE gnuradio-core gr-testing fair-picoscope fair-helpers ut)
 endfunction()
 
-add_ut_test_tool(qa_Picoscope4000a)
+add_ut_test_tool(qa_Picoscope)
