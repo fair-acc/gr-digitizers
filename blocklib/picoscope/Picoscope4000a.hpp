@@ -8,7 +8,8 @@
 namespace fair::picoscope {
 
 template<typename T, AcquisitionMode acquisitionMode>
-struct Picoscope4000a : public fair::picoscope::Picoscope<T, acquisitionMode, Picoscope4000a<T, acquisitionMode>> {
+class Picoscope4000a : public fair::picoscope::Picoscope<T, acquisitionMode, Picoscope4000a<T, acquisitionMode>> {
+public:
     std::array<gr::PortOut<T>, 8> analog_out;
 
     using ChannelType            = PS4000A_CHANNEL;

@@ -95,8 +95,8 @@ testStreamingBasics() {
 
     expect(ge(sink.samples_seen, 80000UZ));
     expect(le(sink.samples_seen, 170000UZ));
-    expect(eq(tagMonitor.tags.size(), 1UZ));
-    const auto &tag = tagMonitor.tags[0];
+    expect(eq(tagMonitor._tags.size(), 1UZ));
+    const auto &tag = tagMonitor._tags[0];
     expect(eq(tag.index, int64_t{ 0 }));
     expect(eq(std::get<double>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), static_cast<double>(kSampleRate)));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));

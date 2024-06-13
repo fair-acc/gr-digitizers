@@ -247,7 +247,10 @@ struct PicoscopeBlockingHelper<TPSImpl, true> {
 };
 
 template<PicoscopeOutput T, AcquisitionMode acquisitionMode, typename TPSImpl>
-struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, acquisitionMode == AcquisitionMode::RapidBlock>::type {
+
+class Picoscope : public PicoscopeBlockingHelper<TPSImpl, acquisitionMode == AcquisitionMode::RapidBlock>::type {
+public:
+    using PicoscopeBlockingHelper<TPSImpl, acquisitionMode == AcquisitionMode::RapidBlock>::type::Block;
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
@@ -272,10 +275,12 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, acquisitionMode == Ac
     detail::State<T>                                                  ps_state;
     detail::Settings                                                  ps_settings;
 
+private:
     std::mutex                                                        g_init_mutex;
-    std::size_t                                                       streamingSamples;
+    std::size_t                                                       streamingSamples = 0Z;
     std::queue<gr::property_map>                                      timingMessages;
 
+public:
     ~Picoscope() { stop(); }
 
     void
@@ -552,7 +557,7 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, acquisitionMode == Ac
     }
 
     void
-    streamingCallback(int32_t nrSamplesSigned, uint32_t startIndex, int16_t overflow)
+    streamingCallback(int32_t nrSamplesSigned, uint32_t, int16_t overflow)
         requires(acquisitionMode == AcquisitionMode::Streaming)
     {
         streamingSamples = static_cast<std::size_t>(nrSamplesSigned);
