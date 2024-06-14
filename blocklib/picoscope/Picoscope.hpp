@@ -228,7 +228,7 @@ using gr::Visible;
  *
  * - gr::UncertainValue<float>
  *   Same as "float", except it also contains the estimated measurement error as an additional component.
-**/
+ **/
 template<typename T>
 concept PicoscopeOutput = std::disjunction_v<std::is_same<T, std::int16_t>, std::is_same<T, float>, std::is_same<T, gr::UncertainValue<float>>>;
 
@@ -247,10 +247,12 @@ struct PicoscopeBlockingHelper<TPSImpl, true> {
 };
 
 template<PicoscopeOutput T, AcquisitionMode acquisitionMode, typename TPSImpl>
-
 class Picoscope : public PicoscopeBlockingHelper<TPSImpl, acquisitionMode == AcquisitionMode::RapidBlock>::type {
 public:
-    using PicoscopeBlockingHelper<TPSImpl, acquisitionMode == AcquisitionMode::RapidBlock>::type::Block;
+    using super_t = typename PicoscopeBlockingHelper<TPSImpl, acquisitionMode == AcquisitionMode::RapidBlock>::type;
+
+    Picoscope(gr::property_map props) : super_t(std::move(props)) {}
+
     A<std::string, "serial number">   serial_number;
     A<double, "sample rate", Visible> sample_rate = 10000.;
     // TODO any way to get custom enums into pmtv??
@@ -276,9 +278,9 @@ public:
     detail::Settings                                                  ps_settings;
 
 private:
-    std::mutex                                                        g_init_mutex;
-    std::size_t                                                       streamingSamples = 0Z;
-    std::queue<gr::property_map>                                      timingMessages;
+    std::mutex                   g_init_mutex;
+    std::size_t                  streamingSamples = 0Z;
+    std::queue<gr::property_map> timingMessages;
 
 public:
     ~Picoscope() { stop(); }

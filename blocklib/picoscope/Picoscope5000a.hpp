@@ -10,6 +10,10 @@ namespace fair::picoscope {
 template<typename T, AcquisitionMode acquisitionMode>
 class Picoscope5000a : public fair::picoscope::Picoscope<T, acquisitionMode, Picoscope5000a<T, acquisitionMode>> {
 public:
+    using super_t = fair::picoscope::Picoscope<T, acquisitionMode, Picoscope5000a<T, acquisitionMode>>;
+
+    Picoscope5000a(gr::property_map props) : super_t(std::move(props)) {}
+
     std::array<gr::PortOut<T>, 4> analog_out;
 
     using ChannelType            = PS5000A_CHANNEL;
