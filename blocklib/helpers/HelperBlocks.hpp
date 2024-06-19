@@ -45,22 +45,9 @@ struct VectorSink : public gr::Block<VectorSink<T>> {
     }
 };
 
-template<typename T>
-struct CountSink : public gr::Block<CountSink<T>> {
-    gr::PortIn<T> in;
-    std::size_t   samples_seen = 0;
-
-    gr::work::Status
-    processBulk(std::span<const T> input) noexcept {
-        samples_seen += input.size();
-        return gr::work::Status::OK;
-    }
-};
-
 } // namespace fair::helpers
 
 ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::VectorSource, out, data);
 ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::VectorSink, in, data);
-ENABLE_REFLECTION_FOR_TEMPLATE(fair::helpers::CountSink, in);
 
 #endif

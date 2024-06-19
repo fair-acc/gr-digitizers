@@ -121,7 +121,7 @@ struct BufferHelper {
 
 struct Settings {
     std::string     serial_number;
-    double          sample_rate              = 10000.;
+    float           sample_rate              = 10000.f;
     AcquisitionMode acquisition_mode         = AcquisitionMode::Streaming;
     std::size_t     pre_samples              = 1000;
     std::size_t     post_samples             = 9000;
@@ -254,7 +254,7 @@ public:
     Picoscope(gr::property_map props) : super_t(std::move(props)) {}
 
     A<std::string, "serial number">   serial_number;
-    A<double, "sample rate", Visible> sample_rate = 10000.;
+    A<float, "sample rate", Visible> sample_rate = 10000.f;
     // TODO any way to get custom enums into pmtv??
     A<std::string, "acquisition mode", Visible>                       acquisition_mode         = std::string("Streaming");
     A<std::size_t, "pre-samples">                                     pre_samples              = 1000;
@@ -588,8 +588,9 @@ public:
         this->invokeWork();
     }
 
+    template<gr::PublishableSpan TOutSpan>
     gr::work::Status
-    processBulk(auto &output) {
+    processBulk(std::span<TOutSpan> &output) {
         if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
             if (const auto ec = self().driver_poll()) {
                 reportError(ec);
@@ -627,9 +628,6 @@ public:
         }
 
         if (ps_state.data_finished) {
-            this->requestStop();
-            this->publishTag({ { gr::tag::END_OF_STREAM, true } }, 0);
-
             return gr::work::Status::DONE;
         }
 

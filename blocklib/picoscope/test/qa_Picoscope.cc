@@ -28,7 +28,7 @@ testRapidBlockBasic(std::size_t nrCaptures) {
     const auto            totalSamples = nrCaptures * (kPreSamples + kPostSamples);
 
     Graph                 flowGraph;
-    auto                 &ps   = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000. },
+    auto                 &ps   = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000.f },
                                                                                                         { "pre_samples", kPreSamples },
                                                                                                         { "post_samples", kPostSamples },
                                                                                                         { "acquisition_mode", "RapidBlock" },
@@ -39,14 +39,14 @@ testRapidBlockBasic(std::size_t nrCaptures) {
                                                                                                         { "channel_ranges", std::vector{ 5. } },
                                                                                                         { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-    auto                 &sink = flowGraph.emplaceBlock<CountSink<T>>();
+    auto &sink = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }, {"log_tags", false}}});
 
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(sink)));
 
     scheduler::Simple sched{ std::move(flowGraph) };
     sched.runAndWait();
 
-    expect(eq(sink.samples_seen, totalSamples));
+    expect(eq(sink.n_samples_produced, totalSamples));
 }
 
 template<typename T>
@@ -59,7 +59,7 @@ testStreamingBasics() {
     using namespace fair::picoscope;
     Graph            flowGraph;
 
-    constexpr double kSampleRate = 80000.;
+    constexpr float kSampleRate = 80000.f;
     constexpr auto   kDuration   = seconds(2);
 
     auto            &ps          = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::Streaming>>({ { { "sample_rate", kSampleRate },
@@ -72,8 +72,8 @@ testStreamingBasics() {
                                                                                                          { "channel_ranges", std::vector{ 5. } },
                                                                                                          { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-    auto            &tagMonitor  = flowGraph.emplaceBlock<testing::TagMonitor<T, testing::ProcessFunction::USE_PROCESS_BULK>>();
-    auto            &sink        = flowGraph.emplaceBlock<CountSink<T>>();
+    auto            &tagMonitor  = flowGraph.emplaceBlock<testing::TagMonitor<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }}});
+    auto            &sink        = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }, {"log_tags", false}}});
 
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(tagMonitor)));
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(tagMonitor).template to<"in">(sink)));
@@ -87,18 +87,18 @@ testStreamingBasics() {
     std::this_thread::sleep_for(kDuration);
     expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
-    const auto measuredRate = static_cast<double>(sink.samples_seen) / duration<double>(kDuration).count();
+    const auto measuredRate = static_cast<double>(sink.n_samples_produced) / duration<double>(kDuration).count();
     fmt::println("Produced in worker: {}", ps.producedWorker());
     fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / kSampleRate * 100.,
                  duration_cast<milliseconds>(kDuration).count());
-    fmt::println("Total: {}", sink.samples_seen);
+    fmt::println("Total: {}", sink.n_samples_produced);
 
-    expect(ge(sink.samples_seen, 80000UZ));
-    expect(le(sink.samples_seen, 170000UZ));
+    expect(ge(sink.n_samples_produced, 80000UZ));
+    expect(le(sink.n_samples_produced, 170000UZ));
     expect(eq(tagMonitor._tags.size(), 1UZ));
     const auto &tag = tagMonitor._tags[0];
     expect(eq(tag.index, int64_t{ 0 }));
-    expect(eq(std::get<double>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), static_cast<double>(kSampleRate)));
+    expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), kSampleRate));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));
     expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
     expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), 0.f));
@@ -145,7 +145,7 @@ const boost::ut::suite PicoscopeTests = [] {
         constexpr auto        kTotalSamples = kNrCaptures * (kPreSamples + kPostSamples);
 
         Graph                 flowGraph;
-        auto                 &ps    = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000. },
+        auto                 &ps    = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000.f },
                                                                                                                  { "pre_samples", kPreSamples },
                                                                                                                  { "post_samples", kPostSamples },
                                                                                                                  { "acquisition_mode", "RapidBlock" },
@@ -156,10 +156,10 @@ const boost::ut::suite PicoscopeTests = [] {
                                                                                                                  { "channel_ranges", std::vector{ { 5., 5., 5., 5. } } },
                                                                                                                  { "channel_couplings", std::vector<std::string>{ "AC_1M", "AC_1M", "AC_1M", "AC_1M" } } } });
 
-        auto                 &sink0 = flowGraph.emplaceBlock<CountSink<float>>();
-        auto                 &sink1 = flowGraph.emplaceBlock<CountSink<float>>();
-        auto                 &sink2 = flowGraph.emplaceBlock<CountSink<float>>();
-        auto                 &sink3 = flowGraph.emplaceBlock<CountSink<float>>();
+        auto &sink0 = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }, {"log_tags", false}}});
+        auto &sink1 = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }, {"log_tags", false}}});
+        auto &sink2 = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }, {"log_tags", false}}});
+        auto &sink3 = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }, {"log_tags", false}}});
 
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).to<"in">(sink0)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 1>(ps).to<"in">(sink1)));
@@ -169,15 +169,15 @@ const boost::ut::suite PicoscopeTests = [] {
         scheduler::Simple sched{ std::move(flowGraph) };
         sched.runAndWait();
 
-        expect(eq(sink0.samples_seen, kTotalSamples));
-        expect(eq(sink1.samples_seen, kTotalSamples));
-        expect(eq(sink2.samples_seen, kTotalSamples));
-        expect(eq(sink3.samples_seen, kTotalSamples));
+        expect(eq(sink0.n_samples_produced, kTotalSamples));
+        expect(eq(sink1.n_samples_produced, kTotalSamples));
+        expect(eq(sink2.n_samples_produced, kTotalSamples));
+        expect(eq(sink3.n_samples_produced, kTotalSamples));
     };
 
     "rapid block continuous"_test = [] {
         Graph flowGraph;
-        auto &ps    = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000. },
+        auto &ps    = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>({ { { "sample_rate", 10000.f },
                                                                                                  { "post_samples", std::size_t{ 1000 } },
                                                                                                  { "acquisition_mode", "RapidBlock" },
                                                                                                  { "rapid_block_nr_captures", std::size_t{ 1 } },
@@ -186,7 +186,7 @@ const boost::ut::suite PicoscopeTests = [] {
                                                                                                  { "channel_ranges", std::vector{ 5. } },
                                                                                                  { "channel_couplings", std::vector<std::string>{ "AC_1M" } } } });
 
-        auto &sink0 = flowGraph.emplaceBlock<CountSink<float>>();
+        auto &sink0 = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false }, {"log_tags", false}}});
 
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).to<"in">(sink0)));
 
@@ -196,8 +196,8 @@ const boost::ut::suite PicoscopeTests = [] {
         std::this_thread::sleep_for(std::chrono::seconds(3));
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
-        expect(ge(sink0.samples_seen, std::size_t{ 2000 }));
-        expect(le(sink0.samples_seen, std::size_t{ 10000 }));
+        expect(ge(sink0.n_samples_produced, std::size_t{ 2000 }));
+        expect(le(sink0.n_samples_produced, std::size_t{ 10000 }));
     };
 };
 
