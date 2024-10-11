@@ -209,7 +209,7 @@ void drawSnoopedEventTableRow(const Timing::Event& evt, Timing& timing) {
 }
 
 void showTimingEventTable(Timing& timing) {
-    static gr::BufferReader auto event_reader = timing.snooped.new_reader();
+    static gr::BufferReaderLike auto event_reader = timing.snooped.new_reader();
     if (ImGui::Button("clear")) {
         auto ignored = event_reader.get();
         std::ignore  = ignored.consume(ignored.size());
@@ -594,7 +594,7 @@ void showTRConfig(Timing& timing, bool& imGuiDemo, bool& imPlotDemo) {
     }
 }
 
-template<gr::Buffer BufferT>
+template<gr::BufferLike BufferT>
 class TimePlot {
 public:
     static constexpr int bufferSize = 5000;
