@@ -15,12 +15,17 @@ namespace fair::picoscope::test {
 template<typename T, AcquisitionMode aMode>
 using PicoscopeT = Picoscope4000a<T, aMode>;
 
+static_assert(gr::HasProcessBulkFunction<PicoscopeT<float, AcquisitionMode::Streaming>>);
+static_assert(gr::HasProcessBulkFunction<PicoscopeT<float, AcquisitionMode::RapidBlock>>);
+
 template<typename T>
 void testRapidBlockBasic(std::size_t nrCaptures) {
     using namespace boost::ut;
     using namespace gr;
     using namespace fair::helpers;
     using namespace fair::picoscope;
+
+    fmt::println("testRapidBlockBasic - {}", gr::meta::type_name<T>());
 
     constexpr std::size_t kPreSamples  = 33;
     constexpr std::size_t kPostSamples = 1000;
@@ -36,20 +41,23 @@ void testRapidBlockBasic(std::size_t nrCaptures) {
     scheduler::Simple sched{std::move(flowGraph)};
     sched.runAndWait();
 
-    expect(eq(sink.n_samples_produced, totalSamples));
+    expect(eq(sink._nSamplesProduced, totalSamples));
 }
 
 template<typename T>
 void testStreamingBasics() {
     using namespace std::chrono;
+    using namespace std::chrono_literals;
     using namespace boost::ut;
     using namespace gr;
     using namespace fair::helpers;
     using namespace fair::picoscope;
     Graph flowGraph;
 
+    fmt::println("testStreamingBasics - {}", gr::meta::type_name<T>());
+
     constexpr float kSampleRate = 80000.f;
-    constexpr auto  kDuration   = seconds(2);
+    constexpr auto  kDuration   = 2s;
 
     auto& ps = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::Streaming>>({{{"sample_rate", kSampleRate}, {"acquisition_mode", "Streaming"}, {"streaming_mode_poll_rate", 0.00001}, {"auto_arm", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_names", std::vector<std::string>{"Test signal"}}, {"channel_units", std::vector<std::string>{"Test unit"}}, {"channel_ranges", std::vector{5.}}, {"channel_couplings", std::vector<std::string>{"AC_1M"}}}});
 
@@ -68,21 +76,23 @@ void testStreamingBasics() {
     std::this_thread::sleep_for(kDuration);
     expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
-    const auto measuredRate = static_cast<double>(sink.n_samples_produced) / duration<double>(kDuration).count();
+    const auto measuredRate = static_cast<double>(sink._nSamplesProduced) / duration<double>(kDuration).count();
     fmt::println("Produced in worker: {}", ps.producedWorker());
     fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / kSampleRate * 100., duration_cast<milliseconds>(kDuration).count());
-    fmt::println("Total: {}", sink.n_samples_produced);
+    fmt::println("Total: {}", sink._nSamplesProduced);
 
-    expect(ge(sink.n_samples_produced, 80000UZ));
-    expect(le(sink.n_samples_produced, 170000UZ));
+    expect(ge(sink._nSamplesProduced, 80000UZ));
+    expect(le(sink._nSamplesProduced, 170000UZ));
     expect(eq(tagMonitor._tags.size(), 1UZ));
-    const auto& tag = tagMonitor._tags[0];
-    expect(eq(tag.index, int64_t{0}));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), kSampleRate));
-    expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));
-    expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), 0.f));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.shortKey()))), 5.f));
+    if (tagMonitor._tags.size() == 1UZ) {
+        const auto& tag = tagMonitor._tags[0];
+        expect(eq(tag.index, int64_t{0}));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), kSampleRate));
+        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));
+        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), 0.f));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.shortKey()))), 5.f));
+    }
 }
 
 const boost::ut::suite PicoscopeTests = [] {
@@ -140,10 +150,10 @@ const boost::ut::suite PicoscopeTests = [] {
         scheduler::Simple sched{std::move(flowGraph)};
         sched.runAndWait();
 
-        expect(eq(sink0.n_samples_produced, kTotalSamples));
-        expect(eq(sink1.n_samples_produced, kTotalSamples));
-        expect(eq(sink2.n_samples_produced, kTotalSamples));
-        expect(eq(sink3.n_samples_produced, kTotalSamples));
+        expect(eq(sink0._nSamplesProduced, kTotalSamples));
+        expect(eq(sink1._nSamplesProduced, kTotalSamples));
+        expect(eq(sink2._nSamplesProduced, kTotalSamples));
+        expect(eq(sink3._nSamplesProduced, kTotalSamples));
     };
 
     "rapid block continuous"_test = [] {
@@ -160,8 +170,8 @@ const boost::ut::suite PicoscopeTests = [] {
         std::this_thread::sleep_for(std::chrono::seconds(3));
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
-        expect(ge(sink0.n_samples_produced, std::size_t{2000}));
-        expect(le(sink0.n_samples_produced, std::size_t{10000}));
+        expect(ge(sink0._nSamplesProduced, std::size_t{2000}));
+        expect(le(sink0._nSamplesProduced, std::size_t{10000}));
     };
 };
 

@@ -29,9 +29,9 @@ include(FetchContent)
 
 set(ENABLE_TESTING OFF)
 FetchContent_Declare(
-  graph-prototype
-  GIT_REPOSITORY https://github.com/fair-acc/graph-prototype.git
-  GIT_TAG 4b05d3059335d14e9fa2eb44b43bb37a4881409c # main as of 2024-06-18
+  gnuradio4
+  GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
+  GIT_TAG 5e7ecc561dfb35a6a8fd357f50d12efd09303c4f # main as of 2024-10-18
 )
 
 FetchContent_Declare(
@@ -45,7 +45,7 @@ include(cmake/CompilerWarnings.cmake)
 set_project_warnings(gr-digitizers-options)
 
 if(EMSCRIPTEN)
-  FetchContent_MakeAvailable(graph-prototype ut)
+  FetchContent_MakeAvailable(gnuradio4 ut)
   set(CMAKE_EXECUTABLE_SUFFIX ".js")
   target_compile_options(gr-digitizers-options INTERFACE -fwasm-exceptions
                                                          -pthread)
@@ -71,7 +71,7 @@ else()
       implot
       GIT_REPOSITORY https://github.com/epezent/implot.git
       GIT_TAG v0.16)
-    FetchContent_MakeAvailable(imgui implot graph-prototype ut)
+    FetchContent_MakeAvailable(imgui implot gnuradio4 ut)
 
     find_package(SDL2 REQUIRED)
     find_package(OpenGL REQUIRED COMPONENTS OpenGL)
