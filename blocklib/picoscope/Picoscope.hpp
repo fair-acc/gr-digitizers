@@ -41,8 +41,6 @@ namespace detail {
 
 constexpr std::size_t kDriverBufferSize = 65536;
 
-enum class PollerState { Idle, Running, Exit };
-
 struct ChannelSetting {
     std::string name;
     std::string unit     = "V";
@@ -54,7 +52,7 @@ struct ChannelSetting {
 using ChannelMap = std::map<std::string, ChannelSetting, std::less<>>;
 
 struct TriggerSetting {
-    static constexpr std::string_view kTriggerDigitalSource = "DI"; // DI is as well used as "AUX" for p6000 scopes
+    static constexpr std::string_view kTriggerDigitalSource = "DI"; // DI is as well-used as "AUX" for p6000 scopes
 
     bool isEnabled() const { return !source.empty(); }
 
@@ -70,13 +68,9 @@ struct TriggerSetting {
 
 template<typename T>
 struct Channel {
-    using ValueWriterType = decltype(std::declval<gr::CircularBuffer<T>>().new_writer());
-    using TagWriterType   = decltype(std::declval<gr::CircularBuffer<gr::Tag>>().new_writer());
     std::string          id;
     ChannelSetting       settings;
     std::vector<int16_t> driver_buffer;
-    ValueWriterType      data_writer;
-    TagWriterType        tag_writer;
     bool                 signal_info_written = false;
 
     gr::property_map signalInfo() const {
@@ -87,18 +81,6 @@ struct Channel {
         static const auto kSignalMax  = std::string(tag::SIGNAL_MAX.shortKey());
         return {{kSignalName, settings.name}, {kSignalUnit, settings.unit}, {kSignalMin, static_cast<float>(settings.offset)}, {kSignalMax, static_cast<float>(settings.offset + settings.range)}};
     }
-};
-
-struct ErrorWithSample {
-    std::size_t sample;
-    Error       error;
-};
-
-template<typename T, std::size_t initialSize = 1>
-struct BufferHelper {
-    gr::CircularBuffer<T>         buffer = gr::CircularBuffer<T>(initialSize);
-    decltype(buffer.new_reader()) reader = buffer.new_reader();
-    decltype(buffer.new_writer()) writer = buffer.new_writer();
 };
 
 struct Settings {
@@ -117,22 +99,19 @@ struct Settings {
 
 template<typename T>
 struct State {
-    std::vector<Channel<T>>       channels;
-    std::atomic<bool>             data_finished      = false;
-    bool                          initialized        = false;
-    bool                          configured         = false;
-    bool                          closed             = false;
-    bool                          armed              = false;
-    bool                          started            = false; // TODO transitional until nodes have state handling
-    int8_t                        trigger_state      = 0;
-    int16_t                       handle             = -1; ///< picoscope handle
-    int16_t                       overflow           = 0;  ///< status returned from getValues
-    int16_t                       max_value          = 0;  ///< maximum ADC count used for ADC conversion
-    double                        actual_sample_rate = 0;
-    std::thread                   poller;
-    BufferHelper<ErrorWithSample> errors;
-    std::atomic<PollerState>      poller_state    = PollerState::Idle;
-    std::size_t                   produced_worker = 0; // poller/callback thread
+    std::vector<Channel<T>> channels;
+    std::atomic<bool>       data_finished      = false;
+    bool                    initialized        = false;
+    bool                    configured         = false;
+    bool                    closed             = false;
+    bool                    armed              = false;
+    bool                    started            = false; // TODO transitional until nodes have state handling
+    int8_t                  trigger_state      = 0;
+    int16_t                 handle             = -1; ///< picoscope handle
+    int16_t                 overflow           = 0;  ///< status returned from getValues
+    int16_t                 max_value          = 0;  ///< maximum ADC count used for ADC conversion
+    double                  actual_sample_rate = 0;
+    std::size_t             produced_worker    = 0; // poller/callback thread
 };
 
 inline AcquisitionMode parseAcquisitionMode(std::string_view s) {
@@ -272,6 +251,8 @@ public:
     detail::State<T> ps_state;
     detail::Settings ps_settings;
 
+    GR_MAKE_REFLECTABLE(Picoscope, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, trigger_pin);
+
 private:
     std::mutex                   g_init_mutex;
     std::size_t                  streamingSamples = 0Z;
@@ -289,11 +270,10 @@ public:
             auto s = detail::Settings{.serial_number = serial_number, .sample_rate = sample_rate, .acquisition_mode = detail::parseAcquisitionMode(acquisition_mode), .pre_samples = pre_samples, .post_samples = post_samples, .rapid_block_nr_captures = rapid_block_nr_captures, .trigger_once = trigger_once, .streaming_mode_poll_rate = streaming_mode_poll_rate, .auto_arm = auto_arm, .enabled_channels = detail::channelSettings(channel_ids.value, channel_names.value, channel_units.value, channel_ranges, channel_offsets, channel_couplings.value), .trigger = detail::TriggerSetting{.source = trigger_source, .threshold = trigger_threshold, .direction = detail::parseTriggerDirection(trigger_direction), .pin_number = trigger_pin}};
             std::swap(ps_settings, s);
 
+            ps_state.channels.clear();
             ps_state.channels.reserve(ps_settings.enabled_channels.size());
-            std::size_t channelIdx = 0;
             for (const auto& [id, settings] : ps_settings.enabled_channels) {
-                ps_state.channels.emplace_back(detail::Channel<T>{.id = id, .settings = settings, .driver_buffer = std::vector<int16_t>(detail::kDriverBufferSize), .data_writer = self().analog_out[channelIdx].streamWriter().buffer().new_writer(), .tag_writer = self().analog_out[channelIdx].tagWriter().buffer().new_writer()});
-                channelIdx++;
+                ps_state.channels.emplace_back(detail::Channel<T>{.id = id, .settings = settings, .driver_buffer = std::vector<int16_t>(detail::kDriverBufferSize)});
             }
         } catch (const std::exception& e) {
             // TODO add errors properly
@@ -318,9 +298,6 @@ public:
             if (ps_settings.auto_arm) {
                 arm();
             }
-            if (acquisitionMode == AcquisitionMode::Streaming) {
-                startPollThread();
-            }
             ps_state.started = true;
         } catch (const std::exception& e) {
             fmt::println(std::cerr, "{}", e.what());
@@ -340,27 +317,6 @@ public:
 
         disarm();
         close();
-
-        if (acquisitionMode == AcquisitionMode::Streaming) {
-            stopPollThread();
-        }
-    }
-
-    void startPollThread() {
-        if (ps_state.poller.joinable()) {
-            return;
-        }
-
-        if (ps_state.poller_state == detail::PollerState::Exit) {
-            ps_state.poller_state = detail::PollerState::Idle;
-        }
-    }
-
-    void stopPollThread() {
-        ps_state.poller_state = detail::PollerState::Exit;
-        if (ps_state.poller.joinable()) {
-            ps_state.poller.join();
-        }
     }
 
     std::string driverVersion() const { return self().driver_driverVersion(); }
@@ -412,18 +368,11 @@ public:
         }
 
         ps_state.armed = true;
-        if (acquisitionMode == AcquisitionMode::Streaming) {
-            ps_state.poller_state = detail::PollerState::Running;
-        }
     }
 
     void disarm() noexcept {
         if (!ps_state.armed) {
             return;
-        }
-
-        if (acquisitionMode == AcquisitionMode::Streaming) {
-            ps_state.poller_state = detail::PollerState::Idle;
         }
 
         if (const auto ec = self().driver_disarm()) {
@@ -433,19 +382,13 @@ public:
         ps_state.armed = false;
     }
 
-    void processDriverData(std::size_t nrSamples, std::size_t offset, auto& outputs) {
+    template<gr::OutputSpanLike TOutSpan>
+    void processDriverData(std::size_t nrSamples, std::size_t offset, std::span<TOutSpan>& outputs) {
         std::vector<std::size_t> triggerOffsets;
-
-        using ChannelOutputRange = decltype(ps_state.channels[0].data_writer.reserve(1));
-        std::vector<ChannelOutputRange> channelOutputs;
-        channelOutputs.reserve(ps_state.channels.size());
 
         for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
             auto& channel = ps_state.channels[channelIdx];
-
-            // channelOutputs.push_back(channel.data_writer.reserve(nrSamples));
-            // auto      &output     = channelOutputs[channelIdx];
-            auto& output = outputs[channelIdx];
+            auto& output  = outputs[channelIdx];
 
             const auto driverData = std::span(channel.driver_buffer).subspan(offset, nrSamples);
 
@@ -485,33 +428,33 @@ public:
                 timing = timingMessages.front();
                 timingMessages.pop();
             }
-
-            // raw index is index - 1
-            triggerTags.emplace_back(static_cast<int64_t>(ps_state.produced_worker + triggerOffset - 1), timing);
+            triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
         }
 
-        for (auto& channel : ps_state.channels) {
+        for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
+            auto&      channel         = ps_state.channels[channelIdx];
+            auto&      output          = outputs[channelIdx];
             const auto writeSignalInfo = !channel.signal_info_written;
             const auto tagsToWrite     = triggerTags.size() + (writeSignalInfo ? 1 : 0);
             if (tagsToWrite == 0) {
                 continue;
             }
-            auto writeTags = channel.tag_writer.reserve(tagsToWrite);
             if (writeSignalInfo) {
-                // raw index is index - 1
-                writeTags[0].index            = static_cast<int64_t>(ps_state.produced_worker - 1);
-                writeTags[0].map              = channel.signalInfo();
+                auto              map         = channel.signalInfo();
                 static const auto kSampleRate = std::string(gr::tag::SAMPLE_RATE.shortKey());
-                writeTags[0].map[kSampleRate] = pmtv::pmt(static_cast<float>(sample_rate));
-                channel.signal_info_written   = true;
+                map[kSampleRate]              = pmtv::pmt(static_cast<float>(sample_rate));
+                output.publishTag(map, 0);
+                channel.signal_info_written = true;
             }
-            std::copy(triggerTags.begin(), triggerTags.end(), writeTags.begin() + (writeSignalInfo ? 1 : 0));
-            writeTags.publish(writeTags.size());
+            for (auto& tag : triggerTags) {
+                output.publishTag(tag.map, tag.index);
+            }
         }
 
         // once all tags have been written, publish the data
-        for (auto& output : outputs) {
-            output.publish(nrSamples);
+        for (std::size_t i = 0; i < outputs.size(); i++) {
+            const std::size_t nSamplesToPublish = i < ps_state.channels.size() ? nrSamples : 0UZ;
+            outputs[i].publish(nSamplesToPublish);
         }
 
         ps_state.produced_worker += nrSamples;
@@ -524,14 +467,9 @@ public:
         assert(nrSamplesSigned >= 0);
         const auto nrSamples = static_cast<std::size_t>(nrSamplesSigned);
 
-        // According to well informed sources, the driver indicates the buffer overrun by
-        // setting all the bits of the overflow argument to true.
+        // According to well-informed sources, the driver indicates the buffer overrun by setting all the bits of the overflow argument to true.
         if (static_cast<uint16_t>(overflow) == 0xffff) {
             fmt::println(std::cerr, "Buffer overrun detected, continue...");
-        }
-
-        if (nrSamples == 0) {
-            return;
         }
     }
 
@@ -539,33 +477,38 @@ public:
     requires(acquisitionMode == AcquisitionMode::RapidBlock)
     {
         if (ec) {
-            reportError(ec);
+            this->emitErrorMessage("PicoscopeError", ec.message());
             return;
         }
         this->invokeWork();
     }
 
-    template<gr::PublishableSpan TOutSpan>
-    gr::work::Status processBulk(std::span<TOutSpan>& output) {
+    template<gr::OutputSpanLike TOutSpan>
+    gr::work::Status processBulk(std::span<TOutSpan>& outputs) {
         if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
             if (const auto ec = self().driver_poll()) {
-                reportError(ec);
-                fmt::println(std::cerr, "poll failed");
+                this->emitErrorMessage("PicoscopeError", ec.message());
                 return gr::work::Status::ERROR;
             }
-            processDriverData(streamingSamples, 0, output);
-            streamingSamples = 0;
+            if (streamingSamples == 0) {
+                for (auto& output : outputs) {
+                    output.publish(0);
+                }
+            } else {
+                processDriverData(streamingSamples, 0, outputs);
+                streamingSamples = 0;
+            }
         } else {
             const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
             for (std::size_t capture = 0; capture < ps_settings.rapid_block_nr_captures; ++capture) {
                 const auto getValuesResult = self().driver_rapidBlockGetValues(capture, samples);
                 if (getValuesResult.error) {
-                    reportError(getValuesResult.error);
+                    this->emitErrorMessage("PicoscopeError", getValuesResult.error.message());
                     return gr::work::Status::ERROR;
                 }
 
                 // TODO handle overflow for individual channels?
-                processDriverData(getValuesResult.samples, 0, output);
+                processDriverData(getValuesResult.samples, 0, outputs);
             }
         }
 
@@ -577,12 +520,6 @@ public:
             return gr::work::Status::OK;
         }
 
-        if (const auto errors_available = ps_state.errors.reader.available(); errors_available > 0) {
-            auto errors = ps_state.errors.reader.get(errors_available);
-            std::ignore = errors.consume(errors.size());
-            return gr::work::Status::ERROR;
-        }
-
         if (ps_state.data_finished) {
             return gr::work::Status::DONE;
         }
@@ -590,7 +527,7 @@ public:
         return gr::work::Status::OK;
     }
 
-    void processMessages(gr::MsgPortInNamed<"__Builtin">&, std::span<const gr::Message> messages) {
+    void processMessages(gr::MsgPortInBuiltin&, std::span<const gr::Message> messages) {
         for (auto& msg : messages) {
             if (msg.data.has_value()) {
                 // store timing messages for later use when triggers occur
@@ -645,15 +582,8 @@ public:
         return triggerOffsets;
     }
 
-    void reportError(Error ec) {
-        auto out = ps_state.errors.writer.reserve(1);
-        out[0]   = {ps_state.produced_worker, ec};
-        out.publish(1);
-    }
-
     constexpr void validateDesiredActualFrequency(double desiredFreq, double actualFreq) {
-        // In order to prevent exceptions/exit due to rounding errors, we dont directly
-        // compare actual_freq to desired_freq, but instead allow a difference up to 0.001%
+        // In order to prevent exceptions/exit due to rounding errors, we don't directly compare actual_freq to desired_freq, but instead allow a difference up to 0.001%
         constexpr double kMaxDiffPercentage = 0.001;
         const double     diff               = actualFreq / desiredFreq - 1;
         if (std::abs(diff) > kMaxDiffPercentage) {
@@ -712,8 +642,7 @@ public:
             }
         }
 
-        // Calculate steps between timebase 3 and 4 and correct start_timebase estimate based
-        // on that
+        // Calculate steps between timebase 3 and 4 and correct start_timebase estimate based on that
         auto step        = static_cast<double>(timeIntervalNS_34[1] - timeIntervalNS_34[0]);
         timebaseEstimate = static_cast<uint32_t>((timeIntervalNS - static_cast<double>(timeIntervalNS_34[0])) / step) + 3;
 
@@ -894,7 +823,7 @@ public:
             auto status = self().runStreaming(this->ps_state.handle,
                 &unit_int.interval, // sample interval
                 unit_int.unit,      // time unit of sample interval
-                0,                  // pre-triggersamples (unused)
+                0,                  // pre-trigger-samples (unused)
                 static_cast<uint32_t>(kDriverBufferSize), false,
                 1, // downsampling factor // TODO reconsider if we need downsampling support
                 self().ratioNone(), static_cast<uint32_t>(kDriverBufferSize));
@@ -909,13 +838,7 @@ public:
     }
 
     Error driver_poll() {
-        static auto redirector = [](int16_t handle, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t triggerAt, int16_t triggered, int16_t autoStop, void* vobj) {
-            std::ignore = handle;
-            std::ignore = triggerAt;
-            std::ignore = triggered;
-            std::ignore = autoStop;
-            static_cast<decltype(this)>(vobj)->streamingCallback(noOfSamples, startIndex, overflow);
-        };
+        static auto redirector = [](int16_t /*handle*/, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t /*triggerAt*/, int16_t /*triggered*/, int16_t /*autoStop*/, void* vobj) { static_cast<decltype(this)>(vobj)->streamingCallback(noOfSamples, startIndex, overflow); };
 
         const auto status = self().getStreamingLatestValues(this->ps_state.handle, static_cast<TPSImpl::StreamingReadyType>(redirector), this);
         if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {

@@ -14,7 +14,9 @@ public:
 
     Picoscope5000a(gr::property_map props) : super_t(std::move(props)) {}
 
-    std::array<gr::PortOut<T>, 4> analog_out;
+    std::vector<gr::PortOut<T>> analog_out{4};
+
+    GR_MAKE_REFLECTABLE(Picoscope5000a, analog_out);
 
     using ChannelType            = PS5000A_CHANNEL;
     using ConditionType          = PS5000A_CONDITION;
@@ -240,7 +242,5 @@ public:
 };
 
 } // namespace fair::picoscope
-
-ENABLE_REFLECTION_FOR_TEMPLATE_FULL((typename T, fair::picoscope::AcquisitionMode acquisitionMode), (fair::picoscope::Picoscope5000a<T, acquisitionMode>), analog_out, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, trigger_pin);
 
 #endif

@@ -14,7 +14,7 @@ public:
 
     Picoscope4000a(gr::property_map props) : super_t(std::move(props)) {}
 
-    std::array<gr::PortOut<T>, 8> analog_out;
+    std::vector<gr::PortOut<T>> analog_out{8};
 
     using ChannelType            = PS4000A_CHANNEL;
     using ConditionType          = PS4000A_CONDITION;
@@ -28,6 +28,8 @@ public:
     using StreamingReadyType     = ps4000aStreamingReady;
     using BlockReadyType         = ps4000aBlockReady;
     using RatioModeType          = PS4000A_RATIO_MODE;
+
+    GR_MAKE_REFLECTABLE(Picoscope4000a, analog_out);
 
     /*!
      * a structure used for streaming setup
@@ -236,7 +238,5 @@ public:
 };
 
 } // namespace fair::picoscope
-
-ENABLE_REFLECTION_FOR_TEMPLATE_FULL((typename T, fair::picoscope::AcquisitionMode acquisitionMode), (fair::picoscope::Picoscope4000a<T, acquisitionMode>), analog_out, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, trigger_pin);
 
 #endif

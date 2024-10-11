@@ -201,7 +201,7 @@ public:
         bool operator<=>(const Trigger&) const = default;
     };
 
-    gr::CircularBuffer<Event, 10000>                        snooped{10000};
+    gr::CircularBuffer<Event, 8192>                         snooped{8192};
     std::vector<std::tuple<uint, std::string, std::string>> outputs;
     std::map<uint64_t, Trigger>                             triggers;
     std::vector<Timing::Event>                              events = {};
@@ -260,7 +260,10 @@ public:
         condition->setAcceptEarly(true);
         condition->setAcceptConflict(true);
         condition->setAcceptDelayed(true);
-        condition->SigAction.connect([this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed, uint16_t flags) { this->snoop_writer.publish([id, param, &deadline, &executed, flags](std::span<Event> buffer) { buffer[0] = Timing::Event{deadline.getTAI(), id, param, flags, executed.getTAI()}; }, 1); });
+        condition->SigAction.connect([this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed, uint16_t flags) {
+            auto data = this->snoop_writer.reserve<gr::SpanReleasePolicy::ProcessAll>(1);
+            data[0]   = Timing::Event{deadline.getTAI(), id, param, flags, executed.getTAI()};
+        });
         condition->setActive(true);
     }
 
@@ -315,13 +318,10 @@ public:
 
     void injectEvent(const Event& ev, uint64_t time_offset) {
         if (simulate && ((ev.id() & snoopMask) == (snoopID & snoopMask))) {
-            this->snoop_writer.publish(
-                [ev, time_offset](std::span<Event> buffer) {
-                    buffer[0] = ev;
-                    buffer[0].time += time_offset;
-                    buffer[0].executed = buffer[0].time;
-                },
-                1);
+            auto buffer = this->snoop_writer.reserve<gr::SpanReleasePolicy::ProcessAll>(1);
+            buffer[0]   = ev;
+            buffer[0].time += time_offset;
+            buffer[0].executed = buffer[0].time;
         } else if (!simulate) {
             receiver->InjectEvent(ev.id(), ev.param(), saftlib::makeTimeTAI(ev.time + time_offset));
         }

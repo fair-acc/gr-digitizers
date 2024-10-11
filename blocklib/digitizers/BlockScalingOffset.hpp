@@ -21,11 +21,11 @@ struct BlockScalingOffset : public gr::Block<BlockScalingOffset<T>> {
     gr::Annotated<T, "scale", gr::Visible>  scale  = 1.;
     gr::Annotated<T, "offset", gr::Visible> offset = 0.;
 
+    GR_MAKE_REFLECTABLE(BlockScalingOffset, in_signal, in_error, out_signal, out_error, scale, offset);
+
     std::tuple<T, T> processOne(T sig, T error) noexcept { return {static_cast<T>(sig * scale - offset), static_cast<T>(error * scale)}; }
 };
 
 } // namespace gr::digitizers
-
-ENABLE_REFLECTION_FOR_TEMPLATE(gr::digitizers::BlockScalingOffset, in_signal, in_error, out_signal, out_error, scale, offset);
 
 #endif
