@@ -16,13 +16,9 @@ struct VectorSource : public gr::Block<VectorSource<T>> {
     std::vector<T> data;
     std::size_t    _produced = 0;
 
-    void
-    settingsChanged(const gr::property_map & /*old_settings*/, const gr::property_map & /*new_settings*/) {
-        _produced = 0;
-    }
+    void settingsChanged(const gr::property_map& /*old_settings*/, const gr::property_map& /*new_settings*/) { _produced = 0; }
 
-    gr::work::Status
-    processBulk(gr::PublishableSpan auto &output) noexcept {
+    gr::work::Status processBulk(gr::PublishableSpan auto& output) noexcept {
         using enum gr::work::Status;
         const auto n     = std::min(output.size(), data.size() - _produced);
         const auto chunk = std::span(data).subspan(_produced, n);
@@ -38,8 +34,7 @@ struct VectorSink : public gr::Block<VectorSink<T>> {
     gr::PortIn<T>  in;
     std::vector<T> data;
 
-    gr::work::Status
-    processBulk(std::span<const T> input) {
+    gr::work::Status processBulk(std::span<const T> input) {
         data.insert(data.end(), input.begin(), input.end());
         return gr::work::Status::OK;
     }

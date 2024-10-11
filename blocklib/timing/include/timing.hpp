@@ -4,34 +4,32 @@
 // gr
 #include <gnuradio-4.0/CircularBuffer.hpp>
 // timing
-#include <SAFTd.h>
-#include <TimingReceiver.h>
-#include <SoftwareActionSink.h>
-#include <SoftwareCondition.h>
 #include <CommonFunctions.h>
-#include <etherbone.h>
-#include <Output_Proxy.hpp>
+#include <Input.hpp>
 #include <Input_Proxy.hpp>
 #include <Output.hpp>
-#include <Input.hpp>
-#include <OutputCondition_Proxy.hpp>
 #include <OutputCondition.hpp>
+#include <OutputCondition_Proxy.hpp>
+#include <Output_Proxy.hpp>
+#include <SAFTd.h>
+#include <SoftwareActionSink.h>
+#include <SoftwareCondition.h>
+#include <TimingReceiver.h>
+#include <etherbone.h>
 
 // gr
 #include <gnuradio-4.0/CircularBuffer.hpp>
 
 using saftlib::SAFTd_Proxy;
-using saftlib::TimingReceiver_Proxy;
 using saftlib::SoftwareActionSink_Proxy;
 using saftlib::SoftwareCondition_Proxy;
+using saftlib::TimingReceiver_Proxy;
 
-static std::chrono::time_point<std::chrono::system_clock> taiNsToUtc(uint64_t input) {
-    return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input)));
-}
+static std::chrono::time_point<std::chrono::system_clock> taiNsToUtc(uint64_t input) { return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input))); }
 
 class Timing {
 public:
-    static const int milliToNano = 1000000;
+    static const int milliToNano      = 1000000;
     static const int minTriggerOffset = 100;
     /**
      * Structure to atuomatically encode and decode GSI/FAIR specific timing events as documented in:
@@ -94,97 +92,69 @@ public:
      */
     struct Event {
         // eventid - 64
-        uint8_t fid = 1;   // 4
-        uint16_t gid;  // 12
+        uint8_t  fid = 1; // 4
+        uint16_t gid;     // 12
         uint16_t eventNo; // 12
-        bool flagBeamin;
-        bool flagBpcStart;
-        bool flagReserved1;
-        bool flagReserved2;
-        uint16_t sid; //12
-        uint16_t bpid; //14
-        bool reserved;
-        bool reqNoBeam;
-        uint8_t virtAcc; // 4
+        bool     flagBeamin;
+        bool     flagBpcStart;
+        bool     flagReserved1;
+        bool     flagReserved2;
+        uint16_t sid;  // 12
+        uint16_t bpid; // 14
+        bool     reserved;
+        bool     reqNoBeam;
+        uint8_t  virtAcc; // 4
         // param - 64
         uint32_t bpcid; // 22
         uint64_t bpcts; // 42
         // timing system
-        uint64_t time = 0;
+        uint64_t time     = 0;
         uint64_t executed = 0;
-        uint16_t flags = 0x0;
+        uint16_t flags    = 0x0;
 
-        Event(const Event&) = default;
-        Event(Event&&) = default;
+        Event(const Event&)            = default;
+        Event(Event&&)                 = default;
         Event& operator=(const Event&) = default;
-        Event& operator=(Event&&) = default;
+        Event& operator=(Event&&)      = default;
 
-        template <typename ReturnType, std::size_t position, std::size_t bitsize>
+        template<typename ReturnType, std::size_t position, std::size_t bitsize>
         static constexpr ReturnType extractField(uint64_t value) {
-            static_assert(position + bitsize <= 64); // assert that we only consider existing bits
+            static_assert(position + bitsize <= 64);                                         // assert that we only consider existing bits
             static_assert(std::numeric_limits<ReturnType>::max() >= ((1UL << bitsize) - 1)); // make sure the data fits into the return type
-            return static_cast<ReturnType>((value >> position) & ((1UL <<  bitsize) - 1));
+            return static_cast<ReturnType>((value >> position) & ((1UL << bitsize) - 1));
         }
 
-        template <std::size_t position, std::size_t bitsize, typename FieldType>
+        template<std::size_t position, std::size_t bitsize, typename FieldType>
         static constexpr uint64_t fromField(FieldType value) {
             static_assert(position + bitsize <= 64);
             static_assert(std::numeric_limits<FieldType>::max() >= ((1UL << bitsize) - 1));
-            return ((value & ((1UL <<  bitsize) - 1)) <<  position);
+            return ((value & ((1UL << bitsize) - 1)) << position);
         }
 
-        explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param= 0, uint16_t _flags = 0, uint64_t _executed = 0) :
-            // id
-            fid           { extractField<uint8_t, 60, 4>(id) },
-            gid           { extractField<uint16_t, 48, 12>(id) },
-            eventNo       { extractField<uint16_t, 36, 12>(id) },
-            flagBeamin    { extractField<bool, 35, 1>(id) },
-            flagBpcStart  { extractField<bool, 34, 1>(id) },
-            flagReserved1 { extractField<bool, 33, 1>(id) },
-            flagReserved2 { extractField<bool, 32, 1>(id) },
-            sid           { extractField<uint16_t, 20, 12>(id) },
-            bpid          { extractField<uint16_t, 6, 14>(id) },
-            reserved      { extractField<bool, 5, 1>(id) },
-            reqNoBeam     { extractField<bool, 4, 1>(id) },
-            virtAcc       { extractField<uint8_t, 0, 4>(id) },
-            // param
-            bpcid         { extractField<uint32_t, 42, 22>(param) },
-            bpcts         { extractField<uint64_t, 0, 42>(param) },
-            time { timestamp},
-            executed { _executed},
-            flags { _flags} { }
+        explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param = 0, uint16_t _flags = 0, uint64_t _executed = 0)
+            : // id
+              fid{extractField<uint8_t, 60, 4>(id)}, gid{extractField<uint16_t, 48, 12>(id)}, eventNo{extractField<uint16_t, 36, 12>(id)}, flagBeamin{extractField<bool, 35, 1>(id)}, flagBpcStart{extractField<bool, 34, 1>(id)}, flagReserved1{extractField<bool, 33, 1>(id)}, flagReserved2{extractField<bool, 32, 1>(id)}, sid{extractField<uint16_t, 20, 12>(id)}, bpid{extractField<uint16_t, 6, 14>(id)}, reserved{extractField<bool, 5, 1>(id)}, reqNoBeam{extractField<bool, 4, 1>(id)}, virtAcc{extractField<uint8_t, 0, 4>(id)},
+              // param
+              bpcid{extractField<uint32_t, 42, 22>(param)}, bpcts{extractField<uint64_t, 0, 42>(param)}, time{timestamp}, executed{_executed}, flags{_flags} {}
 
         [[nodiscard]] uint64_t id() const {
             // clang-format:off
-            return fromField< 0,  4>(virtAcc)
-                 + fromField< 4,  1>(reqNoBeam)
-                 + fromField< 5,  1>(reserved)
-                 + fromField< 6, 14>(bpid)
-                 + fromField<20, 12>(sid)
-                 + fromField<32,  1>(flagReserved2)
-                 + fromField<33,  1>(flagReserved1)
-                 + fromField<34,  1>(flagBpcStart)
-                 + fromField<35,  1>(flagBeamin)
-                 + fromField<36, 12>(eventNo)
-                 + fromField<48, 12>(gid)
-                 + fromField<60,  4>(fid);
+            return fromField<0, 4>(virtAcc) + fromField<4, 1>(reqNoBeam) + fromField<5, 1>(reserved) + fromField<6, 14>(bpid) + fromField<20, 12>(sid) + fromField<32, 1>(flagReserved2) + fromField<33, 1>(flagReserved1) + fromField<34, 1>(flagBpcStart) + fromField<35, 1>(flagBeamin) + fromField<36, 12>(eventNo) + fromField<48, 12>(gid) + fromField<60, 4>(fid);
             // clang-format:on
         }
 
-        [[nodiscard]] uint64_t param() const {
-            return fromField< 0, 42>(bpcts) + fromField< 42, 22>(bpcid);
-        }
+        [[nodiscard]] uint64_t param() const { return fromField<0, 42>(bpcts) + fromField<42, 22>(bpcid); }
 
         static std::optional<Event> fromString(std::string_view line) {
             using std::operator""sv;
 #if defined(__clang__)
             std::array<uint64_t, 3> elements{};
-            std::size_t found = 0;
-            std::size_t startingIndex = 0;
+            std::size_t             found         = 0;
+            std::size_t             startingIndex = 0;
             for (std::size_t i = 0; i <= line.size() && found < elements.size(); i++) {
                 if (i == line.size() || line[i] == ' ') {
                     if (startingIndex < i) {
-                        auto parse = [](auto el) { return std::stoul(std::string(std::string_view(el)), nullptr, 0); };
+                        auto parse        = [](auto el) { return std::stoul(std::string(std::string_view(el)), nullptr, 0); };
                         elements[found++] = parse(line.substr(startingIndex, i - startingIndex));
                     }
                     startingIndex = i;
@@ -194,9 +164,7 @@ public:
                 return Event{elements[2], elements[0], elements[1]};
             }
 #else
-            auto event = std::views::split(line, " "sv) | std::views::take(3)
-                         | std::views::transform([](auto n) { return std::stoul(std::string(std::string_view(n)), nullptr, 0); })
-                         | std::views::adjacent_transform<3>([](auto a, auto b, auto c) {return Timing::Event{c, a, b};});
+            auto event = std::views::split(line, " "sv) | std::views::take(3) | std::views::transform([](auto n) { return std::stoul(std::string(std::string_view(n)), nullptr, 0); }) | std::views::adjacent_transform<3>([](auto a, auto b, auto c) { return Timing::Event{c, a, b}; });
             if (!event.empty()) {
                 return event.front();
             }
@@ -204,7 +172,7 @@ public:
             return {};
         }
 
-        static void loadEventsFromString(std::vector<Timing::Event> &events, std::string_view string) {
+        static void loadEventsFromString(std::vector<Timing::Event>& events, std::string_view string) {
             events.clear();
             using std::operator""sv;
             try {
@@ -214,51 +182,50 @@ public:
                         events.push_back(*event);
                     }
                 }
-            } catch (std::invalid_argument &e) {
+            } catch (std::invalid_argument& e) {
                 events.clear();
                 fmt::print("Error parsing data, cannot convert string to number: {}\n### data ###\n{}\n### data end ###\n", e.what(), string);
-            } catch (std::out_of_range &e) {
+            } catch (std::out_of_range& e) {
                 events.clear();
                 fmt::print("Error parsing data, value out of range: {}\n### data ###\n{}\n### data end ###\n", e.what(), string);
             }
         }
-
     };
 
     struct Trigger {
         std::array<bool, 20> outputs;
-        uint64_t id;
-        double delay; // [ms]
-        double flattop; // [ms]
+        uint64_t             id;
+        double               delay;   // [ms]
+        double               flattop; // [ms]
 
         bool operator<=>(const Trigger&) const = default;
     };
 
-    gr::CircularBuffer<Event, 10000> snooped{10000};
+    gr::CircularBuffer<Event, 10000>                        snooped{10000};
     std::vector<std::tuple<uint, std::string, std::string>> outputs;
-    std::map<uint64_t, Trigger> triggers;
-    std::vector<Timing::Event> events = {};
+    std::map<uint64_t, Trigger>                             triggers;
+    std::vector<Timing::Event>                              events = {};
+
 private:
-    decltype(snooped.new_writer()) snoop_writer = snooped.new_writer();
-    bool tried = false;
-    std::shared_ptr<SAFTd_Proxy> saftd;
+    decltype(snooped.new_writer())            snoop_writer = snooped.new_writer();
+    bool                                      tried        = false;
+    std::shared_ptr<SAFTd_Proxy>              saftd;
     std::shared_ptr<SoftwareActionSink_Proxy> sink;
-    std::shared_ptr<SoftwareCondition_Proxy> condition;
+    std::shared_ptr<SoftwareCondition_Proxy>  condition;
+
 public:
-    bool initialized = false;
-    bool simulate = false;
-    uint64_t snoopID = 0x0;
-    uint64_t snoopMask = 0x0;
+    bool                                  initialized = false;
+    bool                                  simulate    = false;
+    uint64_t                              snoopID     = 0x0;
+    uint64_t                              snoopMask   = 0x0;
     std::shared_ptr<TimingReceiver_Proxy> receiver;
 
 private:
-    void updateExistingTrigger(const Trigger &trigger, const std::map<uint64_t, Timing::Trigger>::iterator &existing, const std::string& output) const {
+    void updateExistingTrigger(const Trigger& trigger, const std::map<uint64_t, Timing::Trigger>::iterator& existing, const std::string& output) const {
         auto proxy = saftlib::Output_Proxy::create(output);
         if (trigger.delay != existing->second.delay || trigger.flattop != existing->second.flattop) { // update condition for rising edge
-            auto matchingConditions = proxy->getAllConditions()
-                                      | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
-                                      | std::views::filter([&trigger](const auto &cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
-            std::ranges::for_each(matchingConditions, [&trigger](const auto &cond) {
+            auto matchingConditions = proxy->getAllConditions() | std::views::transform([](const auto& cond) { return saftlib::OutputCondition_Proxy::create(cond); }) | std::views::filter([&trigger](const auto& cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+            std::ranges::for_each(matchingConditions, [&trigger](const auto& cond) {
                 if (cond->getOn()) {
                     cond->setOffset(static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset);
                 } else {
@@ -268,17 +235,13 @@ private:
         }
     }
 
-    void removeHardwareTrigger(const Trigger &trigger, const std::string &output) const {
-        auto proxy = saftlib::Output_Proxy::create(output);
-        auto matchingConditions = proxy->getAllConditions()
-                                  | std::views::transform([](const auto &cond) { return saftlib::OutputCondition_Proxy::create(cond); })
-                                  | std::views::filter([&trigger](const auto &cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
-        std::ranges::for_each(matchingConditions, [](const auto &cond) {
-            cond->Destroy();
-        });
+    void removeHardwareTrigger(const Trigger& trigger, const std::string& output) const {
+        auto proxy              = saftlib::Output_Proxy::create(output);
+        auto matchingConditions = proxy->getAllConditions() | std::views::transform([](const auto& cond) { return saftlib::OutputCondition_Proxy::create(cond); }) | std::views::filter([&trigger](const auto& cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+        std::ranges::for_each(matchingConditions, [](const auto& cond) { cond->Destroy(); });
     }
 
-    void newHardwareTrigger(const Trigger &trigger, const std::string &output) const {
+    void newHardwareTrigger(const Trigger& trigger, const std::string& output) const {
         auto proxy = saftlib::Output_Proxy::create(output);
         proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset, true);
         proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay + trigger.flattop) * milliToNano + minTriggerOffset, false);
@@ -286,7 +249,9 @@ private:
 
 public:
     void updateSnoopFilter() {
-        if (simulate) return;
+        if (simulate) {
+            return;
+        }
         if (condition) {
             condition->Destroy();
         }
@@ -295,14 +260,7 @@ public:
         condition->setAcceptEarly(true);
         condition->setAcceptConflict(true);
         condition->setAcceptDelayed(true);
-        condition->SigAction.connect(
-                [this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed,
-                       uint16_t flags) {
-                    this->snoop_writer.publish(
-                            [id, param, &deadline, &executed, flags](std::span<Event> buffer) {
-                                buffer[0] = Timing::Event{deadline.getTAI(), id, param, flags, executed.getTAI()};
-                            }, 1);
-                });
+        condition->SigAction.connect([this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed, uint16_t flags) { this->snoop_writer.publish([id, param, &deadline, &executed, flags](std::span<Event> buffer) { buffer[0] = Timing::Event{deadline.getTAI(), id, param, flags, executed.getTAI()}; }, 1); });
         condition->setActive(true);
     }
 
@@ -317,21 +275,21 @@ public:
                 if (devices.empty()) {
                     std::cerr << "" << std::endl;
                     fmt::print("No devices attached to saftd, continuing with simulated timing\n");
-                    simulate = true;
+                    simulate    = true;
                     initialized = true;
                     return;
                 }
                 receiver = TimingReceiver_Proxy::create(devices.begin()->second);
-                sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
+                sink     = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
                 updateSnoopFilter();
-                for (const auto & [i, output]: receiver->getOutputs() | std::views::enumerate ) {
-                    const auto &[name, port] = output;
+                for (const auto& [i, output] : receiver->getOutputs() | std::views::enumerate) {
+                    const auto& [name, port] = output;
                     outputs.emplace_back(i, name, port);
                 }
                 initialized = true;
-            } catch (saftbus::Error &e){
+            } catch (saftbus::Error& e) {
                 fmt::print("Error initializing saftbus client: {}\ncontinuing with simulated timing\n", e.what());
-                simulate = true;
+                simulate    = true;
                 initialized = true;
                 return;
             }
@@ -344,10 +302,10 @@ public:
             initialize();
         } else if (initialized && !simulate) {
             const auto startTime = std::chrono::system_clock::now();
-            while(true) {
+            while (true) {
                 auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
                 if (duration > 0) {
-                    saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50L, std::numeric_limits<int>::max()+0L)));
+                    saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50L, std::numeric_limits<int>::max() + 0L)));
                 } else {
                     break;
                 }
@@ -355,14 +313,15 @@ public:
         }
     }
 
-    void injectEvent(const Event &ev, uint64_t time_offset) {
-        if (simulate && ((ev.id() & snoopMask) == (snoopID & snoopMask)) ) {
+    void injectEvent(const Event& ev, uint64_t time_offset) {
+        if (simulate && ((ev.id() & snoopMask) == (snoopID & snoopMask))) {
             this->snoop_writer.publish(
-                    [ev, time_offset](std::span<Event> buffer) {
-                        buffer[0] = ev;
-                        buffer[0].time += time_offset;
-                        buffer[0].executed = buffer[0].time;
-                    }, 1);
+                [ev, time_offset](std::span<Event> buffer) {
+                    buffer[0] = ev;
+                    buffer[0].time += time_offset;
+                    buffer[0].executed = buffer[0].time;
+                },
+                1);
         } else if (!simulate) {
             receiver->InjectEvent(ev.id(), ev.param(), saftlib::makeTimeTAI(ev.time + time_offset));
         }
@@ -375,7 +334,7 @@ public:
         return receiver->CurrentTime().getTAI();
     }
 
-    void updateTrigger(Trigger &trigger) {
+    void updateTrigger(Trigger& trigger) {
         auto existing = triggers.find(trigger.id);
         if (existing != triggers.end() && existing->second == trigger) {
             return; // nothing changed
@@ -383,7 +342,7 @@ public:
         if (!simulate) {
 #if defined(__clang__)
             std::size_t i = 0;
-            for (const auto &output : outputs) {
+            for (const auto& output : outputs) {
                 bool enabled = trigger.outputs[i++];
 #else
             for (const auto [i, output, enabled] : std::views::zip(std::views::iota(0), outputs, trigger.outputs)) {
@@ -391,7 +350,7 @@ public:
                 if (enabled && (existing == triggers.end() || !existing->second.outputs[static_cast<unsigned long>(i)])) { // newly enabled
                     newHardwareTrigger(trigger, std::get<2>(output));
                     auto [inserted, _] = triggers.try_emplace(trigger.id, trigger);
-                    existing = inserted;
+                    existing           = inserted;
                 } else if (!enabled && existing != triggers.end() && existing->second.outputs[static_cast<unsigned long>(i)]) { // newly disabled
                     removeHardwareTrigger(trigger, std::get<2>(output));
                 } else if (existing != triggers.end()) {
