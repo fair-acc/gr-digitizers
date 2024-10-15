@@ -80,13 +80,15 @@ void testStreamingBasics() {
     expect(ge(sink._nSamplesProduced, 80000UZ));
     expect(le(sink._nSamplesProduced, 170000UZ));
     expect(eq(tagMonitor._tags.size(), 1UZ));
-    const auto& tag = tagMonitor._tags[0];
-    expect(eq(tag.index, int64_t{0}));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), kSampleRate));
-    expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));
-    expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), 0.f));
-    expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.shortKey()))), 5.f));
+    if (tagMonitor._tags.size() == 1UZ) {
+        const auto& tag = tagMonitor._tags[0];
+        expect(eq(tag.index, int64_t{0}));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), kSampleRate));
+        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));
+        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), 0.f));
+        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.shortKey()))), 5.f));
+    }
 }
 
 const boost::ut::suite PicoscopeTests = [] {
