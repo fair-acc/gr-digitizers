@@ -41,8 +41,6 @@ namespace detail {
 
 constexpr std::size_t kDriverBufferSize = 65536;
 
-enum class PollerState { Idle, Running, Exit };
-
 struct ChannelSetting {
     std::string name;
     std::string unit     = "V";
@@ -54,7 +52,7 @@ struct ChannelSetting {
 using ChannelMap = std::map<std::string, ChannelSetting, std::less<>>;
 
 struct TriggerSetting {
-    static constexpr std::string_view kTriggerDigitalSource = "DI"; // DI is as well used as "AUX" for p6000 scopes
+    static constexpr std::string_view kTriggerDigitalSource = "DI"; // DI is as well-used as "AUX" for p6000 scopes
 
     bool isEnabled() const { return !source.empty(); }
 
@@ -113,8 +111,6 @@ struct State {
     int16_t                  overflow           = 0;  ///< status returned from getValues
     int16_t                  max_value          = 0;  ///< maximum ADC count used for ADC conversion
     double                   actual_sample_rate = 0;
-    std::thread              poller;
-    std::atomic<PollerState> poller_state    = PollerState::Idle;
     std::size_t              produced_worker = 0; // poller/callback thread
 };
 
@@ -301,9 +297,6 @@ public:
             if (ps_settings.auto_arm) {
                 arm();
             }
-            if (acquisitionMode == AcquisitionMode::Streaming) {
-                startPollThread();
-            }
             ps_state.started = true;
         } catch (const std::exception& e) {
             fmt::println(std::cerr, "{}", e.what());
@@ -323,27 +316,6 @@ public:
 
         disarm();
         close();
-
-        if (acquisitionMode == AcquisitionMode::Streaming) {
-            stopPollThread();
-        }
-    }
-
-    void startPollThread() {
-        if (ps_state.poller.joinable()) {
-            return;
-        }
-
-        if (ps_state.poller_state == detail::PollerState::Exit) {
-            ps_state.poller_state = detail::PollerState::Idle;
-        }
-    }
-
-    void stopPollThread() {
-        ps_state.poller_state = detail::PollerState::Exit;
-        if (ps_state.poller.joinable()) {
-            ps_state.poller.join();
-        }
     }
 
     std::string driverVersion() const { return self().driver_driverVersion(); }
@@ -395,18 +367,11 @@ public:
         }
 
         ps_state.armed = true;
-        if (acquisitionMode == AcquisitionMode::Streaming) {
-            ps_state.poller_state = detail::PollerState::Running;
-        }
     }
 
     void disarm() noexcept {
         if (!ps_state.armed) {
             return;
-        }
-
-        if (acquisitionMode == AcquisitionMode::Streaming) {
-            ps_state.poller_state = detail::PollerState::Idle;
         }
 
         if (const auto ec = self().driver_disarm()) {
@@ -504,10 +469,6 @@ public:
         // According to well-informed sources, the driver indicates the buffer overrun by setting all the bits of the overflow argument to true.
         if (static_cast<uint16_t>(overflow) == 0xffff) {
             fmt::println(std::cerr, "Buffer overrun detected, continue...");
-        }
-
-        if (nrSamples == 0) {
-            return;
         }
     }
 
@@ -855,7 +816,7 @@ public:
             auto status = self().runStreaming(this->ps_state.handle,
                 &unit_int.interval, // sample interval
                 unit_int.unit,      // time unit of sample interval
-                0,                  // pre-triggersamples (unused)
+                0,                  // pre-trigger-samples (unused)
                 static_cast<uint32_t>(kDriverBufferSize), false,
                 1, // downsampling factor // TODO reconsider if we need downsampling support
                 self().ratioNone(), static_cast<uint32_t>(kDriverBufferSize));
@@ -870,11 +831,7 @@ public:
     }
 
     Error driver_poll() {
-        static auto redirector = [](int16_t handle, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t triggerAt, int16_t triggered, int16_t autoStop, void* vobj) {
-            std::ignore = handle;
-            std::ignore = triggerAt;
-            std::ignore = triggered;
-            std::ignore = autoStop;
+        static auto redirector = [](int16_t /*handle*/, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t /*triggerAt*/, int16_t /*triggered*/, int16_t /*autoStop*/, void* vobj) {
             static_cast<decltype(this)>(vobj)->streamingCallback(noOfSamples, startIndex, overflow);
         };
 
