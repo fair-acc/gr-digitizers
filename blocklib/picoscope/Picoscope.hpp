@@ -270,6 +270,7 @@ public:
             auto s = detail::Settings{.serial_number = serial_number, .sample_rate = sample_rate, .acquisition_mode = detail::parseAcquisitionMode(acquisition_mode), .pre_samples = pre_samples, .post_samples = post_samples, .rapid_block_nr_captures = rapid_block_nr_captures, .trigger_once = trigger_once, .streaming_mode_poll_rate = streaming_mode_poll_rate, .auto_arm = auto_arm, .enabled_channels = detail::channelSettings(channel_ids.value, channel_names.value, channel_units.value, channel_ranges, channel_offsets, channel_couplings.value), .trigger = detail::TriggerSetting{.source = trigger_source, .threshold = trigger_threshold, .direction = detail::parseTriggerDirection(trigger_direction), .pin_number = trigger_pin}};
             std::swap(ps_settings, s);
 
+            ps_state.channels.clear();
             ps_state.channels.reserve(ps_settings.enabled_channels.size());
             for (const auto& [id, settings] : ps_settings.enabled_channels) {
                 ps_state.channels.emplace_back(detail::Channel<T>{.id = id, .settings = settings, .driver_buffer = std::vector<int16_t>(detail::kDriverBufferSize)});
@@ -381,7 +382,8 @@ public:
         ps_state.armed = false;
     }
 
-    void processDriverData(std::size_t nrSamples, std::size_t offset, auto& outputs) {
+    template<gr::OutputSpanLike TOutSpan>
+    void processDriverData(std::size_t nrSamples, std::size_t offset, std::span<TOutSpan>& outputs) {
         std::vector<std::size_t> triggerOffsets;
 
         for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
@@ -426,9 +428,7 @@ public:
                 timing = timingMessages.front();
                 timingMessages.pop();
             }
-
-            // raw index is index - 1
-            triggerTags.emplace_back(static_cast<int64_t>(ps_state.produced_worker + triggerOffset - 1), timing);
+            triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
         }
 
         for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
@@ -452,8 +452,9 @@ public:
         }
 
         // once all tags have been written, publish the data
-        for (auto& output : outputs) {
-            output.publish(nrSamples);
+        for (std::size_t i = 0; i < outputs.size(); i++) {
+            const std::size_t nSamplesToPublish = i < ps_state.channels.size()? nrSamples: 0UZ;
+            outputs[i].publish(nSamplesToPublish);
         }
 
         ps_state.produced_worker += nrSamples;
@@ -483,14 +484,20 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    gr::work::Status processBulk(std::span<TOutSpan>& output) {
+    gr::work::Status processBulk(std::span<TOutSpan>& outputs) {
         if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
             if (const auto ec = self().driver_poll()) {
                 this->emitErrorMessage("PicoscopeError", ec.message());
                 return gr::work::Status::ERROR;
             }
-            processDriverData(streamingSamples, 0, output);
-            streamingSamples = 0;
+            if (streamingSamples == 0) {
+                for (auto& output : outputs) {
+                    output.publish(0);
+                }
+            } else {
+                processDriverData(streamingSamples, 0, outputs);
+                streamingSamples = 0;
+            }
         } else {
             const auto samples = ps_settings.pre_samples + ps_settings.post_samples;
             for (std::size_t capture = 0; capture < ps_settings.rapid_block_nr_captures; ++capture) {
@@ -501,7 +508,7 @@ public:
                 }
 
                 // TODO handle overflow for individual channels?
-                processDriverData(getValuesResult.samples, 0, output);
+                processDriverData(getValuesResult.samples, 0, outputs);
             }
         }
 

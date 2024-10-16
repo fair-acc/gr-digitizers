@@ -13,7 +13,7 @@ namespace fair::picoscope::test {
 
 // Replace with your connected Picoscope device
 template<typename T, AcquisitionMode aMode>
-using PicoscopeT = Picoscope4000a<T, aMode>;
+using PicoscopeT = Picoscope5000a<T, aMode>;
 
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float, AcquisitionMode::Streaming>>);
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float, AcquisitionMode::RapidBlock>>);
@@ -24,6 +24,8 @@ void testRapidBlockBasic(std::size_t nrCaptures) {
     using namespace gr;
     using namespace fair::helpers;
     using namespace fair::picoscope;
+
+    fmt::println("testRapidBlockBasic - {}", gr::meta::type_name<T>());
 
     constexpr std::size_t kPreSamples  = 33;
     constexpr std::size_t kPostSamples = 1000;
@@ -51,6 +53,8 @@ void testStreamingBasics() {
     using namespace fair::helpers;
     using namespace fair::picoscope;
     Graph flowGraph;
+
+    fmt::println("testStreamingBasics - {}", gr::meta::type_name<T>());
 
     constexpr float kSampleRate = 80000.f;
     constexpr auto  kDuration   = 2s;
