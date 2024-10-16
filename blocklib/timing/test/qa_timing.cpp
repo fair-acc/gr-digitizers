@@ -9,10 +9,9 @@ const boost::ut::suite TimingTests = [] {
     using namespace boost::ut;
     using namespace std::chrono_literals;
 
-    tag("timing-hardware") /
-    "snoopAndPublish"_test = [] {
+    tag("timing-hardware") / "snoopAndPublish"_test = [] {
         Timing timing;
-        auto reader = timing.snooped.new_reader();
+        auto   reader = timing.snooped.new_reader();
         timing.initialize();
         timing.injectEvent(Timing::Event{2000, 0x10, 0x20}, timing.currentTimeTAI());
         timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.currentTimeTAI());
@@ -27,7 +26,7 @@ const boost::ut::suite TimingTests = [] {
     "snoopAndPublishSimulated"_test = [] {
         Timing timing;
         timing.simulate = true;
-        auto reader = timing.snooped.new_reader();
+        auto reader     = timing.snooped.new_reader();
         timing.initialize();
         timing.injectEvent(Timing::Event{2000, 0x10, 0x20}, timing.currentTimeTAI());
         timing.injectEvent(Timing::Event{5000, 0x1234, 0x12}, timing.currentTimeTAI());
@@ -71,8 +70,6 @@ const boost::ut::suite TimingTests = [] {
     };
 };
 
-}
+} // namespace fair::timing::test
 
-int
-main() { /* tests are statically executed */
-}
+int main() { /* tests are statically executed */ }

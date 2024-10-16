@@ -22,18 +22,18 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
 
         Graph flowGraph;
 
-        auto &src0 = flowGraph.emplaceBlock<VectorSource<float>>({ { { "data", data } } });
-        auto &src1 = flowGraph.emplaceBlock<VectorSource<float>>({ { { "data", data } } });
-        auto &snk0 = flowGraph.emplaceBlock<VectorSink<float>>();
-        auto &snk1 = flowGraph.emplaceBlock<VectorSink<float>>();
-        auto &bso  = flowGraph.emplaceBlock<BlockScalingOffset<float>>({ { { "scale", kScale }, { "offset", kOffset } } });
+        auto& src0 = flowGraph.emplaceBlock<VectorSource<float>>({{{"data", data}}});
+        auto& src1 = flowGraph.emplaceBlock<VectorSource<float>>({{{"data", data}}});
+        auto& snk0 = flowGraph.emplaceBlock<VectorSink<float>>();
+        auto& snk1 = flowGraph.emplaceBlock<VectorSink<float>>();
+        auto& bso  = flowGraph.emplaceBlock<BlockScalingOffset<float>>({{{"scale", kScale}, {"offset", kOffset}}});
 
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(src0).template to<"in_signal">(bso)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(src1).template to<"in_error">(bso)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out_signal">(bso).template to<"in">(snk0)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out_error">(bso).template to<"in">(snk1)));
 
-        scheduler::Simple sched{ std::move(flowGraph) };
+        scheduler::Simple sched{std::move(flowGraph)};
         sched.runAndWait();
 
         expect(eq(data.size(), snk0.data.size()));
@@ -48,6 +48,4 @@ const boost::ut::suite BlockScalingOffsetTests = [] {
 
 } // namespace gr::digitizers::block_scaling_offset_test
 
-int
-main() { /* tests are statically executed */
-}
+int main() { /* tests are statically executed */ }

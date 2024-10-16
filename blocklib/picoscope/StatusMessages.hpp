@@ -7,8 +7,7 @@
 
 namespace fair::picoscope::detail {
 
-constexpr std::string_view
-statusToString(PICO_STATUS status) {
+constexpr std::string_view statusToString(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "PICO_OK";
     case PICO_MAX_UNITS_OPENED: return "PICO_MAX_UNITS_OPENED";
@@ -205,8 +204,7 @@ statusToString(PICO_STATUS status) {
     }
 }
 
-constexpr std::string_view
-statusToStringVerbose(PICO_STATUS status) {
+constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "The PicoScope is functioning correctly.";
     case PICO_MAX_UNITS_OPENED: return "An attempt has been made to open more than <API>_MAX_UNITS.";
@@ -499,10 +497,7 @@ statusToStringVerbose(PICO_STATUS status) {
     }
 }
 
-inline std::string
-getErrorMessage(PICO_STATUS status) {
-    return fmt::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status));
-}
+inline std::string getErrorMessage(PICO_STATUS status) { return fmt::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status)); }
 
 } // namespace fair::picoscope::detail
 
