@@ -385,19 +385,24 @@ public:
     template<gr::OutputSpanLike TOutSpan>
     void processDriverData(std::size_t nrSamples, std::size_t offset, std::span<TOutSpan>& outputs) {
         std::vector<std::size_t> triggerOffsets;
+        const std::size_t        availableOutputs = std::ranges::min(outputs, {}, [](const auto& span) { return span.size(); }).size();
+        const std::size_t        availableSamples = std::min(availableOutputs, nrSamples);
+        if (availableSamples < nrSamples) {
+            fmt::println(std::cerr, "Picoscope::processDriverData: {} samples will be lost due to insufficient space in output buffers (require {}, available {})", nrSamples - availableSamples, nrSamples, availableOutputs);
+        }
 
         for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
             auto& channel = ps_state.channels[channelIdx];
             auto& output  = outputs[channelIdx];
 
-            const auto driverData = std::span(channel.driver_buffer).subspan(offset, nrSamples);
+            const auto driverData = std::span(channel.driver_buffer).subspan(offset, availableSamples);
 
             if constexpr (std::is_same_v<T, int16_t>) {
                 std::copy(driverData.begin(), driverData.end(), output.begin());
             } else {
                 const auto voltageMultiplier = static_cast<float>(channel.settings.range / ps_state.max_value);
                 // TODO use SIMD
-                for (std::size_t i = 0; i < nrSamples; ++i) {
+                for (std::size_t i = 0; i < availableSamples; ++i) {
                     if constexpr (std::is_same_v<T, float>) {
                         output[i] = voltageMultiplier * driverData[i];
                     } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
@@ -453,11 +458,11 @@ public:
 
         // once all tags have been written, publish the data
         for (std::size_t i = 0; i < outputs.size(); i++) {
-            const std::size_t nSamplesToPublish = i < ps_state.channels.size() ? nrSamples : 0UZ;
+            const std::size_t nSamplesToPublish = i < ps_state.channels.size() ? availableSamples : 0UZ;
             outputs[i].publish(nSamplesToPublish);
         }
 
-        ps_state.produced_worker += nrSamples;
+        ps_state.produced_worker += availableSamples;
     }
 
     void streamingCallback(int32_t nrSamplesSigned, uint32_t, int16_t overflow)
