@@ -255,7 +255,8 @@ public:
 
 private:
     std::mutex                   g_init_mutex;
-    std::size_t                  streamingSamples = 0Z;
+    std::atomic<std::size_t>     streamingSamples = 0Z;
+    std::atomic<std::size_t>     streamingOffset  = 0Z;
     std::queue<gr::property_map> timingMessages;
 
 public:
@@ -460,12 +461,13 @@ public:
         ps_state.produced_worker += nrSamples;
     }
 
-    void streamingCallback(int32_t nrSamplesSigned, uint32_t, int16_t overflow)
+    void streamingCallback(int32_t nrSamplesSigned, uint32_t idx, int16_t overflow)
     requires(acquisitionMode == AcquisitionMode::Streaming)
     {
         streamingSamples = static_cast<std::size_t>(nrSamplesSigned);
+        streamingOffset  = static_cast<std::size_t>(idx);
+        // NOTE: according to the programmer's guide the data should be copied-out inside the callback function. Not sure if the driver might overwrite the buffer with new data after the callback has returned
         assert(nrSamplesSigned >= 0);
-        const auto nrSamples = static_cast<std::size_t>(nrSamplesSigned);
 
         // According to well-informed sources, the driver indicates the buffer overrun by setting all the bits of the overflow argument to true.
         if (static_cast<uint16_t>(overflow) == 0xffff) {
@@ -486,16 +488,16 @@ public:
     template<gr::OutputSpanLike TOutSpan>
     gr::work::Status processBulk(std::span<TOutSpan>& outputs) {
         if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
-            if (const auto ec = self().driver_poll()) {
-                this->emitErrorMessage("PicoscopeError", ec.message());
-                return gr::work::Status::ERROR;
-            }
             if (streamingSamples == 0) {
                 for (auto& output : outputs) {
                     output.publish(0);
                 }
+                if (const auto ec = self().driver_poll()) {
+                    this->emitErrorMessage("PicoscopeError", ec.message());
+                    return gr::work::Status::ERROR;
+                }
             } else {
-                processDriverData(streamingSamples, 0, outputs);
+                processDriverData(streamingSamples, streamingOffset, outputs);
                 streamingSamples = 0;
             }
         } else {
