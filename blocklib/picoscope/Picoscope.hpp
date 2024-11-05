@@ -422,13 +422,13 @@ public:
         // TODO wait (block) here for timing messages if trigger count > timing message count
 
         std::vector<gr::Tag> triggerTags;
-        triggerTags.reserve(triggerOffsets.size());
+        triggerTags.reserve(triggerOffsets.size() + 1);
 
         for (const auto triggerOffset : triggerOffsets) {
             gr::property_map timing;
             if (timingMessages.empty()) {
                 // fallback to ad-hoc timing message
-                timing = gr::property_map{{gr::tag::TRIGGER_NAME, "PPS"}, {gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count())}};
+                timing = gr::property_map{{gr::tag::TRIGGER_NAME, "UnknownTrigger"}, {gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count())}};
             } else {
                 // use timing message that we received over the message port if any
                 timing = timingMessages.front();
@@ -436,6 +436,9 @@ public:
             }
             triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
         }
+
+        // add an independent software timestamp with the localtime of the system to the last sample of each chunk
+        triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME, "systemtime"}, {gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count())}});
 
         for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
             auto&      channel         = ps_state.channels[channelIdx];
