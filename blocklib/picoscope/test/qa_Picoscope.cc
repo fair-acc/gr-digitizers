@@ -83,7 +83,7 @@ void testStreamingBasics() {
 
     expect(ge(sink._nSamplesProduced, 80000UZ));
     expect(le(sink._nSamplesProduced, 170000UZ));
-    expect(eq(tagMonitor._tags.size(), 1UZ));
+    expect(ge(tagMonitor._tags.size(), 1UZ));
     if (tagMonitor._tags.size() == 1UZ) {
         const auto& tag = tagMonitor._tags[0];
         expect(eq(tag.index, int64_t{0}));

@@ -29,8 +29,11 @@ static std::chrono::time_point<std::chrono::system_clock> taiNsToUtc(uint64_t in
 
 class Timing {
 public:
-    static const int milliToNano      = 1000000;
-    static const int minTriggerOffset = 100;
+    static const int      milliToNano          = 1000000;
+    static const int      minTriggerOffset     = 100;
+    static const uint64_t ECA_EVENT_ID_LATCH   = 0xfffe000000000000ull; /* FID=MAX & GRPID=MAX-1 */
+    static const uint64_t ECA_EVENT_MASK_LATCH = 0xfffe000000000000ull;
+    static const uint64_t IO_CONDITION_OFFSET  = 5000ull;
     /**
      * Structure to atuomatically encode and decode GSI/FAIR specific timing events as documented in:
      * https://www-acc.gsi.de/wiki/Timing/TimingSystemEvent
@@ -53,7 +56,7 @@ public:
      *  04-15 | 48-59 | 12 | GID          | Timing group ID: see event_definitions.hpp for the existing timing groups
      *  16-27 | 36-47 | 12 | EVENTNO      | Event Number: determines the type of event e.g CME_BP_START, see event_definitions.hpp
      *  28-31 | 32-35 |  4 | FLAGS        |
-     *     28 |    34 |  1 |   BEAM-IN    |
+     *     28 |    35 |  1 |   BEAM-IN    |
      *     29 |    34 |  1 |   BPC-START  | First event in a new Beam Production Chain
      *     30 |    33 |  1 |   RESERVED 1 |
      *     31 |    32 |  1 |   RESERVED 2 |
@@ -111,6 +114,7 @@ public:
         uint64_t time     = 0;
         uint64_t executed = 0;
         uint16_t flags    = 0x0;
+        bool     isIo     = false;
 
         Event(const Event&)            = default;
         Event(Event&&)                 = default;
@@ -131,11 +135,11 @@ public:
             return ((value & ((1UL << bitsize) - 1)) << position);
         }
 
-        explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param = 0, uint16_t _flags = 0, uint64_t _executed = 0)
+        explicit Event(uint64_t timestamp = 0, uint64_t id = 1UL << 60, uint64_t param = 0, uint16_t _flags = 0, uint64_t _executed = 0, bool _isIo = false)
             : // id
               fid{extractField<uint8_t, 60, 4>(id)}, gid{extractField<uint16_t, 48, 12>(id)}, eventNo{extractField<uint16_t, 36, 12>(id)}, flagBeamin{extractField<bool, 35, 1>(id)}, flagBpcStart{extractField<bool, 34, 1>(id)}, flagReserved1{extractField<bool, 33, 1>(id)}, flagReserved2{extractField<bool, 32, 1>(id)}, sid{extractField<uint16_t, 20, 12>(id)}, bpid{extractField<uint16_t, 6, 14>(id)}, reserved{extractField<bool, 5, 1>(id)}, reqNoBeam{extractField<bool, 4, 1>(id)}, virtAcc{extractField<uint8_t, 0, 4>(id)},
               // param
-              bpcid{extractField<uint32_t, 42, 22>(param)}, bpcts{extractField<uint64_t, 0, 42>(param)}, time{timestamp}, executed{_executed}, flags{_flags} {}
+              bpcid{extractField<uint32_t, 42, 22>(param)}, bpcts{extractField<uint64_t, 0, 42>(param)}, time{timestamp}, executed{_executed}, flags{_flags}, isIo{_isIo} {}
 
         [[nodiscard]] uint64_t id() const {
             // clang-format:off
@@ -205,13 +209,16 @@ public:
     std::vector<std::tuple<uint, std::string, std::string>> outputs;
     std::map<uint64_t, Trigger>                             triggers;
     std::vector<Timing::Event>                              events = {};
+    saftbus::SignalGroup                                    saftSigGroup;
+    std::shared_ptr<SoftwareActionSink_Proxy>               sink;
+    decltype(snooped.new_writer())                          snoop_writer = snooped.new_writer();
 
 private:
-    decltype(snooped.new_writer())            snoop_writer = snooped.new_writer();
-    bool                                      tried        = false;
-    std::shared_ptr<SAFTd_Proxy>              saftd;
-    std::shared_ptr<SoftwareActionSink_Proxy> sink;
-    std::shared_ptr<SoftwareCondition_Proxy>  condition;
+    bool                                     tried = false;
+    std::shared_ptr<SAFTd_Proxy>             saftd;
+    std::shared_ptr<SoftwareCondition_Proxy> condition;
+    std::shared_ptr<SoftwareCondition_Proxy> ioCondition;
+    std::map<uint64_t, std::string>          map_PrefixName; /* Translation table IO name <> prefix */
 
 public:
     bool                                  initialized = false;
@@ -219,12 +226,14 @@ public:
     uint64_t                              snoopID     = 0x0;
     uint64_t                              snoopMask   = 0x0;
     std::shared_ptr<TimingReceiver_Proxy> receiver;
+    std::string                           saftAppName = "gr_timing_example";
+    std::string                           deviceName;
 
 private:
-    void updateExistingTrigger(const Trigger& trigger, const std::map<uint64_t, Timing::Trigger>::iterator& existing, const std::string& output) const {
-        auto proxy = saftlib::Output_Proxy::create(output);
+    void updateExistingTrigger(const Trigger& trigger, const std::map<uint64_t, Timing::Trigger>::iterator& existing, const std::string& output) {
+        auto proxy = saftlib::Output_Proxy::create(output, saftSigGroup);
         if (trigger.delay != existing->second.delay || trigger.flattop != existing->second.flattop) { // update condition for rising edge
-            auto matchingConditions = proxy->getAllConditions() | std::views::transform([](const auto& cond) { return saftlib::OutputCondition_Proxy::create(cond); }) | std::views::filter([&trigger](const auto& cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+            auto matchingConditions = proxy->getAllConditions() | std::views::transform([this](const auto& cond) { return saftlib::OutputCondition_Proxy::create(cond, saftSigGroup); }) | std::views::filter([&trigger](const auto& cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
             std::ranges::for_each(matchingConditions, [&trigger](const auto& cond) {
                 if (cond->getOn()) {
                     cond->setOffset(static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset);
@@ -235,14 +244,14 @@ private:
         }
     }
 
-    void removeHardwareTrigger(const Trigger& trigger, const std::string& output) const {
-        auto proxy              = saftlib::Output_Proxy::create(output);
-        auto matchingConditions = proxy->getAllConditions() | std::views::transform([](const auto& cond) { return saftlib::OutputCondition_Proxy::create(cond); }) | std::views::filter([&trigger](const auto& cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
+    void removeHardwareTrigger(const Trigger& trigger, const std::string& output) {
+        auto proxy              = saftlib::Output_Proxy::create(output, saftSigGroup);
+        auto matchingConditions = proxy->getAllConditions() | std::views::transform([this](const auto& cond) { return saftlib::OutputCondition_Proxy::create(cond, saftSigGroup); }) | std::views::filter([&trigger](const auto& cond) { return cond->getID() == trigger.id && cond->getMask() == std::numeric_limits<uint64_t>::max(); });
         std::ranges::for_each(matchingConditions, [](const auto& cond) { cond->Destroy(); });
     }
 
-    void newHardwareTrigger(const Trigger& trigger, const std::string& output) const {
-        auto proxy = saftlib::Output_Proxy::create(output);
+    void newHardwareTrigger(const Trigger& trigger, const std::string& output) {
+        auto proxy = saftlib::Output_Proxy::create(output, saftSigGroup);
         proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay) * milliToNano + minTriggerOffset, true);
         proxy->NewCondition(true, trigger.id, std::numeric_limits<uint64_t>::max(), static_cast<int64_t>(trigger.delay + trigger.flattop) * milliToNano + minTriggerOffset, false);
     }
@@ -255,7 +264,7 @@ public:
         if (condition) {
             condition->Destroy();
         }
-        condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, 0));
+        condition = SoftwareCondition_Proxy::create(sink->NewCondition(false, snoopID, snoopMask, 0), saftSigGroup);
         condition->setAcceptLate(true);
         condition->setAcceptEarly(true);
         condition->setAcceptConflict(true);
@@ -265,6 +274,31 @@ public:
             data[0]   = Timing::Event{deadline.getTAI(), id, param, flags, executed.getTAI()};
         });
         condition->setActive(true);
+        // Digital IO ports
+        if (!ioCondition) {
+            for (auto& [ioName, ioAddress] : receiver->getInputs()) {
+                uint64_t prefix        = ECA_EVENT_ID_LATCH + (map_PrefixName.size() << 1); // fixed prefix for software condition, rest of the bits identify IO, least significant bit is io level
+                map_PrefixName[prefix] = ioName;
+                auto input             = saftlib::Input_Proxy::create(ioAddress, saftSigGroup);
+                input->setEventEnable(false);
+                input->setEventPrefix(prefix);
+                input->setEventEnable(true);
+            }
+            ioCondition = saftlib::SoftwareCondition_Proxy::create(sink->NewCondition(true, ECA_EVENT_ID_LATCH, ECA_EVENT_MASK_LATCH, 10000), saftSigGroup);
+            ioCondition->SigAction.connect([this](uint64_t id, uint64_t param, const saftlib::Time& deadline, const saftlib::Time& executed, uint16_t flags) {
+                auto data = this->snoop_writer.reserve<gr::SpanReleasePolicy::ProcessAll>(1);
+                data[0]   = Timing::Event{deadline.getTAI(), id, param, flags, executed.getTAI(), true};
+            });
+        }
+    }
+
+    std::string idToIoName(const std::uint64_t id) {
+        std::uint64_t filter = id & (0xffffffffffffffffull - 1);
+        if (map_PrefixName.contains(filter)) {
+            return map_PrefixName.at(filter);
+        } else {
+            return "UNKNOWN-IO";
+        }
     }
 
     void initialize() {
@@ -272,18 +306,29 @@ public:
             initialized = true;
         } else {
             try {
-                saftd = SAFTd_Proxy::create();
+                saftd = SAFTd_Proxy::create("/de/gsi/saftlib", saftSigGroup);
                 // get a specific device
                 std::map<std::string, std::string> devices = saftd->getDevices();
-                if (devices.empty()) {
-                    std::cerr << "" << std::endl;
-                    fmt::print("No devices attached to saftd, continuing with simulated timing\n");
-                    simulate    = true;
-                    initialized = true;
-                    return;
+                if (deviceName.empty()) {
+                    if (devices.empty()) {
+                        std::cerr << "" << std::endl;
+                        fmt::print("No devices attached to saftd, continuing with simulated timing\n");
+                        simulate    = true;
+                        initialized = true;
+                        return;
+                    }
+                    receiver = TimingReceiver_Proxy::create(devices.begin()->second, saftSigGroup);
+                } else {
+                    if (!devices.contains(deviceName)) {
+                        std::cerr << "" << std::endl;
+                        fmt::print("Could not find device {}, continuing with simulated timing\n", deviceName);
+                        simulate    = true;
+                        initialized = true;
+                        return;
+                    }
+                    receiver = TimingReceiver_Proxy::create(devices.at(deviceName), saftSigGroup);
                 }
-                receiver = TimingReceiver_Proxy::create(devices.begin()->second);
-                sink     = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink("gr_timing_example"));
+                sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink(saftAppName), saftSigGroup);
                 updateSnoopFilter();
                 for (const auto& [i, output] : receiver->getOutputs() | std::views::enumerate) {
                     const auto& [name, port] = output;
@@ -308,7 +353,7 @@ public:
             while (true) {
                 auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(startTime - std::chrono::system_clock::now() + std::chrono::milliseconds(5)).count();
                 if (duration > 0) {
-                    saftlib::wait_for_signal(static_cast<int>(std::clamp(duration, 50L, std::numeric_limits<int>::max() + 0L)));
+                    saftSigGroup.wait_for_signal(static_cast<int>(std::clamp(duration, 50L, std::numeric_limits<int>::max() + 0L)));
                 } else {
                     break;
                 }
