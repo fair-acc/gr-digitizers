@@ -98,18 +98,18 @@ public:
         uint8_t  fid = 1; // 4
         uint16_t gid;     // 12
         uint16_t eventNo; // 12
-        bool     flagBeamin;
-        bool     flagBpcStart;
-        bool     flagReserved1;
-        bool     flagReserved2;
-        uint16_t sid;  // 12
-        uint16_t bpid; // 14
-        bool     reserved;
-        bool     reqNoBeam;
-        uint8_t  virtAcc; // 4
+        bool     flagBeamin{};
+        bool     flagBpcStart{};
+        bool     flagReserved1{};
+        bool     flagReserved2{};
+        uint16_t sid{}; // 12
+        uint16_t bpid;  // 14
+        bool     reserved{};
+        bool     reqNoBeam{};
+        uint8_t  virtAcc{}; // 4
         // param - 64
-        uint32_t bpcid; // 22
-        uint64_t bpcts; // 42
+        uint32_t bpcid{}; // 22
+        uint64_t bpcts{}; // 42
         // timing system
         uint64_t time     = 0;
         uint64_t executed = 0;
@@ -140,6 +140,9 @@ public:
               fid{extractField<uint8_t, 60, 4>(id)}, gid{extractField<uint16_t, 48, 12>(id)}, eventNo{extractField<uint16_t, 36, 12>(id)}, flagBeamin{extractField<bool, 35, 1>(id)}, flagBpcStart{extractField<bool, 34, 1>(id)}, flagReserved1{extractField<bool, 33, 1>(id)}, flagReserved2{extractField<bool, 32, 1>(id)}, sid{extractField<uint16_t, 20, 12>(id)}, bpid{extractField<uint16_t, 6, 14>(id)}, reserved{extractField<bool, 5, 1>(id)}, reqNoBeam{extractField<bool, 4, 1>(id)}, virtAcc{extractField<uint8_t, 0, 4>(id)},
               // param
               bpcid{extractField<uint32_t, 42, 22>(param)}, bpcts{extractField<uint64_t, 0, 42>(param)}, time{timestamp}, executed{_executed}, flags{_flags}, isIo{_isIo} {}
+
+        struct fromGidEventnoBpidTag {};
+        Event(const fromGidEventnoBpidTag, const uint16_t _gid, const uint16_t _eventNo, const uint16_t _bpid) : gid{_gid}, eventNo{_eventNo}, bpid{_bpid} {}
 
         [[nodiscard]] uint64_t id() const {
             // clang-format:off

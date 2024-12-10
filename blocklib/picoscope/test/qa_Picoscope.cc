@@ -39,7 +39,7 @@ void testRapidBlockBasic(std::size_t nrCaptures) {
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(sink)));
 
     scheduler::Simple sched{std::move(flowGraph)};
-    sched.runAndWait();
+    expect(sched.runAndWait().has_value());
 
     expect(eq(sink._nSamplesProduced, totalSamples));
 }
@@ -78,7 +78,7 @@ void testStreamingBasics() {
 
     const auto measuredRate = static_cast<double>(sink._nSamplesProduced) / duration<double>(kDuration).count();
     fmt::println("Produced in worker: {}", ps.producedWorker());
-    fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / kSampleRate * 100., duration_cast<milliseconds>(kDuration).count());
+    fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(kSampleRate) * 100., duration_cast<milliseconds>(kDuration).count());
     fmt::println("Total: {}", sink._nSamplesProduced);
 
     expect(ge(sink._nSamplesProduced, 80000UZ));
@@ -157,6 +157,7 @@ const boost::ut::suite PicoscopeTests = [] {
     };
 
     "rapid block continuous"_test = [] {
+        using namespace std::chrono_literals;
         Graph flowGraph;
         auto& ps = flowGraph.emplaceBlock<PicoscopeT<float, AcquisitionMode::RapidBlock>>({{{"sample_rate", 10000.f}, {"post_samples", std::size_t{1000}}, {"acquisition_mode", "RapidBlock"}, {"rapid_block_nr_captures", std::size_t{1}}, {"auto_arm", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector{5.}}, {"channel_couplings", std::vector<std::string>{"AC_1M"}}}});
 
@@ -167,7 +168,7 @@ const boost::ut::suite PicoscopeTests = [] {
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{std::move(flowGraph)};
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
-        std::this_thread::sleep_for(std::chrono::seconds(3));
+        std::this_thread::sleep_for(3s);
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
         expect(ge(sink0._nSamplesProduced, std::size_t{2000}));

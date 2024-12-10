@@ -3,7 +3,6 @@
 #include <fmt/core.h>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/ConverterBlocks.hpp>
-#include <gnuradio-4.0/testing/ImChartMonitor.hpp>
 #include <gnuradio-4.0/testing/TagMonitors.hpp>
 #include <latch>
 
