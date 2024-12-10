@@ -251,7 +251,9 @@ public:
     detail::State<T> ps_state;
     detail::Settings ps_settings;
 
-    GR_MAKE_REFLECTABLE(Picoscope, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, trigger_pin);
+    gr::PortIn<std::uint8_t, gr::Async> timingIn;
+
+    GR_MAKE_REFLECTABLE(Picoscope, timingIn, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, trigger_pin);
 
 private:
     std::mutex                   g_init_mutex;
@@ -384,7 +386,7 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    void processDriverData(std::size_t nrSamples, std::size_t offset, std::span<TOutSpan>& outputs) {
+    void processDriverData(std::size_t nrSamples, std::size_t offset, std::span<TOutSpan>& outputs, gr::InputSpanLike auto& timingInSpan) {
         std::vector<std::size_t> triggerOffsets;
         const std::size_t        availableOutputs = std::ranges::min(outputs, {}, [](const auto& span) { return span.size(); }).size();
         const std::size_t        availableSamples = std::min(availableOutputs, nrSamples);
@@ -413,22 +415,37 @@ public:
             }
 
             if (channel.id == ps_settings.trigger.source) {
-                triggerOffsets = findAnalogTriggers(channel, output);
+                triggerOffsets = findAnalogTriggers(channel, output, availableSamples);
             }
         }
 
         const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 
-        // TODO wait (block) here for timing messages if trigger count > timing message count
+        std::size_t consumeTags;
+        for (const auto& tag : timingInSpan.tags()) {
+            if (!tag.second.contains("GID")) { // only consider timing tags
+                consumeTags++;
+                continue;
+            }
+            // TODO: Allow to match multiple events to a single trigger here and allow to timeout on events where the trigger pulse was somehow lost
+            if (triggerOffsets.size() <= timingMessages.size()) { // all triggers have already been found
+                break;
+            }
+            timingMessages.emplace(tag.second);
+            consumeTags++;
+        }
+        timingInSpan.consumeTags(consumeTags);
+        timingInSpan.consume(consumeTags);
 
         std::vector<gr::Tag> triggerTags;
         triggerTags.reserve(triggerOffsets.size() + 1);
-
         for (const auto triggerOffset : triggerOffsets) {
             gr::property_map timing;
             if (timingMessages.empty()) {
-                // fallback to ad-hoc timing message
-                timing = gr::property_map{{gr::tag::TRIGGER_NAME, "UnknownTrigger"}, {gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count())}};
+                timing = gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "UnknownTrigger"},  //
+                    {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::uint64_t>(now.count())}, //
+                    {gr::tag::TRIGGER_OFFSET.shortKey(), static_cast<std::uint64_t>(0)}};        // fall back to ad-hoc timing message
+                // TODO: stop processing here instead in case the tag arrives later and only publish unknown trigger tag after timeout
             } else {
                 // use timing message that we received over the message port if any
                 timing = timingMessages.front();
@@ -436,9 +453,8 @@ public:
             }
             triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
         }
-
         // add an independent software timestamp with the localtime of the system to the last sample of each chunk
-        triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME, "systemtime"}, {gr::tag::TRIGGER_TIME, static_cast<uint64_t>(now.count())}});
+        triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "systemtime"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<uint64_t>(now.count())}});
 
         for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
             auto&      channel         = ps_state.channels[channelIdx];
@@ -494,7 +510,7 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    gr::work::Status processBulk(std::span<TOutSpan>& outputs) {
+    gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, std::span<TOutSpan>& outputs) {
         if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
             if (streamingSamples == 0) {
                 for (auto& output : outputs) {
@@ -505,7 +521,7 @@ public:
                     return gr::work::Status::ERROR;
                 }
             } else {
-                processDriverData(streamingSamples, streamingOffset, outputs);
+                processDriverData(streamingSamples, streamingOffset, outputs, timingInSpan);
                 streamingSamples = 0;
             }
         } else {
@@ -518,10 +534,9 @@ public:
                 }
 
                 // TODO handle overflow for individual channels?
-                processDriverData(getValuesResult.samples, 0, outputs);
+                processDriverData(getValuesResult.samples, 0, outputs, timingInSpan);
             }
         }
-
         if (ps_settings.trigger_once) {
             ps_state.data_finished = true;
         }
@@ -537,17 +552,8 @@ public:
         return gr::work::Status::OK;
     }
 
-    void processMessages(gr::MsgPortInBuiltin&, std::span<const gr::Message> messages) {
-        for (auto& msg : messages) {
-            if (msg.data.has_value()) {
-                // store timing messages for later use when triggers occur
-                timingMessages.push(msg.data.value());
-            }
-        }
-    }
-
-    std::vector<std::size_t> findAnalogTriggers(const detail::Channel<T>& triggerChannel, std::span<const T> samples) {
-        if (samples.empty()) {
+    std::vector<std::size_t> findAnalogTriggers(const detail::Channel<T>& triggerChannel, std::span<const T> samples, std::size_t available) {
+        if (samples.empty() || samples.size() < available) {
             return {};
         }
 
@@ -568,7 +574,7 @@ public:
         };
 
         if (ps_settings.trigger.direction == TriggerDirection::Rising || ps_settings.trigger.direction == TriggerDirection::High) {
-            for (std::size_t i = 0; i < samples.size(); i++) {
+            for (std::size_t i = 0; i < available; i++) {
                 const auto value = toDouble(samples[i]);
                 if (ps_state.trigger_state == 0 && value >= ps_settings.trigger.threshold) {
                     ps_state.trigger_state = 1;
@@ -578,7 +584,7 @@ public:
                 }
             }
         } else if (ps_settings.trigger.direction == TriggerDirection::Falling || ps_settings.trigger.direction == TriggerDirection::Low) {
-            for (std::size_t i = 0; i < samples.size(); i++) {
+            for (std::size_t i = 0; i < available; i++) {
                 const auto value = toDouble(samples[i]);
                 if (ps_state.trigger_state == 1 && value <= ps_settings.trigger.threshold) {
                     ps_state.trigger_state = 0;
@@ -588,7 +594,6 @@ public:
                 }
             }
         }
-
         return triggerOffsets;
     }
 
@@ -620,9 +625,8 @@ public:
         // (timebase–2) / 125,000,000
         // e.g. timeebase == 3 --> 8ns sample interval
         //
-        // Note, for some devices, the above formula might be wrong! To overcome this
-        // limitation we use the ps3000aGetTimebase2 function to find the closest possible
-        // timebase. The below timebase estimate is therefore used as a fallback only.
+        // Note, for some devices, the above formula might be wrong! To overcome this limitation we use the ps3000aGetTimebase2
+        // function to find the closest possible timebase. The below timebase estimate is therefore used as a fallback only.
         auto     timeIntervalNS   = 1000000000.0 / desiredFreq;
         uint32_t timebaseEstimate = (static_cast<uint32_t>(timeIntervalNS) / 8) + 2;
 
@@ -656,10 +660,9 @@ public:
         auto step        = static_cast<double>(timeIntervalNS_34[1] - timeIntervalNS_34[0]);
         timebaseEstimate = static_cast<uint32_t>((timeIntervalNS - static_cast<double>(timeIntervalNS_34[0])) / step) + 3;
 
-        // The below code iterates trought the neighbouring timebases in order to find the
-        // best match. In principle we could check only timebases on the left and right but
-        // since first three timebases are in most cases special we make search space a bit
-        // bigger.
+        // The below code iterates through the neighbouring timebases in order to find the best match. In principle, we
+        // could check only timebases on the left and right but since first three timebases are in most cases special
+        // we make search space a bit bigger.
         const int                      searchSpace = 8;
         std::array<float, searchSpace> timebases;
         std::array<float, searchSpace> errorEstimates;

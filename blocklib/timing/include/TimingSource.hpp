@@ -375,7 +375,7 @@ it accordingly using the `saft-io-ctl` utility.
             tag.map.emplace("BPC-START", event.flagBpcStart);
             tag.map.emplace("BPCID", event.bpcid);
             tag.map.emplace("BPCTS", event.bpcts);
-            tag.map.emplace(tag::TRIGGER_OFFSET, 0); // TODO: correctly calculate offset
+            tag.map.emplace(tag::TRIGGER_OFFSET, 0); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
         }
         return tag;
     }
