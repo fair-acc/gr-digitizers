@@ -140,8 +140,8 @@ void plotNamedEvents(const char* label_id, const FairPlot::ScrollingBuffer<N>& p
 int bpcidColormap() {
     static std::array<ImU32, 13> colorData = [&bpcidColors = bpcidColors]() {
         std::array<ImU32, 13> colors{};
-        for (std::size_t i = 0; i < bpcidColors.size(); i++) {
-            colors[i] = bpcidColors[i];
+        for (const auto& [i, c] : std::views::zip(std::views::iota(0), bpcidColors)) {
+            colors[i] = ImColor{c.r, c.g, c.b, c.a};
         }
         return colors;
     }();

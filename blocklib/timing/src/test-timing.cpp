@@ -22,10 +22,9 @@
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
 
-#include "event_definitions.hpp"
+#include "../include/event_definitions.hpp"
 #include "fairPlot.hpp"
 #include "fair_header.h"
-#include <experimental/simd>
 #include <timing.hpp>
 
 enum class InjectState { STOPPED, RUNNING, SINGLE };
@@ -112,7 +111,8 @@ std::size_t getStableBPCIDColorIndex(T id) {
 
 template<typename T>
 ImColor getStableBPCIDColor(T id) {
-    return ImColor{bpcidColors[getStableBPCIDColorIndex(static_cast<std::size_t>(id))]};
+    TimingColor c = bpcidColors[getStableBPCIDColorIndex(static_cast<std::size_t>(id))];
+    return ImColor{c.r, c.g, c.b, c.a};
 }
 
 std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
