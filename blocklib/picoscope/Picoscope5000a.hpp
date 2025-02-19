@@ -14,9 +14,9 @@ public:
 
     Picoscope5000a(gr::property_map props) : super_t(std::move(props)) {}
 
-    std::vector<gr::PortOut<T>> analog_out{4};
+    std::vector<gr::PortOut<T>> out{4};
 
-    GR_MAKE_REFLECTABLE(Picoscope5000a, analog_out);
+    GR_MAKE_REFLECTABLE(Picoscope5000a, out);
 
     using ChannelType            = PS5000A_CHANNEL;
     using ConditionType          = PS5000A_CONDITION;
@@ -39,7 +39,7 @@ public:
         uint32_t      interval;
     };
 
-    constexpr UnitInterval convertFrequencyToTimeUnitsAndInterval(double desired_freq, double& actual_freq) {
+    constexpr UnitInterval convertFrequencyToTimeUnitsAndInterval(float desired_freq, float& actual_freq) {
         UnitInterval unint;
 
         if (const auto interval = 1.0 / desired_freq; interval < 0.000001) {
@@ -92,41 +92,41 @@ public:
         throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
     }
 
-    static constexpr RangeType convertToRange(double range) {
-        if (range == 0.01) {
+    static constexpr RangeType convertToRange(float range) {
+        if (range == 0.0f) {
             return PS5000A_10MV;
         }
-        if (range == 0.02) {
+        if (range == 0.02f) {
             return PS5000A_20MV;
         }
-        if (range == 0.05) {
+        if (range == 0.05f) {
             return PS5000A_50MV;
         }
-        if (range == 0.1) {
+        if (range == 0.1f) {
             return PS5000A_100MV;
         }
-        if (range == 0.2) {
+        if (range == 0.2f) {
             return PS5000A_200MV;
         }
-        if (range == 0.5) {
+        if (range == 0.5f) {
             return PS5000A_500MV;
         }
-        if (range == 1.0) {
+        if (range == 1.f) {
             return PS5000A_1V;
         }
-        if (range == 2.0) {
+        if (range == 2.f) {
             return PS5000A_2V;
         }
-        if (range == 5.0) {
+        if (range == 5.f) {
             return PS5000A_5V;
         }
-        if (range == 10.0) {
+        if (range == 10.f) {
             return PS5000A_10V;
         }
-        if (range == 20.0) {
+        if (range == 20.f) {
             return PS5000A_20V;
         }
-        if (range == 50.0) {
+        if (range == 50.f) {
             return PS5000A_50V;
         }
         throw std::runtime_error(fmt::format("Range value not supported: {}", range));
