@@ -31,7 +31,7 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
   gnuradio4
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-  GIT_TAG 1c48239fae93a57b18978ac517e348f1ed908ae0 # main as of 2025-01-16
+  GIT_TAG 3b58693a870ce32b24d43ed8a58ae2fcdd9a5ae6 # main as of 2025-02-19
 )
 
 FetchContent_Declare(

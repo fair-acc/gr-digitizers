@@ -46,11 +46,11 @@ const boost::ut::suite PicoscopeTests = [] {
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},                   //
             {"channel_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}},       //
             {"channel_units", std::vector<std::string>{"V", "V", "V"}},                 //
-            {"channel_ranges", std::vector{5.0, 5.0, 5.0}},                             //
-            {"channel_offsets", std::vector{0.0, 0.0, 0.0}},                            //
+            {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},                      //
+            {"channel_offsets", std::vector<float>{0.f, 0.f, 0.f}},                     //
             {"channel_couplings", std::vector<std::string>{"DC_1M", "DC_1M", "DC_1M"}}, //
             {"trigger_source", "A"},                                                    //
-            {"trigger_threshold", 1.7},                                                 //
+            {"trigger_threshold", 1.7f},                                                //
             {"trigger_direction", "Rising"}                                             //
         }});
 
@@ -59,9 +59,9 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& sinkC = flowGraph.emplaceBlock<gr::testing::TagSink<float, gr::testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", true}, {"log_tags", true}}});
 
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(timingSrc).template to<"timingIn">(ps)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 0>(ps).template to<"in">(sinkA)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 1>(ps).template to<"in">(sinkB)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"analog_out", 2>(ps).template to<"in">(sinkC)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
 
         // Explicitly start unit because it takes quite some time
         expect(nothrow([&ps] { ps.start(); }));

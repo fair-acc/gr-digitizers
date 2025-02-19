@@ -16,7 +16,7 @@ namespace fair::picoscope {
 struct Error {
     PICO_STATUS code = PICO_OK;
 
-    std::string message() const { return detail::getErrorMessage(code); }
+    [[nodiscard]] std::string message() const { return detail::getErrorMessage(code); }
 
     explicit constexpr operator bool() const noexcept { return code != PICO_OK; }
 };
@@ -43,10 +43,13 @@ constexpr std::size_t kDriverBufferSize = 65536;
 
 struct ChannelSetting {
     std::string name;
-    std::string unit     = "V";
-    double      range    = 2.;
-    double      offset   = 0.;
-    Coupling    coupling = Coupling::AC_1M;
+    std::string unit         = "V";
+    std::string quantity     = "Voltage";
+    float       range        = 2.f;
+    float       analogOffset = 0.f;
+    float       gain         = 1.f;
+    float       offset       = 0.f;
+    Coupling    coupling     = Coupling::AC_1M;
 };
 
 using ChannelMap = std::map<std::string, ChannelSetting, std::less<>>;
@@ -61,7 +64,7 @@ struct TriggerSetting {
     bool isAnalog() const { return isEnabled() && source != kTriggerDigitalSource; }
 
     std::string      source;
-    double           threshold  = 0; // AI only
+    float            threshold  = 0; // AI only
     TriggerDirection direction  = TriggerDirection::Rising;
     int              pin_number = 0; // DI only
 };
@@ -73,13 +76,14 @@ struct Channel {
     std::vector<int16_t> driver_buffer;
     bool                 signal_info_written = false;
 
-    gr::property_map signalInfo() const {
+    gr::property_map toTagMap() const {
         using namespace gr;
-        static const auto kSignalName = std::string(tag::SIGNAL_NAME.shortKey());
-        static const auto kSignalUnit = std::string(tag::SIGNAL_UNIT.shortKey());
-        static const auto kSignalMin  = std::string(tag::SIGNAL_MIN.shortKey());
-        static const auto kSignalMax  = std::string(tag::SIGNAL_MAX.shortKey());
-        return {{kSignalName, settings.name}, {kSignalUnit, settings.unit}, {kSignalMin, static_cast<float>(settings.offset)}, {kSignalMax, static_cast<float>(settings.offset + settings.range)}};
+        static const auto kSignalName     = std::string(tag::SIGNAL_NAME.shortKey());
+        static const auto kSignalQuantity = std::string(tag::SIGNAL_QUANTITY.shortKey());
+        static const auto kSignalUnit     = std::string(tag::SIGNAL_UNIT.shortKey());
+        static const auto kSignalMin      = std::string(tag::SIGNAL_MIN.shortKey());
+        static const auto kSignalMax      = std::string(tag::SIGNAL_MAX.shortKey());
+        return {{kSignalName, settings.name}, {kSignalQuantity, settings.quantity}, {kSignalUnit, settings.unit}, {kSignalMin, settings.offset}, {kSignalMax, settings.offset + settings.range}};
     }
 };
 
@@ -91,7 +95,7 @@ struct Settings {
     std::size_t     post_samples             = 9000;
     std::size_t     rapid_block_nr_captures  = 1;
     bool            trigger_once             = false;
-    double          streaming_mode_poll_rate = 0.001;
+    float           streaming_mode_poll_rate = 0.001;
     bool            auto_arm                 = true;
     ChannelMap      enabled_channels;
     TriggerSetting  trigger;
@@ -110,7 +114,7 @@ struct State {
     int16_t                 handle             = -1; ///< picoscope handle
     int16_t                 overflow           = 0;  ///< status returned from getValues
     int16_t                 max_value          = 0;  ///< maximum ADC count used for ADC conversion
-    double                  actual_sample_rate = 0;
+    float                   actual_sample_rate = 0;
     std::size_t             produced_worker    = 0; // poller/callback thread
 };
 
@@ -156,7 +160,7 @@ inline TriggerDirection parseTriggerDirection(std::string_view s) {
     throw std::invalid_argument(fmt::format("Unknown trigger direction '{}'", s));
 }
 
-inline ChannelMap channelSettings(std::span<const std::string> ids, std::span<const std::string> names, std::span<const std::string> units, std::span<const double> ranges, std::span<const double> offsets, std::span<const std::string> couplings) {
+inline ChannelMap channelSettings(std::span<std::string> ids, std::span<std::string> names, std::span<std::string> units, std::span<std::string> quantities, std::span<float> ranges, std::span<float> analogOffsets, std::span<float> gains, std::span<float> offsets, std::span<std::string> couplings) {
     ChannelMap r;
     for (std::size_t i = 0; i < ids.size(); ++i) {
         ChannelSetting channel;
@@ -168,8 +172,17 @@ inline ChannelMap channelSettings(std::span<const std::string> ids, std::span<co
         if (i < units.size()) {
             channel.unit = std::string(units[i]);
         }
+        if (i < quantities.size()) {
+            channel.quantity = std::string(quantities[i]);
+        }
         if (i < ranges.size()) {
             channel.range = ranges[i];
+        }
+        if (i < analogOffsets.size()) {
+            channel.analogOffset = analogOffsets[i];
+        }
+        if (i < gains.size()) {
+            channel.gain = gains[i];
         }
         if (i < offsets.size()) {
             channel.offset = offsets[i];
@@ -212,12 +225,12 @@ struct PicoscopeBlockingHelper;
 
 template<typename TPSImpl>
 struct PicoscopeBlockingHelper<TPSImpl, false> {
-    using type = gr::Block<TPSImpl, gr::SupportedTypes<int16_t, float, double>>;
+    using type = gr::Block<TPSImpl, gr::SupportedTypes<int16_t, float, gr::UncertainValue<float>>>;
 };
 
 template<typename TPSImpl>
 struct PicoscopeBlockingHelper<TPSImpl, true> {
-    using type = gr::Block<TPSImpl, gr::SupportedTypes<int16_t, float, double>, gr::BlockingIO<false>>;
+    using type = gr::Block<TPSImpl, gr::SupportedTypes<int16_t, float, gr::UncertainValue<float>>, gr::BlockingIO<false>>;
 };
 
 template<PicoscopeOutput T, AcquisitionMode acquisitionMode, typename TPSImpl>
@@ -231,20 +244,23 @@ public:
     A<float, "sample rate", Visible> sample_rate = 10000.f;
     // TODO any way to get custom enums into pmtv??
     A<std::string, "acquisition mode", Visible>                       acquisition_mode         = std::string("Streaming");
-    A<std::size_t, "pre-samples">                                     pre_samples              = 1000;
-    A<std::size_t, "post-samples">                                    post_samples             = 9000;
-    A<std::size_t, "no. captures (rapid block mode)">                 rapid_block_nr_captures  = 1;
+    A<gr::Size_t, "pre-samples">                                      pre_samples              = 1000;
+    A<gr::Size_t, "post-samples">                                     post_samples             = 9000;
+    A<gr::Size_t, "no. captures (rapid block mode)">                  rapid_block_nr_captures  = 1;
     A<bool, "trigger once (rapid block mode)">                        trigger_once             = false;
-    A<double, "poll rate (streaming mode)">                           streaming_mode_poll_rate = 0.001;
+    A<float, "poll rate (streaming mode)">                            streaming_mode_poll_rate = 0.001;
     A<bool, "auto-arm">                                               auto_arm                 = true;
     A<std::vector<std::string>, "IDs of enabled channels">            channel_ids;
     A<std::vector<std::string>, "Names of enabled channels">          channel_names;
     A<std::vector<std::string>, "Units of enabled channels">          channel_units;
-    std::vector<double>                                               channel_ranges;
-    std::vector<double>                                               channel_offsets;
+    A<std::vector<std::string>, "Quantity of enabled channels">       channel_quantities;
+    A<std::vector<float>, "Voltage range of enabled channels">        channel_ranges;         // PS channel setting
+    A<std::vector<float>, "Voltage offset of enabled channels">       channel_analog_offsets; // PS channel setting
+    A<std::vector<float>, "Gain of the enabled channels">             channel_gains;          // only for floats
+    A<std::vector<float>, "Offset of the enabled channels">           channel_offsets;        // only for floats
     A<std::vector<std::string>, "Coupling modes of enabled channels"> channel_couplings;
     A<std::string, "trigger channel/port ID">                         trigger_source;
-    A<double, "trigger threshold, analog only">                       trigger_threshold = 0.f;
+    A<float, "trigger threshold, analog only">                        trigger_threshold = 0.f;
     A<std::string, "trigger direction">                               trigger_direction = std::string("Rising");
     A<int, "trigger pin, digital only">                               trigger_pin       = 0;
 
@@ -253,12 +269,14 @@ public:
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
 
-    GR_MAKE_REFLECTABLE(Picoscope, timingIn, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate, auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_ranges, channel_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, trigger_pin);
+    GR_MAKE_REFLECTABLE(Picoscope, timingIn, serial_number, sample_rate, pre_samples, post_samples, acquisition_mode, rapid_block_nr_captures, streaming_mode_poll_rate,                  //
+        auto_arm, trigger_once, channel_ids, channel_names, channel_units, channel_quantities, channel_ranges, channel_analog_offsets, channel_gains, channel_offsets, channel_couplings, //
+        trigger_source, trigger_threshold, trigger_direction, trigger_pin);
 
 private:
     std::mutex                   g_init_mutex;
-    std::atomic<std::size_t>     streamingSamples = 0Z;
-    std::atomic<std::size_t>     streamingOffset  = 0Z;
+    std::atomic<std::size_t>     streamingSamples = 0UZ;
+    std::atomic<std::size_t>     streamingOffset  = 0UZ;
     std::queue<gr::property_map> timingMessages;
 
 public:
@@ -270,7 +288,17 @@ public:
             stop();
         }
         try {
-            auto s = detail::Settings{.serial_number = serial_number, .sample_rate = sample_rate, .acquisition_mode = detail::parseAcquisitionMode(acquisition_mode), .pre_samples = pre_samples, .post_samples = post_samples, .rapid_block_nr_captures = rapid_block_nr_captures, .trigger_once = trigger_once, .streaming_mode_poll_rate = streaming_mode_poll_rate, .auto_arm = auto_arm, .enabled_channels = detail::channelSettings(channel_ids.value, channel_names.value, channel_units.value, channel_ranges, channel_offsets, channel_couplings.value), .trigger = detail::TriggerSetting{.source = trigger_source, .threshold = trigger_threshold, .direction = detail::parseTriggerDirection(trigger_direction), .pin_number = trigger_pin}};
+            auto s = detail::Settings{.serial_number = serial_number, //
+                .sample_rate                         = sample_rate,
+                .acquisition_mode                    = detail::parseAcquisitionMode(acquisition_mode),
+                .pre_samples                         = pre_samples,
+                .post_samples                        = post_samples,
+                .rapid_block_nr_captures             = rapid_block_nr_captures,
+                .trigger_once                        = trigger_once,
+                .streaming_mode_poll_rate            = streaming_mode_poll_rate,
+                .auto_arm                            = auto_arm,
+                .enabled_channels                    = detail::channelSettings(channel_ids.value, channel_names.value, channel_units.value, channel_quantities.value, channel_ranges.value, channel_analog_offsets.value, channel_gains.value, channel_offsets.value, channel_couplings.value),
+                .trigger                             = detail::TriggerSetting{.source = trigger_source, .threshold = trigger_threshold, .direction = detail::parseTriggerDirection(trigger_direction), .pin_number = trigger_pin}};
             std::swap(ps_settings, s);
 
             ps_state.channels.clear();
@@ -302,6 +330,7 @@ public:
                 arm();
             }
             ps_state.started = true;
+            fmt::println("Picoscope serial number: {}", serial_number);
         } catch (const std::exception& e) {
             fmt::println(std::cerr, "{}", e.what());
         }
@@ -326,6 +355,8 @@ public:
 
     std::string hardwareVersion() const { return self().driver_hardwareVersion(); }
 
+    std::string serialNumber() const { return self().driver_serialNumber(); }
+
     void initialize() {
         if (ps_state.initialized) {
             return;
@@ -336,6 +367,8 @@ public:
         }
 
         ps_state.initialized = true;
+
+        serial_number = serialNumber();
     }
 
     void close() {
@@ -388,9 +421,15 @@ public:
     template<gr::OutputSpanLike TOutSpan>
     void processDriverData(std::size_t nrSamples, std::size_t offset, std::span<TOutSpan>& outputs, gr::InputSpanLike auto& timingInSpan) {
         std::vector<std::size_t> triggerOffsets;
-        const std::size_t        availableOutputs = std::ranges::min(outputs, {}, [](const auto& span) { return span.size(); }).size();
-        const std::size_t        availableSamples = std::min(availableOutputs, nrSamples);
+        std::size_t              availableOutputs = std::numeric_limits<std::size_t>::max();
+        for (std::size_t channelIdx = 0; channelIdx < ps_state.channels.size(); ++channelIdx) {
+            availableOutputs = std::min(availableOutputs, outputs[channelIdx].size());
+        }
+
+        bool              publishNotEnoughSpaceInBuffer = false;
+        const std::size_t availableSamples              = std::min(availableOutputs, nrSamples);
         if (availableSamples < nrSamples) {
+            publishNotEnoughSpaceInBuffer = true;
             fmt::println(std::cerr, "Picoscope::processDriverData: {} samples will be lost due to insufficient space in output buffers (require {}, available {})", nrSamples - availableSamples, nrSamples, availableOutputs);
         }
 
@@ -403,13 +442,13 @@ public:
             if constexpr (std::is_same_v<T, int16_t>) {
                 std::copy(driverData.begin(), driverData.end(), output.begin());
             } else {
-                const auto voltageMultiplier = static_cast<float>(channel.settings.range / ps_state.max_value);
+                const float voltageMultiplier = channel.settings.range / static_cast<float>(ps_state.max_value);
                 // TODO use SIMD
                 for (std::size_t i = 0; i < availableSamples; ++i) {
                     if constexpr (std::is_same_v<T, float>) {
-                        output[i] = voltageMultiplier * driverData[i];
+                        output[i] = channel.settings.offset + channel.settings.gain * voltageMultiplier * driverData[i];
                     } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
-                        output[i] = gr::UncertainValue(voltageMultiplier * driverData[i], self().uncertainty());
+                        output[i] = gr::UncertainValue(channel.settings.offset + channel.settings.gain * voltageMultiplier * driverData[i], self().uncertainty());
                     }
                 }
             }
@@ -421,7 +460,7 @@ public:
 
         const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 
-        std::size_t consumeTags;
+        std::size_t consumeTags = 0UZ;
         for (const auto& tag : timingInSpan.tags()) {
             if (!tag.second.contains("GID")) { // only consider timing tags
                 consumeTags++;
@@ -465,11 +504,15 @@ public:
                 continue;
             }
             if (writeSignalInfo) {
-                auto              map         = channel.signalInfo();
+                auto              map         = channel.toTagMap();
                 static const auto kSampleRate = std::string(gr::tag::SAMPLE_RATE.shortKey());
                 map[kSampleRate]              = pmtv::pmt(static_cast<float>(sample_rate));
                 output.publishTag(map, 0);
                 channel.signal_info_written = true;
+            }
+            if (publishNotEnoughSpaceInBuffer) {
+                gr::property_map map = gr::property_map{{"pico_not_enough_space_in_buffer", nrSamples - availableSamples}};
+                output.publishTag(map, 0);
             }
             for (auto& tag : triggerTags) {
                 output.publishTag(tag.map, tag.index);
@@ -478,7 +521,11 @@ public:
 
         // once all tags have been written, publish the data
         for (std::size_t i = 0; i < outputs.size(); i++) {
-            const std::size_t nSamplesToPublish = i < ps_state.channels.size() ? availableSamples : 0UZ;
+            // TODO: The issue is that the Block class does not properly handle optional ports such that sample limits are calculated wrongly.
+            // Therefore, we must connect all output ports of the picoscope and ensure that samples are published for all ports.
+            // Otherwise, tags will not be propagated correctly.
+            // const std::size_t nSamplesToPublish = i < ps_state.channels.size() ? availableSamples : 0UZ;
+            const std::size_t nSamplesToPublish = availableSamples;
             outputs[i].publish(nSamplesToPublish);
         }
 
@@ -558,24 +605,24 @@ public:
         }
 
         std::vector<std::size_t> triggerOffsets; // relative offset of detected triggers
-        const auto               band              = triggerChannel.settings.range / 100.;
-        const auto               voltageMultiplier = triggerChannel.settings.range / ps_state.max_value;
+        const float              band              = triggerChannel.settings.range / 100.f;
+        const float              voltageMultiplier = triggerChannel.settings.range / static_cast<float>(ps_state.max_value);
 
-        const auto toDouble = [&voltageMultiplier](T raw) {
+        const auto toFloat = [&voltageMultiplier, &triggerChannel](T raw) {
             if constexpr (std::is_same_v<T, float>) {
-                return static_cast<double>(raw);
-            } else if constexpr (std::is_same_v<T, double>) {
+                return triggerChannel.settings.offset + triggerChannel.settings.gain * voltageMultiplier * raw;
+            } else if constexpr (std::is_same_v<T, int16_t>) {
                 return raw;
             } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
-                return voltageMultiplier * static_cast<double>(raw.value);
+                return triggerChannel.settings.offset + triggerChannel.settings.gain * voltageMultiplier * raw.value;
             } else {
-                return voltageMultiplier * raw;
+                static_assert(gr::meta::always_false<T>, "This type is not supported.");
             }
         };
 
         if (ps_settings.trigger.direction == TriggerDirection::Rising || ps_settings.trigger.direction == TriggerDirection::High) {
             for (std::size_t i = 0; i < available; i++) {
-                const auto value = toDouble(samples[i]);
+                const float value = toFloat(samples[i]);
                 if (ps_state.trigger_state == 0 && value >= ps_settings.trigger.threshold) {
                     ps_state.trigger_state = 1;
                     triggerOffsets.push_back(i);
@@ -585,7 +632,7 @@ public:
             }
         } else if (ps_settings.trigger.direction == TriggerDirection::Falling || ps_settings.trigger.direction == TriggerDirection::Low) {
             for (std::size_t i = 0; i < available; i++) {
-                const auto value = toDouble(samples[i]);
+                const float value = toFloat(samples[i]);
                 if (ps_state.trigger_state == 1 && value <= ps_settings.trigger.threshold) {
                     ps_state.trigger_state = 0;
                     triggerOffsets.push_back(i);
@@ -597,17 +644,17 @@ public:
         return triggerOffsets;
     }
 
-    constexpr void validateDesiredActualFrequency(double desiredFreq, double actualFreq) {
+    constexpr void validateDesiredActualFrequency(float desiredFreq, float actualFreq) {
         // In order to prevent exceptions/exit due to rounding errors, we don't directly compare actual_freq to desired_freq, but instead allow a difference up to 0.001%
-        constexpr double kMaxDiffPercentage = 0.001;
-        const double     diff               = actualFreq / desiredFreq - 1;
+        constexpr float kMaxDiffPercentage = 0.001f;
+        const float     diff               = actualFreq / desiredFreq - 1.f;
         if (std::abs(diff) > kMaxDiffPercentage) {
             throw std::runtime_error(fmt::format("Desired and actual frequency do not match. desired: {} actual: {}", desiredFreq, actualFreq));
         }
     }
 
-    constexpr int16_t convertVoltageToRawLogicValue(double value) {
-        constexpr double kMaxLogicalVoltage = 5.0;
+    constexpr int16_t convertVoltageToRawLogicValue(float value) {
+        constexpr float kMaxLogicalVoltage = 5.0;
 
         if (value > kMaxLogicalVoltage) {
             throw std::invalid_argument(fmt::format("Maximum logical level is: {}, received: {}.", kMaxLogicalVoltage, value));
@@ -620,21 +667,21 @@ public:
      * Note this function has to be called after the call to the ps3000aSetChannel function,
      * that is just befor the arm!!!
      */
-    constexpr uint32_t convertFrequencyToTimebase(int16_t handle, double desiredFreq, double& actualFreq) {
+    constexpr uint32_t convertFrequencyToTimebase(int16_t handle, float desiredFreq, float& actualFreq) {
         // It is assumed that the timebase is calculated like this:
         // (timebase–2) / 125,000,000
         // e.g. timeebase == 3 --> 8ns sample interval
         //
         // Note, for some devices, the above formula might be wrong! To overcome this limitation we use the ps3000aGetTimebase2
         // function to find the closest possible timebase. The below timebase estimate is therefore used as a fallback only.
-        auto     timeIntervalNS   = 1000000000.0 / desiredFreq;
-        uint32_t timebaseEstimate = (static_cast<uint32_t>(timeIntervalNS) / 8) + 2;
+        const double timeIntervalNS   = 1000000000. / static_cast<double>(desiredFreq);
+        uint32_t     timebaseEstimate = (static_cast<uint32_t>(timeIntervalNS) / 8) + 2;
 
         // In order to cover for all possible 30000 series devices, we use ps3000aGetTimebase2
         // function to get step size in ns between timebase 3 and 4. Based on that the actual
         // timebase is calculated.
         int32_t              dummy;
-        std::array<float, 2> timeIntervalNS_34;
+        std::array<float, 2> timeIntervalNS_34{};
 
         for (std::size_t i = 0; i < 2; i++) {
             auto status = self().getTimebase2(handle, 3 + static_cast<uint32_t>(i), 1024, &timeIntervalNS_34[i], &dummy, 0);
@@ -650,24 +697,24 @@ public:
                     throw std::runtime_error(fmt::format("Local time {}. Error: {}", timebaseEstimate, detail::getErrorMessage(status)));
                 }
 
-                actualFreq = 1000000000.0 / static_cast<double>(timeIntervalNS_tmp);
+                actualFreq = static_cast<float>(1000000000. / static_cast<double>(timeIntervalNS_tmp));
                 this->validateDesiredActualFrequency(desiredFreq, actualFreq);
                 return timebaseEstimate;
             }
         }
 
         // Calculate steps between timebase 3 and 4 and correct start_timebase estimate based on that
-        auto step        = static_cast<double>(timeIntervalNS_34[1] - timeIntervalNS_34[0]);
-        timebaseEstimate = static_cast<uint32_t>((timeIntervalNS - static_cast<double>(timeIntervalNS_34[0])) / step) + 3;
+        const double step = static_cast<double>(timeIntervalNS_34[1] - timeIntervalNS_34[0]);
+        timebaseEstimate  = static_cast<uint32_t>((timeIntervalNS - static_cast<double>(timeIntervalNS_34[0])) / step) + 3;
 
         // The below code iterates through the neighbouring timebases in order to find the best match. In principle, we
         // could check only timebases on the left and right but since first three timebases are in most cases special
         // we make search space a bit bigger.
         const int                      searchSpace = 8;
-        std::array<float, searchSpace> timebases;
-        std::array<float, searchSpace> errorEstimates;
+        std::array<float, searchSpace> timebases{};
+        std::array<float, searchSpace> errorEstimates{};
 
-        uint32_t startTimebase = timebaseEstimate > (searchSpace / 2) ? timebaseEstimate - (searchSpace / 2) : 0;
+        const uint32_t startTimebase = timebaseEstimate > (searchSpace / 2) ? timebaseEstimate - (searchSpace / 2) : 0;
 
         for (std::size_t i = 0; i < searchSpace; i++) {
             float obtained_time_interval_ns;
@@ -682,13 +729,13 @@ public:
             }
         }
 
-        auto it       = std::min_element(&errorEstimates[0], &errorEstimates[0] + errorEstimates.size());
-        auto distance = std::distance(&errorEstimates[0], it);
+        const auto it       = std::min_element(&errorEstimates[0], &errorEstimates[0] + errorEstimates.size());
+        const auto distance = std::distance(&errorEstimates[0], it);
 
         assert(distance < searchSpace);
 
         // update actual update rate and return timebase number
-        actualFreq = 1000000000.0 / static_cast<double>(timebases[static_cast<std::size_t>(distance)]);
+        actualFreq = static_cast<float>(1000000000. / static_cast<double>(timebases[static_cast<std::size_t>(distance)]));
         this->validateDesiredActualFrequency(desiredFreq, actualFreq);
         return static_cast<uint32_t>(startTimebase + distance);
     }
@@ -762,7 +809,7 @@ public:
             const auto coupling = self().convertToCoupling(channel.settings.coupling);
             const auto range    = self().convertToRange(channel.settings.range);
 
-            status = self().setChannel(this->ps_state.handle, *idx, true, coupling, static_cast<TPSImpl::ChannelRangeType>(range), static_cast<float>(channel.settings.offset));
+            status = self().setChannel(this->ps_state.handle, *idx, true, coupling, static_cast<TPSImpl::ChannelRangeType>(range), static_cast<float>(channel.settings.analogOffset));
             if (status != PICO_OK) {
                 fmt::println(std::cerr, "SetChannel (chan '{}'): {}", channel.id, detail::getErrorMessage(status));
                 return {status};
@@ -797,7 +844,7 @@ public:
         }
 
         // In order to validate desired frequency before startup
-        double actual_freq;
+        float actual_freq;
         convertFrequencyToTimebase(this->ps_state.handle, this->ps_settings.sample_rate, actual_freq);
 
         return {};
@@ -896,12 +943,12 @@ public:
     }
 
     std::string getUnitInfoTopic(int16_t handle, PICO_INFO info) const {
-        std::array<int8_t, 40> line;
+        std::array<int8_t, 40> line{};
         int16_t                requiredSize;
 
         auto status = self().getUnitInfo(handle, line.data(), line.size(), &requiredSize, info);
         if (status == PICO_OK) {
-            return std::string(reinterpret_cast<char*>(line.data()), static_cast<std::size_t>(requiredSize));
+            return {reinterpret_cast<char*>(line.data()), static_cast<std::size_t>(requiredSize)};
         }
 
         return {};
@@ -922,6 +969,13 @@ public:
             return {};
         }
         return getUnitInfoTopic(this->ps_state.handle, PICO_HARDWARE_VERSION);
+    }
+
+    std::string driver_serialNumber() const {
+        if (!this->ps_state.initialized) {
+            return {};
+        }
+        return getUnitInfoTopic(this->ps_state.handle, PICO_BATCH_AND_SERIAL);
     }
 
     std::optional<std::size_t> driver_channelIdToIndex(std::string_view id) {
