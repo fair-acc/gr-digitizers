@@ -30,56 +30,131 @@ public:
     using StreamingReadyType     = ps5000aStreamingReady;
     using BlockReadyType         = ps5000aBlockReady;
     using RatioModeType          = PS5000A_RATIO_MODE;
+    using DeviceResolutionType   = PS5000A_DEVICE_RESOLUTION;
 
-    /*!
-     * a structure used for streaming setup
-     */
-    struct UnitInterval {
-        TimeUnitsType unit;
-        uint32_t      interval;
-    };
-
-    constexpr UnitInterval convertFrequencyToTimeUnitsAndInterval(float desired_freq, float& actual_freq) {
-        UnitInterval unint;
-
-        if (const auto interval = 1.0 / desired_freq; interval < 0.000001) {
-            unint.unit     = PS5000A_PS;
-            unint.interval = static_cast<uint32_t>(1000000000000.0 / desired_freq);
-            actual_freq    = 1000000000000.0 / unint.interval;
-        } else if (interval < 0.001) {
-            unint.unit     = PS5000A_NS;
-            unint.interval = static_cast<uint32_t>(1000000000.0 / desired_freq);
-            actual_freq    = 1000000000.0 / unint.interval;
-        } else if (interval < 0.1) {
-            unint.unit     = PS5000A_US;
-            unint.interval = static_cast<uint32_t>(1000000.0 / desired_freq);
-            actual_freq    = 1000000.0 / unint.interval;
-        } else {
-            unint.unit     = PS5000A_MS;
-            unint.interval = static_cast<uint32_t>(1000.0 / desired_freq);
-            actual_freq    = 1000.0 / unint.interval;
+    TimeUnitsType convertTimeUnits(TimeUnits tu) const {
+        switch (tu) {
+        case TimeUnits::FS: return PS5000A_FS;
+        case TimeUnits::PS: return PS5000A_PS;
+        case TimeUnits::NS: return PS5000A_NS;
+        case TimeUnits::US: return PS5000A_US;
+        case TimeUnits::MS: return PS5000A_MS;
+        case TimeUnits::S: return PS5000A_S;
         }
-        this->validateDesiredActualFrequency(desired_freq, actual_freq);
-        return unint;
+        return PS5000A_MAX_TIME_UNITS;
+    }
+
+    [[nodiscard]] constexpr TimebaseResult convertSampleRateToTimebase(int16_t handle, float desiredFreq) {
+        // https://www.picotech.com/download/manuals/picoscope-5000-series-a-api-programmers-guide.pdf, page 28
+        // -----------------------------------------------------------------------------------------------------------------------
+        // 8-bit mode
+        // -----------------------------------------------------------------------------------------------------------------------
+        // | Timebase (n) | Sampling Interval (tS)               | Sampling Frequency (fS)           |
+        // |--------------|--------------------------------------|-----------------------------------|
+        // |     0        | 1 ns                                 | 1 GHz (only one channel enabled)  |
+        // |     1        | 2 ns                                 | 500 MHz                           |
+        // |     2        | 4 ns                                 | 250 MHz                           |
+        // |  3 ... 2^32-1| (n–2) / 125,000,000                  | 125 MHz / (n-2)                   |
+        //
+        // -----------------------------------------------------------------------------------------------------------------------
+        // 12-bit mode
+        // -----------------------------------------------------------------------------------------------------------------------
+        // | Timebase (n) | Sampling Interval (tS)               | Sampling Frequency (fS)           |
+        // |--------------|--------------------------------------|-----------------------------------|
+        // |     1        | 2 ns                                 | 500 MHz (only one channel enabled)|
+        // |     2        | 4 ns                                 | 250 MHz                           |
+        // |     3        | 8 ns                                 | 125 MHz                           |
+        // |  4 ... 2^32-2| (n–3) / 62,500,000                   | 62.5 MHz / (n-3)                  |
+        //
+        // -----------------------------------------------------------------------------------------------------------------------
+        // 14-bit mode
+        // -----------------------------------------------------------------------------------------------------------------------
+        // | Timebase (n) | Sampling Interval (tS)               | Sampling Frequency (fS)           |
+        // |--------------|--------------------------------------|-----------------------------------|
+        // |     3        | 8 ns                                 | 125 MHz (single channel)          |
+        // |  4 ... 2^32-1| (n–2) / 125,000,000                  | 125 MHz / (n-2)                   |
+        //
+        // -----------------------------------------------------------------------------------------------------------------------
+        // 15-bit mode
+        // -----------------------------------------------------------------------------------------------------------------------
+        // | Timebase (n) | Sampling Interval (tS)               | Sampling Frequency (fS)           |
+        // |--------------|--------------------------------------|-----------------------------------|
+        // |     3        | 8 ns                                 | 125 MHz (up to two channels)      |
+        // |  4 ... 2^32-1| (n–2) / 125,000,000                  | 125 MHz / (n-2)                   |
+        //
+        // -----------------------------------------------------------------------------------------------------------------------
+        // 16-bit mode
+        // -----------------------------------------------------------------------------------------------------------------------
+        // | Timebase (n) | Sampling Interval (tS)               | Sampling Frequency (fS)           |
+        // |--------------|--------------------------------------|-----------------------------------|
+        // |     4        | 16 ns                                | 62.5 MHz (one channel enabled)    |
+        // |  5 ... 2^32-2| (n–3) / 62,500,000                   | 62.5 MHz / (n-3)                  |
+        // -----------------------------------------------------------------------------------------------------------------------
+
+        // TODO: make it as function parameter?
+        DeviceResolutionType deviceResolution;
+        auto                 status = getDeviceResolution(handle, &deviceResolution);
+        if (status != PICO_OK) {
+            throw std::runtime_error("Cannot get device resolution");
+        }
+
+        switch (deviceResolution) {
+        case PS5000A_DR_8BIT: {
+            if (desiredFreq <= 0.f || desiredFreq >= 1.e9f) {
+                return {0, 1.e9f};
+            } else if (desiredFreq >= 500.e6f) {
+                return {1, 500.e6f};
+            } else if (desiredFreq >= 250.e6f) {
+                return {2, 250.e6f};
+            }
+            const auto  timebase   = static_cast<uint32_t>((125.e6f / desiredFreq) + 2); // n = (125 MHz / f_S) + 2;
+            const float actualFreq = 125.e6f / static_cast<float>(timebase - 2);
+            return {timebase, actualFreq};
+        }
+
+        case PS5000A_DR_12BIT: {
+            if (desiredFreq <= 0.f || desiredFreq >= 500.e6f) {
+                return {1, 500.e6f};
+            } else if (desiredFreq >= 250.e6f) {
+                return {2, 250.e6f};
+            } else if (desiredFreq >= 125.e6f) {
+                return {3, 125.e6f};
+            }
+            const auto  timebase   = static_cast<uint32_t>((62.5e6f / desiredFreq) + 3); // n = (62.5 MHz / f_S) + 3
+            const float actualFreq = 62.5e6f / static_cast<float>(timebase - 3);
+            return {timebase, actualFreq};
+        }
+
+        case PS5000A_DR_14BIT:
+        case PS5000A_DR_15BIT: {
+            if (desiredFreq <= 0.f || desiredFreq >= 125.e6f) {
+                return {3, 125.e6f};
+            }
+            const auto  timebase   = static_cast<uint32_t>((125.e6f / desiredFreq) + 2); // n = (125 MHz / f_S) + 2
+            const float actualFreq = 125.e6f / static_cast<float>(timebase - 2);
+            return {timebase, actualFreq};
+        }
+
+        case PS5000A_DR_16BIT: {
+            if (desiredFreq <= 0.f || desiredFreq >= 62.5e6f) {
+                return {4, 62.5e6f};
+            }
+            const auto  timebase   = static_cast<uint32_t>((62.5e6f / desiredFreq) + 3); // n = (62.5 MHz / f_S) + 3
+            const float actualFreq = 62.5e6f / static_cast<float>(timebase - 3);
+            return {timebase, actualFreq};
+        }
+        }
     }
 
     static constexpr std::optional<ChannelType> convertToChannel(std::string_view source) {
-        if (source == "A") {
-            return PS5000A_CHANNEL_A;
+        static constexpr std::array<std::pair<std::string_view, ChannelType>, 9> channelMap{{//
+            {"A", PS5000A_CHANNEL_A}, {"B", PS5000A_CHANNEL_B}, {"C", PS5000A_CHANNEL_C}, {"D", PS5000A_CHANNEL_D}, {"EXTERNAL", PS5000A_EXTERNAL}}};
+
+        const auto it = std::ranges::find_if(channelMap, [source](auto&& kv) { return kv.first == source; });
+        if (it != channelMap.end()) {
+            return it->second;
         }
-        if (source == "B") {
-            return PS5000A_CHANNEL_B;
-        }
-        if (source == "C") {
-            return PS5000A_CHANNEL_C;
-        }
-        if (source == "D") {
-            return PS5000A_CHANNEL_D;
-        }
-        if (source == "EXTERNAL") {
-            return PS5000A_EXTERNAL;
-        }
-        return {};
+        return std::nullopt;
     }
 
     static constexpr CouplingType convertToCoupling(Coupling coupling) {
@@ -93,42 +168,16 @@ public:
     }
 
     static constexpr RangeType convertToRange(float range) {
-        if (range == 0.0f) {
-            return PS5000A_10MV;
+        static constexpr std::array<std::pair<float, RangeType>, 12> rangeMap = {{                      //
+            {0.01f, PS5000A_10MV}, {0.02f, PS5000A_20MV}, {0.05f, PS5000A_50MV}, {0.1f, PS5000A_100MV}, //
+            {0.2f, PS5000A_200MV}, {0.5f, PS5000A_500MV}, {1.0f, PS5000A_1V}, {2.0f, PS5000A_2V},       //
+            {5.0f, PS5000A_5V}, {10.0f, PS5000A_10V}, {20.0f, PS5000A_20V}, {50.0f, PS5000A_50V}}};
+
+        const auto it = std::ranges::find_if(rangeMap, [range](auto& kv) { return std::fabs(kv.first - range) < 1e-6f; });
+        if (it != rangeMap.end()) {
+            return it->second;
         }
-        if (range == 0.02f) {
-            return PS5000A_20MV;
-        }
-        if (range == 0.05f) {
-            return PS5000A_50MV;
-        }
-        if (range == 0.1f) {
-            return PS5000A_100MV;
-        }
-        if (range == 0.2f) {
-            return PS5000A_200MV;
-        }
-        if (range == 0.5f) {
-            return PS5000A_500MV;
-        }
-        if (range == 1.f) {
-            return PS5000A_1V;
-        }
-        if (range == 2.f) {
-            return PS5000A_2V;
-        }
-        if (range == 5.f) {
-            return PS5000A_5V;
-        }
-        if (range == 10.f) {
-            return PS5000A_10V;
-        }
-        if (range == 20.f) {
-            return PS5000A_20V;
-        }
-        if (range == 50.f) {
-            return PS5000A_50V;
-        }
+
         throw std::runtime_error(fmt::format("Range value not supported: {}", range));
     }
 
@@ -239,6 +288,9 @@ public:
 
     PICO_STATUS
     getUnitInfo(int16_t handle, int8_t* string, int16_t stringLength, int16_t* requiredSize, PICO_INFO info) const { return ps5000aGetUnitInfo(handle, string, stringLength, requiredSize, info); }
+
+    PICO_STATUS
+    getDeviceResolution(int16_t handle, DeviceResolutionType* deviceResolution) const { return ps5000aGetDeviceResolution(handle, deviceResolution); }
 };
 
 } // namespace fair::picoscope

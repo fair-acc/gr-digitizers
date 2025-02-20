@@ -27,12 +27,13 @@ void testRapidBlockBasic(std::size_t nrCaptures) {
 
     fmt::println("testRapidBlockBasic - {}", gr::meta::type_name<T>());
 
+    constexpr float      sampleRate   = 1234567.f;
     constexpr gr::Size_t kPreSamples  = 33;
     constexpr gr::Size_t kPostSamples = 1000;
     const gr::Size_t     totalSamples = nrCaptures * (kPreSamples + kPostSamples);
 
     Graph flowGraph;
-    auto& ps = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::RapidBlock>>({{{"sample_rate", 10000.f},                                      //
+    auto& ps = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::RapidBlock>>({{{"sample_rate", sampleRate},                                   //
         {"pre_samples", kPreSamples}, {"post_samples", kPostSamples}, {"acquisition_mode", "RapidBlock"}, {"rapid_block_nr_captures", nrCaptures}, //
         {"auto_arm", true}, {"trigger_once", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector<float>{5.f}},   //
         {"channel_couplings", std::vector<std::string>{"AC_1M"}}}});
@@ -73,12 +74,12 @@ void testStreamingBasics() {
 
     fmt::println("testStreamingBasics - {}", gr::meta::type_name<T>());
 
-    constexpr float kSampleRate = 80000.f;
+    constexpr float kSampleRate = 83000.f;
     constexpr auto  kDuration   = 2s;
 
-    auto& ps = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::Streaming>>({{{"sample_rate", kSampleRate},                                                           //
-        {"acquisition_mode", "Streaming"}, {"streaming_mode_poll_rate", 0.00001f}, {"auto_arm", true}, {"channel_ids", std::vector<std::string>{"A"}},                     //
-        {"channel_names", std::vector<std::string>{"Test signal"}}, {"channel_units", std::vector<std::string>{"Test unit"}}, {"channel_ranges", std::vector<float>{5.f}}, //
+    auto& ps = flowGraph.emplaceBlock<PicoscopeT<T, AcquisitionMode::Streaming>>({{{"sample_rate", kSampleRate},                                                         //
+        {"acquisition_mode", "Streaming"}, {"streaming_mode_poll_rate", 0.00001f}, {"auto_arm", true}, {"channel_ids", std::vector<std::string>{"A"}},                   //
+        {"signal_names", std::vector<std::string>{"Test signal"}}, {"signal_units", std::vector<std::string>{"Test unit"}}, {"channel_ranges", std::vector<float>{5.f}}, //
         {"channel_couplings", std::vector<std::string>{"AC_1M"}}}});
 
     auto& tagMonitor = flowGraph.emplaceBlock<testing::TagMonitor<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", true}}});

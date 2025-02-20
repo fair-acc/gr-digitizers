@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
     // Replace with your connected Picoscope device
     using PicoscopeT = Picoscope4000a<SampleType, AcquisitionMode::Streaming>;
 
-    constexpr float kSampleRate = 20'000'000.f;
+    constexpr float kSampleRate = 16'500'000.f;
 
     auto threadPool = std::make_shared<gr::thread_pool::BasicThreadPool>("custom pool", gr::thread_pool::CPU_BOUND, 2, 2);
 
