@@ -41,13 +41,12 @@ const boost::ut::suite PicoscopeTests = [] {
 
         auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float, AcquisitionMode::Streaming>>({{
             {"sample_rate", kSampleRate},                                               //
-            {"acquisition_mode", "Streaming"},                                          //
             {"auto_arm", true},                                                         //
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},                   //
-            {"channel_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}},       //
-            {"channel_units", std::vector<std::string>{"V", "V", "V"}},                 //
+            {"signal_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}},        //
+            {"signal_units", std::vector<std::string>{"V", "V", "V"}},                  //
             {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},                      //
-            {"channel_offsets", std::vector<float>{0.f, 0.f, 0.f}},                     //
+            {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},                      //
             {"channel_couplings", std::vector<std::string>{"DC_1M", "DC_1M", "DC_1M"}}, //
             {"trigger_source", "A"},                                                    //
             {"trigger_threshold", 1.7f},                                                //

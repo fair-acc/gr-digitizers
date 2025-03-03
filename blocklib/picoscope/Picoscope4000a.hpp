@@ -7,10 +7,10 @@
 
 namespace fair::picoscope {
 
-template<typename T, AcquisitionMode acquisitionMode>
-class Picoscope4000a : public fair::picoscope::Picoscope<T, acquisitionMode, Picoscope4000a<T, acquisitionMode>> {
+template<typename T>
+class Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> {
 public:
-    using super_t = fair::picoscope::Picoscope<T, acquisitionMode, Picoscope4000a<T, acquisitionMode>>;
+    using super_t = fair::picoscope::Picoscope<T, Picoscope4000a<T>>;
 
     Picoscope4000a(gr::property_map props) : super_t(std::move(props)) {}
 
@@ -70,6 +70,16 @@ public:
             const float actualFreq = 80'000'000.f / static_cast<float>(timebase + 1);
             return {timebase, actualFreq};
         }
+    }
+
+    static constexpr std::optional<std::size_t> convertToOutputIndex(std::string_view source) {
+        static constexpr std::array<std::pair<std::string_view, std::size_t>, 8> channelMap{{{"A", 0}, {"B", 1}, {"C", 2}, {"D", 3}, {"E", 4}, {"F", 5}, {"G", 6}, {"H", 7}}};
+
+        const auto it = std::ranges::find_if(channelMap, [source](auto&& kv) { return kv.first == source; });
+        if (it != channelMap.end()) {
+            return it->second;
+        }
+        return std::nullopt;
     }
 
     static constexpr std::optional<ChannelType> convertToChannel(std::string_view source) {
@@ -135,9 +145,9 @@ public:
     openUnit(const std::string& serial_number) {
         // take any if serial number is not provided (useful for testing purposes)
         if (serial_number.empty()) {
-            return ps4000aOpenUnit(&this->ps_state.handle, nullptr);
+            return ps4000aOpenUnit(&this->_handle, nullptr);
         } else {
-            return ps4000aOpenUnit(&this->ps_state.handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps4000aOpenUnit(&this->_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
         }
     }
 
@@ -161,7 +171,7 @@ public:
 
     int maxChannel() { return PS4000A_MAX_CHANNELS; }
 
-    int maxVoltage() { return PS4000A_EXT_MAX_VALUE; }
+    int maxADCCount() { return PS4000A_EXT_MAX_VALUE; }
 
     CouplingType analogCoupling() { return PS4000A_AC; }
 
@@ -176,7 +186,7 @@ public:
     setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType info) { return ps4000aSetTriggerChannelConditions(handle, conditions, nConditions, info); }
 
     PICO_STATUS
-    driver_stop(int16_t handle) { return ps4000aStop(handle); }
+    driverStop(int16_t handle) { return ps4000aStop(handle); }
 
     PICO_STATUS
     runBlock(int16_t handle, int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) { return ps4000aRunBlock(handle, noOfPreTriggerSamples, noOfPostTriggerSamples, timebase, timeIndisposed, segmentIndex, ready, param); }

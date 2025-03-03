@@ -7,10 +7,10 @@
 
 namespace fair::picoscope {
 
-template<typename T, AcquisitionMode acquisitionMode>
-class Picoscope5000a : public fair::picoscope::Picoscope<T, acquisitionMode, Picoscope5000a<T, acquisitionMode>> {
+template<typename T>
+class Picoscope5000a : public fair::picoscope::Picoscope<T, Picoscope5000a<T>> {
 public:
-    using super_t = fair::picoscope::Picoscope<T, acquisitionMode, Picoscope5000a<T, acquisitionMode>>;
+    using super_t = fair::picoscope::Picoscope<T, Picoscope5000a<T>>;
 
     Picoscope5000a(gr::property_map props) : super_t(std::move(props)) {}
 
@@ -146,6 +146,16 @@ public:
         }
     }
 
+    static constexpr std::optional<std::size_t> convertToOutputIndex(std::string_view source) {
+        static constexpr std::array<std::pair<std::string_view, std::size_t>, 4> channelMap{{{"A", 0}, {"B", 1}, {"C", 2}, {"D", 3}}};
+
+        const auto it = std::ranges::find_if(channelMap, [source](auto&& kv) { return kv.first == source; });
+        if (it != channelMap.end()) {
+            return it->second;
+        }
+        return std::nullopt;
+    }
+
     static constexpr std::optional<ChannelType> convertToChannel(std::string_view source) {
         static constexpr std::array<std::pair<std::string_view, ChannelType>, 9> channelMap{{//
             {"A", PS5000A_CHANNEL_A}, {"B", PS5000A_CHANNEL_B}, {"C", PS5000A_CHANNEL_C}, {"D", PS5000A_CHANNEL_D}, {"EXTERNAL", PS5000A_EXTERNAL}}};
@@ -207,9 +217,9 @@ public:
     openUnit(const std::string& serial_number) {
         // take any if serial number is not provided (useful for testing purposes)
         if (serial_number.empty()) {
-            return ps5000aOpenUnit(&this->ps_state.handle, nullptr, PS5000A_DR_8BIT);
+            return ps5000aOpenUnit(&(this->_handle), nullptr, PS5000A_DR_8BIT);
         } else {
-            return ps5000aOpenUnit(&this->ps_state.handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())), PS5000A_DR_8BIT);
+            return ps5000aOpenUnit(&(this->_handle), const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())), PS5000A_DR_8BIT);
         }
     }
 
@@ -233,7 +243,7 @@ public:
 
     int maxChannel() { return PS5000A_MAX_CHANNELS; }
 
-    int maxVoltage() { return PS5000A_EXT_MAX_VALUE; }
+    int maxADCCount() { return PS5000A_EXT_MAX_VALUE; }
 
     CouplingType analogCoupling() { return PS5000A_AC; }
 
@@ -270,7 +280,7 @@ public:
     }
 
     PICO_STATUS
-    driver_stop(int16_t handle) { return ps5000aStop(handle); }
+    driverStop(int16_t handle) { return ps5000aStop(handle); }
 
     PICO_STATUS
     runBlock(int16_t handle, int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) { return ps5000aRunBlock(handle, noOfPreTriggerSamples, noOfPostTriggerSamples, timebase, timeIndisposed, segmentIndex, ready, param); }
