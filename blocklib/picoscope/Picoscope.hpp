@@ -170,27 +170,29 @@ public:
 
     Picoscope(gr::property_map props) : super_t(std::move(props)) {}
 
-    A<std::string, "serial number">                                    serial_number;
-    A<float, "sample rate", Visible>                                   sample_rate              = 10000.f;
-    A<gr::Size_t, "pre-samples">                                       pre_samples              = 1000;  // RapidBlock mode only
-    A<gr::Size_t, "post-samples">                                      post_samples             = 1000;  // RapidBlock mode only
-    A<gr::Size_t, "no. captures (rapid block mode)">                   n_captures               = 1;     // RapidBlock mode only
-    A<bool, "trigger once (rapid block mode)">                         trigger_once             = false; // RapidBlock mode only
-    A<float, "poll rate (streaming mode)">                             streaming_mode_poll_rate = 0.001; // TODO, not used for the moment
-    A<bool, "do arm at start?">                                        auto_arm                 = true;
-    A<std::vector<std::string>, "IDs of enabled channels">             channel_ids;
-    A<std::vector<float>, "Voltage range of enabled channels">         channel_ranges;         // PS channel setting
-    A<std::vector<float>, "Voltage offset of enabled channels">        channel_analog_offsets; // PS channel setting
-    A<std::vector<std::string>, "Coupling modes of enabled channels">  channel_couplings;
-    A<std::vector<std::string>, "Signal names of enabled channels">    signal_names;
-    A<std::vector<std::string>, "Signal units of enabled channels">    signal_units;
-    A<std::vector<std::string>, "Signal quantity of enabled channels"> signal_quantities;
-    A<std::vector<float>, "Signal scales of the enabled channels">     signal_scales;  // only for floats and UncertainValues
-    A<std::vector<float>, "Signal offset of the enabled channels">     signal_offsets; // only for floats and UncertainValues
-    A<std::string, "trigger channel/port ID">                          trigger_source;
-    A<float, "trigger threshold, analog only">                         trigger_threshold = 0.f;
-    A<std::string, "trigger direction">                                trigger_direction = std::string("Rising");
-    A<int, "trigger pin, digital only">                                trigger_pin       = 0;
+    A<std::string, "serial number">                                             serial_number;
+    A<float, "sample rate", Visible>                                            sample_rate              = 10000.f;
+    A<gr::Size_t, "pre-samples">                                                pre_samples              = 1000;  // RapidBlock mode only
+    A<gr::Size_t, "post-samples">                                               post_samples             = 1000;  // RapidBlock mode only
+    A<gr::Size_t, "no. captures (rapid block mode)">                            n_captures               = 1;     // RapidBlock mode only
+    A<bool, "trigger once (rapid block mode)">                                  trigger_once             = false; // RapidBlock mode only
+    A<float, "poll rate (streaming mode)">                                      streaming_mode_poll_rate = 0.001; // TODO, not used for the moment
+    A<bool, "do arm at start?">                                                 auto_arm                 = true;
+    A<std::vector<std::string>, "IDs of enabled channels">                      channel_ids;
+    A<std::vector<float>, "Voltage range of enabled channels">                  channel_ranges;         // PS channel setting
+    A<std::vector<float>, "Voltage offset of enabled channels">                 channel_analog_offsets; // PS channel setting
+    A<std::vector<std::string>, "Coupling modes of enabled channels">           channel_couplings;
+    A<std::vector<std::string>, "Signal names of enabled channels">             signal_names;
+    A<std::vector<std::string>, "Signal units of enabled channels">             signal_units;
+    A<std::vector<std::string>, "Signal quantity of enabled channels">          signal_quantities;
+    A<std::vector<float>, "Signal scales of the enabled channels">              signal_scales;  // only for floats and UncertainValues
+    A<std::vector<float>, "Signal offset of the enabled channels">              signal_offsets; // only for floats and UncertainValues
+    A<std::string, "trigger channel/port ID">                                   trigger_source;
+    A<float, "trigger threshold, analog only">                                  trigger_threshold = 0.f;
+    A<std::string, "trigger direction">                                         trigger_direction = std::string("Rising");
+    A<int, "trigger pin, digital only">                                         trigger_pin       = 0;
+    A<std::string, "arm trigger: `<trigger_name>/<ctx>`, if empty not used">    trigger_arm       = ""; // RapidBlock mode only
+    A<std::string, "disarm trigger: `<trigger_name>/<ctx>`, if empty not used"> trigger_disarm    = ""; // RapidBlock mode only
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
 
@@ -200,13 +202,13 @@ public:
 
     GR_MAKE_REFLECTABLE(Picoscope, timingIn, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                             //
         auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, //
-        trigger_source, trigger_threshold, trigger_direction, trigger_pin);
+        trigger_source, trigger_threshold, trigger_direction, trigger_pin, trigger_arm, trigger_disarm);
 
 private:
     std::atomic<std::size_t>     _streamingSamples = 0UZ;
     std::atomic<std::size_t>     _streamingOffset  = 0UZ;
     std::queue<gr::property_map> _timingMessages;
-    std::atomic<bool>            _canWorkArm = false; // for RapidBlock mode if arm() can be done again in work() function
+    std::atomic<bool>            _isArmed = false; // for RapidBlock mode only
     std::vector<detail::Channel> _channels;
     int8_t                       _triggerState = 0;
     int16_t                      _maxValue     = 0; // maximum ADC count used for ADC conversion
@@ -227,9 +229,58 @@ public:
                 // fmt::println("work ioLastWorkStatus DONE");
                 this->ioLastWorkStatus.exchange(gr::work::Status::DONE, std::memory_order_relaxed);
             } else {
-                // arm only in active state
-                bool expected = true;
-                if (_canWorkArm.compare_exchange_strong(expected, false, std::memory_order_acq_rel)) {
+
+                if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && timingIn.isConnected() && timingIn.tagReader().available() > 0) {
+                    // find last arm trigger or last disarm trigger
+                    std::size_t             lastArmTriggerIndex    = std::numeric_limits<std::size_t>::max();
+                    std::size_t             lastDisarmTriggerIndex = std::numeric_limits<std::size_t>::max();
+                    gr::ReaderSpanLike auto tagData                = timingIn.tagReader().get();
+                    for (int i = static_cast<int>(tagData.size()) - 1; i >= 0; i--) {
+                        const auto     iSizeT = static_cast<std::size_t>(i);
+                        const gr::Tag& tag    = tagData[iSizeT];
+                        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey()) && tag.map.contains(gr::tag::TRIGGER_TIME.shortKey()) //
+                            && tag.map.contains(gr::tag::TRIGGER_OFFSET.shortKey()) && tag.map.contains(gr::tag::CONTEXT.shortKey())) {
+
+                            const std::string triggerAndCtx = fmt::format("{}/{}", std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey())), std::get<std::string>(tag.map.at(gr::tag::CONTEXT.shortKey())));
+
+                            if (triggerAndCtx == trigger_arm) {
+                                lastArmTriggerIndex = iSizeT;
+                            }
+
+                            if (triggerAndCtx == trigger_disarm) {
+                                lastDisarmTriggerIndex = iSizeT;
+                            }
+
+                            // both arm/disarm triggers were found
+                            if (lastArmTriggerIndex != std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex != std::numeric_limits<std::size_t>::max()) {
+                                break;
+                            }
+                        }
+                    }
+                    const bool onlyArm         = lastArmTriggerIndex != std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex == std::numeric_limits<std::size_t>::max();
+                    const bool onlyDisarm      = lastArmTriggerIndex == std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex != std::numeric_limits<std::size_t>::max();
+                    const bool bothTriggers    = lastArmTriggerIndex != std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex != std::numeric_limits<std::size_t>::max();
+                    const bool disarmBeforeArm = lastArmTriggerIndex > lastDisarmTriggerIndex;
+
+                    if (onlyArm) {
+                        arm();
+                    }
+
+                    if (onlyDisarm) {
+                        disarm();
+                    }
+
+                    if (bothTriggers) {
+                        disarm();
+                        if (disarmBeforeArm) {
+                            arm();
+                        }
+                    }
+
+                    tagData.consume(tagData.size()); // TODO: what to do with NON arm-disarm tags?
+                }
+
+                if (auto_arm) {
                     arm();
                 }
             }
@@ -238,14 +289,9 @@ public:
         }
     }
 
-    [[nodiscard]] bool isRunning() { return _handle > 0; }
+    [[nodiscard]] bool isOpened() { return _handle > 0; }
 
     void settingsChanged(const gr::property_map& /*oldSettings*/, const gr::property_map& /*newSettings*/) {
-        const bool needsStartStop = isRunning();
-        if (needsStartStop) {
-            stop();
-        }
-
         _channels.clear();
         _channels.resize(channel_ids.value.size());
 
@@ -283,18 +329,37 @@ public:
 
             ch.driverBuffer.resize(detail::kDriverBufferSize);
         }
-        if (needsStartStop) {
-            start();
+
+        if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && trigger_arm == trigger_disarm) {
+            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` == `trigger_disarm`"));
+        }
+
+        if (!trigger_arm.value.empty() && trigger_disarm.value.empty()) {
+            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` is set, but `trigger_disarm` is empty string"));
+        }
+
+        if (trigger_arm.value.empty() && !trigger_disarm.value.empty()) {
+            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_disarm` is set, but `trigger_arm` is empty string"));
+        }
+
+        if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && auto_arm) {
+            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `auto_arm` must be false when `trigger_disarm` and `trigger_disarm` are set"));
+        }
+
+        initialize();
+        if (auto_arm) {
+            disarm();
+            arm();
         }
     }
 
     void start() noexcept {
-        if (isRunning()) {
+        if (isOpened()) {
             return;
         }
-        _canWorkArm.store(false);
 
         try {
+            open();
             initialize();
             if (auto_arm) {
                 arm();
@@ -307,59 +372,64 @@ public:
     }
 
     void stop() noexcept {
-        if (!isRunning()) {
-            return;
-        }
-        _canWorkArm.store(false);
         disarm();
         close();
     }
 
     void disarm() noexcept {
+        if (!isOpened()) {
+            return;
+        }
+
         if (const auto status = self().driverStop(_handle); status != PICO_OK) {
-            this->emitErrorMessage("Picoscope::disarm()", gr::Error(detail::getErrorMessage(status)));
+            this->emitErrorMessage(fmt::format("{}::disarm()", this->name), gr::Error(detail::getErrorMessage(status)));
+        }
+        _isArmed.store(false, std::memory_order_relaxed);
+    }
+
+    void open() noexcept {
+        if (isOpened()) {
+            return;
+        }
+
+        if (const auto status = self().openUnit(serial_number); status == PICO_POWER_SUPPLY_NOT_CONNECTED || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
+            if (const auto statusPower = self().changePowerSource(_handle, status); statusPower != PICO_OK) {
+                this->emitErrorMessage(fmt::format("{}::open() changePowerSource", this->name), gr::Error(detail::getErrorMessage(statusPower)));
+            }
         }
     }
 
     void close() noexcept {
-        if (!isRunning()) {
+        if (!isOpened()) {
             return;
         }
         if (const auto status = self().closeUnit(_handle); status != PICO_OK) {
-            this->emitErrorMessage("Picoscope::close()", gr::Error(detail::getErrorMessage(status)));
+            this->emitErrorMessage(fmt::format("{}::close()", this->name), gr::Error(detail::getErrorMessage(status)));
         } else {
             _handle = -1;
         }
     }
 
     void initialize() {
-
-        if (isRunning()) { // already initialised
+        if (!isOpened()) {
             return;
-        }
-
-        // power supply mode
-        if (const auto status = self().openUnit(serial_number); status == PICO_POWER_SUPPLY_NOT_CONNECTED || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
-            if (const auto statusPower = self().changePowerSource(_handle, status); statusPower != PICO_OK) {
-                this->emitErrorMessage("Picoscope::initialize() changePowerSource", gr::Error(detail::getErrorMessage(statusPower)));
-            }
         }
 
         // maximum value is used for conversion to volts
         if (const auto status = self().maximumValue(_handle, &(_maxValue)); status != PICO_OK) {
             self().closeUnit(_handle);
-            this->emitErrorMessage("Picoscope::initialize() maximumValue", gr::Error(detail::getErrorMessage(status)));
+            this->emitErrorMessage(fmt::format("{}::initialize() maximumValue", this->name), gr::Error(detail::getErrorMessage(status)));
         }
 
         // configure memory segments and number of capture fo RapidBlock mode
         if constexpr (acquisitionMode == AcquisitionMode::RapidBlock) {
             int32_t maxSamples;
             if (const auto status = self().memorySegments(_handle, static_cast<uint32_t>(n_captures), &maxSamples); status != PICO_OK) {
-                this->emitErrorMessage("Picoscope::initialize() MemorySegments", gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(fmt::format("{}::initialize() MemorySegments", this->name), gr::Error(detail::getErrorMessage(status)));
             }
 
             if (const auto status = self().setNoOfCaptures(_handle, static_cast<uint32_t>(n_captures)); status != PICO_OK) {
-                this->emitErrorMessage("Picoscope::initialize() SetNoOfCaptures", gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(fmt::format("{}::initialize() SetNoOfCaptures", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
 
@@ -372,7 +442,7 @@ public:
 
             const auto status = self().setChannel(_handle, *channelEnum, true, coupling, static_cast<TPSImpl::ChannelRangeType>(range), static_cast<float>(channel.analogOffset));
             if (status != PICO_OK) {
-                this->emitErrorMessage("Picoscope::initialize() SetChannel", gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(fmt::format("{}::initialize() SetChannel", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
 
@@ -385,7 +455,7 @@ public:
 
             const auto status = self().setSimpleTrigger(_handle, true, *channelEnum, thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
             if (status != PICO_OK) {
-                this->emitErrorMessage("Picoscope::initialize() setSimpleTrigger", gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(fmt::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         } else { // disable triggers
             for (int i = 0; i < self().maxChannel(); i++) {
@@ -394,25 +464,32 @@ public:
                 cond.condition    = self().conditionDontCare();
                 const auto status = self().setTriggerChannelConditions(_handle, &cond, 1, self().conditionsInfoClear());
                 if (status != PICO_OK) {
-                    this->emitErrorMessage("Picoscope::initialize() SetTriggerChannelConditions", gr::Error(detail::getErrorMessage(status)));
+                    this->emitErrorMessage(fmt::format("{}::initialize() SetTriggerChannelConditions", this->name), gr::Error(detail::getErrorMessage(status)));
                 }
             }
         }
     }
 
     void arm() {
+        if (!isOpened()) {
+            return;
+        }
+
         if constexpr (acquisitionMode == AcquisitionMode::RapidBlock) {
-            const auto timebaseRes = self().convertSampleRateToTimebase(_handle, sample_rate);
-            _actualSampleRate      = timebaseRes.actualFreq;
+            bool expected = false;
+            if (_isArmed.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+                const auto timebaseRes = self().convertSampleRateToTimebase(_handle, sample_rate);
+                _actualSampleRate      = timebaseRes.actualFreq;
 
-            static auto    redirector = [](int16_t, PICO_STATUS status, void* vobj) { static_cast<decltype(this)>(vobj)->rapidBlockCallback({status}); };
-            int32_t        timeIndisposedMs;
-            const uint32_t segmentIndex = 0; // only one segment for streaming mode
+                static auto    redirector = [](int16_t, PICO_STATUS status, void* vobj) { static_cast<decltype(this)>(vobj)->rapidBlockCallback({status}); };
+                int32_t        timeIndisposedMs;
+                const uint32_t segmentIndex = 0; // only one segment for streaming mode
 
-            const auto status = self().runBlock(_handle, static_cast<int32_t>(pre_samples), static_cast<int32_t>(post_samples), timebaseRes.timebase, &timeIndisposedMs, segmentIndex, static_cast<TPSImpl::BlockReadyType>(redirector), this);
+                const auto status = self().runBlock(_handle, static_cast<int32_t>(pre_samples), static_cast<int32_t>(post_samples), timebaseRes.timebase, &timeIndisposedMs, segmentIndex, static_cast<TPSImpl::BlockReadyType>(redirector), this);
 
-            if (status != PICO_OK) {
-                this->emitErrorMessage("Picoscope::arm() RunBlock", gr::Error(detail::getErrorMessage(status)));
+                if (status != PICO_OK) {
+                    this->emitErrorMessage(fmt::format("{}::arm() RunBlock", this->name), gr::Error(detail::getErrorMessage(status)));
+                }
             }
         } else {
             using fair::picoscope::detail::kDriverBufferSize;
@@ -432,7 +509,7 @@ public:
                 static_cast<uint32_t>(kDriverBufferSize));  // the size of the overview buffers
 
             if (status != PICO_OK) {
-                this->emitErrorMessage("Picoscope::arm() RunStreaming", gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(fmt::format("{}::arm() RunStreaming", this->name), gr::Error(detail::getErrorMessage(status)));
             }
             _actualSampleRate = convertTimeIntervalToSampleRate(timeInterval);
         }
@@ -456,11 +533,15 @@ public:
     requires(acquisitionMode == AcquisitionMode::RapidBlock)
     {
         if (ec) {
-            this->emitErrorMessage("PicoscopeError", ec.message());
-            return;
+            if (ec.code == PICO_CANCELLED) {
+                return;
+            } else {
+                this->emitErrorMessage(fmt::format("{}::rapidBlockCallback", this->name), ec.message());
+                return;
+            }
         }
         this->invokeWork();
-        _canWorkArm.store(true);
+        _isArmed.store(false, std::memory_order_relaxed);
     }
 
     template<gr::OutputSpanLike TOutSpan>
@@ -471,7 +552,7 @@ public:
                     output.publish(0);
                 }
                 if (const auto ec = self().streamingPoll()) {
-                    this->emitErrorMessage("PicoscopeError", ec.message());
+                    this->emitErrorMessage(fmt::format("{}::processBulk", this->name), ec.message());
                     return gr::work::Status::ERROR;
                 }
             } else {
@@ -485,7 +566,7 @@ public:
             for (std::size_t iCapture = 0; iCapture < availableCaptures; iCapture++) {
                 const auto getValuesResult = self().rapidBlockGetValues(iCapture, nSamples);
                 if (getValuesResult.error) {
-                    this->emitErrorMessage("PicoscopeError", getValuesResult.error.message());
+                    this->emitErrorMessage(fmt::format("{}::processBulk", this->name), getValuesResult.error.message());
                     return gr::work::Status::ERROR;
                 }
                 processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, outputs, timingInSpan);
