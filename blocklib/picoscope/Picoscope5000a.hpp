@@ -239,6 +239,12 @@ public:
     setNoOfCaptures(int16_t handle, uint32_t nCaptures) { return ps5000aSetNoOfCaptures(handle, nCaptures); }
 
     PICO_STATUS
+    getNoOfCaptures(int16_t handle, uint32_t* nCaptures) const { return ps5000aGetNoOfCaptures(handle, nCaptures); }
+
+    PICO_STATUS
+    getNoOfProcessedCaptures(int16_t handle, uint32_t* nProcessedCaptures) const { return ps5000aGetNoOfProcessedCaptures(handle, nProcessedCaptures); }
+
+    PICO_STATUS
     setChannel(int16_t handle, ChannelType channel, int16_t enabled, CouplingType type, ChannelRangeType range, float analogOffset) { return ps5000aSetChannel(handle, channel, enabled, type, range, analogOffset); }
 
     int maxChannel() { return PS5000A_MAX_CHANNELS; }

@@ -226,9 +226,14 @@ public:
 
             const bool blockIsActive = gr::lifecycle::isActive(this->state());
             if (!blockIsActive) {
-                // fmt::println("work ioLastWorkStatus DONE");
                 this->ioLastWorkStatus.exchange(gr::work::Status::DONE, std::memory_order_relaxed);
             } else {
+
+                // uint32_t nProcessedCaptures = 0;
+                // if (const auto status = self().getNoOfProcessedCaptures(_handle, &nProcessedCaptures); status != PICO_OK) {
+                //
+                // } else {
+                //}
 
                 if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && timingIn.isConnected() && timingIn.tagReader().available() > 0) {
                     // find last arm trigger or last disarm trigger
@@ -560,8 +565,17 @@ public:
                 _streamingSamples = 0;
             }
         } else {
-            const auto        nSamples          = pre_samples + post_samples;
-            const std::size_t availableCaptures = calculateAvailableOutputs(n_captures, outputs);
+            const auto nSamples = pre_samples + post_samples;
+
+            uint32_t nCompletedCaptures = 1;
+
+            if (const auto status = self().getNoOfCaptures(_handle, &nCompletedCaptures); status != PICO_OK) {
+                this->emitErrorMessage(fmt::format("{}::processBulk getNofCaptures", this->name), detail::getErrorMessage(status));
+                return gr::work::Status::ERROR;
+            }
+
+            nCompletedCaptures                  = std::min(static_cast<gr::Size_t>(nCompletedCaptures), n_captures.value);
+            const std::size_t availableCaptures = calculateAvailableOutputs(nCompletedCaptures, outputs);
 
             for (std::size_t iCapture = 0; iCapture < availableCaptures; iCapture++) {
                 const auto getValuesResult = self().rapidBlockGetValues(iCapture, nSamples);
@@ -573,10 +587,10 @@ public:
             }
 
             for (std::size_t i = 0; i < outputs.size(); i++) {
-                if (availableCaptures < n_captures) {
-                    outputs[i].publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples * (n_captures - availableCaptures)}}, 0);
+                if (availableCaptures < nCompletedCaptures) {
+                    outputs[i].publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples * (nCompletedCaptures - availableCaptures)}}, 0);
                 }
-                outputs[i].publish(n_captures);
+                outputs[i].publish(nCompletedCaptures);
             }
         }
 

@@ -379,6 +379,72 @@ const boost::ut::suite PicoscopeTests = [] {
             expect(eq(sinkA._samples[iC].signal_values.size(), totalSamples));
         }
     };
+
+    "rapid partial captures"_test = [] {
+        fmt::println("rapid partial captures");
+        using namespace std::chrono_literals;
+        using namespace gr::tag;
+
+        using T = DataSet<float>;
+
+        constexpr float      sampleRate   = 1000.f;
+        constexpr gr::Size_t postSamples  = 1000;
+        constexpr gr::Size_t preSamples   = 5;
+        constexpr gr::Size_t totalSamples = postSamples + preSamples;
+        constexpr auto       testDuration = 12s;
+        constexpr gr::Size_t nCaptures    = 10;
+
+        const auto createTriggerPropertyMap = [](const std::string& triggerName, const std::string& context, std::uint64_t time, float offset = 0.f) { //
+            return property_map{{TRIGGER_NAME.shortKey(), triggerName}, {TRIGGER_TIME.shortKey(), std::uint64_t{time}}, {TRIGGER_OFFSET.shortKey(), offset}, {CONTEXT.shortKey(), context}};
+        };
+
+        Graph flowGraph;
+        auto& clockSrc = flowGraph.emplaceBlock<gr::basic::ClockSource<std::uint8_t>>({{"sample_rate", sampleRate}, {"chunk_size", gr::Size_t(1)}, {"n_samples_max", gr::Size_t(0)}, {"name", "ClockSource"}, {"verbose_console", true}});
+
+        clockSrc.tags = {Tag(1000, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(1000))), //
+            Tag(5500, createTriggerPropertyMap("CMD_BP_STOP", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(5500)))};              // disarm trigger
+
+        auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"sample_rate", sampleRate}, {"pre_samples", preSamples}, {"post_samples", postSamples},                                  //
+            {"trigger_arm", "CMD_BP_START/FAIR.SELECTOR.C=1:S=1:P=1"}, {"trigger_disarm", "CMD_BP_STOP/FAIR.SELECTOR.C=1:S=1:P=1"}, {"n_captures", nCaptures}, {"auto_arm", false}, //
+            {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector<float>{5.f}}, {"channel_couplings", std::vector<std::string>{"AC_1M"}}});
+
+        auto& sinkA = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
+        auto& sinkB = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkD = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(clockSrc).to<"timingIn">(ps)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).to<"in">(sinkA)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+
+        if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
+            auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+            auto& sinkF = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+            auto& sinkG = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+            auto& sinkH = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+
+            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
+            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
+            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
+            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+        }
+
+        // Explicitly start unit because it takes quite some time
+        expect(nothrow([&ps] { ps.start(); }));
+        scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{std::move(flowGraph)};
+        expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
+        expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
+        std::this_thread::sleep_for(testDuration);
+        expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
+
+        expect(eq(sinkA._nSamplesProduced, 4UZ));
+
+        for (std::size_t iC = 0; iC < sinkA._samples.size(); iC++) {
+            expect(eq(sinkA._samples[iC].signal_values.size(), totalSamples));
+        }
+    };
 };
 
 } // namespace fair::picoscope::test
