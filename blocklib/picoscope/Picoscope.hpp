@@ -9,6 +9,7 @@
 
 #include <fmt/format.h>
 
+#include <chrono>
 #include <functional>
 #include <queue>
 
@@ -125,6 +126,18 @@ constexpr TEnum convertToEnum(std::string_view strEnum) {
     }
     return enumType.value();
 }
+
+std::string currentTime() {
+    using namespace std::chrono;
+
+    auto        now     = system_clock::now();
+    auto        ms      = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
+    std::time_t timeNow = system_clock::to_time_t(now);
+    struct tm   localTm;
+    localtime_r(&timeNow, &localTm);
+
+    return fmt::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}", 1900 + localTm.tm_year, localTm.tm_mon + 1, localTm.tm_mday, localTm.tm_hour, localTm.tm_min, localTm.tm_sec, static_cast<int>(ms.count()));
+}
 } // namespace detail
 
 // optional shortening
@@ -229,61 +242,49 @@ public:
                 this->ioLastWorkStatus.exchange(gr::work::Status::DONE, std::memory_order_relaxed);
             } else {
 
-                // uint32_t nProcessedCaptures = 0;
-                // if (const auto status = self().getNoOfProcessedCaptures(_handle, &nProcessedCaptures); status != PICO_OK) {
-                //
-                // } else {
-                //}
+                if (timingIn.isConnected() && timingIn.tagReader().available() > 0) {
+                    gr::ReaderSpanLike auto tagData = timingIn.tagReader().get();
 
-                if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && timingIn.isConnected() && timingIn.tagReader().available() > 0) {
-                    // find last arm trigger or last disarm trigger
-                    std::size_t             lastArmTriggerIndex    = std::numeric_limits<std::size_t>::max();
-                    std::size_t             lastDisarmTriggerIndex = std::numeric_limits<std::size_t>::max();
-                    gr::ReaderSpanLike auto tagData                = timingIn.tagReader().get();
-                    for (int i = static_cast<int>(tagData.size()) - 1; i >= 0; i--) {
-                        const auto     iSizeT = static_cast<std::size_t>(i);
-                        const gr::Tag& tag    = tagData[iSizeT];
-                        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey()) && tag.map.contains(gr::tag::TRIGGER_TIME.shortKey()) //
-                            && tag.map.contains(gr::tag::TRIGGER_OFFSET.shortKey()) && tag.map.contains(gr::tag::CONTEXT.shortKey())) {
+                    if (!trigger_arm.value.empty() && !trigger_disarm.value.empty()) {
+                        // find last arm trigger or last disarm trigger
+                        const std::size_t IndexNotSet            = std::numeric_limits<std::size_t>::max();
+                        std::size_t       lastArmTriggerIndex    = IndexNotSet;
+                        std::size_t       lastDisarmTriggerIndex = IndexNotSet;
 
-                            const std::string triggerAndCtx = fmt::format("{}/{}", std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey())), std::get<std::string>(tag.map.at(gr::tag::CONTEXT.shortKey())));
+                        for (int i = static_cast<int>(tagData.size()) - 1; i >= 0; i--) {
+                            const auto     iSizeT = static_cast<std::size_t>(i);
+                            const gr::Tag& tag    = tagData[iSizeT];
 
-                            if (triggerAndCtx == trigger_arm) {
+                            if (lastArmTriggerIndex == IndexNotSet && tagContainsTrigger(tag, trigger_arm)) {
                                 lastArmTriggerIndex = iSizeT;
                             }
-
-                            if (triggerAndCtx == trigger_disarm) {
+                            if (lastDisarmTriggerIndex == IndexNotSet && tagContainsTrigger(tag, trigger_disarm)) {
                                 lastDisarmTriggerIndex = iSizeT;
                             }
-
                             // both arm/disarm triggers were found
-                            if (lastArmTriggerIndex != std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex != std::numeric_limits<std::size_t>::max()) {
+                            if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) {
                                 break;
                             }
                         }
-                    }
-                    const bool onlyArm         = lastArmTriggerIndex != std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex == std::numeric_limits<std::size_t>::max();
-                    const bool onlyDisarm      = lastArmTriggerIndex == std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex != std::numeric_limits<std::size_t>::max();
-                    const bool bothTriggers    = lastArmTriggerIndex != std::numeric_limits<std::size_t>::max() && lastDisarmTriggerIndex != std::numeric_limits<std::size_t>::max();
-                    const bool disarmBeforeArm = lastArmTriggerIndex > lastDisarmTriggerIndex;
 
-                    if (onlyArm) {
-                        arm();
-                    }
-
-                    if (onlyDisarm) {
-                        disarm();
-                    }
-
-                    if (bothTriggers) {
-                        disarm();
-                        if (disarmBeforeArm) {
+                        if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex == IndexNotSet) { // only arm
                             arm();
                         }
-                    }
 
-                    tagData.consume(tagData.size()); // TODO: what to do with NON arm-disarm tags?
-                }
+                        if (lastArmTriggerIndex == IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) { // only disarm
+                            disarm();
+                        }
+
+                        if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) { // both arm and disarm
+                            disarm();
+                            if (lastArmTriggerIndex > lastDisarmTriggerIndex) { // disarm before arm
+                                arm();
+                            }
+                        }
+                    } // arm/disarm triggers
+
+                    std::ignore = tagData.consume(tagData.size()); // TODO: what to do with NON arm-disarm tags?
+                } // Tags are available
 
                 if (auto_arm) {
                     arm();
@@ -294,7 +295,16 @@ public:
         }
     }
 
-    [[nodiscard]] bool isOpened() { return _handle > 0; }
+    [[nodiscard]] bool tagContainsTrigger(const gr::Tag& tag, const std::string& triggerNameAndCtx) {
+        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey()) && tag.map.contains(gr::tag::TRIGGER_TIME.shortKey()) && //
+            tag.map.contains(gr::tag::TRIGGER_OFFSET.shortKey()) && tag.map.contains(gr::tag::CONTEXT.shortKey())) {
+            const std::string tagTriggerNameAndCtx = fmt::format("{}/{}", std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey())), std::get<std::string>(tag.map.at(gr::tag::CONTEXT.shortKey())));
+            return tagTriggerNameAndCtx == triggerNameAndCtx;
+        }
+        return false;
+    }
+
+    [[nodiscard]] bool isOpened() const { return _handle > 0; }
 
     void settingsChanged(const gr::property_map& /*oldSettings*/, const gr::property_map& /*newSettings*/) {
         _channels.clear();
@@ -458,18 +468,24 @@ public:
             const auto    direction    = self().convertToThresholdDirection(detail::convertToEnum<TriggerDirection>(trigger_direction));
             const int16_t thresholdADC = convertVoltageToADCCount(trigger_threshold);
 
-            const auto status = self().setSimpleTrigger(_handle, true, *channelEnum, thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
+            const auto status = self().setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
             if (status != PICO_OK) {
                 this->emitErrorMessage(fmt::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
             }
-        } else { // disable triggers
-            for (int i = 0; i < self().maxChannel(); i++) {
-                typename TPSImpl::ConditionType cond;
-                cond.source       = static_cast<TPSImpl::ChannelType>(i);
-                cond.condition    = self().conditionDontCare();
-                const auto status = self().setTriggerChannelConditions(_handle, &cond, 1, self().conditionsInfoClear());
+        } else {
+            // Disable any trigger conditions, so captures occur IMMEDIATELY without waiting for any event
+            // Note: To prevent any trigger events, one needs to set the threshold for all channels to the maximum value
+            // const int16_t thresholdADC = self().maxADCCount() - 255; // 255 seems to be a magic number, most probably it is used for additional meta information
+            // const auto status = self().setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0, 0);
+            for (std::size_t i = 0; i < self().maxChannel(); i++) {
+                const auto channelEnum = self().convertToChannel(i);
+                assert(channelEnum != std::nullopt);
+                const auto    direction    = self().convertToThresholdDirection(detail::convertToEnum<TriggerDirection>("Rising"));
+                const int16_t thresholdADC = 0;
+
+                const auto status = self().setSimpleTrigger(_handle, false, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
                 if (status != PICO_OK) {
-                    this->emitErrorMessage(fmt::format("{}::initialize() SetTriggerChannelConditions", this->name), gr::Error(detail::getErrorMessage(status)));
+                    this->emitErrorMessage(fmt::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
                 }
             }
         }
@@ -539,9 +555,11 @@ public:
     {
         if (ec) {
             if (ec.code == PICO_CANCELLED) {
+                _isArmed.store(false, std::memory_order_relaxed);
                 return;
             } else {
                 this->emitErrorMessage(fmt::format("{}::rapidBlockCallback", this->name), ec.message());
+                _isArmed.store(false, std::memory_order_relaxed);
                 return;
             }
         }

@@ -94,6 +94,18 @@ public:
         return std::nullopt;
     }
 
+    static constexpr std::optional<ChannelType> convertToChannel(std::size_t channelIndex) {
+        static constexpr std::array<std::pair<std::size_t, ChannelType>, 9> channelMap{{                            //
+            {0UZ, PS4000A_CHANNEL_A}, {1UZ, PS4000A_CHANNEL_B}, {2UZ, PS4000A_CHANNEL_C}, {3UZ, PS4000A_CHANNEL_D}, //
+            {4UZ, PS4000A_CHANNEL_E}, {5UZ, PS4000A_CHANNEL_F}, {6UZ, PS4000A_CHANNEL_G}, {7UZ, PS4000A_CHANNEL_H}, {8UZ, PS4000A_EXTERNAL}}};
+
+        const auto it = std::ranges::find_if(channelMap, [channelIndex](auto&& kv) { return kv.first == channelIndex; });
+        if (it != channelMap.end()) {
+            return it->second;
+        }
+        return std::nullopt;
+    }
+
     static constexpr CouplingType convertToCoupling(Coupling coupling) {
         if (coupling == Coupling::AC_1M) {
             return PS4000A_AC;
@@ -190,6 +202,9 @@ public:
 
     PICO_STATUS
     setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType info) { return ps4000aSetTriggerChannelConditions(handle, conditions, nConditions, info); }
+
+    PICO_STATUS
+    setAutoTriggerMicroSeconds(int16_t handle, uint64_t autoTriggerMicroseconds) { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
 
     PICO_STATUS
     driverStop(int16_t handle) { return ps4000aStop(handle); }

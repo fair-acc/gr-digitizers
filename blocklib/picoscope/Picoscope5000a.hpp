@@ -167,6 +167,17 @@ public:
         return std::nullopt;
     }
 
+    static constexpr std::optional<ChannelType> convertToChannel(std::size_t channelIndex) {
+        static constexpr std::array<std::pair<std::size_t, ChannelType>, 9> channelMap{{//
+            {0UZ, PS5000A_CHANNEL_A}, {1UZ, PS5000A_CHANNEL_B}, {2UZ, PS5000A_CHANNEL_C}, {3UZ, PS5000A_CHANNEL_D}, {4UZ, PS5000A_EXTERNAL}}};
+
+        const auto it = std::ranges::find_if(channelMap, [channelIndex](auto&& kv) { return kv.first == channelIndex; });
+        if (it != channelMap.end()) {
+            return it->second;
+        }
+        return std::nullopt;
+    }
+
     static constexpr CouplingType convertToCoupling(Coupling coupling) {
         if (coupling == Coupling::AC_1M) {
             return PS5000A_AC;
@@ -259,6 +270,9 @@ public:
 
     PICO_STATUS
     setSimpleTrigger(int16_t handle, int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) { return ps5000aSetSimpleTrigger(handle, enable, source, threshold, direction, delay, autoTriggerMs); }
+
+    PICO_STATUS
+    setAutoTriggerMicroSeconds(int16_t handle, uint64_t autoTriggerMicroseconds) { return ps5000aSetAutoTriggerMicroSeconds(handle, autoTriggerMicroseconds); }
 
     PS5000A_TRIGGER_CONDITIONS
     conditionsShim(ConditionType* condition, int16_t nConditions) {
