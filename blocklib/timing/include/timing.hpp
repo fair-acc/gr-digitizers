@@ -25,7 +25,7 @@ using saftlib::SoftwareActionSink_Proxy;
 using saftlib::SoftwareCondition_Proxy;
 using saftlib::TimingReceiver_Proxy;
 
-static std::chrono::time_point<std::chrono::system_clock> taiNsToUtc(uint64_t input) { return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input))); }
+static std::chrono::time_point<std::chrono::system_clock> taiNsToUtc(uint64_t input) { return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input) + std::chrono::years(12u))); }
 
 class Timing {
 public:

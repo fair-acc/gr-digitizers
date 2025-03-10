@@ -26,6 +26,10 @@
 
 namespace gr::timing {
 
+// static std::uint64_t taiNsToUtcNs(uint64_t input) { return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(taiNsToUtc(input).time_since_epoch()).count()); }
+//  should use some library function after validating the correct timestamp
+static std::uint64_t taiNsToUtcNs(uint64_t input) { return input - std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::seconds(37u)).count(); }
+
 struct TimingSource : public gr::Block<TimingSource, BlockingIO<true>> {
     template<typename T, gr::meta::fixed_string description = "", typename... Arguments>
     using A               = gr::Annotated<T, description, Arguments...>;
@@ -340,26 +344,27 @@ it accordingly using the `saft-io-ctl` utility.
     }
 
     Tag eventToTag(const Timing::Event& event) {
-        Tag           tag;
-        std::uint64_t id = event.id();
-        tag.map.emplace(tag::TRIGGER_TIME.shortKey(), event.time);
-        tag.map.emplace("TIMING-ID", id);
-        tag.map.emplace("TIMING-PARAM", event.param());
+        Tag              tag;
+        gr::property_map meta;
+        std::uint64_t    id = event.id();
+        tag.map.emplace(tag::TRIGGER_TIME.shortKey(), taiNsToUtcNs(event.time));
+        meta.emplace("TIMING-ID", id);
+        meta.emplace("TIMING-PARAM", event.param());
         if (event.isIo) {
             bool        level = static_cast<bool>(id & 0x1ull);
             std::string name  = _timing.idToIoName(id);
-            tag.map.emplace("IO-NAME", name);
-            tag.map.emplace("IO-LEVEL", level);
+            meta.emplace("IO-NAME", name);
+            meta.emplace("IO-LEVEL", level);
             tag.map.emplace(tag::TRIGGER_NAME.shortKey(), fmt::format("{}_{}", name, level ? "RISING" : "FALLING"));
-            tag.map.emplace(tag::TRIGGER_OFFSET, 0);
+            tag.map.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f);
         } else {
-            tag.map.emplace("GID", event.gid);
-            if (eventNrTable.contains(event.gid)) {
-                tag.map.emplace("TIMING-GROUP", timingGroupTable.at(event.gid).first);
+            meta.emplace("GID", event.gid);
+            if (timingGroupTable.contains(event.gid)) {
+                meta.emplace("TIMING-GROUP", timingGroupTable.at(event.gid).first);
             } else {
-                tag.map.emplace("TIMING-GROUP", "UNKNOWN-TIMING-GROUP");
+                meta.emplace("TIMING-GROUP", "UNKNOWN-TIMING-GROUP");
             }
-            tag.map.emplace("EVENT-NO", event.eventNo);
+            meta.emplace("EVENT-NO", event.eventNo);
             const std::string eventName = [&event]() -> std::string {
                 if (eventNrTable.contains(event.eventNo)) {
                     return eventNrTable.at(event.eventNo).first;
@@ -367,16 +372,18 @@ it accordingly using the `saft-io-ctl` utility.
                     return "UNKNOWN-EVENT"s;
                 }
             }();
-            tag.map.emplace("EVENT-NAME", eventName);
-            tag.map.emplace(tag::TRIGGER_NAME.shortKey(), fmt::format("{}{}FAIR-TIMING:B={}.P={}.C={}.T={}", eventName, gr::trigger::SEPARATOR, event.bpcid, event.sid, event.bpid, event.gid));
-            tag.map.emplace("SID", event.sid);
-            tag.map.emplace("BPID", event.bpid);
-            tag.map.emplace("BEAM-IN", event.flagBeamin);
-            tag.map.emplace("BPC-START", event.flagBpcStart);
-            tag.map.emplace("BPCID", event.bpcid);
-            tag.map.emplace("BPCTS", event.bpcts);
-            tag.map.emplace(tag::TRIGGER_OFFSET, 0); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
+            meta.emplace("EVENT-NAME", eventName);
+            tag.map.emplace(tag::TRIGGER_NAME.shortKey(), eventName);
+            tag.map.emplace(tag::CONTEXT.shortKey(), fmt::format("FAIR-TIMING:B={}.P={}.C={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
+            meta.emplace("SID", event.sid);
+            meta.emplace("BPID", event.bpid);
+            meta.emplace("BEAM-IN", event.flagBeamin);
+            meta.emplace("BPC-START", event.flagBpcStart);
+            meta.emplace("BPCID", event.bpcid);
+            meta.emplace("BPCTS", event.bpcts);
+            tag.map.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
         }
+        tag.map.emplace(tag::TRIGGER_META_INFO.shortKey(), meta);
         return tag;
     }
 
@@ -414,7 +421,7 @@ it accordingly using the `saft-io-ctl` utility.
                 }
                 std::uint64_t offset                              = event.time - static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(_startTime.time_since_epoch()).count()) - static_cast<uint64_t>(static_cast<double>(_publishedSamples + samplesUntilCurrentEvent) / static_cast<double>(sample_rate) * 1e9);
                 timingTag.map[gr::tag::TRIGGER_OFFSET.shortKey()] = offset;
-            } else {
+            } else { // sample_rate == 0.0f -> publish one sample per timing tag
                 samplesUntilCurrentEvent = 1;
                 if (_nextOutputState != _outputState) {
                     _lastOutputState = _nextOutputState;
