@@ -225,8 +225,9 @@ private:
     std::vector<detail::Channel> _channels;
     int8_t                       _triggerState = 0;
     int16_t                      _maxValue     = 0; // maximum ADC count used for ADC conversion
-
-    std::chrono::high_resolution_clock::time_point nextSystemtime = std::chrono::high_resolution_clock::now();
+    
+    using ReaderType              = decltype(timingIn.buffer().tagBuffer.new_reader());
+    ReaderType _tagReaderInternal = timingIn.buffer().tagBuffer.new_reader();
 
 public:
     ~Picoscope() { stop(); }
@@ -242,8 +243,8 @@ public:
                 this->ioLastWorkStatus.exchange(gr::work::Status::DONE, std::memory_order_relaxed);
             } else {
 
-                if (timingIn.isConnected() && timingIn.tagReader().available() > 0) {
-                    gr::ReaderSpanLike auto tagData = timingIn.tagReader().get();
+                if (timingIn.isConnected() && _tagReaderInternal.available() > 0) {
+                    gr::ReaderSpanLike auto tagData = _tagReaderInternal.get();
 
                     if (!trigger_arm.value.empty() && !trigger_disarm.value.empty()) {
                         // find last arm trigger or last disarm trigger
@@ -282,8 +283,7 @@ public:
                             }
                         }
                     } // arm/disarm triggers
-
-                    std::ignore = tagData.consume(tagData.size()); // TODO: what to do with NON arm-disarm tags?
+                    std::ignore = tagData.consume(tagData.size());
                 } // Tags are available
 
                 if (auto_arm) {
@@ -369,6 +369,8 @@ public:
     }
 
     void start() noexcept {
+        _tagReaderInternal = timingIn.buffer().tagBuffer.new_reader();
+
         if (isOpened()) {
             return;
         }
@@ -604,6 +606,13 @@ public:
                 processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, outputs, timingInSpan);
             }
 
+            // if trigger_source is not set then consume all input tags
+            if (self().convertToOutputIndex(trigger_source) == std::nullopt) {
+                const std::size_t nInputs = timingInSpan.size();
+                timingInSpan.consume(nInputs);
+                timingInSpan.consumeTags(nInputs);
+            }
+
             for (std::size_t i = 0; i < outputs.size(); i++) {
                 if (availableCaptures < nCompletedCaptures) {
                     outputs[i].publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples * (nCompletedCaptures - availableCaptures)}}, 0);
@@ -721,7 +730,7 @@ public:
             outputs[channelIdx][iCapture] = createDataset(_channels[channelIdx], nSamples);
             processSamplesOneChannel<TSample>(nSamples, 0, _channels[channelIdx], outputs[channelIdx][iCapture].signal_values);
             if (!outputs[channelIdx][iCapture].signal_values.empty()) {
-                // gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]); // TODO: fix compilation error, unsupported type: UncertainValue
+                // gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]); // TODO: fix compilation error, unsupported type: UncertainValue, it requires changes in GR4
             }
         }
 
@@ -759,7 +768,7 @@ public:
 
     template<typename TSample>
     std::vector<gr::Tag> processTimingTriggers(std::size_t availableSamples, std::span<TSample> samples, gr::InputSpanLike auto& timingInSpan) {
-        // Note reference for `gr::InputSpanLike auto& timingInSpan` is needed for proper work of consumeTags method
+        // Note: reference for `gr::InputSpanLike auto& timingInSpan` is needed for proper work of consumeTags method
         std::vector<std::size_t> triggerOffsets;
         const auto               triggerSourceIndex = self().convertToOutputIndex(trigger_source);
         if (triggerSourceIndex != std::nullopt) {
@@ -783,7 +792,6 @@ public:
         }
         timingInSpan.consumeTags(consumeTags);
         timingInSpan.consume(consumeTags);
-
         std::vector<gr::Tag> triggerTags;
         triggerTags.reserve(triggerOffsets.size() + 1);
         for (const auto triggerOffset : triggerOffsets) {

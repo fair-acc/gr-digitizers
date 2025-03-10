@@ -23,8 +23,8 @@ target_include_directories(
                            $<INSTALL_INTERFACE:include/>)
 
 target_link_libraries(
-  fair-picoscope INTERFACE ps4000a ps5000a gr-digitizers-options gnuradio-core gnuradio-algorithm
-                           fmt)
+  fair-picoscope INTERFACE ps4000a ps5000a gr-digitizers-options gnuradio-core
+                           gnuradio-algorithm fmt)
 set_target_properties(
   gr-digitizers
   PROPERTIES PUBLIC_HEADER

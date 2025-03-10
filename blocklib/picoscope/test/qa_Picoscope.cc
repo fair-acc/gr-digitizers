@@ -189,6 +189,7 @@ const boost::ut::suite PicoscopeTests = [] {
     "rapid block multiple captures"_test = [] { testRapidBlockBasic<DataSet<float>>(3); };
 
     "rapid block 3 channels"_test = [] {
+        fmt::println("rapid block 3 channels");
         constexpr gr::Size_t preSamples   = 33;
         constexpr gr::Size_t postSamples  = 1000;
         constexpr gr::Size_t nCaptures    = 5;
