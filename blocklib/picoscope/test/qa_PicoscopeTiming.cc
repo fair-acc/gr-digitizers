@@ -39,7 +39,7 @@ const boost::ut::suite PicoscopeTests = [] {
             {"verbose_console", false}                                                                                     //
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float, AcquisitionMode::Streaming>>({{
+        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float>>({{
             {"sample_rate", kSampleRate},                                               //
             {"auto_arm", true},                                                         //
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},                   //
@@ -125,7 +125,7 @@ const boost::ut::suite PicoscopeTests = [] {
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
         const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(kDuration).count();
-        fmt::println("Produced in worker: {}", ps.producedWorker());
+        fmt::println("Produced in worker: {}", ps._nSamplesPublished);
         fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(kSampleRate) * 100., duration_cast<milliseconds>(kDuration).count());
         fmt::println("Total: {}", sinkA._nSamplesProduced);
 
