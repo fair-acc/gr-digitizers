@@ -201,11 +201,12 @@ public:
     A<std::vector<float>, "Signal scales of the enabled channels">              signal_scales;  // only for floats and UncertainValues
     A<std::vector<float>, "Signal offset of the enabled channels">              signal_offsets; // only for floats and UncertainValues
     A<std::string, "trigger channel/port ID">                                   trigger_source;
-    A<float, "trigger threshold, analog only">                                  trigger_threshold = 0.f;
-    A<std::string, "trigger direction">                                         trigger_direction = std::string("Rising");
-    A<int, "trigger pin, digital only">                                         trigger_pin       = 0;
-    A<std::string, "arm trigger: `<trigger_name>/<ctx>`, if empty not used">    trigger_arm       = ""; // RapidBlock mode only
-    A<std::string, "disarm trigger: `<trigger_name>/<ctx>`, if empty not used"> trigger_disarm    = ""; // RapidBlock mode only
+    A<float, "trigger threshold, analog only">                                  trigger_threshold   = 0.f;
+    A<std::string, "trigger direction">                                         trigger_direction   = std::string("Rising");
+    A<int, "trigger pin, digital only">                                         trigger_pin         = 0;
+    A<std::string, "arm trigger: `<trigger_name>/<ctx>`, if empty not used">    trigger_arm         = ""; // RapidBlock mode only
+    A<std::string, "disarm trigger: `<trigger_name>/<ctx>`, if empty not used"> trigger_disarm      = ""; // RapidBlock mode only
+    A<gr::Size_t, "time between two systemtime tags in ms">                     systemtime_interval = 1000UZ;
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
 
@@ -215,17 +216,18 @@ public:
 
     GR_MAKE_REFLECTABLE(Picoscope, timingIn, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                             //
         auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, //
-        trigger_source, trigger_threshold, trigger_direction, trigger_pin, trigger_arm, trigger_disarm);
+        trigger_source, trigger_threshold, trigger_direction, trigger_pin, trigger_arm, trigger_disarm, systemtime_interval);
 
 private:
-    std::atomic<std::size_t>     _streamingSamples = 0UZ;
-    std::atomic<std::size_t>     _streamingOffset  = 0UZ;
-    std::queue<gr::property_map> _timingMessages;
-    std::atomic<bool>            _isArmed = false; // for RapidBlock mode only
-    std::vector<detail::Channel> _channels;
-    int8_t                       _triggerState = 0;
-    int16_t                      _maxValue     = 0; // maximum ADC count used for ADC conversion
-    
+    std::atomic<std::size_t>                       _streamingSamples = 0UZ;
+    std::atomic<std::size_t>                       _streamingOffset  = 0UZ;
+    std::queue<gr::property_map>                   _timingMessages;
+    std::atomic<bool>                              _isArmed = false; // for RapidBlock mode only
+    std::vector<detail::Channel>                   _channels;
+    int8_t                                         _triggerState   = 0;
+    int16_t                                        _maxValue       = 0; // maximum ADC count used for ADC conversion
+    std::chrono::high_resolution_clock::time_point _nextSystemtime = std::chrono::high_resolution_clock::now();
+
     using ReaderType              = decltype(timingIn.buffer().tagBuffer.new_reader());
     ReaderType _tagReaderInternal = timingIn.buffer().tagBuffer.new_reader();
 
@@ -775,7 +777,8 @@ public:
             triggerOffsets = findAnalogTriggers<TSample>(_channels[triggerSourceIndex.value()], samples.subspan(0, availableSamples));
         }
 
-        const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
+        const auto nowStamp = std::chrono::high_resolution_clock::now();
+        const auto now      = std::chrono::duration_cast<std::chrono::nanoseconds>(nowStamp.time_since_epoch());
 
         std::size_t consumeTags = 0UZ;
         for (const auto& tag : timingInSpan.tags()) {
@@ -806,8 +809,10 @@ public:
             triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
         }
         // add an independent software timestamp with the localtime of the system to the last sample of each chunk
-        triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "systemtime"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<uint64_t>(now.count())}});
-
+        if (nowStamp > _nextSystemtime) {
+            triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "systemtime"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<uint64_t>(now.count())}});
+            _nextSystemtime += std::chrono::milliseconds(systemtime_interval);
+        }
         return triggerTags;
     }
 
