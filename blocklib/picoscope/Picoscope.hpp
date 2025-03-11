@@ -772,14 +772,14 @@ public:
         std::vector<std::size_t> triggerOffsets;
         const auto               triggerSourceIndex = self().convertToOutputIndex(trigger_source);
         if (triggerSourceIndex != std::nullopt) {
-            triggerOffsets = findAnalogTriggers<TSample>(_channels[triggerSourceIndex.value()], samples, availableSamples);
+            triggerOffsets = findAnalogTriggers<TSample>(_channels[triggerSourceIndex.value()], samples.subspan(0, availableSamples));
         }
 
         const auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
 
         std::size_t consumeTags = 0UZ;
         for (const auto& tag : timingInSpan.tags()) {
-            if (!tag.second.contains("GID")) { // only consider timing tags
+            if (!tag.second.contains(gr::tag::CONTEXT.shortKey())) { // only consider timing tags
                 consumeTags++;
                 continue;
             }
@@ -812,8 +812,8 @@ public:
     }
 
     template<typename TSample>
-    std::vector<std::size_t> findAnalogTriggers(const detail::Channel& triggerChannel, std::span<TSample>& samples, std::size_t available) {
-        if (samples.empty() || samples.size() < available) {
+    std::vector<std::size_t> findAnalogTriggers(const detail::Channel& triggerChannel, std::span<TSample> samples) {
+        if (samples.empty()) {
             return {};
         }
 
@@ -823,11 +823,11 @@ public:
 
         const auto toFloat = [&voltageMultiplier, &triggerChannel](TSample raw) {
             if constexpr (std::is_same_v<TSample, float>) {
-                return triggerChannel.offset + triggerChannel.scale * voltageMultiplier * raw;
-            } else if constexpr (std::is_same_v<TSample, int16_t>) {
                 return raw;
+            } else if constexpr (std::is_same_v<TSample, int16_t>) {
+                return static_cast<float>(raw);
             } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
-                return triggerChannel.offset + triggerChannel.scale * voltageMultiplier * raw.value;
+                return raw.value;
             } else {
                 static_assert(gr::meta::always_false<TSample>, "This type is not supported.");
             }
@@ -835,7 +835,7 @@ public:
 
         const auto triggerDirectionEnum = detail::convertToEnum<TriggerDirection>(trigger_direction);
         if (triggerDirectionEnum == TriggerDirection::Rising || triggerDirectionEnum == TriggerDirection::High) {
-            for (std::size_t i = 0; i < available; i++) {
+            for (std::size_t i = 0; i < samples.size(); i++) {
                 const float value = toFloat(samples[i]);
                 if (_triggerState == 0 && value >= trigger_threshold) {
                     _triggerState = 1;
@@ -845,7 +845,7 @@ public:
                 }
             }
         } else if (triggerDirectionEnum == TriggerDirection::Falling || triggerDirectionEnum == TriggerDirection::Low) {
-            for (std::size_t i = 0; i < available; i++) {
+            for (std::size_t i = 0; i < samples.size(); i++) {
                 const float value = toFloat(samples[i]);
                 if (_triggerState == 1 && value <= trigger_threshold) {
                     _triggerState = 0;
