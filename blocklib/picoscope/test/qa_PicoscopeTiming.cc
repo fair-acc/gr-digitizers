@@ -40,17 +40,17 @@ const boost::ut::suite PicoscopeTests = [] {
         });
 
         auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float>>({{
-            {"sample_rate", kSampleRate},                                               //
-            {"auto_arm", true},                                                         //
-            {"channel_ids", std::vector<std::string>{"A", "B", "C"}},                   //
-            {"signal_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}},        //
-            {"signal_units", std::vector<std::string>{"V", "V", "V"}},                  //
-            {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},                      //
-            {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},                      //
-            {"channel_couplings", std::vector<std::string>{"DC_1M", "DC_1M", "DC_1M"}}, //
-            {"trigger_source", "A"},                                                    //
-            {"trigger_threshold", 1.7f},                                                //
-            {"trigger_direction", "Rising"}                                             //
+            {"sample_rate", kSampleRate},                                        //
+            {"auto_arm", true},                                                  //
+            {"channel_ids", std::vector<std::string>{"A", "B", "C"}},            //
+            {"signal_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}}, //
+            {"signal_units", std::vector<std::string>{"V", "V", "V"}},           //
+            {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},               //
+            {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},               //
+            {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},   //
+            {"trigger_source", "A"},                                             //
+            {"trigger_threshold", 1.7f},                                         //
+            {"trigger_direction", "Rising"}                                      //
         }});
 
         auto& sinkA = flowGraph.emplaceBlock<gr::testing::TagSink<float, gr::testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", true}, {"log_tags", true}}});

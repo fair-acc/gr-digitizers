@@ -8,8 +8,7 @@
 namespace fair::picoscope {
 
 template<typename T>
-class Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> {
-public:
+struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> {
     using super_t = fair::picoscope::Picoscope<T, Picoscope4000a<T>>;
 
     Picoscope4000a(gr::property_map props) : super_t(std::move(props)) {}
@@ -34,12 +33,12 @@ public:
 
     TimeUnitsType convertTimeUnits(TimeUnits tu) const {
         switch (tu) {
-        case TimeUnits::FS: return PS4000A_FS;
-        case TimeUnits::PS: return PS4000A_PS;
-        case TimeUnits::NS: return PS4000A_NS;
-        case TimeUnits::US: return PS4000A_US;
-        case TimeUnits::MS: return PS4000A_MS;
-        case TimeUnits::S: return PS4000A_S;
+        case TimeUnits::fs: return PS4000A_FS;
+        case TimeUnits::ps: return PS4000A_PS;
+        case TimeUnits::ns: return PS4000A_NS;
+        case TimeUnits::us: return PS4000A_US;
+        case TimeUnits::ms: return PS4000A_MS;
+        case TimeUnits::s: return PS4000A_S;
         }
         return PS4000A_MAX_TIME_UNITS;
     }
@@ -107,10 +106,10 @@ public:
     }
 
     static constexpr CouplingType convertToCoupling(Coupling coupling) {
-        if (coupling == Coupling::AC_1M) {
+        if (coupling == Coupling::AC) {
             return PS4000A_AC;
         }
-        if (coupling == Coupling::DC_1M) {
+        if (coupling == Coupling::DC) {
             return PS4000A_DC;
         }
         throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
@@ -123,12 +122,13 @@ public:
             {5.f, PS4000A_5V}, {10.f, PS4000A_10V}, {20.f, PS4000A_20V}, {50.f, PS4000A_50V},           //
             {100.f, PS4000A_100V}, {200.f, PS4000A_200V}}};
 
-        const auto it = std::ranges::find_if(rangeMap, [range](auto& kv) { return std::fabs(kv.first - range) < 1e-6f; });
-        if (it != rangeMap.end()) {
-            return it->second;
+        const auto exactIt = std::ranges::find_if(rangeMap, [range](auto& kv) { return std::fabs(kv.first - range) < 1e-6f; });
+        if (exactIt != rangeMap.end()) {
+            return exactIt->second;
         }
-
-        throw std::runtime_error(fmt::format("Range value not supported: {}", range));
+        // if no exact match -> find the next higher range
+        const auto upperIt = std::ranges::find_if(rangeMap, [range](const auto& kv) { return kv.first > range; });
+        return upperIt != rangeMap.end() ? upperIt->second : PS4000A_200V;
     }
 
     constexpr ThresholdDirectionType convertToThresholdDirection(TriggerDirection direction) {

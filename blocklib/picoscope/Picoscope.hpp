@@ -26,14 +26,14 @@ struct Error {
 enum class AcquisitionMode { Streaming, RapidBlock };
 
 enum class Coupling {
-    DC_1M,  ///< DC, 1 MOhm
-    AC_1M,  ///< AC, 1 MOhm
-    DC_50R, ///< DC, 50 Ohm
+    DC,     // DC, 1 MOhm
+    AC,     // AC, 1 MOhm
+    DC_50R, // DC, 50 Ohm
 };
 
 enum class TriggerDirection { Rising, Falling, Low, High };
 
-enum class TimeUnits { FS, PS, NS, US, MS, S };
+enum class TimeUnits { fs, ps, ns, us, ms, s };
 
 struct GetValuesResult {
     Error       error;
@@ -57,16 +57,16 @@ struct TimeInterval {
     TimeUnits    unit;
 
     if (intervalSec < 0.000001) {
-        unit   = TimeUnits::PS;
+        unit   = TimeUnits::ps;
         factor = 1e12;
     } else if (intervalSec < 0.001) {
-        unit   = TimeUnits::NS;
+        unit   = TimeUnits::ns;
         factor = 1e9;
     } else if (intervalSec < 0.1) {
-        unit   = TimeUnits::US;
+        unit   = TimeUnits::us;
         factor = 1e6;
     } else {
-        unit   = TimeUnits::MS;
+        unit   = TimeUnits::ms;
         factor = 1e3;
     }
     return {unit, static_cast<std::uint32_t>(factor / static_cast<double>(sampleRate))};
@@ -75,11 +75,11 @@ struct TimeInterval {
 [[nodiscard]] inline constexpr float convertTimeIntervalToSampleRate(TimeInterval timeInterval) {
     double factor;
     switch (timeInterval.unit) {
-    case TimeUnits::FS: factor = 1e15; break;
-    case TimeUnits::PS: factor = 1e12; break;
-    case TimeUnits::NS: factor = 1e9; break;
-    case TimeUnits::US: factor = 1e6; break;
-    case TimeUnits::MS: factor = 1e3; break;
+    case TimeUnits::fs: factor = 1e15; break;
+    case TimeUnits::ps: factor = 1e12; break;
+    case TimeUnits::ns: factor = 1e9; break;
+    case TimeUnits::us: factor = 1e6; break;
+    case TimeUnits::ms: factor = 1e3; break;
     default: factor = 1.; break;
     }
     return timeInterval.interval == 0 ? 1.f : static_cast<float>(factor / static_cast<double>(timeInterval.interval));
@@ -106,14 +106,14 @@ struct Channel {
     float       analogOffset = 0.f;
     float       scale        = 1.f;
     float       offset       = 0.f;
-    Coupling    coupling     = Coupling::AC_1M;
+    Coupling    coupling     = Coupling::DC;
 
     [[nodiscard]] gr::property_map toTagMap() const {
-        return {{std::string(gr::tag::SIGNAL_NAME.shortKey()), name},     //
-            {std::string(gr::tag::SAMPLE_RATE.shortKey()), sampleRate},   //
-            {std::string(gr::tag::SIGNAL_QUANTITY.shortKey()), quantity}, //
-            {std::string(gr::tag::SIGNAL_UNIT.shortKey()), unit},         //
-            {std::string(gr::tag::SIGNAL_MIN.shortKey()), offset},        //
+        return {{std::string(gr::tag::SIGNAL_NAME.shortKey()), name},      //
+            {std::string(gr::tag::SAMPLE_RATE.shortKey()), sampleRate},    //
+            {std::string(gr::tag::SIGNAL_QUANTITY.shortKey()), quantity},  //
+            {std::string(gr::tag::SIGNAL_UNIT.shortKey()), unit},          //
+            {std::string(gr::tag::SIGNAL_MIN.shortKey()), offset - range}, //
             {std::string(gr::tag::SIGNAL_MAX.shortKey()), offset + range}};
     }
 };
@@ -148,7 +148,7 @@ using gr::Visible;
 
 /**
  * We allow only a small set of sample types (SampleType) to be used as the output type for the Picoscope block:
- * - `std::int16_t`: Outputs raw values as-is, without any scaling.
+ * - `std::int16_t`: Outputs raw values as-is, without any scaling. Also used for 8-bit native ADC.
  * - `float`: Outputs the physically gain-scaled values of the measurements.
  * - `gr::UncertainValue<float>`: Similar to `float`, but also includes an estimated measurement error as an additional component.
  *
@@ -176,8 +176,7 @@ struct PicoscopeBlockingHelper<TPSImpl, true> { // RapidBlock mode
 };
 
 template<PicoscopeOutput T, typename TPSImpl>
-class Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type {
-public:
+struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type {
     using super_t                                    = typename PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type;
     static constexpr AcquisitionMode acquisitionMode = gr::DataSetLike<T> ? AcquisitionMode::RapidBlock : AcquisitionMode::Streaming;
 
@@ -191,7 +190,7 @@ public:
     A<bool, "trigger once (rapid block mode)">                                  trigger_once             = false; // RapidBlock mode only
     A<float, "poll rate (streaming mode)">                                      streaming_mode_poll_rate = 0.001; // TODO, not used for the moment
     A<bool, "do arm at start?">                                                 auto_arm                 = true;
-    A<std::vector<std::string>, "IDs of enabled channels">                      channel_ids;
+    A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">  channel_ids;
     A<std::vector<float>, "Voltage range of enabled channels">                  channel_ranges;         // PS channel setting
     A<std::vector<float>, "Voltage offset of enabled channels">                 channel_analog_offsets; // PS channel setting
     A<std::vector<std::string>, "Coupling modes of enabled channels">           channel_couplings;
@@ -308,7 +307,7 @@ public:
 
     [[nodiscard]] bool isOpened() const { return _handle > 0; }
 
-    void settingsChanged(const gr::property_map& /*oldSettings*/, const gr::property_map& /*newSettings*/) {
+    void settingsChanged(const gr::property_map& /*oldSettings*/, const gr::property_map& newSettings) {
         _channels.clear();
         _channels.resize(channel_ids.value.size());
 
@@ -363,10 +362,18 @@ public:
             this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `auto_arm` must be false when `trigger_disarm` and `trigger_disarm` are set"));
         }
 
-        initialize();
-        if (auto_arm) {
-            disarm();
-            arm();
+        const bool needsReinit = newSettings.contains("sample_rate") || newSettings.contains("pre_samples") || newSettings.contains("post_samples")                  //
+                                 || newSettings.contains("n_captures") || newSettings.contains("streaming_mode_poll_rate") || newSettings.contains("auto_arm")       //
+                                 || newSettings.contains("channel_ids") || newSettings.contains("channel_ranges") || newSettings.contains("channel_analog_offsets")  //
+                                 || newSettings.contains("channel_couplings") || newSettings.contains("trigger_source") || newSettings.contains("trigger_threshold") //
+                                 || newSettings.contains("trigger_direction") || newSettings.contains("trigger_pin");
+
+        if (needsReinit) {
+            initialize();
+            if (auto_arm) {
+                disarm();
+                arm();
+            }
         }
     }
 
@@ -395,7 +402,7 @@ public:
         close();
     }
 
-    void disarm() noexcept {
+    void disarm() {
         if (!isOpened()) {
             return;
         }
@@ -406,7 +413,7 @@ public:
         _isArmed.store(false, std::memory_order_relaxed);
     }
 
-    void open() noexcept {
+    void open() {
         if (isOpened()) {
             return;
         }
@@ -418,7 +425,7 @@ public:
         }
     }
 
-    void close() noexcept {
+    void close() {
         if (!isOpened()) {
             return;
         }
