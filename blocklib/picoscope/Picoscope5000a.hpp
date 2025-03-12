@@ -17,6 +17,10 @@ struct Picoscope5000a : public fair::picoscope::Picoscope<T, Picoscope5000a<T>> 
 
     GR_MAKE_REFLECTABLE(Picoscope5000a, out);
 
+private:
+    std::array<std::vector<int16_t>, 2> _digitalBuffers;
+
+public:
     using ChannelType            = PS5000A_CHANNEL;
     using ConditionType          = PS5000A_CONDITION;
     using CouplingType           = PS5000A_COUPLING;
@@ -260,7 +264,13 @@ struct Picoscope5000a : public fair::picoscope::Picoscope<T, Picoscope5000a<T>> 
 
     int maxChannel() { return PS5000A_MAX_CHANNELS; }
 
-    int maxADCCount() { return PS5000A_EXT_MAX_VALUE; }
+    int extTriggerMaxValue() { return PS5000A_EXT_MAX_VALUE; }
+
+    int extTriggerMinValue() { return PS5000A_EXT_MIN_VALUE; }
+
+    float extTriggerMaxValueVoltage() { return 5.f; }
+
+    float extTriggerMinValueVoltage() { return -5.f; }
 
     CouplingType analogCoupling() { return PS5000A_AC; }
 
@@ -321,6 +331,48 @@ struct Picoscope5000a : public fair::picoscope::Picoscope<T, Picoscope5000a<T>> 
 
     PICO_STATUS
     getDeviceResolution(int16_t handle, DeviceResolutionType* deviceResolution) const { return ps5000aGetDeviceResolution(handle, deviceResolution); }
+
+    // Digital picoscope inputs
+
+    [[nodiscard]] Error setDigitalPorts() {
+        for (std::size_t i = 0; i < 2; i++) {
+            const PS5000A_CHANNEL channelId = i == 0 ? PS5000A_DIGITAL_PORT0 : PS5000A_DIGITAL_PORT1;
+            const PICO_STATUS     status    = ps5000aSetDigitalPort(this->_handle, channelId, true, this->digital_port_threshold);
+
+            if (status != PICO_OK) {
+                fmt::println(std::cerr, "setDigitalPorts (chan {}): {}", magic_enum::enum_name(channelId), detail::getErrorMessage(status));
+                return {status};
+            }
+        }
+        return {};
+    }
+
+    [[nodiscard]] Error setDigitalBuffers(size_t nSamples, uint32_t segmentIndex) {
+        for (std::size_t i = 0; i < 2; i++) {
+            const PS5000A_CHANNEL channelId = i == 0 ? PS5000A_DIGITAL_PORT0 : PS5000A_DIGITAL_PORT1;
+            _digitalBuffers[i].resize(std::max(nSamples, _digitalBuffers[i].size()));
+            const PICO_STATUS status = setDataBuffer(this->_handle, channelId, _digitalBuffers[i].data(), static_cast<int32_t>(nSamples), segmentIndex, ratioNone());
+
+            if (status != PICO_OK) {
+                fmt::println(std::cerr, "setDigitalBuffers (chan {}): {}", magic_enum::enum_name(channelId), detail::getErrorMessage(status));
+                return {status};
+            }
+        }
+        return {};
+    }
+
+    void copyDigitalBuffersToOutput(std::span<std::uint16_t> output, std::size_t nSamples) {
+        assert(output.size() >= nSamples);
+        for (std::size_t i = 0; i < nSamples; i++) {
+            uint16_t value = 0x00FF & static_cast<uint16_t>(_digitalBuffers[1][i]);
+            value <<= 8;
+            value |= 0x00FF & static_cast<uint16_t>(_digitalBuffers[0][i]);
+            if (this->digital_port_invert_output) {
+                value = ~value;
+            }
+            output[i] = value;
+        }
+    }
 };
 
 } // namespace fair::picoscope

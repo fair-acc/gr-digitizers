@@ -189,7 +189,13 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
 
     int maxChannel() { return PS4000A_MAX_CHANNELS; }
 
-    int maxADCCount() { return PS4000A_EXT_MAX_VALUE; }
+    int extTriggerMaxValue() { return PS4000A_EXT_MAX_VALUE; }
+
+    int extTriggerMinValue() { return PS4000A_EXT_MIN_VALUE; }
+
+    float extTriggerMaxValueVoltage() { return 5.f; }
+
+    float extTriggerMinValueVoltage() { return -5.f; }
 
     CouplingType analogCoupling() { return PS4000A_AC; }
 
@@ -228,6 +234,11 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
 
     PICO_STATUS
     getDeviceResolution(int16_t handle, DeviceResolutionType* deviceResolution) const { return ps4000aGetDeviceResolution(handle, deviceResolution); }
+
+    // Digital picoscope inputs, not supported by picoscope 4000A
+    [[nodiscard]] Error setDigitalPorts() { return {}; }
+    [[nodiscard]] Error setDigitalBuffers(size_t, uint32_t) { return {}; }
+    void                copyDigitalBuffersToOutput(std::span<std::uint16_t>, std::size_t) {}
 };
 
 } // namespace fair::picoscope

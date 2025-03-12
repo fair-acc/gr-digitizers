@@ -19,18 +19,16 @@ static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 
 template<gr::DataSetLike T>
-void testRapidBlockBasic(std::size_t nCaptures) {
+void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bool testDigitalOutput = false) {
     using namespace boost::ut;
     using namespace gr;
     using namespace fair::picoscope;
 
     fmt::println("testRapidBlockBasic({}) - {}", nCaptures, gr::meta::type_name<T>());
 
-    constexpr float      sampleRate       = 1234567.f;
-    constexpr float      actualSampleRate = 1250000.f; // for Picoscope4000a
-    constexpr gr::Size_t preSamples       = 33;
-    constexpr gr::Size_t postSamples      = 1000;
-    const gr::Size_t     totalSamples     = preSamples + postSamples;
+    constexpr gr::Size_t preSamples   = 33;
+    constexpr gr::Size_t postSamples  = 1000;
+    const gr::Size_t     totalSamples = preSamples + postSamples;
 
     Graph flowGraph;
     auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"disconnect_on_done", true}, {"sample_rate", sampleRate}, {"pre_samples", preSamples}, {"post_samples", postSamples}, {"n_captures", nCaptures}, //
@@ -46,6 +44,9 @@ void testRapidBlockBasic(std::size_t nCaptures) {
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+
+    auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<uint16_t>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
     if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
         auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -63,7 +64,9 @@ void testRapidBlockBasic(std::size_t nCaptures) {
     expect(sched.runAndWait().has_value());
 
     if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
-        expect(eq(ps._actualSampleRate, actualSampleRate));
+        if (sampleRate == 1234567.f) {
+            expect(eq(ps._actualSampleRate, 1250000.f));
+        }
     }
 
     expect(eq(sinkA._nSamplesProduced, nCaptures)); // number of DataSets
@@ -81,10 +84,29 @@ void testRapidBlockBasic(std::size_t nCaptures) {
             expect(eq(sinkB._samples[iC].signal_values.size(), 0UZ));
         }
     }
+
+    expect(eq(sinkDigital._nSamplesProduced, nCaptures)); // number of DataSets
+    expect(eq(sinkDigital._samples.size(), nCaptures));   // number of DataSets
+    if (sinkDigital._samples.size() >= nCaptures) {
+        for (std::size_t iC = 0; iC < sinkDigital._samples.size(); iC++) {
+            expect(eq(sinkDigital._samples[iC].signal_values.size(), totalSamples));
+
+            // Digital output testing relies on the actual test setup.
+            // We assume that we have only one input, the input signal is a `square wave` at approximately 1kHz, generated using picoscope's function generator.
+            // With a sample rate near 10kHz, the occurrence of zeros and non-zeros should be roughly equal.
+            if (testDigitalOutput) {
+                const auto countZeros    = std::ranges::count(sinkDigital._samples[iC].signal_values, 0);
+                const auto countNonZeros = std::ranges::count_if(sinkDigital._samples[iC].signal_values, [](int x) { return x != 0; });
+                const bool isEqual       = static_cast<double>(std::abs(countZeros - countNonZeros)) / static_cast<double>(countNonZeros) < 0.05;
+                fmt::println("Digital output rapid block testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
+                expect(isEqual);
+            }
+        }
+    }
 }
 
 template<typename T>
-void testStreamingBasics() {
+void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = false) {
     using namespace std::chrono;
     using namespace std::chrono_literals;
     using namespace boost::ut;
@@ -94,8 +116,7 @@ void testStreamingBasics() {
 
     fmt::println("testStreamingBasics - {}", gr::meta::type_name<T>());
 
-    constexpr float sampleRate   = 83000.f;
-    constexpr auto  testDuration = 2s;
+    constexpr auto testDuration = 2s;
 
     auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"sample_rate", sampleRate},                                                                                       //
         {"streaming_mode_poll_rate", 0.00001f}, {"auto_arm", true}, {"channel_ids", std::vector<std::string>{"A"}},                                                      //
@@ -113,6 +134,9 @@ void testStreamingBasics() {
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
     expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+
+    auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<uint16_t, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", testDigitalOutput}, {"log_tags", false}});
+    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
     if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
         auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -141,8 +165,9 @@ void testStreamingBasics() {
     fmt::println("Total samples: {}", sinkA._nSamplesProduced);
     fmt::println("Total tags: {}", tagMonitor._tags.size());
 
-    expect(ge(sinkA._nSamplesProduced, 80000UZ));
-    expect(le(sinkA._nSamplesProduced, 170000UZ));
+    expect(ge(sinkA._nSamplesProduced, static_cast<std::size_t>(sampleRate)));
+    expect(le(sinkA._nSamplesProduced, static_cast<std::size_t>(2.5f * sampleRate))); // 2 seconds
+    expect(le(sinkA._nSamplesProduced, sinkDigital._nSamplesProduced));
     expect(ge(tagMonitor._tags.size(), 1UZ));
     if (tagMonitor._tags.size() == 1UZ) {
         const auto& tag = tagMonitor._tags[0];
@@ -152,6 +177,17 @@ void testStreamingBasics() {
         expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
         expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), -5.f));
         expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.shortKey()))), 5.f));
+    }
+
+    // Digital output testing relies on the actual test setup.
+    // We assume that we have only one input, the input signal is a `square wave` at approximately 1kHz, generated using picoscope's function generator.
+    // With a sample rate near 10kHz, the occurrence of zeros and non-zeros should be roughly equal.
+    if (testDigitalOutput) {
+        const auto countZeros    = std::ranges::count(sinkDigital._samples, 0);
+        const auto countNonZeros = std::ranges::count_if(sinkDigital._samples, [](int x) { return x != 0; });
+        const bool isEqual       = static_cast<double>(std::abs(countZeros - countNonZeros)) / static_cast<double>(countNonZeros) < 0.05;
+        fmt::println("Digital output streaming testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
+        expect(isEqual);
     }
 }
 
@@ -186,6 +222,10 @@ const boost::ut::suite PicoscopeTests = [] {
         testRapidBlockBasic<gr::DataSet<gr::UncertainValue<float>>>(1);
     };
 
+    skip / "streaming digital output"_test = [] { testStreamingBasics<float>(4000, true); };
+
+    skip / "rapid block digital output"_test = [] { testRapidBlockBasic<gr::DataSet<float>>(1, 4000, true); };
+
     "rapid block multiple captures"_test = [] { testRapidBlockBasic<DataSet<float>>(3); };
 
     "rapid block 3 channels"_test = [] {
@@ -211,6 +251,9 @@ const boost::ut::suite PicoscopeTests = [] {
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+
+        auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<uint16_t>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
         if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
             auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -271,10 +314,13 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkD = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).to<"in">(sinkA)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+
+        auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<uint16_t>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
         if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
             auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -348,11 +394,14 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkD = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(clockSrc).to<"timingIn">(ps)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).to<"in">(sinkA)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(clockSrc).template to<"timingIn">(ps)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+
+        auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<uint16_t>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
         if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
             auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -419,6 +468,9 @@ const boost::ut::suite PicoscopeTests = [] {
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+
+        auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<uint16_t>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
         if constexpr (std::is_same_v<Picoscope4000a<T>, PicoscopeT<T>>) {
             auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});

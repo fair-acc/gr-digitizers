@@ -200,22 +200,26 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
     A<std::vector<float>, "Signal scales of the enabled channels">              signal_scales;  // only for floats and UncertainValues
     A<std::vector<float>, "Signal offset of the enabled channels">              signal_offsets; // only for floats and UncertainValues
     A<std::string, "trigger channel/port ID">                                   trigger_source;
-    A<float, "trigger threshold, analog only">                                  trigger_threshold   = 0.f;
-    A<std::string, "trigger direction">                                         trigger_direction   = std::string("Rising");
-    A<int, "trigger pin, digital only">                                         trigger_pin         = 0;
-    A<std::string, "arm trigger: `<trigger_name>/<ctx>`, if empty not used">    trigger_arm         = ""; // RapidBlock mode only
-    A<std::string, "disarm trigger: `<trigger_name>/<ctx>`, if empty not used"> trigger_disarm      = ""; // RapidBlock mode only
-    A<gr::Size_t, "time between two systemtime tags in ms">                     systemtime_interval = 1000UZ;
+    A<float, "trigger threshold, analog only">                                  trigger_threshold          = 0.f;
+    A<std::string, "trigger direction">                                         trigger_direction          = std::string("Rising");
+    A<std::string, "arm trigger: `<trigger_name>/<ctx>`, if empty not used">    trigger_arm                = ""; // RapidBlock mode only
+    A<std::string, "disarm trigger: `<trigger_name>/<ctx>`, if empty not used"> trigger_disarm             = ""; // RapidBlock mode only
+    A<gr::Size_t, "time between two systemtime tags in ms">                     systemtime_interval        = 1000UZ;
+    A<int16_t, "digital port threshold (ADC: –32767 (–5 V) to 32767 (+5 V))">   digital_port_threshold     = 0;    // only used if digital port are available: 3000, 5000, 6000 series
+    A<bool, "invert digital port output">                                       digital_port_invert_output = true; // only used if digital port are available: 3000, 5000, 6000 series
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
+
+    using TDigitalOutput = std::conditional<gr::DataSetLike<T>, gr::DataSet<uint16_t>, uint16_t>::type;
+    gr::PortOut<TDigitalOutput> digitalOut;
 
     int16_t     _handle            = -1; // identifier for the scope device
     float       _actualSampleRate  = 0;
     std::size_t _nSamplesPublished = 0; // for debugging purposes
 
-    GR_MAKE_REFLECTABLE(Picoscope, timingIn, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                             //
+    GR_MAKE_REFLECTABLE(Picoscope, timingIn, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                 //
         auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, //
-        trigger_source, trigger_threshold, trigger_direction, trigger_pin, trigger_arm, trigger_disarm, systemtime_interval);
+        trigger_source, trigger_threshold, trigger_direction, digital_port_threshold, trigger_arm, trigger_disarm, systemtime_interval);
 
 private:
     std::atomic<std::size_t>                       _streamingSamples = 0UZ;
@@ -366,7 +370,7 @@ public:
                                  || newSettings.contains("n_captures") || newSettings.contains("streaming_mode_poll_rate") || newSettings.contains("auto_arm")       //
                                  || newSettings.contains("channel_ids") || newSettings.contains("channel_ranges") || newSettings.contains("channel_analog_offsets")  //
                                  || newSettings.contains("channel_couplings") || newSettings.contains("trigger_source") || newSettings.contains("trigger_threshold") //
-                                 || newSettings.contains("trigger_direction") || newSettings.contains("trigger_pin");
+                                 || newSettings.contains("trigger_direction") || newSettings.contains("digital_port_threshold");
 
         if (needsReinit) {
             initialize();
@@ -500,6 +504,9 @@ public:
                 }
             }
         }
+
+        // configure digital ports
+        self().setDigitalPorts();
     }
 
     void arm() {
@@ -557,6 +564,7 @@ public:
 
         // According to well-informed sources, the driver indicates the buffer overrun by setting all the bits of the overflow argument to true.
         if (static_cast<uint16_t>(overflow) == 0xffff) {
+            // TODO: send tag
             fmt::println(std::cerr, "Buffer overrun detected, continue...");
         }
     }
@@ -579,7 +587,7 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, std::span<TOutSpan>& outputs) {
+    gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs) {
         if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
             if (_streamingSamples == 0) {
                 for (auto& output : outputs) {
@@ -590,7 +598,7 @@ public:
                     return gr::work::Status::ERROR;
                 }
             } else {
-                processDriverDataStreaming(_streamingSamples, _streamingOffset, outputs, timingInSpan);
+                processDriverDataStreaming(_streamingSamples, _streamingOffset, timingInSpan, digitalOutSpan, outputs);
                 _streamingSamples = 0;
             }
         } else {
@@ -604,7 +612,7 @@ public:
             }
 
             nCompletedCaptures                  = std::min(static_cast<gr::Size_t>(nCompletedCaptures), n_captures.value);
-            const std::size_t availableCaptures = calculateAvailableOutputs(nCompletedCaptures, outputs);
+            const std::size_t availableCaptures = calculateAvailableOutputs(nCompletedCaptures, digitalOutSpan, outputs);
 
             for (std::size_t iCapture = 0; iCapture < availableCaptures; iCapture++) {
                 const auto getValuesResult = self().rapidBlockGetValues(iCapture, nSamples);
@@ -612,7 +620,7 @@ public:
                     this->emitErrorMessage(fmt::format("{}::processBulk", this->name), getValuesResult.error.message());
                     return gr::work::Status::ERROR;
                 }
-                processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, outputs, timingInSpan);
+                processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, timingInSpan, digitalOutSpan, outputs);
             }
 
             // if trigger_source is not set then consume all input tags
@@ -628,6 +636,7 @@ public:
                 }
                 outputs[i].publish(nCompletedCaptures);
             }
+            digitalOutSpan.publish(nCompletedCaptures);
         }
 
         if (_channels.empty()) {
@@ -642,11 +651,12 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    [[nodiscard]] std::size_t calculateAvailableOutputs(std::size_t nSamples, std::span<TOutSpan>& outputs) const {
+    [[nodiscard]] std::size_t calculateAvailableOutputs(std::size_t nSamples, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs) const {
         std::size_t availableOutputs = std::numeric_limits<std::size_t>::max();
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
             availableOutputs = std::min(availableOutputs, outputs[channelIdx].size());
         }
+        availableOutputs = std::min(availableOutputs, digitalOutSpan.size());
 
         const std::size_t availableSamples = std::min(availableOutputs, nSamples);
         if (availableSamples < nSamples) {
@@ -657,10 +667,10 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, std::span<TOutSpan>& outputs, gr::InputSpanLike auto& timingInSpan)
+    void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs)
     requires(acquisitionMode == AcquisitionMode::Streaming)
     {
-        const std::size_t availableSamples = calculateAvailableOutputs(nSamples, outputs);
+        const std::size_t availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
 
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
             processSamplesOneChannel<T>(availableSamples, offset, _channels[channelIdx], outputs[channelIdx]);
@@ -688,6 +698,9 @@ public:
                 output.publishTag(tag.map, tag.index);
             }
         }
+
+        self().copyDigitalBuffersToOutput(digitalOutSpan, availableSamples);
+        digitalOutSpan.publish(availableSamples);
 
         // publish samples
         for (std::size_t i = 0; i < outputs.size(); i++) {
@@ -730,8 +743,22 @@ public:
         return ds;
     }
 
+    constexpr TDigitalOutput createDatasetDigital(std::size_t nSamples)
+    requires(acquisitionMode == AcquisitionMode::RapidBlock)
+    {
+        TDigitalOutput ds{};
+        ds.extents = {1, static_cast<int32_t>(nSamples)};
+        ds.layout  = gr::LayoutRight{};
+
+        ds.signal_values.resize(nSamples);
+        ds.signal_ranges.resize(1);
+        ds.timing_events.resize(1);
+
+        return ds;
+    }
+
     template<gr::OutputSpanLike TOutSpan>
-    void processDriverDataRapidBlock(std::size_t iCapture, std::size_t nSamples, std::span<TOutSpan>& outputs, gr::InputSpanLike auto& timingInSpan)
+    void processDriverDataRapidBlock(std::size_t iCapture, std::size_t nSamples, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs)
     requires(acquisitionMode == AcquisitionMode::RapidBlock)
     {
         using TSample = T::value_type;
@@ -752,6 +779,9 @@ public:
             }
         }
 
+        digitalOutSpan[iCapture] = createDatasetDigital(nSamples);
+        self().copyDigitalBuffersToOutput(digitalOutSpan[iCapture].signal_values, nSamples);
+
         _nSamplesPublished++;
     }
 
@@ -763,7 +793,7 @@ public:
         if constexpr (std::is_same_v<T, int16_t>) {
             std::ranges::copy(driverData, output.begin());
         } else {
-            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue);
+            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue); // TODO: max for 8 bits
             // TODO use SIMD
             for (std::size_t i = 0; i < availableSamples; ++i) {
                 if constexpr (std::is_same_v<T, float>) {
@@ -871,9 +901,8 @@ public:
     }
 
     [[nodiscard]] constexpr int16_t convertVoltageToADCCount(float value) {
-        const float rangeMax = 5.f;
-        value                = std::clamp(value, -rangeMax, rangeMax);
-        return static_cast<int16_t>((value / rangeMax) * self().maxADCCount());
+        value = std::clamp(value, self().extTriggerMinValueVoltage(), self().extTriggerMaxValueVoltage());
+        return static_cast<int16_t>((value / self().extTriggerMaxValueVoltage()) * self().extTriggerMaxValue());
     }
 
     [[nodiscard]] Error streamingPoll() {
@@ -916,6 +945,9 @@ public:
                 return {status};
             }
         }
+
+        self().setDigitalBuffers(nSamples, segmentIndex);
+
         return {};
     }
 
