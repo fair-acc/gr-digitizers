@@ -160,7 +160,7 @@ public:
     }
 
     static constexpr std::optional<ChannelType> convertToChannel(std::string_view source) {
-        static constexpr std::array<std::pair<std::string_view, ChannelType>, 9> channelMap{{//
+        static constexpr std::array<std::pair<std::string_view, ChannelType>, 5> channelMap{{//
             {"A", PS5000A_CHANNEL_A}, {"B", PS5000A_CHANNEL_B}, {"C", PS5000A_CHANNEL_C}, {"D", PS5000A_CHANNEL_D}, {"EXTERNAL", PS5000A_EXTERNAL}}};
 
         const auto it = std::ranges::find_if(channelMap, [source](auto&& kv) { return kv.first == source; });
@@ -171,7 +171,7 @@ public:
     }
 
     static constexpr std::optional<ChannelType> convertToChannel(std::size_t channelIndex) {
-        static constexpr std::array<std::pair<std::size_t, ChannelType>, 9> channelMap{{//
+        static constexpr std::array<std::pair<std::size_t, ChannelType>, 5> channelMap{{//
             {0UZ, PS5000A_CHANNEL_A}, {1UZ, PS5000A_CHANNEL_B}, {2UZ, PS5000A_CHANNEL_C}, {3UZ, PS5000A_CHANNEL_D}, {4UZ, PS5000A_EXTERNAL}}};
 
         const auto it = std::ranges::find_if(channelMap, [channelIndex](auto&& kv) { return kv.first == channelIndex; });
@@ -231,6 +231,7 @@ public:
     PICO_STATUS
     openUnit(const std::string& serial_number) {
         // take any if serial number is not provided (useful for testing purposes)
+        // TODO: do we need to make `resolution` a setting?
         if (serial_number.empty()) {
             return ps5000aOpenUnit(&(this->_handle), nullptr, PS5000A_DR_8BIT);
         } else {
@@ -278,36 +279,13 @@ public:
 
     ConditionsInfoType conditionsInfoClear() { return PS5000A_CLEAR; }
 
+    ConditionsInfoType conditionsInfoAdd() { return PS5000A_ADD; }
+
     PICO_STATUS
     setSimpleTrigger(int16_t handle, int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) { return ps5000aSetSimpleTrigger(handle, enable, source, threshold, direction, delay, autoTriggerMs); }
 
     PICO_STATUS
-    setAutoTriggerMicroSeconds(int16_t handle, uint64_t autoTriggerMicroseconds) { return ps5000aSetAutoTriggerMicroSeconds(handle, autoTriggerMicroseconds); }
-
-    PS5000A_TRIGGER_CONDITIONS
-    conditionsShim(ConditionType* condition, int16_t nConditions) {
-        PS5000A_TRIGGER_CONDITIONS result;
-        std::memset(&result, 0, sizeof(result));
-        for (int16_t i = 0; i < nConditions; ++i) {
-            auto cond = *(condition + i);
-            if (cond.source == PS5000A_CHANNEL_A) {
-                result.channelA = cond.condition;
-            } else if (cond.source == PS5000A_CHANNEL_B) {
-                result.channelB = cond.condition;
-            } else if (cond.source == PS5000A_CHANNEL_C) {
-                result.channelC = cond.condition;
-            } else if (cond.source == PS5000A_CHANNEL_D) {
-                result.channelD = cond.condition;
-            }
-        }
-        return result;
-    }
-
-    PICO_STATUS
-    setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType) {
-        PS5000A_TRIGGER_CONDITIONS conds = conditionsShim(conditions, nConditions);
-        return ps5000aSetTriggerChannelConditions(handle, &conds, 1);
-    }
+    setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType info) { return ps5000aSetTriggerChannelConditionsV2(handle, conditions, nConditions, info); }
 
     PICO_STATUS
     driverStop(int16_t handle) { return ps5000aStop(handle); }

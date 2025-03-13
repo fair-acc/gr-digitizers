@@ -1,4 +1,12 @@
 # TODO do not hardcode
+
+add_library(ps3000a SHARED IMPORTED GLOBAL)
+set_property(TARGET ps3000a PROPERTY IMPORTED_LOCATION
+                                     ${PICOSCOPE_PREFIX}/lib/libps3000a.so)
+target_link_libraries(ps3000a INTERFACE PkgConfig::zlib PkgConfig::libusb)
+target_include_directories(ps3000a
+                           INTERFACE ${PICOSCOPE_PREFIX}/include/libps3000a)
+
 add_library(ps4000a SHARED IMPORTED GLOBAL)
 set_property(TARGET ps4000a PROPERTY IMPORTED_LOCATION
                                      ${PICOSCOPE_PREFIX}/lib/libps4000a.so)
@@ -23,12 +31,20 @@ target_include_directories(
                            $<INSTALL_INTERFACE:include/>)
 
 target_link_libraries(
-  fair-picoscope INTERFACE ps4000a ps5000a gr-digitizers-options gnuradio-core
-                           gnuradio-algorithm fmt)
+  fair-picoscope
+  INTERFACE ps3000a
+            ps4000a
+            ps5000a
+            gr-digitizers-options
+            gnuradio-core
+            gnuradio-algorithm
+            fmt)
 set_target_properties(
   gr-digitizers
-  PROPERTIES PUBLIC_HEADER
-             "Picoscope.hpp;Picoscope4000a.hpp;StatusMessages.hpp")
+  PROPERTIES
+    PUBLIC_HEADER
+    "Picoscope.hpp;Picoscope3000a.hpp;Picoscope4000a.hpp;Picoscope5000a.hpp;StatusMessages.hpp"
+)
 
 if(ENABLE_GR_DIGITIZERS_TESTING)
   add_subdirectory(test)

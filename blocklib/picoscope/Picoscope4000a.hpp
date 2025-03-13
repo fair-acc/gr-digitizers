@@ -203,14 +203,13 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
 
     ConditionsInfoType conditionsInfoClear() { return PS4000A_CLEAR; }
 
+    ConditionsInfoType conditionsInfoAdd() { return PS4000A_ADD; }
+
     PICO_STATUS
     setSimpleTrigger(int16_t handle, int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) { return ps4000aSetSimpleTrigger(handle, enable, source, threshold, direction, delay, autoTriggerMs); }
 
     PICO_STATUS
     setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType info) { return ps4000aSetTriggerChannelConditions(handle, conditions, nConditions, info); }
-
-    PICO_STATUS
-    setAutoTriggerMicroSeconds(int16_t handle, uint64_t autoTriggerMicroseconds) { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
 
     PICO_STATUS
     driverStop(int16_t handle) { return ps4000aStop(handle); }

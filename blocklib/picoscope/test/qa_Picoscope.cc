@@ -4,6 +4,7 @@
 #include <gnuradio-4.0/basic/ClockSource.hpp>
 #include <gnuradio-4.0/testing/TagMonitors.hpp>
 
+#include <Picoscope3000a.hpp>
 #include <Picoscope4000a.hpp>
 #include <Picoscope5000a.hpp>
 
@@ -13,7 +14,7 @@ namespace fair::picoscope::test {
 
 // Replace with your connected Picoscope device
 template<typename T>
-using PicoscopeT = Picoscope5000a<T>;
+using PicoscopeT = Picoscope3000a<T>;
 
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
@@ -30,10 +31,15 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
     constexpr gr::Size_t postSamples  = 1000;
     const gr::Size_t     totalSamples = preSamples + postSamples;
 
+    int16_t        digitalPortThreshold     = static_cast<int16_t>(32767 / 5);
+    bool           digitalPortInvertOutput  = false;
+    const bool     digitalPortUseExactValue = true;
+    const uint16_t digitalPortExactValue    = 8; // 2^n, n = connected port index (assuming that only one port is connected)
+
     Graph flowGraph;
     auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"disconnect_on_done", true}, {"sample_rate", sampleRate}, {"pre_samples", preSamples}, {"post_samples", postSamples}, {"n_captures", nCaptures}, //
         {"auto_arm", true}, {"trigger_once", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector<float>{5.f}},                                                        //
-        {"channel_couplings", std::vector<std::string>{"AC"}}});
+        {"channel_couplings", std::vector<std::string>{"AC"}}, {"digital_port_threshold", digitalPortThreshold}, {"digital_port_invert_output", digitalPortInvertOutput}});
 
     auto& sinkA = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
     auto& sinkB = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
@@ -92,11 +98,11 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
             expect(eq(sinkDigital._samples[iC].signal_values.size(), totalSamples));
 
             // Digital output testing relies on the actual test setup.
-            // We assume that we have only one input, the input signal is a `square wave` at approximately 1kHz, generated using picoscope's function generator.
+            // We assume that we have only one input, the input signal is a `square wave` (Ampl = 1V, offset = 1V) at 1kHz, generated using picoscope's function generator.
             // With a sample rate near 10kHz, the occurrence of zeros and non-zeros should be roughly equal.
             if (testDigitalOutput) {
                 const auto countZeros    = std::ranges::count(sinkDigital._samples[iC].signal_values, 0);
-                const auto countNonZeros = std::ranges::count_if(sinkDigital._samples[iC].signal_values, [](int x) { return x != 0; });
+                const auto countNonZeros = (digitalPortUseExactValue) ? std::ranges::count(sinkDigital._samples[iC].signal_values, digitalPortExactValue) : std::ranges::count_if(sinkDigital._samples[iC].signal_values, [](int x) { return x != 0; });
                 const bool isEqual       = static_cast<double>(std::abs(countZeros - countNonZeros)) / static_cast<double>(countNonZeros) < 0.05;
                 fmt::println("Digital output rapid block testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
                 expect(isEqual);
@@ -118,10 +124,15 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
 
     constexpr auto testDuration = 2s;
 
+    int16_t        digitalPortThreshold     = static_cast<int16_t>(32767 / 5);
+    bool           digitalPortInvertOutput  = false;
+    const bool     digitalPortUseExactValue = true;
+    const uint16_t digitalPortExactValue    = 8; // 2^n, n = connected port index (assuming that only one port is connected)
+
     auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"sample_rate", sampleRate},                                                                                       //
         {"streaming_mode_poll_rate", 0.00001f}, {"auto_arm", true}, {"channel_ids", std::vector<std::string>{"A"}},                                                      //
         {"signal_names", std::vector<std::string>{"Test signal"}}, {"signal_units", std::vector<std::string>{"Test unit"}}, {"channel_ranges", std::vector<float>{5.f}}, //
-        {"channel_couplings", std::vector<std::string>{"AC"}}});
+        {"channel_couplings", std::vector<std::string>{"AC"}}, {"digital_port_threshold", digitalPortThreshold}, {"digital_port_invert_output", digitalPortInvertOutput}});
 
     auto& tagMonitor = flowGraph.emplaceBlock<testing::TagMonitor<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", true}});
     auto& sinkA      = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -180,11 +191,11 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     }
 
     // Digital output testing relies on the actual test setup.
-    // We assume that we have only one input, the input signal is a `square wave` at approximately 1kHz, generated using picoscope's function generator.
+    // We assume that we have only one input, the input signal is a `square wave` (Ampl = 1V, offset = 1V) at 1kHz, generated using picoscope's function generator.
     // With a sample rate near 10kHz, the occurrence of zeros and non-zeros should be roughly equal.
     if (testDigitalOutput) {
         const auto countZeros    = std::ranges::count(sinkDigital._samples, 0);
-        const auto countNonZeros = std::ranges::count_if(sinkDigital._samples, [](int x) { return x != 0; });
+        const auto countNonZeros = (digitalPortUseExactValue) ? std::ranges::count(sinkDigital._samples, digitalPortExactValue) : std::ranges::count_if(sinkDigital._samples, [](int x) { return x != 0; });
         const bool isEqual       = static_cast<double>(std::abs(countZeros - countNonZeros)) / static_cast<double>(countNonZeros) < 0.05;
         fmt::println("Digital output streaming testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
         expect(isEqual);

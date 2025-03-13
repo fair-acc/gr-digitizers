@@ -205,8 +205,8 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
     A<std::string, "arm trigger: `<trigger_name>/<ctx>`, if empty not used">    trigger_arm                = ""; // RapidBlock mode only
     A<std::string, "disarm trigger: `<trigger_name>/<ctx>`, if empty not used"> trigger_disarm             = ""; // RapidBlock mode only
     A<gr::Size_t, "time between two systemtime tags in ms">                     systemtime_interval        = 1000UZ;
-    A<int16_t, "digital port threshold (ADC: –32767 (–5 V) to 32767 (+5 V))">   digital_port_threshold     = 0;    // only used if digital port are available: 3000, 5000, 6000 series
-    A<bool, "invert digital port output">                                       digital_port_invert_output = true; // only used if digital port are available: 3000, 5000, 6000 series
+    A<int16_t, "digital port threshold (ADC: –32767 (–5 V) to 32767 (+5 V))">   digital_port_threshold     = 0;     // only used if digital port are available: 3000, 5000, 6000 series
+    A<bool, "invert digital port output">                                       digital_port_invert_output = false; // only used if digital port are available: 3000, 5000, 6000 series
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
 
@@ -219,7 +219,7 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
 
     GR_MAKE_REFLECTABLE(Picoscope, timingIn, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                 //
         auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, //
-        trigger_source, trigger_threshold, trigger_direction, digital_port_threshold, trigger_arm, trigger_disarm, systemtime_interval);
+        trigger_source, trigger_threshold, trigger_direction, digital_port_threshold, digital_port_invert_output, trigger_arm, trigger_disarm, systemtime_interval);
 
 private:
     std::atomic<std::size_t>                       _streamingSamples = 0UZ;
@@ -396,6 +396,7 @@ public:
             }
             serial_number = serialNumber();
             fmt::println("Picoscope serial number: {}", serial_number);
+            fmt::println("Picoscope device variant: {}", deviceVariant());
         } catch (const std::exception& e) {
             fmt::println(std::cerr, "{}", e.what());
         }
@@ -976,6 +977,8 @@ public:
     [[nodiscard]] std::string hardwareVersion() const { return getUnitInfoTopic(_handle, PICO_HARDWARE_VERSION); }
 
     [[nodiscard]] std::string serialNumber() const { return getUnitInfoTopic(_handle, PICO_BATCH_AND_SERIAL); }
+
+    [[nodiscard]] std::string deviceVariant() const { return getUnitInfoTopic(_handle, PICO_VARIANT_INFO); }
 
     [[nodiscard]] constexpr auto& self() noexcept { return *static_cast<TPSImpl*>(this); }
 
