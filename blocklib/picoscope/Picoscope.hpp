@@ -838,17 +838,18 @@ public:
         for (const auto triggerOffset : triggerOffsets) {
             gr::property_map timing;
             if (_timingMessages.empty()) {
-                timing = gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "UnknownTrigger"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::uint64_t>(now.count())}, {gr::tag::TRIGGER_OFFSET.shortKey(), static_cast<std::uint64_t>(0)}};
+                timing = gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "UnknownTrigger"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::uint64_t>(now.count())}, {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f}};
                 // TODO: stop processing here instead in case the tag arrives later and only publish unknown trigger tag after timeout
             } else {
                 timing = _timingMessages.front();
                 _timingMessages.pop();
             }
             triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
+            _nextSystemtime = nowStamp + std::chrono::milliseconds(systemtime_interval);
         }
         // add an independent software timestamp with the localtime of the system to the last sample of each chunk
         if (nowStamp > _nextSystemtime) {
-            triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "systemtime"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<uint64_t>(now.count())}});
+            triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "systemtime"}, {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f}, {gr::tag::CONTEXT.shortKey(), "NO-CONTEXT"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<uint64_t>(now.count())}});
             _nextSystemtime += std::chrono::milliseconds(systemtime_interval);
         }
         return triggerTags;
