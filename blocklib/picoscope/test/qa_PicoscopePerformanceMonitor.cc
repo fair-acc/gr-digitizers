@@ -49,36 +49,39 @@ int main(int argc, char* argv[]) {
     using SampleType = float;
 
     // Replace with your connected Picoscope device
-    using PicoscopeT = Picoscope4000a<SampleType, AcquisitionMode::Streaming>;
+    using PicoscopeT = Picoscope4000a<SampleType>;
 
-    constexpr float kSampleRate = 20'000'000.f;
+    constexpr float kSampleRate = 16'500'000.f;
 
     auto threadPool = std::make_shared<gr::thread_pool::BasicThreadPool>("custom pool", gr::thread_pool::CPU_BOUND, 2, 2);
 
     Graph graph;
 
-    auto& ps = graph.emplaceBlock<PicoscopeT>({{{"sample_rate", kSampleRate},              //
-        {"acquisition_mode", "Streaming"}, {"auto_arm", true},                             //
-        {"channel_ids", std::vector<std::string>{"A", "B", "C", "D", "E", "F", "G", "H"}}, //
+    auto& ps = graph.emplaceBlock<PicoscopeT>({{{"sample_rate", kSampleRate}, {"auto_arm", true}, //
+        {"channel_ids", std::vector<std::string>{"A", "B", "C", "D", "E", "F", "G", "H"}},        //
         {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f, 5.f, 5.f, 5.f, 5.f, 5.f}}}});
 
     auto& perfMonitorA = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf A"}});
     auto& perfMonitorB = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf B"}});
     auto& perfMonitorC = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf C"}});
     auto& perfMonitorD = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf D"}});
-    auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}});
-    auto& perfMonitorF = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf F"}});
-    auto& sinkG        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
-    auto& sinkH        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
 
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 0>(ps).template to<"in">(perfMonitorA)));
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 1>(ps).template to<"in">(perfMonitorB)));
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 2>(ps).template to<"in">(perfMonitorC)));
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 3>(ps).template to<"in">(perfMonitorD)));
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 4>(ps).template to<"in">(perfMonitorE)));
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 5>(ps).template to<"in">(perfMonitorF)));
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+
+    if constexpr (std::is_same_v<Picoscope4000a<SampleType>, PicoscopeT>) {
+        auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}});
+        auto& perfMonitorF = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf F"}});
+        auto& sinkG        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
+        auto& sinkH        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
+
+        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 4>(ps).template to<"in">(perfMonitorE)));
+        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 5>(ps).template to<"in">(perfMonitorF)));
+        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 6>(ps).template to<"in">(sinkG)));
+        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+    }
 
     auto sched                                        = scheduler::Simple{std::move(graph), threadPool};
     auto [watchdogThread, externalInterventionNeeded] = createWatchdog(sched, runTime > 0 ? std::chrono::seconds(runTime) : 20s);

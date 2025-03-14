@@ -7,7 +7,7 @@ function(add_ut_test_tool TEST_NAME)
     ${TEST_NAME}
     PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(${TEST_NAME} PRIVATE gnuradio-core gr-testing
+  target_link_libraries(${TEST_NAME} PRIVATE gnuradio-core gr-testing gr-basic
                                              fair-picoscope fair-helpers ut)
 endfunction()
 

@@ -39,29 +39,41 @@ const boost::ut::suite PicoscopeTests = [] {
             {"verbose_console", false}                                                                                     //
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float, AcquisitionMode::Streaming>>({{
-            {"sample_rate", kSampleRate},                                               //
-            {"acquisition_mode", "Streaming"},                                          //
-            {"auto_arm", true},                                                         //
-            {"channel_ids", std::vector<std::string>{"A", "B", "C"}},                   //
-            {"channel_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}},       //
-            {"channel_units", std::vector<std::string>{"V", "V", "V"}},                 //
-            {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},                      //
-            {"channel_offsets", std::vector<float>{0.f, 0.f, 0.f}},                     //
-            {"channel_couplings", std::vector<std::string>{"DC_1M", "DC_1M", "DC_1M"}}, //
-            {"trigger_source", "A"},                                                    //
-            {"trigger_threshold", 1.7f},                                                //
-            {"trigger_direction", "Rising"}                                             //
+        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float>>({{
+            {"sample_rate", kSampleRate},                                        //
+            {"auto_arm", true},                                                  //
+            {"channel_ids", std::vector<std::string>{"A", "B", "C"}},            //
+            {"signal_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}}, //
+            {"signal_units", std::vector<std::string>{"V", "V", "V"}},           //
+            {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},               //
+            {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},               //
+            {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},   //
+            {"trigger_source", "A"},                                             //
+            {"trigger_threshold", 1.7f},                                         //
+            {"trigger_direction", "Rising"}                                      //
         }});
 
-        auto& sinkA = flowGraph.emplaceBlock<gr::testing::TagSink<float, gr::testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", true}, {"log_tags", true}}});
-        auto& sinkB = flowGraph.emplaceBlock<gr::testing::TagSink<float, gr::testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", true}, {"log_tags", true}}});
-        auto& sinkC = flowGraph.emplaceBlock<gr::testing::TagSink<float, gr::testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", true}, {"log_tags", true}}});
+        auto& sinkA = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", true}});
+        auto& sinkB = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", true}});
+        auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", true}});
+        auto& sinkD = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkF = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkG = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkH = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
 
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(timingSrc).template to<"timingIn">(ps)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
         expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+
+        auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<uint16_t, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
         // Explicitly start unit because it takes quite some time
         expect(nothrow([&ps] { ps.start(); }));
@@ -126,7 +138,7 @@ const boost::ut::suite PicoscopeTests = [] {
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
         const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(kDuration).count();
-        fmt::println("Produced in worker: {}", ps.producedWorker());
+        fmt::println("Produced in worker: {}", ps._nSamplesPublished);
         fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(kSampleRate) * 100., duration_cast<milliseconds>(kDuration).count());
         fmt::println("Total: {}", sinkA._nSamplesProduced);
 
