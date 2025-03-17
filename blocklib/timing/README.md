@@ -27,22 +27,28 @@ sudo make install
 
 # Setting up usage with an actual timing card
 
-- build etherbone and saftlib as described above
-- build gr-digitizers with `-DENABLE_TIMING=True`
+- build `etherbone` and `saftlib` as described above
+- build `gr-digitizers` with `-DENABLE_TIMING=True`
 - load the required kernel modules if the card is connected via PCIe: `modprobe pcie_wb`
   - verify they are loaded correctly: `lsmod | grep wb`, `dmesg | tail`
-- start saftd demon and attach timing card: `saftd tr0:dev/wbm0` (where `dev/wbm0` is the device path of the wishbone device without leading slash)
+- start saftd demon and attach timing card: `saftd tr0:dev/wbm0` (or `saftd tr0:dev/ttyUSB0`), where `dev/wbm0` (or `dev/ttyUSB0`) is the device path of the wishbone device without leading slash)
 - if there is no physical timing signal plugged into the card, the card has to be switched to master mode:
-  - `eb-console /dev/wbm0` and enter `mode master` and hit return. The console should print a message that the timing mode is changed.
-  - eb-console is included in [bel_projects](https://github.com/GSI-CS-CO/bel_projects).
-    If you only need the single tool and have installed etherbone on your system by other means you can build only eb-console:
+  - `eb-console dev/wbm0` (or `eb-console dev/ttyUSB0`) and enter `mode master` and hit return. The console should print a message that the timing mode is changed.
+  - if you connect timing card via USB you may have to close `saftd` first, change mode and run `saftd` again.
+  - `eb-console` is included in [bel_projects](https://github.com/GSI-CS-CO/bel_projects)/`tools`.
+    If you only need the single tool and have installed `etherbone` on your system by other means you can build only `eb-console`:
     ```bash
     $ git clone https://github.com/GSI-CS-CO/bel_projects
     $ cd bel_projects/tools
     $ make EB=/usr/include eb-console # or point the EB variable to whatever prefix you installed etherbone to
     $ ./eb-console dev/wbm0 # or dev/ttyUSB0
     ```
-- verify that everything works with saft-ctl:
+  - enable output and check if it's enabled (in the output search for `OutputEnable: On`):
+    ```bash
+    $ saft-io-ctl tr0 -n IO3 -o 1
+    $ saft-io-ctl tr0 -n IO3
+    ```
+- verify that everything works with `saft-ctl`:
   - ```bash
     $ saft-ctl tr0 -ijkst
     saftlib source version                  : saftlib 3.0.3 (6aab401-dirty): Aug 29 2023 09:50:19
