@@ -799,8 +799,9 @@ public:
             }
         }
 
-        const auto           triggerSourceIndex = self().convertToOutputIndex(trigger_source);
-        std::vector<gr::Tag> triggerTags        = triggerSourceIndex != std::nullopt ? processTimingTriggers<TSample>(nSamples, outputs[triggerSourceIndex.value()][iCapture].signal_values, timingInSpan) : std::vector<gr::Tag>{};
+        const auto           triggerSourceIndex      = self().convertToOutputIndex(trigger_source);
+        const bool           doProcessTimingTriggers = triggerSourceIndex != std::nullopt && std::ranges::find(channel_ids.value, trigger_source.value) != channel_ids.value.end();
+        std::vector<gr::Tag> triggerTags             = doProcessTimingTriggers ? processTimingTriggers<TSample>(nSamples, outputs[triggerSourceIndex.value()][iCapture].signal_values, timingInSpan) : std::vector<gr::Tag>{};
 
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
             for (auto& tag : triggerTags) {

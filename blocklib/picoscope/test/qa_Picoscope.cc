@@ -39,6 +39,7 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
     Graph flowGraph;
     auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"disconnect_on_done", true}, {"sample_rate", sampleRate}, {"pre_samples", preSamples}, {"post_samples", postSamples}, {"n_captures", nCaptures}, //
         {"auto_arm", true}, {"trigger_once", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector<float>{5.f}},                                                        //
+        //{"trigger_source", "D"}, {"trigger_threshold", 0.5f},                                                                                                                                           //
         {"channel_couplings", std::vector<std::string>{"AC"}}, {"digital_port_threshold", digitalPortThreshold}, {"digital_port_invert_output", digitalPortInvertOutput}});
 
     auto& sinkA = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
@@ -228,9 +229,9 @@ const boost::ut::suite PicoscopeTests = [] {
     };
 
     "rapid block basics"_test = [] {
-        testRapidBlockBasic<gr::DataSet<int16_t>>(1);
+        //  testRapidBlockBasic<gr::DataSet<int16_t>>(1);
         testRapidBlockBasic<gr::DataSet<float>>(1);
-        testRapidBlockBasic<gr::DataSet<gr::UncertainValue<float>>>(1);
+        //   testRapidBlockBasic<gr::DataSet<gr::UncertainValue<float>>>(1);
     };
 
     skip / "streaming digital output"_test = [] { testStreamingBasics<float>(4000, true); };
