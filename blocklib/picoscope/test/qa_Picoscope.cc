@@ -229,9 +229,9 @@ const boost::ut::suite PicoscopeTests = [] {
     };
 
     "rapid block basics"_test = [] {
-        //  testRapidBlockBasic<gr::DataSet<int16_t>>(1);
+        testRapidBlockBasic<gr::DataSet<int16_t>>(1);
         testRapidBlockBasic<gr::DataSet<float>>(1);
-        //   testRapidBlockBasic<gr::DataSet<gr::UncertainValue<float>>>(1);
+        testRapidBlockBasic<gr::DataSet<gr::UncertainValue<float>>>(1);
     };
 
     skip / "streaming digital output"_test = [] { testStreamingBasics<float>(4000, true); };

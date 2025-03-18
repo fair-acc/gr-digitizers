@@ -753,7 +753,7 @@ public:
         ds.axis_names = {channel.name};
         ds.axis_units = {channel.unit};
 
-        ds.extents           = {1, static_cast<int32_t>(nSamples)};
+        ds.extents           = {static_cast<int32_t>(nSamples)};
         ds.layout            = gr::LayoutRight{};
         ds.signal_names      = {channel.name};
         ds.signal_units      = {channel.unit};
@@ -762,12 +762,13 @@ public:
         ds.signal_values.resize(nSamples);
         ds.signal_ranges.resize(1);
         ds.timing_events.resize(1);
+        ds.axis_values.resize(1);
+        ds.axis_values[0].resize(nSamples);
+        float current = 0.0f;
+        std::ranges::generate(ds.axis_values[0], [&current]() { return current++; });
 
-        if (!channel.signalInfoTagPublished) {
-            ds.meta_information.resize(1);
-            ds.meta_information[0]         = channel.toTagMap();
-            channel.signalInfoTagPublished = true;
-        }
+        ds.meta_information.resize(1);
+        ds.meta_information[0] = channel.toTagMap();
 
         return ds;
     }
