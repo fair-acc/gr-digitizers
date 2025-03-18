@@ -49,31 +49,42 @@ int main(int argc, char* argv[]) {
     using SampleType = float;
 
     // Replace with your connected Picoscope device
-    using PicoscopeT = Picoscope4000a<SampleType>;
+    using PicoscopeT = Picoscope5000a<SampleType>;
 
-    constexpr float kSampleRate = 16'500'000.f;
+    constexpr float      kSampleRate      = 1'000'000.f;
+    constexpr gr::Size_t evaluatePerfRate = 1'000'000;
+    constexpr float      publishRate      = 1.f;
 
     auto threadPool = std::make_shared<gr::thread_pool::BasicThreadPool>("custom pool", gr::thread_pool::CPU_BOUND, 2, 2);
 
     Graph graph;
 
-    auto& ps = graph.emplaceBlock<PicoscopeT>({{{"sample_rate", kSampleRate}, {"auto_arm", true}, //
-        {"channel_ids", std::vector<std::string>{"A", "B", "C", "D", "E", "F", "G", "H"}},        //
-        {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f, 5.f, 5.f, 5.f, 5.f, 5.f}}}});
+    std::vector<std::string> channelIds    = {"A", "B", "C", "D"};
+    std::vector<float>       channelRanges = {5.f, 5.f, 5.f, 5.f};
+    if constexpr (std::is_same_v<Picoscope4000a<SampleType>, PicoscopeT>) {
+        channelIds.insert(channelIds.end(), {"E", "F", "G", "H"});
+        channelRanges.insert(channelRanges.end(), {5.f, 5.f, 5.f, 5.f});
+    }
 
-    auto& perfMonitorA = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf A"}});
-    auto& perfMonitorB = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf B"}});
-    auto& perfMonitorC = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf C"}});
-    auto& perfMonitorD = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf D"}});
+    auto& ps = graph.emplaceBlock<PicoscopeT>({{{"sample_rate", kSampleRate}, {"auto_arm", true}, //
+        {"channel_ids", channelIds}, {"channel_ranges", channelRanges}}});
+
+    auto& perfMonitorA = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf A"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
+    auto& perfMonitorB = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf B"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
+    auto& perfMonitorC = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf C"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
+    auto& perfMonitorD = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf D"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
 
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 0>(ps).template to<"in">(perfMonitorA)));
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 1>(ps).template to<"in">(perfMonitorB)));
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 2>(ps).template to<"in">(perfMonitorC)));
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 3>(ps).template to<"in">(perfMonitorD)));
 
+    auto& sinkDigital = graph.emplaceBlock<testing::TagSink<uint16_t, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
+    expect(eq(ConnectionResult::SUCCESS, graph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+
     if constexpr (std::is_same_v<Picoscope4000a<SampleType>, PicoscopeT>) {
-        auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}});
-        auto& perfMonitorF = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf F"}});
+        auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
+        auto& perfMonitorF = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf F"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
         auto& sinkG        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
         auto& sinkH        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
 
