@@ -558,8 +558,10 @@ public:
     void streamingCallback(int32_t nrSamplesSigned, uint32_t idx, int16_t overflow)
     requires(acquisitionMode == AcquisitionMode::Streaming)
     {
-        _streamingSamples = static_cast<std::size_t>(nrSamplesSigned);
-        _streamingOffset  = static_cast<std::size_t>(idx);
+        auto previousSamples = _streamingSamples.fetch_add(static_cast<std::size_t>(nrSamplesSigned));
+        if (previousSamples == 0) {
+            _streamingOffset  = static_cast<std::size_t>(idx);
+        }
         // NOTE: according to the programmer's guide the data should be copied-out inside the callback function. Not sure if the driver might overwrite the buffer with new data after the callback has returned
         assert(nrSamplesSigned >= 0);
 
@@ -589,6 +591,12 @@ public:
 
     template<gr::OutputSpanLike TOutSpan>
     gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs) {
+        static std::size_t counter;
+        if (counter % 100000 == 0) {
+            auto availableOutput = outputs | std::views::transform([](auto &o) {return o.size();}) | std::ranges::to<std::vector>();
+            fmt::print("Picoscope::processBulk: was called for 100000 times again, nSamplesPublished: {}, available output: {}, digital: {}, _streamingSamples: {}\n", _nSamplesPublished, availableOutput, digitalOutSpan.size(), _streamingSamples);
+        }
+        counter++;
         if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
             if (_streamingSamples == 0) {
                 for (auto& output : outputs) {
@@ -672,6 +680,11 @@ public:
     requires(acquisitionMode == AcquisitionMode::Streaming)
     {
         const std::size_t availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
+        static std::size_t counter;
+        if (counter % 100 == 0) {
+            fmt::print("Picoscope::processDriverDataStreaming: was called for 100 times again, available, {} -> {}\n", nSamples, availableSamples);
+        }
+        counter++;
 
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
             processSamplesOneChannel<T>(availableSamples, offset, _channels[channelIdx], outputs[channelIdx]);
@@ -908,6 +921,11 @@ public:
     }
 
     [[nodiscard]] Error streamingPoll() {
+        static std::size_t counter;
+        if (counter % 100000 == 0) {
+            fmt::print("Picoscope::streamingPoll: was called for 100000 times again\n");
+        }
+        counter++;
         static auto redirector = [](int16_t /*handle*/, int32_t noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t /*triggerAt*/, int16_t /*triggered*/, int16_t /*autoStop*/, void* vobj) { static_cast<decltype(this)>(vobj)->streamingCallback(noOfSamples, startIndex, overflow); };
 
         const auto status = self().getStreamingLatestValues(_handle, static_cast<TPSImpl::StreamingReadyType>(redirector), this);
