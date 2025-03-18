@@ -857,7 +857,7 @@ public:
             if (triggerOffsets.size() <= _timingMessages.size()) { // all triggers have already been found
                 break;
             }
-            _timingMessages.emplace(tag.second);
+            _timingMessages.emplace(tag.map);
             consumeTags++;
         }
         timingInSpan.consumeTags(consumeTags);
