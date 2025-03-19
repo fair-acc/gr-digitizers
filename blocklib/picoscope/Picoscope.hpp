@@ -795,8 +795,10 @@ public:
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
             outputs[channelIdx][iCapture] = createDataset(_channels[channelIdx], nSamples);
             processSamplesOneChannel<TSample>(nSamples, 0, _channels[channelIdx], outputs[channelIdx][iCapture].signal_values);
-            if (!outputs[channelIdx][iCapture].signal_values.empty()) {
-                // gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]); // TODO: fix compilation error, unsupported type: UncertainValue, it requires changes in GR4
+            if constexpr (std::is_same_v<TSample, float> || std::is_same_v<TSample, std::int16_t>) {
+                gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]);
+            } else {
+                // TODO: fix UncertainValue, it requires changes in GR4
             }
         }
 
@@ -821,15 +823,15 @@ public:
 
         const auto driverData = std::span(channel.driverBuffer).subspan(offset, availableSamples);
 
-        if constexpr (std::is_same_v<T, int16_t>) {
+        if constexpr (std::is_same_v<TSample, int16_t>) {
             std::ranges::copy(driverData, output.begin());
         } else {
-            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue); // TODO: max for 8 bits
+            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue);
             // TODO use SIMD
             for (std::size_t i = 0; i < availableSamples; ++i) {
-                if constexpr (std::is_same_v<T, float>) {
+                if constexpr (std::is_same_v<TSample, float>) {
                     output[i] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]);
-                } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
+                } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
                     output[i] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]), self().uncertainty());
                 }
             }
