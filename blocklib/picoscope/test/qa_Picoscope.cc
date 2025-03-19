@@ -14,7 +14,7 @@ namespace fair::picoscope::test {
 
 // Replace with your connected Picoscope device
 template<typename T>
-using PicoscopeT = Picoscope3000a<T>;
+using PicoscopeT = Picoscope5000a<T>;
 
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
@@ -39,6 +39,7 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
     Graph flowGraph;
     auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"disconnect_on_done", true}, {"sample_rate", sampleRate}, {"pre_samples", preSamples}, {"post_samples", postSamples}, {"n_captures", nCaptures}, //
         {"auto_arm", true}, {"trigger_once", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector<float>{5.f}},                                                        //
+        //{"trigger_source", "D"}, {"trigger_threshold", 0.5f},                                                                                                                                           //
         {"channel_couplings", std::vector<std::string>{"AC"}}, {"digital_port_threshold", digitalPortThreshold}, {"digital_port_invert_output", digitalPortInvertOutput}});
 
     auto& sinkA = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
@@ -360,6 +361,38 @@ const boost::ut::suite PicoscopeTests = [] {
         for (std::size_t iC = 0; iC < sinkA._samples.size(); iC++) {
             expect(eq(sinkA._samples[iC].signal_values.size(), totalSamples));
         }
+    };
+
+    "tagContainsTrigger"_test = [] {
+        fmt::println("tagContainsTrigger");
+        using namespace std::chrono_literals;
+        using namespace gr::tag;
+
+        const auto testCase = [](bool expectedResult, const std::string& triggerNameAndCtx, const std::string& tagTriggerName, const std::string& tagCtx, bool includeCtx) { //
+            const auto tag = Tag(0, includeCtx ? property_map{{TRIGGER_NAME.shortKey(), tagTriggerName}, {CONTEXT.shortKey(), tagCtx}}                                       //
+                                               : property_map{{TRIGGER_NAME.shortKey(), tagTriggerName}});
+            const bool res = detail::tagContainsTrigger(tag, detail::createTriggerNameAndCtx(triggerNameAndCtx));
+            expect(eq(expectedResult, res)) << fmt::format("triggerNameAndCtx:{}, tag.map:{}", triggerNameAndCtx, tag.map);
+        };
+
+        // both trigger_name and ctx are set
+        testCase(true, "trigger1/ctx1", "trigger1", "ctx1", true);
+        testCase(false, "trigger1/ctx1", "trigger2", "ctx1", true); // incorrect trigger_name
+        testCase(false, "trigger1/ctx1", "trigger1", "ctx2", true); // incorrect ctx
+        testCase(false, "trigger1/ctx1", "trigger1", "", true);     // empty ctx
+        testCase(false, "trigger1/ctx1", "trigger1", "", false);    // no ctx key in tag.map
+
+        // both trigger_name and empty ctx are set
+        testCase(true, "trigger1/", "trigger1", "", true);
+        testCase(false, "trigger1/", "trigger2", "", true);     // incorrect trigger_name
+        testCase(false, "trigger1/", "trigger1", "ctx2", true); // incorrect ctx
+        testCase(false, "trigger1/", "trigger1", "", false);    // no ctx key in tag.map
+
+        // only trigger_name is set
+        testCase(false, "trigger1", "trigger2", "ctx1", true); // incorrect trigger_name
+        testCase(true, "trigger1", "trigger1", "ctx2", true);  // incorrect ctx
+        testCase(true, "trigger1", "trigger1", "", true);      // empty ctx
+        testCase(true, "trigger1", "trigger1", "", false);     // no ctx key in tag.map
     };
 
     "rapid block arm/disarm trigger"_test = [] {

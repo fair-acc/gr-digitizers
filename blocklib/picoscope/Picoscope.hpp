@@ -118,8 +118,37 @@ struct Channel {
     }
 };
 
+struct TriggerNameAndCtx {
+    std::string triggerName{};
+    std::string ctx{};
+    bool        isCtxSet{true}; // This is needed to differentiate whether an empty ("") context is set.
+};
+
+[[nodiscard]] inline TriggerNameAndCtx createTriggerNameAndCtx(const std::string& triggerNameAndCtx) {
+    const std::size_t pos = triggerNameAndCtx.find('/');
+    if (pos != std::string::npos) { // trigger_name and ctx
+        return {triggerNameAndCtx.substr(0, pos), (pos < triggerNameAndCtx.size() - 1) ? triggerNameAndCtx.substr(pos + 1) : "", true};
+    } else { // only trigger_name
+        return {triggerNameAndCtx, "", false};
+    }
+}
+
+[[nodiscard]] inline bool tagContainsTrigger(const gr::Tag& tag, const TriggerNameAndCtx& triggerNameAndCtx) {
+    if (triggerNameAndCtx.isCtxSet) { // trigger_name and ctx
+        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey()) && tag.map.contains(gr::tag::CONTEXT.shortKey())) {
+            const std::string tagTriggerName = std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey()));
+            return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName && std::get<std::string>(tag.map.at(gr::tag::CONTEXT.shortKey())) == triggerNameAndCtx.ctx;
+        }
+    } else { // only trigger_name
+        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey())) {
+            return std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey())) == triggerNameAndCtx.triggerName;
+        }
+    }
+    return false;
+}
+
 template<typename TEnum>
-constexpr TEnum convertToEnum(std::string_view strEnum) {
+[[nodiscard]] inline constexpr TEnum convertToEnum(std::string_view strEnum) {
     auto enumType = magic_enum::enum_cast<TEnum>(strEnum, magic_enum::case_insensitive);
     if (!enumType.has_value()) {
         throw std::invalid_argument(fmt::format("Unknown value. Cannot convert string '{}' to enum '{}'", strEnum, gr::meta::type_name<TEnum>()));
@@ -127,7 +156,7 @@ constexpr TEnum convertToEnum(std::string_view strEnum) {
     return enumType.value();
 }
 
-std::string currentTime() {
+[[nodiscard]] inline std::string currentTime() {
     using namespace std::chrono;
 
     auto        now     = system_clock::now();
@@ -182,31 +211,31 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
 
     Picoscope(gr::property_map props) : super_t(std::move(props)) {}
 
-    A<std::string, "serial number">                                             serial_number;
-    A<float, "sample rate", Visible>                                            sample_rate              = 10000.f;
-    A<gr::Size_t, "pre-samples">                                                pre_samples              = 1000;  // RapidBlock mode only
-    A<gr::Size_t, "post-samples">                                               post_samples             = 1000;  // RapidBlock mode only
-    A<gr::Size_t, "no. captures (rapid block mode)">                            n_captures               = 1;     // RapidBlock mode only
-    A<bool, "trigger once (rapid block mode)">                                  trigger_once             = false; // RapidBlock mode only
-    A<float, "poll rate (streaming mode)">                                      streaming_mode_poll_rate = 0.001; // TODO, not used for the moment
-    A<bool, "do arm at start?">                                                 auto_arm                 = true;
-    A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">  channel_ids;
-    A<std::vector<float>, "Voltage range of enabled channels">                  channel_ranges;         // PS channel setting
-    A<std::vector<float>, "Voltage offset of enabled channels">                 channel_analog_offsets; // PS channel setting
-    A<std::vector<std::string>, "Coupling modes of enabled channels">           channel_couplings;
-    A<std::vector<std::string>, "Signal names of enabled channels">             signal_names;
-    A<std::vector<std::string>, "Signal units of enabled channels">             signal_units;
-    A<std::vector<std::string>, "Signal quantity of enabled channels">          signal_quantities;
-    A<std::vector<float>, "Signal scales of the enabled channels">              signal_scales;  // only for floats and UncertainValues
-    A<std::vector<float>, "Signal offset of the enabled channels">              signal_offsets; // only for floats and UncertainValues
-    A<std::string, "trigger channel/port ID">                                   trigger_source;
-    A<float, "trigger threshold, analog only">                                  trigger_threshold          = 0.f;
-    A<std::string, "trigger direction">                                         trigger_direction          = std::string("Rising");
-    A<std::string, "arm trigger: `<trigger_name>/<ctx>`, if empty not used">    trigger_arm                = ""; // RapidBlock mode only
-    A<std::string, "disarm trigger: `<trigger_name>/<ctx>`, if empty not used"> trigger_disarm             = ""; // RapidBlock mode only
-    A<gr::Size_t, "time between two systemtime tags in ms">                     systemtime_interval        = 1000UZ;
-    A<int16_t, "digital port threshold (ADC: –32767 (–5 V) to 32767 (+5 V))">   digital_port_threshold     = 0;     // only used if digital port are available: 3000, 5000, 6000 series
-    A<bool, "invert digital port output">                                       digital_port_invert_output = false; // only used if digital port are available: 3000, 5000, 6000 series
+    A<std::string, "serial number">                                               serial_number;
+    A<float, "sample rate", Visible>                                              sample_rate              = 10000.f;
+    A<gr::Size_t, "pre-samples">                                                  pre_samples              = 1000;  // RapidBlock mode only
+    A<gr::Size_t, "post-samples">                                                 post_samples             = 1000;  // RapidBlock mode only
+    A<gr::Size_t, "no. captures (rapid block mode)">                              n_captures               = 1;     // RapidBlock mode only
+    A<bool, "trigger once (rapid block mode)">                                    trigger_once             = false; // RapidBlock mode only
+    A<float, "poll rate (streaming mode)">                                        streaming_mode_poll_rate = 0.001; // TODO, not used for the moment
+    A<bool, "do arm at start?">                                                   auto_arm                 = true;
+    A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">    channel_ids;
+    A<std::vector<float>, "Voltage range of enabled channels">                    channel_ranges;         // PS channel setting
+    A<std::vector<float>, "Voltage offset of enabled channels">                   channel_analog_offsets; // PS channel setting
+    A<std::vector<std::string>, "Coupling modes of enabled channels">             channel_couplings;
+    A<std::vector<std::string>, "Signal names of enabled channels">               signal_names;
+    A<std::vector<std::string>, "Signal units of enabled channels">               signal_units;
+    A<std::vector<std::string>, "Signal quantity of enabled channels">            signal_quantities;
+    A<std::vector<float>, "Signal scales of the enabled channels">                signal_scales;  // only for floats and UncertainValues
+    A<std::vector<float>, "Signal offset of the enabled channels">                signal_offsets; // only for floats and UncertainValues
+    A<std::string, "trigger channel/port ID">                                     trigger_source;
+    A<float, "trigger threshold, analog only">                                    trigger_threshold          = 0.f;
+    A<std::string, "trigger direction">                                           trigger_direction          = std::string("Rising");
+    A<std::string, "arm trigger: `<trigger_name>[/<ctx>]`, if empty not used">    trigger_arm                = ""; // RapidBlock mode only
+    A<std::string, "disarm trigger: `<trigger_name>[/<ctx>]`, if empty not used"> trigger_disarm             = ""; // RapidBlock mode only
+    A<gr::Size_t, "time between two systemtime tags in ms">                       systemtime_interval        = 1000UZ;
+    A<int16_t, "digital port threshold (ADC: –32767 (–5 V) to 32767 (+5 V))">     digital_port_threshold     = 0;     // only used if digital port are available: 3000, 5000, 6000 series
+    A<bool, "invert digital port output">                                         digital_port_invert_output = false; // only used if digital port are available: 3000, 5000, 6000 series
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
 
@@ -216,6 +245,9 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
     int16_t     _handle            = -1; // identifier for the scope device
     float       _actualSampleRate  = 0;
     std::size_t _nSamplesPublished = 0; // for debugging purposes
+
+    detail::TriggerNameAndCtx _armTriggerNameAndCtx; // store parsed information about arm/disarm triggers to optimaze performance
+    detail::TriggerNameAndCtx _disarmTriggerNameAndCtx;
 
     GR_MAKE_REFLECTABLE(Picoscope, timingIn, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                 //
         auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, //
@@ -261,10 +293,10 @@ public:
                             const auto     iSizeT = static_cast<std::size_t>(i);
                             const gr::Tag& tag    = tagData[iSizeT];
 
-                            if (lastArmTriggerIndex == IndexNotSet && tagContainsTrigger(tag, trigger_arm)) {
+                            if (lastArmTriggerIndex == IndexNotSet && detail::tagContainsTrigger(tag, _armTriggerNameAndCtx)) {
                                 lastArmTriggerIndex = iSizeT;
                             }
-                            if (lastDisarmTriggerIndex == IndexNotSet && tagContainsTrigger(tag, trigger_disarm)) {
+                            if (lastDisarmTriggerIndex == IndexNotSet && detail::tagContainsTrigger(tag, _disarmTriggerNameAndCtx)) {
                                 lastDisarmTriggerIndex = iSizeT;
                             }
                             // both arm/disarm triggers were found
@@ -298,15 +330,6 @@ public:
             const auto& [accumulatedRequestedWork, performedWork] = this->ioWorkDone.getAndReset();
             return {accumulatedRequestedWork, performedWork, this->ioLastWorkStatus.load()};
         }
-    }
-
-    [[nodiscard]] bool tagContainsTrigger(const gr::Tag& tag, const std::string& triggerNameAndCtx) {
-        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey()) && tag.map.contains(gr::tag::TRIGGER_TIME.shortKey()) && //
-            tag.map.contains(gr::tag::TRIGGER_OFFSET.shortKey()) && tag.map.contains(gr::tag::CONTEXT.shortKey())) {
-            const std::string tagTriggerNameAndCtx = fmt::format("{}/{}", std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey())), std::get<std::string>(tag.map.at(gr::tag::CONTEXT.shortKey())));
-            return tagTriggerNameAndCtx == triggerNameAndCtx;
-        }
-        return false;
     }
 
     [[nodiscard]] bool isOpened() const { return _handle > 0; }
@@ -350,20 +373,25 @@ public:
             ch.driverBuffer.resize(detail::kDriverBufferSize);
         }
 
-        if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && trigger_arm == trigger_disarm) {
-            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` == `trigger_disarm`"));
-        }
+        if (newSettings.contains("trigger_arm") || newSettings.contains("trigger_disarm")) {
+            _armTriggerNameAndCtx    = detail::createTriggerNameAndCtx(trigger_arm);
+            _disarmTriggerNameAndCtx = detail::createTriggerNameAndCtx(trigger_disarm);
 
-        if (!trigger_arm.value.empty() && trigger_disarm.value.empty()) {
-            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` is set, but `trigger_disarm` is empty string"));
-        }
+            if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && trigger_arm == trigger_disarm) {
+                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` == `trigger_disarm`"));
+            }
 
-        if (trigger_arm.value.empty() && !trigger_disarm.value.empty()) {
-            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_disarm` is set, but `trigger_arm` is empty string"));
-        }
+            if (!trigger_arm.value.empty() && trigger_disarm.value.empty()) {
+                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` is set, but `trigger_disarm` is empty string"));
+            }
 
-        if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && auto_arm) {
-            this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `auto_arm` must be false when `trigger_disarm` and `trigger_disarm` are set"));
+            if (trigger_arm.value.empty() && !trigger_disarm.value.empty()) {
+                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_disarm` is set, but `trigger_arm` is empty string"));
+            }
+
+            if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && auto_arm) {
+                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `auto_arm` must be false when `trigger_disarm` and `trigger_disarm` are set"));
+            }
         }
 
         const bool needsReinit = newSettings.contains("sample_rate") || newSettings.contains("pre_samples") || newSettings.contains("post_samples")                  //
@@ -725,7 +753,7 @@ public:
         ds.axis_names = {channel.name};
         ds.axis_units = {channel.unit};
 
-        ds.extents           = {1, static_cast<int32_t>(nSamples)};
+        ds.extents           = {static_cast<int32_t>(nSamples)};
         ds.layout            = gr::LayoutRight{};
         ds.signal_names      = {channel.name};
         ds.signal_units      = {channel.unit};
@@ -734,12 +762,13 @@ public:
         ds.signal_values.resize(nSamples);
         ds.signal_ranges.resize(1);
         ds.timing_events.resize(1);
+        ds.axis_values.resize(1);
+        ds.axis_values[0].resize(nSamples);
+        float current = 0.0f;
+        std::ranges::generate(ds.axis_values[0], [&current]() { return current++; });
 
-        if (!channel.signalInfoTagPublished) {
-            ds.meta_information.resize(1);
-            ds.meta_information[0]         = channel.toTagMap();
-            channel.signalInfoTagPublished = true;
-        }
+        ds.meta_information.resize(1);
+        ds.meta_information[0] = channel.toTagMap();
 
         return ds;
     }
@@ -766,13 +795,16 @@ public:
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
             outputs[channelIdx][iCapture] = createDataset(_channels[channelIdx], nSamples);
             processSamplesOneChannel<TSample>(nSamples, 0, _channels[channelIdx], outputs[channelIdx][iCapture].signal_values);
-            if (!outputs[channelIdx][iCapture].signal_values.empty()) {
-                // gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]); // TODO: fix compilation error, unsupported type: UncertainValue, it requires changes in GR4
+            if constexpr (std::is_same_v<TSample, float> || std::is_same_v<TSample, std::int16_t>) {
+                gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]);
+            } else {
+                // TODO: fix UncertainValue, it requires changes in GR4
             }
         }
 
-        const auto           triggerSourceIndex = self().convertToOutputIndex(trigger_source);
-        std::vector<gr::Tag> triggerTags        = triggerSourceIndex != std::nullopt ? processTimingTriggers<TSample>(nSamples, outputs[triggerSourceIndex.value()][iCapture].signal_values, timingInSpan) : std::vector<gr::Tag>{};
+        const auto           triggerSourceIndex      = self().convertToOutputIndex(trigger_source);
+        const bool           doProcessTimingTriggers = triggerSourceIndex != std::nullopt && std::ranges::find(channel_ids.value, trigger_source.value) != channel_ids.value.end();
+        std::vector<gr::Tag> triggerTags             = doProcessTimingTriggers ? processTimingTriggers<TSample>(nSamples, outputs[triggerSourceIndex.value()][iCapture].signal_values, timingInSpan) : std::vector<gr::Tag>{};
 
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
             for (auto& tag : triggerTags) {
@@ -791,15 +823,15 @@ public:
 
         const auto driverData = std::span(channel.driverBuffer).subspan(offset, availableSamples);
 
-        if constexpr (std::is_same_v<T, int16_t>) {
+        if constexpr (std::is_same_v<TSample, int16_t>) {
             std::ranges::copy(driverData, output.begin());
         } else {
-            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue); // TODO: max for 8 bits
+            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue);
             // TODO use SIMD
             for (std::size_t i = 0; i < availableSamples; ++i) {
-                if constexpr (std::is_same_v<T, float>) {
+                if constexpr (std::is_same_v<TSample, float>) {
                     output[i] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]);
-                } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
+                } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
                     output[i] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]), self().uncertainty());
                 }
             }
@@ -819,8 +851,9 @@ public:
         const auto now      = std::chrono::duration_cast<std::chrono::nanoseconds>(nowStamp.time_since_epoch());
 
         std::size_t consumeTags = 0UZ;
-        for (const auto& tag : timingInSpan.tags()) {
-            if (!tag.second.contains(gr::tag::CONTEXT.shortKey())) { // only consider timing tags
+        for (const auto& tag : timingInSpan.rawTags) {
+            const bool isArmDisarmTrigger = detail::tagContainsTrigger(tag, _armTriggerNameAndCtx) || detail::tagContainsTrigger(tag, _disarmTriggerNameAndCtx);
+            if (!tag.map.contains(gr::tag::CONTEXT.shortKey()) || isArmDisarmTrigger) { // only consider timing tags
                 consumeTags++;
                 continue;
             }
@@ -828,7 +861,7 @@ public:
             if (triggerOffsets.size() <= _timingMessages.size()) { // all triggers have already been found
                 break;
             }
-            _timingMessages.emplace(tag.second);
+            _timingMessages.emplace(tag.map);
             consumeTags++;
         }
         timingInSpan.consumeTags(consumeTags);
