@@ -235,6 +235,7 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
     A<std::string, "trigger channel/port ID">                                     trigger_source;
     A<float, "trigger threshold, analog only">                                    trigger_threshold          = 0.f;
     A<std::string, "trigger direction">                                           trigger_direction          = std::string("Rising");
+    A<std::string, "trigger filter: `<trigger_name>[/<ctx>]`">                    trigger_filter             = "";
     A<std::string, "arm trigger: `<trigger_name>[/<ctx>]`, if empty not used">    trigger_arm                = ""; // RapidBlock mode only
     A<std::string, "disarm trigger: `<trigger_name>[/<ctx>]`, if empty not used"> trigger_disarm             = ""; // RapidBlock mode only
     A<gr::Size_t, "time between two systemtime tags in ms">                       systemtime_interval        = 1000UZ;
@@ -250,7 +251,7 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
     float       _actualSampleRate  = 0;
     std::size_t _nSamplesPublished = 0; // for debugging purposes
 
-    detail::TriggerNameAndCtx _armTriggerNameAndCtx; // store parsed information about arm/disarm triggers to optimaze performance
+    detail::TriggerNameAndCtx _armTriggerNameAndCtx; // store parsed information to optimise performance
     detail::TriggerNameAndCtx _disarmTriggerNameAndCtx;
 
     GR_MAKE_REFLECTABLE(Picoscope, timingIn, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                 //
@@ -287,7 +288,7 @@ public:
                 if (timingIn.isConnected() && _tagReaderInternal.available() > 0) {
                     gr::ReaderSpanLike auto tagData = _tagReaderInternal.get();
 
-                    if (!trigger_arm.value.empty() && !trigger_disarm.value.empty()) {
+                    if (!trigger_arm.value.empty() || !trigger_disarm.value.empty()) {
                         // find last arm trigger or last disarm trigger
                         const std::size_t IndexNotSet            = std::numeric_limits<std::size_t>::max();
                         std::size_t       lastArmTriggerIndex    = IndexNotSet;
@@ -383,10 +384,6 @@ public:
 
             if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && trigger_arm == trigger_disarm) {
                 this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` == `trigger_disarm`"));
-            }
-
-            if (!trigger_arm.value.empty() && auto_arm) {
-                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `auto_arm` must be false when `trigger_arm` is set"));
             }
         }
 
@@ -641,6 +638,9 @@ public:
 
             for (std::size_t iCapture = 0; iCapture < availableCaptures; iCapture++) {
                 const auto getValuesResult = self().rapidBlockGetValues(iCapture, nSamples);
+                if (nSamples != getValuesResult.nSamples) {
+                    this->emitErrorMessage(fmt::format("{}::processBulk", this->name), fmt::format("Number of retrieved samples ({}) doesn't equal to required samples: pre_samples + post_samples ({})", getValuesResult.nSamples, nSamples));
+                }
                 if (getValuesResult.error) {
                     this->emitErrorMessage(fmt::format("{}::processBulk", this->name), getValuesResult.error.message());
                     return gr::work::Status::ERROR;
@@ -648,8 +648,8 @@ public:
                 processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, timingInSpan, digitalOutSpan, outputs);
             }
 
-            // if trigger_source is not set then consume all input tags
-            if (self().convertToOutputIndex(trigger_source) == std::nullopt) {
+            // if RapidBlock OR trigger_source is not set then consume all input tags
+            if (acquisitionMode == AcquisitionMode::RapidBlock || self().convertToOutputIndex(trigger_source) == std::nullopt) {
                 const std::size_t nInputs = timingInSpan.size();
                 timingInSpan.consume(nInputs);
                 timingInSpan.consumeTags(nInputs);
@@ -760,8 +760,21 @@ public:
         ds.timing_events.resize(1);
         ds.axis_values.resize(1);
         ds.axis_values[0].resize(nSamples);
-        float current = 0.0f;
-        std::ranges::generate(ds.axis_values[0], [&current]() { return current++; });
+
+        // generate time axis
+        using TSample                  = T::value_type;
+        std::size_t       i            = 0;
+        const std::size_t pre          = static_cast<std::size_t>(pre_samples);
+        const float       samplePeriod = 1.0f / sample_rate;
+        std::ranges::generate(ds.axis_values[0], [&i, pre, samplePeriod]() {
+            if constexpr (std::is_same_v<TSample, float>) {
+                float t = static_cast<float>((i - pre) * samplePeriod);
+                ++i;
+                return static_cast<TSample>(t);
+            } else {
+                return i++;
+            }
+        });
 
         ds.meta_information.resize(1);
         ds.meta_information[0] = channel.toTagMap();
@@ -798,13 +811,12 @@ public:
             }
         }
 
-        const auto           triggerSourceIndex      = self().convertToOutputIndex(trigger_source);
-        const bool           doProcessTimingTriggers = triggerSourceIndex != std::nullopt && std::ranges::find(channel_ids.value, trigger_source.value) != channel_ids.value.end();
-        std::vector<gr::Tag> triggerTags             = doProcessTimingTriggers ? processTimingTriggers<TSample>(nSamples, outputs[triggerSourceIndex.value()][iCapture].signal_values, timingInSpan) : std::vector<gr::Tag>{};
-
+        // TODO: currently we assume that we have only trigger tags, and each trigger tag corresponds to iCapture
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
-            for (auto& tag : triggerTags) {
-                outputs[channelIdx][iCapture].timing_events[0].emplace_back(tag.index, tag.map);
+            if (iCapture < timingInSpan.rawTags.size()) {
+                const auto&       tag      = timingInSpan.rawTags[iCapture];
+                const std::size_t tagIndex = static_cast<std::size_t>(pre_samples);
+                outputs[channelIdx][iCapture].timing_events[0].emplace_back(tagIndex, tag.map);
             }
         }
 
