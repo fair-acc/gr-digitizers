@@ -80,7 +80,26 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
     expect(eq(sinkA._samples.size(), nCaptures));   // number of DataSets
     if (sinkA._samples.size() >= nCaptures) {
         for (std::size_t iC = 0; iC < sinkA._samples.size(); iC++) {
-            expect(eq(sinkA._samples[iC].signal_values.size(), totalSamples));
+            const T& ds = sinkA._samples[iC];
+            expect(eq(ds.signal_values.size(), totalSamples));
+
+            // check axis_values (time axis)
+            expect(eq(ds.axis_values.size(), 1UZ));
+            if (ds.axis_values.size() >= 1) {
+                expect(eq(ds.axis_values[0].size(), totalSamples));
+                if (ds.axis_values[0].size() == totalSamples) {
+                    expect(std::ranges::is_sorted(ds.axis_values[0]));
+                    const float tolerance = 0.0001f;
+                    if constexpr (std::is_same_v<typename T::value_type, float> || std::is_same_v<typename T::value_type, gr::UncertainValue<float>>) {
+                        expect(approx(ds.axis_values[0][0], -static_cast<float>(preSamples) / ps._actualSampleRate, tolerance));
+                        expect(approx(ds.axis_values[0][preSamples], 0.f, tolerance));
+                        expect(approx(ds.axis_values[0].back(), static_cast<float>(postSamples) / ps._actualSampleRate, tolerance));
+                    } else if constexpr (std::is_same_v<typename T::value_type, std::int16_t>) {
+                        expect(eq(ds.axis_values[0][0], static_cast<std::int16_t>(0)));
+                        expect(eq(ds.axis_values[0].back(), static_cast<std::int16_t>(totalSamples - 1)));
+                    }
+                }
+            }
         }
     }
 
