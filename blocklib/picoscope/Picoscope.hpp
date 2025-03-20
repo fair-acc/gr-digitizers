@@ -125,6 +125,9 @@ struct TriggerNameAndCtx {
 };
 
 [[nodiscard]] inline TriggerNameAndCtx createTriggerNameAndCtx(const std::string& triggerNameAndCtx) {
+    if (triggerNameAndCtx.empty()) {
+        return {};
+    }
     const std::size_t pos = triggerNameAndCtx.find('/');
     if (pos != std::string::npos) { // trigger_name and ctx
         return {triggerNameAndCtx.substr(0, pos), (pos < triggerNameAndCtx.size() - 1) ? triggerNameAndCtx.substr(pos + 1) : "", true};
@@ -141,7 +144,8 @@ struct TriggerNameAndCtx {
         }
     } else { // only trigger_name
         if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey())) {
-            return std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey())) == triggerNameAndCtx.triggerName;
+            const std::string tagTriggerName = std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey()));
+            return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName;
         }
     }
     return false;
@@ -381,16 +385,8 @@ public:
                 this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` == `trigger_disarm`"));
             }
 
-            if (!trigger_arm.value.empty() && trigger_disarm.value.empty()) {
-                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` is set, but `trigger_disarm` is empty string"));
-            }
-
-            if (trigger_arm.value.empty() && !trigger_disarm.value.empty()) {
-                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_disarm` is set, but `trigger_arm` is empty string"));
-            }
-
-            if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && auto_arm) {
-                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `auto_arm` must be false when `trigger_disarm` and `trigger_disarm` are set"));
+            if (!trigger_arm.value.empty() && auto_arm) {
+                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `auto_arm` must be false when `trigger_arm` is set"));
             }
         }
 

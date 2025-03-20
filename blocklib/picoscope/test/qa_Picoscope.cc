@@ -14,7 +14,7 @@ namespace fair::picoscope::test {
 
 // Replace with your connected Picoscope device
 template<typename T>
-using PicoscopeT = Picoscope5000a<T>;
+using PicoscopeT = Picoscope4000a<T>;
 
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
