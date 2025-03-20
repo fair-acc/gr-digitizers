@@ -762,17 +762,17 @@ public:
         ds.axis_values[0].resize(nSamples);
 
         // generate time axis
-        using TSample                  = T::value_type;
-        std::size_t       i            = 0;
-        const std::size_t pre          = static_cast<std::size_t>(pre_samples);
-        const float       samplePeriod = 1.0f / sample_rate;
+        using TSample            = T::value_type;
+        int         i            = 0;
+        const auto  pre          = static_cast<int>(pre_samples);
+        const float samplePeriod = 1.0f / sample_rate;
         std::ranges::generate(ds.axis_values[0], [&i, pre, samplePeriod]() {
-            if constexpr (std::is_same_v<TSample, float>) {
-                float t = static_cast<float>((i - pre) * samplePeriod);
+            if constexpr (std::is_same_v<TSample, float> || std::is_same_v<TSample, gr::UncertainValue<float>>) {
+                float t = static_cast<float>(i - pre) * samplePeriod;
                 ++i;
-                return static_cast<TSample>(t);
-            } else {
-                return i++;
+                return TSample{t};
+            } else if constexpr (std::is_same_v<TSample, std::int16_t>) {
+                return static_cast<std::int16_t>(i++);
             }
         });
 
