@@ -28,6 +28,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
     using BlockReadyType         = ps4000aBlockReady;
     using RatioModeType          = PS4000A_RATIO_MODE;
     using DeviceResolutionType   = PS4000A_DEVICE_RESOLUTION;
+    using NSamplesType           = int32_t;
 
     GR_MAKE_REFLECTABLE(Picoscope4000a, out);
 
@@ -65,7 +66,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
             return {0, 80'000'000.f};
         } else {
 
-            const auto  timebase   = static_cast<uint32_t>((80'000'000.f / desiredFreq) - 1); // n = (80 MHz / f_S) - 1
+            const auto  timebase   = static_cast<uint32_t>((80'000'000.f / desiredFreq) - 1.f); // n = (80 MHz / f_S) - 1
             const float actualFreq = 80'000'000.f / static_cast<float>(timebase + 1);
             return {timebase, actualFreq};
         }
@@ -108,8 +109,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
     static constexpr CouplingType convertToCoupling(Coupling coupling) {
         if (coupling == Coupling::AC) {
             return PS4000A_AC;
-        }
-        if (coupling == Coupling::DC) {
+        } else if (coupling == Coupling::DC) {
             return PS4000A_DC;
         }
         throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
@@ -143,12 +143,15 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
     };
 
     constexpr float uncertainty() {
-        // https://www.picotech.com/oscilloscope/4000/picoscope-4000-specifications
+        // TODO https://www.picotech.com/oscilloscope/4000/picoscope-4000-specifications
         return 0.0000045f;
     }
 
     PICO_STATUS
-    setDataBuffer(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) { return ps4000aSetDataBuffer(handle, channel, buffer, bufferLth, segmentIndex, mode); }
+    setDataBuffer(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) { return ps4000aSetDataBuffer(handle, channel, buffer, bufferLth, 0UZ, mode); }
+
+    PICO_STATUS
+    setDataBufferForSegment(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) { return ps4000aSetDataBuffer(handle, channel, buffer, bufferLth, segmentIndex, mode); }
 
     PICO_STATUS
     getTimebase2(int16_t handle, uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) { return ps4000aGetTimebase2(handle, timebase, noSamples, timeIntervalNanoseconds, maxSamples, segmentIndex); }
@@ -234,10 +237,11 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
     PICO_STATUS
     getDeviceResolution(int16_t handle, DeviceResolutionType* deviceResolution) const { return ps4000aGetDeviceResolution(handle, deviceResolution); }
 
-    // Digital picoscope inputs, not supported by picoscope 4000A
-    [[nodiscard]] Error setDigitalPorts() { return {}; }
-    [[nodiscard]] Error setDigitalBuffers(size_t, uint32_t) { return {}; }
-    void                copyDigitalBuffersToOutput(std::span<std::uint16_t>, std::size_t) {}
+    // Digital picoscope inputs, not supported by picoscope 4000a
+    [[nodiscard]] PICO_STATUS setDigitalPorts() { return PICO_OK; }
+    [[nodiscard]] PICO_STATUS setDigitalBuffers(size_t, uint32_t) { return PICO_OK; }
+    void                      copyDigitalBuffersToOutput(std::span<std::uint16_t>, std::size_t) {}
+    [[nodiscard]] PICO_STATUS SetTriggerDigitalPort(int16_t, int, TriggerDirection) { return PICO_OK; }
 };
 
 } // namespace fair::picoscope

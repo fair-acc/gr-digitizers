@@ -7,6 +7,7 @@
 #include <Picoscope3000a.hpp>
 #include <Picoscope4000a.hpp>
 #include <Picoscope5000a.hpp>
+#include <Picoscope6000.hpp>
 
 using namespace std::string_literals;
 
@@ -14,13 +15,13 @@ namespace fair::picoscope::test {
 
 // Replace with your connected Picoscope device
 template<typename T>
-using PicoscopeT = Picoscope4000a<T>;
+using PicoscopeT = Picoscope5000a<T>;
 
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 
 template<gr::DataSetLike T>
-void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bool testDigitalOutput = false) {
+void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bool useDigitalTrigger = false, bool testDigitalOutput = false) {
     using namespace boost::ut;
     using namespace gr;
     using namespace fair::picoscope;
@@ -36,12 +37,15 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
     const bool     digitalPortUseExactValue = true;
     const uint16_t digitalPortExactValue    = 8; // 2^n, n = connected port index (assuming that only one port is connected)
 
-    Graph flowGraph;
-    auto& ps = flowGraph.emplaceBlock<PicoscopeT<T>>({{"disconnect_on_done", true}, {"sample_rate", sampleRate}, {"pre_samples", preSamples}, {"post_samples", postSamples}, {"n_captures", nCaptures}, //
-        {"auto_arm", true}, {"trigger_once", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector<float>{5.f}},                                                        //
+    Graph        flowGraph;
+    property_map params = {{"sample_rate", sampleRate}, {"pre_samples", preSamples}, {"post_samples", postSamples}, {"n_captures", nCaptures},   //
+        {"auto_arm", true}, {"trigger_once", true}, {"channel_ids", std::vector<std::string>{"A"}}, {"channel_ranges", std::vector<float>{5.f}}, //
         //{"trigger_source", "D"}, {"trigger_threshold", 0.5f},                                                                                                                                           //
-        {"channel_couplings", std::vector<std::string>{"AC"}}, {"digital_port_threshold", digitalPortThreshold}, {"digital_port_invert_output", digitalPortInvertOutput}});
-
+        {"channel_couplings", std::vector<std::string>{"AC"}}, {"digital_port_threshold", digitalPortThreshold}, {"digital_port_invert_output", digitalPortInvertOutput}};
+    if (useDigitalTrigger) {
+        params.insert_or_assign("trigger_source", "DI4");
+    }
+    auto& ps    = flowGraph.emplaceBlock<PicoscopeT<T>>(params);
     auto& sinkA = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
     auto& sinkB = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
     auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<T, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -253,9 +257,18 @@ const boost::ut::suite PicoscopeTests = [] {
         testRapidBlockBasic<gr::DataSet<gr::UncertainValue<float>>>(1);
     };
 
+    skip / "rapid block digital port trigger"_test = [] {
+        // TODO: Skipped because it requires proper configuration and Timing card.
+        // This requires proper setup, for example, using `test-timing` to generate external timing events,
+        // configuring the timing receiver to output pulses on IO1(2,3) for each event,
+        // and connecting it to a digital input defined in `trigger_source`.
+        // Implementing timing event generation directly in the test, similar to `qa_PicoscopeTiming`.
+        testRapidBlockBasic<gr::DataSet<int16_t>>(1, 1234567.f, true, false);
+    };
+
     skip / "streaming digital output"_test = [] { testStreamingBasics<float>(4000, true); };
 
-    skip / "rapid block digital output"_test = [] { testRapidBlockBasic<gr::DataSet<float>>(1, 4000, true); };
+    skip / "rapid block digital output"_test = [] { testRapidBlockBasic<gr::DataSet<float>>(1, 4000, false, true); };
 
     "rapid block multiple captures"_test = [] { testRapidBlockBasic<DataSet<float>>(3); };
 
