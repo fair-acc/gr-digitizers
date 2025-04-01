@@ -33,7 +33,8 @@ sudo make install
   - verify they are loaded correctly: `lsmod | grep wb`, `dmesg | tail`
 - start saftd demon and attach timing card: `saftd tr0:dev/wbm0` (or `saftd tr0:dev/ttyUSB0`), where `dev/wbm0` (or `dev/ttyUSB0`) is the device path of the wishbone device without leading slash)
 - if there is no physical timing signal plugged into the card, the card has to be switched to master mode:
-  - `eb-console dev/wbm0` (or `eb-console dev/ttyUSB0`) and enter `mode master` and hit return. The console should print a message that the timing mode is changed.
+  - `eb-console dev/wbm0` (or `eb-console dev/ttyUSB0`)
+  - type `mode master` and hit return. The console should print a message that the timing mode is changed.
   - if you connect timing card via USB you may have to close `saftd` first, change mode and run `saftd` again.
   - `eb-console` is included in [bel_projects](https://github.com/GSI-CS-CO/bel_projects)/`tools`.
     If you only need the single tool and have installed `etherbone` on your system by other means you can build only `eb-console`:

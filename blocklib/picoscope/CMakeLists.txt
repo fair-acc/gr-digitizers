@@ -1,5 +1,4 @@
-# TODO do not hardcode
-
+# Add 3000a library
 add_library(ps3000a SHARED IMPORTED GLOBAL)
 set_property(TARGET ps3000a PROPERTY IMPORTED_LOCATION
                                      ${PICOSCOPE_PREFIX}/lib/libps3000a.so)
@@ -7,6 +6,7 @@ target_link_libraries(ps3000a INTERFACE PkgConfig::zlib PkgConfig::libusb)
 target_include_directories(ps3000a
                            INTERFACE ${PICOSCOPE_PREFIX}/include/libps3000a)
 
+# Add 4000a library
 add_library(ps4000a SHARED IMPORTED GLOBAL)
 set_property(TARGET ps4000a PROPERTY IMPORTED_LOCATION
                                      ${PICOSCOPE_PREFIX}/lib/libps4000a.so)
@@ -18,12 +18,21 @@ target_include_directories(
                                                             # missing in
                                                             # libps4000a/
 
+# Add 5000a library
 add_library(ps5000a SHARED IMPORTED GLOBAL)
 set_property(TARGET ps5000a PROPERTY IMPORTED_LOCATION
                                      ${PICOSCOPE_PREFIX}/lib/libps5000a.so)
 target_link_libraries(ps5000a INTERFACE PkgConfig::zlib PkgConfig::libusb)
 target_include_directories(ps5000a
                            INTERFACE ${PICOSCOPE_PREFIX}/include/libps5000a)
+
+# Add 6000a library
+add_library(ps6000 SHARED IMPORTED GLOBAL)
+set_property(TARGET ps6000 PROPERTY IMPORTED_LOCATION
+                                    ${PICOSCOPE_PREFIX}/lib/libps6000.so)
+target_link_libraries(ps6000 INTERFACE PkgConfig::zlib PkgConfig::libusb)
+target_include_directories(ps6000
+                           INTERFACE ${PICOSCOPE_PREFIX}/include/libps6000)
 
 add_library(fair-picoscope INTERFACE)
 target_include_directories(
@@ -35,6 +44,7 @@ target_link_libraries(
   INTERFACE ps3000a
             ps4000a
             ps5000a
+            ps6000
             gr-digitizers-options
             gnuradio-core
             gnuradio-algorithm

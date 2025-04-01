@@ -14,7 +14,7 @@ typedef struct tPS3000ACondition {
     PS3000A_TRIGGER_STATE condition;
 } PS3000A_CONDITION;
 
-typedef enum enPS4000AConditionsInfo { PS3000A_CLEAR = 0x00000001, PS3000A_ADD = 0x00000002 } PS3000A_CONDITIONS_INFO;
+typedef enum enPS3000AConditionsInfo { PS3000A_CLEAR = 0x00000001, PS3000A_ADD = 0x00000002 } PS3000A_CONDITIONS_INFO;
 
 typedef enum enPS3000ADeviceResolution { PS3000A_DR_8BIT } PS3000A_DEVICE_RESOLUTION;
 
@@ -45,6 +45,7 @@ public:
     using BlockReadyType         = ps3000aBlockReady;
     using RatioModeType          = PS3000A_RATIO_MODE;
     using DeviceResolutionType   = PS3000A_DEVICE_RESOLUTION;
+    using NSamplesType           = int32_t;
 
     TimeUnitsType convertTimeUnits(TimeUnits tu) const {
         switch (tu) {
@@ -85,7 +86,7 @@ public:
         } else if (desiredFreq >= 250.e6f) {
             return {2, 250.e6f};
         } else {
-            const auto  timebase   = static_cast<uint32_t>((125.e6f / desiredFreq) + 2); // n = (125 MHz / f_S) + 2;
+            const auto  timebase   = static_cast<uint32_t>((125.e6f / desiredFreq) + 2.f); // n = (125 MHz / f_S) + 2;
             const float actualFreq = 125.e6f / static_cast<float>(timebase - 2);
             return {timebase, actualFreq};
         }
@@ -126,8 +127,7 @@ public:
     static constexpr CouplingType convertToCoupling(Coupling coupling) {
         if (coupling == Coupling::AC) {
             return PS3000A_AC;
-        }
-        if (coupling == Coupling::DC) {
+        } else if (coupling == Coupling::DC) {
             return PS3000A_DC;
         }
         throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
@@ -160,12 +160,15 @@ public:
     };
 
     constexpr float uncertainty() {
-        // https://www.picotech.com/oscilloscope/3000/picoscope-3000-oscilloscope-specifications
+        // TODO: https://www.picotech.com/oscilloscope/3000/picoscope-3000-oscilloscope-specifications
         return 0.0000160f;
     }
 
     PICO_STATUS
-    setDataBuffer(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) { return ps3000aSetDataBuffer(handle, channel, buffer, bufferLth, segmentIndex, mode); }
+    setDataBuffer(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) { return ps3000aSetDataBuffer(handle, channel, buffer, bufferLth, 0UZ, mode); }
+
+    PICO_STATUS
+    setDataBufferForSegment(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) { return ps3000aSetDataBuffer(handle, channel, buffer, bufferLth, segmentIndex, mode); }
 
     PICO_STATUS
     getTimebase2(int16_t handle, uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) { return ps3000aGetTimebase2(handle, timebase, noSamples, timeIntervalNanoseconds, /* oversample */ 0, maxSamples, segmentIndex); }
@@ -238,6 +241,10 @@ public:
                 result.channelC = cond.condition;
             } else if (cond.source == PS3000A_CHANNEL_D) {
                 result.channelD = cond.condition;
+            } else if (cond.source == PS3000A_EXTERNAL) {
+                result.external = cond.condition;
+            } else if (cond.source == PS3000A_TRIGGER_AUX) {
+                result.aux = cond.condition;
             }
         }
         return result;
@@ -274,31 +281,27 @@ public:
 
     // Digital picoscope inputs
 
-    [[nodiscard]] Error setDigitalPorts() {
+    [[nodiscard]] PICO_STATUS setDigitalPorts() {
         for (std::size_t i = 0; i < 2; i++) {
             const PS3000A_DIGITAL_PORT channelId = i == 0 ? PS3000A_DIGITAL_PORT0 : PS3000A_DIGITAL_PORT1;
-            const PICO_STATUS          status    = ps3000aSetDigitalPort(this->_handle, channelId, true, this->digital_port_threshold);
-
-            if (status != PICO_OK) {
-                fmt::println(std::cerr, "setDigitalPorts (chan {}): {}", magic_enum::enum_name(channelId), detail::getErrorMessage(status));
-                return {status};
+            if (const PICO_STATUS status = ps3000aSetDigitalPort(this->_handle, channelId, true, this->digital_port_threshold); status != PICO_OK) {
+                return status;
             }
         }
-        return {};
+        return PICO_OK;
     }
 
-    [[nodiscard]] Error setDigitalBuffers(size_t nSamples, uint32_t segmentIndex) {
+    [[nodiscard]] PICO_STATUS setDigitalBuffers(size_t nSamples, uint32_t segmentIndex) {
         for (std::size_t i = 0; i < 2; i++) {
             const auto channelId = i == 0 ? PS3000A_DIGITAL_PORT0 : PS3000A_DIGITAL_PORT1;
             _digitalBuffers[i].resize(std::max(nSamples, _digitalBuffers[i].size()));
-            const PICO_STATUS status = ps3000aSetDataBuffer(this->_handle, static_cast<PS3000A_CHANNEL>(static_cast<int>(channelId)), _digitalBuffers[i].data(), static_cast<int32_t>(nSamples), segmentIndex, ratioNone());
+            const PICO_STATUS status = setDataBufferForSegment(this->_handle, static_cast<PS3000A_CHANNEL>(static_cast<int>(channelId)), _digitalBuffers[i].data(), static_cast<int32_t>(nSamples), segmentIndex, ratioNone());
 
             if (status != PICO_OK) {
-                fmt::println(std::cerr, "setDigitalBuffers (chan {}): {}", magic_enum::enum_name(channelId), detail::getErrorMessage(status));
-                return {status};
+                return status;
             }
         }
-        return {};
+        return PICO_OK;
     }
 
     void copyDigitalBuffersToOutput(std::span<std::uint16_t> output, std::size_t nSamples) {
@@ -312,6 +315,36 @@ public:
             }
             output[i] = value;
         }
+    }
+
+    [[nodiscard]] PICO_STATUS SetTriggerDigitalPort(int16_t handle, int pinNumber, TriggerDirection direction) {
+        if (pinNumber < 0 || pinNumber > 15) {
+            return PICO_INVALID_DIGITAL_CHANNEL;
+        }
+        PS3000A_DIGITAL_DIRECTION digitalDirection;
+        switch (direction) {
+        case TriggerDirection::Rising: digitalDirection = PS3000A_DIGITAL_DIRECTION_RISING; break;
+        case TriggerDirection::Falling: digitalDirection = PS3000A_DIGITAL_DIRECTION_FALLING; break;
+        case TriggerDirection::Low: digitalDirection = PS3000A_DIGITAL_DIRECTION_LOW; break;
+        case TriggerDirection::High: digitalDirection = PS3000A_DIGITAL_DIRECTION_HIGH; break;
+        default: return PICO_INVALID_DIGITAL_TRIGGER_DIRECTION;
+        }
+
+        // activate digital trigger, conds[7] is digital
+        PS3000A_TRIGGER_CONDITIONS_V2 conds = {PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, //
+            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_TRUE};
+        if (const PICO_STATUS status = ps3000aSetTriggerChannelConditionsV2(handle, &conds, 1); status != PICO_OK) {
+            return status;
+        }
+
+        PS3000A_DIGITAL_CHANNEL_DIRECTIONS pinTrig;
+        pinTrig.channel   = static_cast<PS3000A_DIGITAL_CHANNEL>(pinNumber);
+        pinTrig.direction = digitalDirection;
+
+        if (const PICO_STATUS status = ps3000aSetTriggerDigitalPortProperties(handle, &pinTrig, 1); status != PICO_OK) {
+            return status;
+        }
+        return PICO_OK;
     }
 };
 
