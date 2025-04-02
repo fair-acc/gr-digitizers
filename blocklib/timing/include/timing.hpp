@@ -35,8 +35,8 @@ public:
     static const uint64_t ECA_EVENT_MASK_LATCH = 0xfffe000000000000ull;
     static const uint64_t IO_CONDITION_OFFSET  = 5000ull;
     /**
-     * Structure to atuomatically encode and decode GSI/FAIR specific timing events as documented in:
-     * https://www-acc.gsi.de/wiki/Timing/TimingSystemEvent
+     * Structure to automatically encode and decode GSI/FAIR specific timing events as documented in:
+     * https://wiki.gsi.de/TOS/Timing/TimingSystemEvent
      *
      * The Timing system transmits 256 bit of metadata per timing event consisting of the following high level fields:
      *  bits   |size| name                   | description

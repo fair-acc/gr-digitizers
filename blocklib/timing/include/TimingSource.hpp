@@ -374,13 +374,13 @@ it accordingly using the `saft-io-ctl` utility.
             }();
             meta.emplace("EVENT-NAME", eventName);
             tag.map.emplace(tag::TRIGGER_NAME.shortKey(), eventName);
-            tag.map.emplace(tag::CONTEXT.shortKey(), fmt::format("FAIR-TIMING:B={}.P={}.C={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
-            meta.emplace("SID", event.sid);
-            meta.emplace("BPID", event.bpid);
+            tag.map.emplace(tag::CONTEXT.shortKey(), fmt::format("FAIR-TIMING:C={}.S={}.P={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
+            meta.emplace("BPCTS", event.bpcts); // chain execution time-stamp (i.e. unique chain identifier)
+            meta.emplace("BPCID", event.bpcid); // chain ID (can contain multiple sequences)
+            meta.emplace("SID", event.sid);     // chain ID -> sequence ID (can contain multiple beam-processes)
+            meta.emplace("BPID", event.bpid);   // beam process ID (PID)
             meta.emplace("BEAM-IN", event.flagBeamin);
             meta.emplace("BPC-START", event.flagBpcStart);
-            meta.emplace("BPCID", event.bpcid);
-            meta.emplace("BPCTS", event.bpcts);
             tag.map.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
         }
         tag.map.emplace(tag::TRIGGER_META_INFO.shortKey(), meta);
