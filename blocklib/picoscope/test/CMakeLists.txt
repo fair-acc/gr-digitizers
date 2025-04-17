@@ -13,6 +13,7 @@ endfunction()
 
 add_ut_test_tool(qa_Picoscope)
 add_ut_test_tool(qa_PicoscopePerformanceMonitor)
+add_ut_test_tool(qa_TimingMatcher)
 
 if(NOT EMSCRIPTEN AND NOT CLANG)
   add_ut_test_tool(qa_PicoscopeTiming)
