@@ -57,6 +57,39 @@ const suite TimingBlockHelpers = [] {
         expect(throws([]() { gr::timing::TimingSource::parseTriggerAction("IO(50,on,40,off),"); })) << "Additional comma without additional action should throw";
         expect(throws([]() { gr::timing::TimingSource::parseTriggerAction("IO(50,on,40,off"); })) << "Missing closing bracket should throw";
     };
+
+    "hw_trigger-parsing"_test = []() {
+        std::vector<std::string> triggerMetadata{
+            "SIS100_RING:CMD_BP_START",
+            "301:256",
+        };
+        std::vector<std::tuple<std::uint64_t, std::uint64_t>> result;
+        gr::timing::TimingSource::updateEventHwTrigger(triggerMetadata, result);
+        std::vector<std::tuple<std::uint64_t, std::uint64_t>> expected{
+            {0x1136100000000000ul, 0xfffffff000000000ul},
+            {0x112d100000000000ul, 0xfffffff000000000ul},
+        };
+        expect(std::ranges::equal(expected, result));
+    };
+
+    "add metadata to tag"_test = []() {
+        std::vector<std::tuple<std::uint64_t, std::uint64_t>> actionTrigger{
+            {0x1136100000000000ul, 0xfffffff000000000ul},
+            {0x112d100000000000ul, 0xfffffff000000000ul},
+        };
+        { // id does not match any filters -> HW-TRIGGER: false
+            gr::Tag tag{.index = 0uz, .map = {{"existingKey", "test"}}};
+            gr::timing::TimingSource::addHwTriggerInfo(0x1136200000000000ul, tag, actionTrigger);
+            gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO, gr::property_map{{"HW-TRIGGER", false}}}};
+            expect(std::ranges::equal(expected, tag.map)) << [&tag, &expected]() { return fmt::format("got: {} exp: {}", tag.map, expected); };
+        }
+        { // id matches first filter in the filter list -> HW-TRIGGER: true
+            gr::Tag tag{.index = 0uz, .map = {{"existingKey", "test"}}};
+            gr::timing::TimingSource::addHwTriggerInfo(0x1136100000000000ul, tag, actionTrigger);
+            gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO, gr::property_map{{"HW-TRIGGER", true}}}};
+            expect(std::ranges::equal(expected, tag.map)) << [&tag, &expected]() { return fmt::format("got: {} exp: {}", tag.map, expected); };
+        }
+    };
 };
 
 std::thread dispatchSimulatedTiming(std::size_t n = 30, std::size_t schedule_dt = 200'000'000UL, std::size_t schedule_offset = 500'000'000UL) {
@@ -146,7 +179,7 @@ const suite TimingBlock = [] {
 
         expect(approx(sink._samples.size(), 1500UZ, 100UZ)) << "samples do not approximately correspond to the configured sample rate";
         expect(approx(sink._tags.size(), 50UZ, 10UZ)) << "expected approximately 50 tags";
-        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains("BPID"); }) | std::views::transform([](auto& tag) { return std::get<uint16_t>(tag.map["BPID"]); }), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
+        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())).contains("BPID"); }) | std::views::transform([](auto& tag) { return std::get<uint16_t>(std::get<gr::property_map>(tag.map[gr::tag::TRIGGER_META_INFO.shortKey()])["BPID"]); }), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
 
         expect(std::ranges::equal(sink._samples | std::views::transform([](auto v) { return v >> 2; })                                    // drop irrelevant bits (LSB: tagPresent, LSB+1:output which toggles on timing events)
                                       | std::views::chunk_by(std::equal_to{})                                                             // merge and count identical samples
@@ -204,15 +237,15 @@ const suite TimingBlock = [] {
 
         expect(eq(sink._samples.size(), sink._tags.size())) << "For sample_rate=0.0f the number of samples and tags should be identical";
         expect(approx(sink._tags.size(), 60UZ, 10UZ)) << "Expected approximately 60 tags";
-        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains("BPID"); }) | std::views::transform([](auto& tag) { return std::get<uint16_t>(tag.map["BPID"]); }), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
-        expect(approx(                                                                                                                                                                                                          //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags)                                                                                                                                                    //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).map.contains("IO-NAME") && (std::get<1>(pair).map.at("IO-NAME") == "IO2" || std::get<1>(pair).map.at("IO-NAME") == "IO3"); })), //
+        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())).contains("BPID"); }) | std::views::transform([](auto& tag) { return std::get<uint16_t>(std::get<gr::property_map>(tag.map[gr::tag::TRIGGER_META_INFO.shortKey()])["BPID"]); }), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
+        expect(approx(                                                                                                                                                                                              //
+            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())); }))        //
+                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && (std::get<1>(pair).at("IO-NAME") == "IO2" || std::get<1>(pair).at("IO-NAME") == "IO3"); })), //
             24, 2))
             << "Wrong numnber of IO tags";
-        expect(approx(                                                                                                                                                        //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags)                                                                                                  //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).map.contains("IO-NAME") && std::get<1>(pair).map.at("IO-NAME") == "IO1"; })), //
+        expect(approx(                                                                                                                                                                                       //
+            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())); })) //                                                                                                  //
+                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && std::get<1>(pair).at("IO-NAME") == "IO1"; })),                                        //
             30, 2))
             << "Wrong numnber of event triggered IO tags";
 
