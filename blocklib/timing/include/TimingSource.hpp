@@ -90,13 +90,14 @@ it accordingly using the `saft-io-ctl` utility.
     MsgPortIn ctxInfo;
 
     A<std::vector<std::string>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
+    A<std::vector<std::string>, "event hardware trigger", Doc<"A list of matchers, whoose events will get a `HW_TRIGGER=true` entry in the event metadata">, Visible>                                                           event_hw_trigger;
     A<float, "avg. sample rate", Doc<"Controls the sample rate at which to publish the digital output state. A value of 0.0f means samples are published only when there's an event.">, Visible>                                sample_rate     = 1000.f;
     A<std::string, "timing device name", Doc<"Specifies the timing device to use. In case it is left empty, the first timing device that is found is used.">>                                                                   timing_device   = "";
     A<std::uint64_t, "max delay", Doc<"Maximum delay for messages from the timing hardware. Only used for sample_rate != 0.0f">, Unit<"ns">>                                                                                    max_delay       = 10'000'000; // 10 ms // todo: uint64t ns
     A<bool, "verbose console", Doc<"For debugging">>                                                                                                                                                                            verbose_console = false;
     // TODO: enable/disable publishing on input port changes -> For now everything is published, add in follow-up PR
 
-    GR_MAKE_REFLECTABLE(TimingSource, out, ctxInfo, event_actions, sample_rate, timing_device, max_delay, verbose_console);
+    GR_MAKE_REFLECTABLE(TimingSource, out, ctxInfo, event_actions, event_hw_trigger, sample_rate, timing_device, max_delay, verbose_console);
 
     using ConditionsType = std::map<std::string, std::map<std::string, std::variant<std::shared_ptr<saftlib::OutputCondition_Proxy>, std::shared_ptr<saftlib::SoftwareCondition_Proxy>>>>;
     Timing _timing;
@@ -108,6 +109,8 @@ it accordingly using the `saft-io-ctl` utility.
     std::uint8_t    _lastOutputState  = 0;
     std::uint8_t    _outputState      = 0;
     std::uint8_t    _nextOutputState  = 0;
+
+    std::vector<std::tuple<std::uint64_t, std::uint64_t>> eventHwTrigger;
 
     void start() {
         if (verbose_console) {
@@ -341,13 +344,46 @@ it accordingly using the `saft-io-ctl` utility.
                 updateEventTriggers();
             }
         } // end io triggers
+        if (newSettings.contains("event_hw_trigger") && event_hw_trigger != std::get<std::vector<std::string>>(oldSettings.at("event_hw_trigger"))) {
+            eventHwTrigger.clear();
+            updateEventHwTrigger(event_hw_trigger.value, eventHwTrigger);
+        }
     }
 
-    Tag eventToTag(const Timing::Event& event) {
+    static void updateEventHwTrigger(const std::vector<std::string>& hwTriggerStrings, std::vector<std::tuple<std::uint64_t, std::uint64_t>>& _eventHwTrigger) {
+        _eventHwTrigger.clear();
+        for (const std::string& triggerMatcher : hwTriggerStrings) {
+            auto [filter, mask] = parseFilter(triggerMatcher);
+            _eventHwTrigger.push_back({filter, mask});
+        }
+    }
+
+    static void addHwTriggerInfo(std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
+        auto& metaMapVariant = tag.map[gr::tag::TRIGGER_META_INFO];
+        if (std::holds_alternative<std::monostate>(metaMapVariant)) {
+            metaMapVariant = property_map{}; // initialize empty property map
+        } else if (!std::holds_alternative<gr::property_map>(metaMapVariant)) {
+            return; // edgecase where the tag map already contains data of a non-map type on the meta-info key -> just skip adding metadata
+        }
+        bool  isHwTrigger = false;
+        auto& metaMap     = std::get<gr::property_map>(metaMapVariant);
+        for (const auto& [filter, mask] : eventMeta) {
+            if ((id & mask) == (filter & mask)) {
+                isHwTrigger = true;
+                break;
+            }
+        }
+        metaMap.insert_or_assign("HW-TRIGGER", isHwTrigger);
+    }
+
+    void addHwTriggerInfo(std::uint64_t id, Tag& tag) { addHwTriggerInfo(id, tag, eventHwTrigger); }
+
+    Tag eventToTag(const Timing::Event& event, std::int64_t currentTime) {
         Tag              tag;
         gr::property_map meta;
         std::uint64_t    id = event.id();
         tag.map.emplace(tag::TRIGGER_TIME.shortKey(), taiNsToUtcNs(event.time));
+        meta.emplace("LOCAL-TIME", currentTime);
         meta.emplace("TIMING-ID", id);
         meta.emplace("TIMING-PARAM", event.param());
         if (event.isIo) {
@@ -403,9 +439,11 @@ it accordingly using the `saft-io-ctl` utility.
         _timing.saftSigGroup.wait_for_signal(static_cast<int>(max_delay >> 22ul)); // process saftlib events, max_delay >> 22 is ~ 1/4 of max delay in ms
         auto timingEvents = _event_reader.template get<SpanReleasePolicy::ProcessAll>();
         // publish to output port and message port
-        std::size_t toPublish = 0;
+        std::size_t  toPublish   = 0;
+        std::int64_t currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         for (const Timing::Event& event : timingEvents) {
-            gr::Tag timingTag = eventToTag(event);
+            gr::Tag timingTag = eventToTag(event, currentTime);
+            addHwTriggerInfo(event.id(), timingTag);
             // TODO: make stable against rounding errors by using global time difference instead of just between 2 events
             std::size_t samplesUntilCurrentEvent = 0;
             if (sample_rate != 0.0f) {
@@ -434,7 +472,7 @@ it accordingly using the `saft-io-ctl` utility.
                 updateOutputState(event);
                 outSpan[toPublish - 1] = _outputState + 1;
             }
-            outSpan.publishTag(timingTag.map, static_cast<long>(toPublish - 1));
+            outSpan.publishTag(timingTag.map, toPublish - 1);
             if (verbose_console) {
                 fmt::print("publishing tag, {} samples before, then sample with tag {}\n", samplesUntilCurrentEvent, timingTag.map);
             }
