@@ -4,6 +4,7 @@
 #include "StatusMessages.hpp"
 
 #include <PicoConnectProbes.h>
+#include <TimingMatcher.hpp>
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/algorithm/dataset/DataSetUtils.hpp>
 
@@ -14,6 +15,7 @@
 #include <queue>
 
 namespace fair::picoscope {
+using namespace std::chrono_literals;
 
 struct Error {
     PICO_STATUS code = PICO_OK;
@@ -116,6 +118,7 @@ constexpr std::size_t kDriverBufferSize = 65536;
 struct Channel {
     std::string          id;
     std::vector<int16_t> driverBuffer;
+    std::vector<int16_t> unpublishedSamples; // samples that could not be processed in the last iteration
     bool                 signalInfoTagPublished = false;
 
     // settings
@@ -217,7 +220,7 @@ struct PicoscopeBlockingHelper<TPSImpl, true> { // RapidBlock mode
     using type = gr::Block<TPSImpl, gr::SupportedTypes<gr::DataSet<int16_t>, gr::DataSet<float>, gr::DataSet<gr::UncertainValue<float>>>, gr::BlockingIO<false>>;
 };
 
-template<PicoscopeOutput T, typename TPSImpl>
+template<PicoscopeOutput T, typename TPSImpl, typename TTagMatcher = timingmatcher::TimingMatcher>
 struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type {
     using super_t                                    = typename PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type;
     static constexpr AcquisitionMode acquisitionMode = gr::DataSetLike<T> ? AcquisitionMode::RapidBlock : AcquisitionMode::Streaming;
@@ -275,12 +278,13 @@ private:
     std::queue<gr::property_map>                   _timingMessages;
     std::atomic<bool>                              _isArmed = false; // for RapidBlock mode only
     std::vector<detail::Channel>                   _channels;
-    int8_t                                         _triggerState   = 0;
     int16_t                                        _maxValue       = 0; // maximum ADC count used for ADC conversion
     std::chrono::high_resolution_clock::time_point _nextSystemtime = std::chrono::high_resolution_clock::now();
 
     using ReaderType              = decltype(timingIn.buffer().tagBuffer.new_reader());
     ReaderType _tagReaderInternal = timingIn.buffer().tagBuffer.new_reader();
+
+    TTagMatcher tagMatcher{.maxDelay = 30ms};
 
 public:
     ~Picoscope() { stop(); }
@@ -535,6 +539,9 @@ public:
                 this->emitErrorMessage(std::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
+
+        tagMatcher.sampleRate = sample_rate;
+
         if (detail::isDigitalTrigger(trigger_source) && acquisitionMode == AcquisitionMode::RapidBlock) {
             const auto status = self().SetTriggerDigitalPort(_handle, _digitalChannelNumber, detail::convertToEnum<TriggerDirection>(trigger_direction));
             if (status != PICO_OK) {
@@ -651,7 +658,10 @@ public:
                     return gr::work::Status::ERROR;
                 }
             } else {
-                processDriverDataStreaming(_streamingSamples, _streamingOffset, timingInSpan, digitalOutSpan, outputs);
+                auto now               = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
+                auto acquisitionLength = std::chrono::nanoseconds(static_cast<long>(static_cast<float>(_streamingSamples) * (1e9f / sample_rate)));
+                // std::print("Data chunk at local time: {} = {} - {}\n", (now - acquisitionLength).count(), now.count(), acquisitionLength.count());
+                processDriverDataStreaming(_streamingSamples, _streamingOffset, timingInSpan, digitalOutSpan, outputs, now - acquisitionLength);
                 _streamingSamples = 0;
             }
         } else {
@@ -682,7 +692,7 @@ public:
             // if RapidBlock OR trigger_source is not set then consume all input tags
             if (acquisitionMode == AcquisitionMode::RapidBlock || self().convertToOutputIndex(trigger_source) == std::nullopt) {
                 const std::size_t nInputs = timingInSpan.size();
-                timingInSpan.consume(nInputs);
+                std::ignore               = timingInSpan.consume(nInputs);
                 timingInSpan.consumeTags(nInputs);
             }
 
@@ -723,39 +733,52 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs)
+    void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs, std::chrono::nanoseconds acquisitionTime)
     requires(acquisitionMode == AcquisitionMode::Streaming)
     {
-        const std::size_t availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
+        std::size_t availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
 
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
             processSamplesOneChannel<T>(availableSamples, offset, _channels[channelIdx], outputs[channelIdx]);
         }
 
-        std::vector<gr::Tag> triggerTags = processTimingTriggers(availableSamples, timingInSpan, digitalOutSpan, outputs);
+        std::size_t unpublishedOffset = _channels[0].unpublishedSamples.size();
+        availableSamples += unpublishedOffset;
+        auto acquisitionTimeOffset = std::chrono::nanoseconds(static_cast<long>(static_cast<float>(unpublishedOffset) * (1e9f / sample_rate)));
+
+        const auto               triggerSourceIndex = self().convertToOutputIndex(trigger_source);
+        std::span                samples(outputs[triggerSourceIndex.value()].data(), availableSamples);
+        auto                     triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
+        std::span<const gr::Tag> tagspan        = std::span(timingInSpan.rawTags);
+        auto                     tags           = tagspan | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
+        auto                     triggerTags    = tagMatcher.match(tags, triggerOffsets, availableSamples, acquisitionTime - acquisitionTimeOffset);
+        //std::print("matched: ({}){}, {}\n  {},{}: {}\n", availableSamples, triggerOffsets, tags, triggerTags.processedTags, triggerTags.processedSamples, triggerTags.tags);
 
         // publish tags
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
             auto&      channel     = _channels[channelIdx];
             auto&      output      = outputs[channelIdx];
-            const auto tagsToWrite = triggerTags.size() + (channel.signalInfoTagPublished ? 0 : 1);
-            if (tagsToWrite == 0) {
-                continue;
-            }
             if (!channel.signalInfoTagPublished) {
                 output.publishTag(channel.toTagMap(), 0);
                 channel.signalInfoTagPublished = true;
             }
-            if (availableSamples < nSamples) {
-                output.publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples - availableSamples}}, 0);
+            if (triggerTags.tags.empty()) {
+                continue;
             }
-            for (auto& tag : triggerTags) {
-                output.publishTag(tag.map, tag.index);
+            for (auto& [index, map] : triggerTags.tags) {
+                output.publishTag(map, index);
             }
         }
 
-        self().copyDigitalBuffersToOutput(digitalOutSpan, availableSamples);
-        digitalOutSpan.publish(availableSamples);
+        self().copyDigitalBuffersToOutput(digitalOutSpan, triggerTags.processedSamples);
+        for (auto& [index, map] : triggerTags.tags) {
+            digitalOutSpan.publishTag(map, index);
+        }
+        digitalOutSpan.publish(triggerTags.processedSamples);
+
+        auto lastTimingSampleIndex = tagspan[triggerTags.processedTags - 1].index - timingInSpan.streamIndex + 1;
+        timingInSpan.consumeTags(lastTimingSampleIndex);
+        std::ignore = timingInSpan.consume(lastTimingSampleIndex);
 
         // publish samples
         for (std::size_t i = 0; i < outputs.size(); i++) {
@@ -763,11 +786,19 @@ public:
             // Therefore, we must connect all output ports of the picoscope and ensure that samples are published for all ports.
             // Otherwise, tags will not be propagated correctly.
             // const std::size_t nSamplesToPublish = i < _state.channels.size() ? availableSamples : 0UZ;
-            const std::size_t nSamplesToPublish = availableSamples;
-            outputs[i].publish(nSamplesToPublish);
+            outputs[i].publish(triggerTags.processedSamples);
         }
 
-        _nSamplesPublished += availableSamples;
+        // save the unpublished part of the chunk to be reprocessed in the next iteration
+        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
+            // todo: this drops some samples if less than the new samples is processed
+            auto       processedEnd = offset + ((triggerTags.processedSamples > _channels[channelIdx].unpublishedSamples.size()) ? (triggerTags.processedSamples - _channels[channelIdx].unpublishedSamples.size()) : 0);
+            const auto driverData   = std::span(_channels[channelIdx].driverBuffer).subspan(processedEnd, availableSamples - triggerTags.processedSamples);
+            _channels[channelIdx].unpublishedSamples.clear();
+            std::ranges::copy(driverData, std::back_inserter(_channels[channelIdx].unpublishedSamples));
+        }
+
+        _nSamplesPublished += triggerTags.processedSamples;
     }
 
     constexpr T createDataset(detail::Channel& channel, std::size_t nSamples)
@@ -862,77 +893,27 @@ public:
         const auto driverData = std::span(channel.driverBuffer).subspan(offset, availableSamples);
 
         if constexpr (std::is_same_v<TSample, int16_t>) {
-            std::ranges::copy(driverData, output.begin());
+            std::ranges::copy(channel.unpublishedSamples, output.begin());
+            std::ranges::copy(driverData, output.begin() + static_cast<std::ptrdiff_t>(channel.unpublishedSamples.size()));
         } else {
             const float voltageMultiplier = channel.range / static_cast<float>(_maxValue);
             // TODO use SIMD
+            std::size_t nUnpublishedSamples = channel.unpublishedSamples.size();
+            for (std::size_t i = 0; i < nUnpublishedSamples; ++i) {
+                if constexpr (std::is_same_v<TSample, float>) {
+                    output[i] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(channel.unpublishedSamples[i]);
+                } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
+                    output[i] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(channel.unpublishedSamples[i]), self().uncertainty());
+                }
+            }
             for (std::size_t i = 0; i < availableSamples; ++i) {
                 if constexpr (std::is_same_v<TSample, float>) {
-                    output[i] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]);
+                    output[i + nUnpublishedSamples] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]);
                 } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
-                    output[i] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]), self().uncertainty());
+                    output[i + nUnpublishedSamples] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]), self().uncertainty());
                 }
             }
         }
-    }
-
-    template<gr::OutputSpanLike TOutSpan>
-    std::vector<gr::Tag> processTimingTriggers(std::size_t availableSamples, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs) {
-        // Note: reference for `gr::InputSpanLike auto& timingInSpan` is needed for proper work of consumeTags method
-        std::vector<std::size_t> triggerOffsets;
-        if (detail::isAnalogTrigger(trigger_source)) {
-            const auto triggerSourceIndex = self().convertToOutputIndex(trigger_source);
-            if (triggerSourceIndex == std::nullopt) {
-                return std::vector<gr::Tag>{};
-            }
-            std::span samples(outputs[triggerSourceIndex.value()].data(), availableSamples);
-            triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
-        } else if (detail::isDigitalTrigger(trigger_source)) {
-            if (_digitalChannelNumber < 0 || _digitalChannelNumber > 15) {
-                return std::vector<gr::Tag>{};
-            }
-            triggerOffsets = findDigitalTriggers(_digitalChannelNumber, digitalOutSpan);
-        }
-
-        const auto nowStamp = std::chrono::high_resolution_clock::now();
-        const auto now      = std::chrono::duration_cast<std::chrono::nanoseconds>(nowStamp.time_since_epoch());
-
-        std::size_t consumeTags = 0UZ;
-        for (const auto& tag : timingInSpan.rawTags) {
-            const bool isArmDisarmTrigger = detail::tagContainsTrigger(tag, _armTriggerNameAndCtx) || detail::tagContainsTrigger(tag, _disarmTriggerNameAndCtx);
-            if (!tag.map.contains(gr::tag::CONTEXT.shortKey()) || isArmDisarmTrigger) { // only consider timing tags
-                consumeTags++;
-                continue;
-            }
-            // TODO: Allow to match multiple events to a single trigger here and allow to timeout on events where the trigger pulse was somehow lost
-            if (triggerOffsets.size() <= _timingMessages.size()) { // all triggers have already been found
-                break;
-            }
-            _timingMessages.emplace(tag.map);
-            consumeTags++;
-        }
-        timingInSpan.consumeTags(consumeTags);
-        timingInSpan.consume(consumeTags);
-        std::vector<gr::Tag> triggerTags;
-        triggerTags.reserve(triggerOffsets.size() + 1);
-        for (const auto triggerOffset : triggerOffsets) {
-            gr::property_map timing;
-            if (_timingMessages.empty()) {
-                timing = gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "UnknownTrigger"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::uint64_t>(now.count())}, {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f}};
-                // TODO: stop processing here instead in case the tag arrives later and only publish unknown trigger tag after timeout
-            } else {
-                timing = _timingMessages.front();
-                _timingMessages.pop();
-            }
-            triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
-            _nextSystemtime = nowStamp + std::chrono::milliseconds(systemtime_interval);
-        }
-        // add an independent software timestamp with the localtime of the system to the last sample of each chunk
-        if (nowStamp > _nextSystemtime) {
-            triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "systemtime"}, {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f}, {gr::tag::CONTEXT.shortKey(), "NO-CONTEXT"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<uint64_t>(now.count())}});
-            _nextSystemtime += std::chrono::milliseconds(systemtime_interval);
-        }
-        return triggerTags;
     }
 
     template<typename TSample>
@@ -942,10 +923,9 @@ public:
         }
 
         std::vector<std::size_t> triggerOffsets; // relative offset of detected triggers
-        const float              band              = triggerChannel.range / 100.f;
-        const float              voltageMultiplier = triggerChannel.range / static_cast<float>(_maxValue);
+        const float              band = triggerChannel.range / 100.f;
 
-        const auto toFloat = [&voltageMultiplier](TSample raw) {
+        const auto toFloat = [](TSample raw) {
             if constexpr (std::is_same_v<TSample, float>) {
                 return raw;
             } else if constexpr (std::is_same_v<TSample, int16_t>) {
@@ -957,25 +937,26 @@ public:
             }
         };
 
+        bool       triggerState         = toFloat(samples[0]) >= trigger_threshold;
         const auto triggerDirectionEnum = detail::convertToEnum<TriggerDirection>(trigger_direction);
         if (triggerDirectionEnum == TriggerDirection::Rising || triggerDirectionEnum == TriggerDirection::High) {
             for (std::size_t i = 0; i < samples.size(); i++) {
                 const float value = toFloat(samples[i]);
-                if (_triggerState == 0 && value >= trigger_threshold) {
-                    _triggerState = 1;
+                if (triggerState == 0 && value >= trigger_threshold) {
+                    triggerState = 1;
                     triggerOffsets.push_back(i);
-                } else if (_triggerState == 1 && value <= trigger_threshold - band) {
-                    _triggerState = 0;
+                } else if (triggerState == 1 && value <= trigger_threshold - band) {
+                    triggerState = 0;
                 }
             }
         } else if (triggerDirectionEnum == TriggerDirection::Falling || triggerDirectionEnum == TriggerDirection::Low) {
             for (std::size_t i = 0; i < samples.size(); i++) {
                 const float value = toFloat(samples[i]);
-                if (_triggerState == 1 && value <= trigger_threshold) {
-                    _triggerState = 0;
+                if (triggerState == 1 && value <= trigger_threshold) {
+                    triggerState = 0;
                     triggerOffsets.push_back(i);
-                } else if (_triggerState == 0 && value >= trigger_threshold + band) {
-                    _triggerState = 1;
+                } else if (triggerState == 0 && value >= trigger_threshold + band) {
+                    triggerState = 1;
                 }
             }
         }
@@ -991,22 +972,23 @@ public:
         std::vector<std::size_t> triggerOffsets;
 
         const auto triggerDirectionEnum = detail::convertToEnum<TriggerDirection>(trigger_direction);
+        bool       triggerState         = (samples[0] & mask) > 0;
         if (triggerDirectionEnum == TriggerDirection::Rising || triggerDirectionEnum == TriggerDirection::High) {
             for (std::size_t i = 0; i < samples.size(); i++) {
-                if (!_triggerState && (samples[i] & mask)) {
-                    _triggerState = 1;
+                if (!triggerState && (samples[i] & mask)) {
+                    triggerState = 1;
                     triggerOffsets.push_back(i);
-                } else if (_triggerState && !(samples[i] & mask)) {
-                    _triggerState = 0;
+                } else if (triggerState && !(samples[i] & mask)) {
+                    triggerState = 0;
                 }
             }
         } else if (triggerDirectionEnum == TriggerDirection::Falling || triggerDirectionEnum == TriggerDirection::Low) {
             for (std::size_t i = 0; i < samples.size(); i++) {
-                if (_triggerState && !(samples[i] & mask)) {
-                    _triggerState = 0;
+                if (triggerState && !(samples[i] & mask)) {
+                    triggerState = 0;
                     triggerOffsets.push_back(i);
-                } else if (!_triggerState && (samples[i] & mask)) {
-                    _triggerState = 1;
+                } else if (!triggerState && (samples[i] & mask)) {
+                    triggerState = 1;
                 }
             }
         }
