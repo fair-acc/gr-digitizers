@@ -515,7 +515,7 @@ it accordingly using the `saft-io-ctl` utility.
 
 } // namespace gr::timing
 
-auto registerTimingSource = gr::registerBlock<gr::timing::TimingSource>(gr::globalBlockRegistry());
+auto registerTimingSource = gr::registerBlock<gr::timing::TimingSource>(*grGlobalBlockRegistry());
 static_assert(gr::HasProcessBulkFunction<gr::timing::TimingSource>);
 
 #endif // GR_DIGITIZERS_TIMINGSOURCE_HPP

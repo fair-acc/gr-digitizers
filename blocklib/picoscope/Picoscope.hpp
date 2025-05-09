@@ -4,6 +4,7 @@
 #include "StatusMessages.hpp"
 
 #include <PicoConnectProbes.h>
+#include <TimingMatcher.hpp>
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/algorithm/dataset/DataSetUtils.hpp>
 
@@ -229,7 +230,7 @@ struct PicoscopeBlockingHelper<TPSImpl, true> { // RapidBlock mode
     using type = gr::Block<TPSImpl, gr::SupportedTypes<gr::DataSet<int16_t>, gr::DataSet<float>, gr::DataSet<gr::UncertainValue<float>>>, gr::BlockingIO<false>>;
 };
 
-template<PicoscopeOutput T, typename TPSImpl>
+template<PicoscopeOutput T, typename TPSImpl, typename TTagMatcher = timingmatcher::TimingMatcher>
 struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type {
     using super_t                                    = typename PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type;
     static constexpr AcquisitionMode acquisitionMode = gr::DataSetLike<T> ? AcquisitionMode::RapidBlock : AcquisitionMode::Streaming;
@@ -293,6 +294,8 @@ private:
 
     using ReaderType              = decltype(timingIn.buffer().tagBuffer.new_reader());
     ReaderType _tagReaderInternal = timingIn.buffer().tagBuffer.new_reader();
+
+    TTagMatcher tagMatcher;
 
 public:
     ~Picoscope() { stop(); }
@@ -558,7 +561,7 @@ public:
             // Note: To prevent any trigger events, one needs to set the threshold for all channels to the maximum value
             // const int16_t thresholdADC = self().maxADCCount() - 255; // 255 seems to be a magic number, most probably it is used for additional meta information
             // const auto status = self().setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0, 0);
-            for (std::size_t i = 0; i < self().maxChannel(); i++) {
+            for (std::size_t i = 0; i < static_cast<std::size_t>(self().maxChannel()); i++) {
                 const auto channelEnum = self().convertToChannel(i);
                 assert(channelEnum != std::nullopt);
                 const auto    direction    = self().convertToThresholdDirection(detail::convertToEnum<TriggerDirection>("Rising"));
@@ -663,7 +666,8 @@ public:
                     return gr::work::Status::ERROR;
                 }
             } else {
-                processDriverDataStreaming(_streamingSamples, _streamingOffset, timingInSpan, digitalOutSpan, outputs);
+                auto now = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
+                processDriverDataStreaming(_streamingSamples, _streamingOffset, timingInSpan, digitalOutSpan, outputs, now);
                 _streamingSamples = 0;
             }
         } else {
@@ -694,7 +698,7 @@ public:
             // if RapidBlock OR trigger_source is not set then consume all input tags
             if (acquisitionMode == AcquisitionMode::RapidBlock || self().convertToOutputIndex(trigger_source) == std::nullopt) {
                 const std::size_t nInputs = timingInSpan.size();
-                timingInSpan.consume(nInputs);
+                std::ignore               = timingInSpan.consume(nInputs);
                 timingInSpan.consumeTags(nInputs);
             }
 
@@ -735,7 +739,7 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs)
+    void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs, std::chrono::nanoseconds acquisitionTime)
     requires(acquisitionMode == AcquisitionMode::Streaming)
     {
         const std::size_t availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
@@ -744,13 +748,18 @@ public:
             processSamplesOneChannel<T>(availableSamples, offset, _channels[channelIdx], outputs[channelIdx]);
         }
 
-        std::vector<gr::Tag> triggerTags = processTimingTriggers(availableSamples, timingInSpan, digitalOutSpan, outputs);
+        const auto               triggerSourceIndex = self().convertToOutputIndex(trigger_source);
+        std::span                samples(outputs[triggerSourceIndex.value()].data(), availableSamples);
+        auto                     triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
+        std::span<const gr::Tag> tagspan        = std::span(timingInSpan.rawTags.begin(), timingInSpan.rawTags.end());
+        auto                     tags           = tagspan | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
+        auto                     triggerTags    = tagMatcher.match(tags, triggerOffsets, availableSamples, acquisitionTime);
 
         // publish tags
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
             auto&      channel     = _channels[channelIdx];
             auto&      output      = outputs[channelIdx];
-            const auto tagsToWrite = triggerTags.size() + (channel.signalInfoTagPublished ? 0 : 1);
+            const auto tagsToWrite = triggerTags.tags.size() + (channel.signalInfoTagPublished ? 0 : 1);
             if (tagsToWrite == 0) {
                 continue;
             }
@@ -758,16 +767,18 @@ public:
                 output.publishTag(channel.toTagMap(), 0);
                 channel.signalInfoTagPublished = true;
             }
-            if (availableSamples < nSamples) {
-                output.publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples - availableSamples}}, 0);
+            if (triggerTags.processedSamples < nSamples) {
+                output.publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples - triggerTags.processedSamples}}, 0);
             }
-            for (auto& tag : triggerTags) {
-                output.publishTag(tag.map, tag.index);
+            for (auto& [index, map] : triggerTags.tags) {
+                output.publishTag(map, index);
             }
         }
 
-        self().copyDigitalBuffersToOutput(digitalOutSpan, availableSamples);
-        digitalOutSpan.publish(availableSamples);
+        self().copyDigitalBuffersToOutput(digitalOutSpan, triggerTags.processedSamples);
+        digitalOutSpan.publish(triggerTags.processedSamples);
+
+        std::ignore = timingInSpan.consume(triggerTags.processedTags);
 
         // publish samples
         for (std::size_t i = 0; i < outputs.size(); i++) {
@@ -775,11 +786,10 @@ public:
             // Therefore, we must connect all output ports of the picoscope and ensure that samples are published for all ports.
             // Otherwise, tags will not be propagated correctly.
             // const std::size_t nSamplesToPublish = i < _state.channels.size() ? availableSamples : 0UZ;
-            const std::size_t nSamplesToPublish = availableSamples;
-            outputs[i].publish(nSamplesToPublish);
+            outputs[i].publish(triggerTags.processedSamples);
         }
 
-        _nSamplesPublished += availableSamples;
+        _nSamplesPublished += triggerTags.processedSamples;
     }
 
     constexpr T createDataset(detail::Channel& channel, std::size_t nSamples)
@@ -886,65 +896,6 @@ public:
                 }
             }
         }
-    }
-
-    template<gr::OutputSpanLike TOutSpan>
-    std::vector<gr::Tag> processTimingTriggers(std::size_t availableSamples, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs) {
-        // Note: reference for `gr::InputSpanLike auto& timingInSpan` is needed for proper work of consumeTags method
-        std::vector<std::size_t> triggerOffsets;
-        if (detail::isAnalogTrigger(trigger_source)) {
-            const auto triggerSourceIndex = self().convertToOutputIndex(trigger_source);
-            if (triggerSourceIndex == std::nullopt) {
-                return std::vector<gr::Tag>{};
-            }
-            std::span samples(outputs[triggerSourceIndex.value()].data(), availableSamples);
-            triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
-        } else if (detail::isDigitalTrigger(trigger_source)) {
-            if (_digitalChannelNumber < 0 || _digitalChannelNumber > 15) {
-                return std::vector<gr::Tag>{};
-            }
-            triggerOffsets = findDigitalTriggers(_digitalChannelNumber, digitalOutSpan);
-        }
-
-        const auto nowStamp = std::chrono::high_resolution_clock::now();
-        const auto now      = std::chrono::duration_cast<std::chrono::nanoseconds>(nowStamp.time_since_epoch());
-
-        std::size_t consumeTags = 0UZ;
-        for (const auto& tag : timingInSpan.rawTags) {
-            const bool isArmDisarmTrigger = detail::tagContainsTrigger(tag, _armTriggerNameAndCtx) || detail::tagContainsTrigger(tag, _disarmTriggerNameAndCtx);
-            if (!tag.map.contains(gr::tag::CONTEXT.shortKey()) || isArmDisarmTrigger) { // only consider timing tags
-                consumeTags++;
-                continue;
-            }
-            // TODO: Allow to match multiple events to a single trigger here and allow to timeout on events where the trigger pulse was somehow lost
-            if (triggerOffsets.size() <= _timingMessages.size()) { // all triggers have already been found
-                break;
-            }
-            _timingMessages.emplace(tag.map);
-            consumeTags++;
-        }
-        timingInSpan.consumeTags(consumeTags);
-        timingInSpan.consume(consumeTags);
-        std::vector<gr::Tag> triggerTags;
-        triggerTags.reserve(triggerOffsets.size() + 1);
-        for (const auto triggerOffset : triggerOffsets) {
-            gr::property_map timing;
-            if (_timingMessages.empty()) {
-                timing = gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "UnknownTrigger"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::uint64_t>(now.count())}, {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f}};
-                // TODO: stop processing here instead in case the tag arrives later and only publish unknown trigger tag after timeout
-            } else {
-                timing = _timingMessages.front();
-                _timingMessages.pop();
-            }
-            triggerTags.emplace_back(static_cast<int64_t>(triggerOffset), timing);
-            _nextSystemtime = nowStamp + std::chrono::milliseconds(systemtime_interval);
-        }
-        // add an independent software timestamp with the localtime of the system to the last sample of each chunk
-        if (nowStamp > _nextSystemtime) {
-            triggerTags.emplace_back(static_cast<int64_t>(availableSamples), gr::property_map{{gr::tag::TRIGGER_NAME.shortKey(), "systemtime"}, {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f}, {gr::tag::CONTEXT.shortKey(), "NO-CONTEXT"}, {gr::tag::TRIGGER_TIME.shortKey(), static_cast<uint64_t>(now.count())}});
-            _nextSystemtime += std::chrono::milliseconds(systemtime_interval);
-        }
-        return triggerTags;
     }
 
     template<typename TSample>

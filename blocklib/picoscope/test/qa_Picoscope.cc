@@ -15,7 +15,7 @@ namespace fair::picoscope::test {
 
 // Replace with your connected Picoscope device
 template<typename T>
-using PicoscopeT = Picoscope5000a<T>;
+using PicoscopeT = Picoscope4000a<T>;
 
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
 static_assert(gr::HasProcessBulkFunction<PicoscopeT<float>>);
@@ -206,7 +206,7 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     expect(ge(tagMonitor._tags.size(), 1UZ));
     if (tagMonitor._tags.size() == 1UZ) {
         const auto& tag = tagMonitor._tags[0];
-        expect(eq(tag.index, int64_t{0}));
+        expect(eq(tag.index, 0UZ));
         expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), sampleRate));
         expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "Test signal"s));
         expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "Test unit"s));
