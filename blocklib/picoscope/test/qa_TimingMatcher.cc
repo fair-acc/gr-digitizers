@@ -64,6 +64,64 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             result.tags);
     };
 
+    "identical_timestamps"_test = [&] { // checks correct handling of the case of multiple events on the exact same whiterabbit timestamp
+        unsigned long                 acqTimestamp = 123456789;
+        std::vector<gr::property_map> tags{
+            generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true),
+            generateTimingTag("EVT_CMD2A"s, acqTimestamp + 150'000, 0.0f, true),
+            generateTimingTag("EVT_CMD2B"s, acqTimestamp + 150'000, 0.0f, true),
+            generateTimingTag("EVT_CMD2C"s, acqTimestamp + 150'000, 0.0f, true),
+            generateTimingTag("EVT_CMD3"s, acqTimestamp + 200'000, 0.0f, true),
+        };
+        std::vector<std::size_t> triggerSampleIndices{100, 150, 200};
+
+        TimingMatcher matcher;
+        matcher.maxDelay   = 10us;
+        matcher.sampleRate = 1e6f;
+        auto result        = matcher.match(tags, triggerSampleIndices, 250uz, std::chrono::nanoseconds(acqTimestamp));
+
+        expect(eq(5, result.processedTags));
+        expect(eq(240uz, result.processedSamples));
+        expectRangesEquals(
+            std::vector<gr::Tag>{
+                {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
+                {150, generateTimingTag("EVT_CMD2A"s, acqTimestamp + 150'000, 0.0f, true)},
+                {150, generateTimingTag("EVT_CMD2B"s, acqTimestamp + 150'000, 0.0f, true)},
+                {150, generateTimingTag("EVT_CMD2C"s, acqTimestamp + 150'000, 0.0f, true)},
+                {200, generateTimingTag("EVT_CMD3"s, acqTimestamp + 200'000, 0.0f, true)},
+            },
+            result.tags);
+    };
+
+    "identical_timestamps_no_hw"_test = [&] { // checks correct handling of the case of multiple events on the exact same whiterabbit timestamp where some of the events do not provide hardware pulses and some do
+        unsigned long                 acqTimestamp = 123456789;
+        std::vector<gr::property_map> tags{
+            generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true),
+            generateTimingTag("EVT_CMD2A"s, acqTimestamp + 150'000, 0.0f, false),
+            generateTimingTag("EVT_CMD2B"s, acqTimestamp + 150'000, 0.0f, true),
+            generateTimingTag("EVT_CMD2C"s, acqTimestamp + 150'000, 0.0f, false),
+            generateTimingTag("EVT_CMD3"s, acqTimestamp + 200'000, 0.0f, true),
+        };
+        std::vector<std::size_t> triggerSampleIndices{100, 150, 200};
+
+        TimingMatcher matcher;
+        matcher.maxDelay   = 10us;
+        matcher.sampleRate = 1e6f;
+        auto result        = matcher.match(tags, triggerSampleIndices, 250uz, std::chrono::nanoseconds(acqTimestamp));
+
+        expect(eq(5, result.processedTags));
+        expect(eq(240uz, result.processedSamples));
+        expectRangesEquals(
+            std::vector<gr::Tag>{
+                {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
+                {150, generateTimingTag("EVT_CMD2A"s, acqTimestamp + 150'000, 0.0f, false)},
+                {150, generateTimingTag("EVT_CMD2B"s, acqTimestamp + 150'000, 0.0f, true)},
+                {150, generateTimingTag("EVT_CMD2C"s, acqTimestamp + 150'000, 0.0f, false)},
+                {200, generateTimingTag("EVT_CMD3"s, acqTimestamp + 200'000, 0.0f, true)},
+            },
+            result.tags);
+    };
+
     "differentStartTimes-TimingFirst"_test = [&] {
         unsigned long                 acqTimestamp = 123456789;
         std::vector<gr::property_map> tags{
@@ -502,8 +560,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         matcher.maxDelay           = 10us;
         matcher.sampleRate         = sampleRate;
         auto triggerSampleIndices3 = std::span(triggerSampleIndices).subspan(4, 2) | std::views::transform([&](std::size_t idx) { return idx - result.processedSamples - result2.processedSamples; }) | std::ranges::to<std::vector>();
-        fmt::print("triggerSampleIndices3: {}\n", triggerSampleIndices3);
-        auto result3 = matcher.match(std::span(tags).subspan(4, 2), triggerSampleIndices3, 104uz, std::chrono::nanoseconds(acqTimestamp + static_cast<std::size_t>((191.f + 105.f) * Ts)));
+        auto result3               = matcher.match(std::span(tags).subspan(4, 2), triggerSampleIndices3, 104uz, std::chrono::nanoseconds(acqTimestamp + static_cast<std::size_t>((191.f + 105.f) * Ts)));
         expect(eq(2, result3.processedTags));
         expect(eq(94uz, result3.processedSamples));
         expectRangesEquals(
