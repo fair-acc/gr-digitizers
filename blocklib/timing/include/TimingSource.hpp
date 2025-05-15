@@ -10,9 +10,7 @@
 #include <random>
 #include <thread>
 
-#include <fmt/chrono.h>
-#include <fmt/format.h>
-#include <fmt/ranges.h>
+#include <format>
 
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
@@ -114,9 +112,9 @@ it accordingly using the `saft-io-ctl` utility.
 
     void start() {
         if (verbose_console) {
-            fmt::println("starting {}", this->name);
+            std::println("starting {}", this->name);
         }
-        _timing.saftAppName = fmt::format("{}_{}", this->unique_name | std::views::filter([](auto c) { return std::isalnum(c); }) | std::ranges::to<std::string>(), getpid());
+        _timing.saftAppName = std::format("{}_{}", this->unique_name | std::views::filter([](auto c) { return std::isalnum(c); }) | std::ranges::to<std::string>(), getpid());
         _timing.snoopID     = 0xffffffffffffffffull; // Workaround: make the default condition of _timing not listen to anything
         _timing.snoopMask   = 0xffffffffffffffffull;
         _timing.initialize();
@@ -126,7 +124,7 @@ it accordingly using the `saft-io-ctl` utility.
 
     void stop() {
         if (verbose_console) {
-            fmt::println("stop {}", this->name);
+            std::println("stop {}", this->name);
         }
         this->requestStop();
     }
@@ -147,7 +145,7 @@ it accordingly using the `saft-io-ctl` utility.
             } else if (auto gidFromName = timingGroupTable | std::views::filter([&e = filterTokens[0]](auto& m) { return e == m.second.first; }) | std::views::transform([](auto& m) { return m.first; }) | std::views::take(1) | std::ranges::to<std::vector>(); !gidFromName.empty()) {
                 filter |= static_cast<uint64_t>(gidFromName[0]) << 48;
             } else {
-                throw gr::exception(fmt::format("Illegal Timing Group Name/Number: {}", filterTokens[0]));
+                throw gr::exception(std::format("Illegal Timing Group Name/Number: {}", filterTokens[0]));
             }
             mask |= 0xfffull << 48;
         }
@@ -159,7 +157,7 @@ it accordingly using the `saft-io-ctl` utility.
             } else if (auto evtNrFromName = eventNrTable | std::views::filter([&e = filterTokens[1]](auto& m) { return e == m.second.first; }) | std::views::transform([](auto& m) { return m.first; }) | std::views::take(1) | std::ranges::to<std::vector>(); !evtNrFromName.empty()) {
                 filter |= static_cast<std::uint64_t>(evtNrFromName[0]) << 36;
             } else {
-                throw gr::exception(fmt::format("Illegal EventName/Number: {}", filterTokens[1]));
+                throw gr::exception(std::format("Illegal EventName/Number: {}", filterTokens[1]));
             }
             mask |= 0xfffull << 36;
         }
@@ -170,7 +168,7 @@ it accordingly using the `saft-io-ctl` utility.
             } else if (filterTokens[2] == "BEAM-IN=0") {
                 filter |= 0x0ULL << 35;
             } else {
-                throw gr::exception(fmt::format("BEAM-IN flag has to be 1 or 0, was {}", filterTokens[2]));
+                throw gr::exception(std::format("BEAM-IN flag has to be 1 or 0, was {}", filterTokens[2]));
             }
             mask |= 0x1ULL << 35;
         }
@@ -181,7 +179,7 @@ it accordingly using the `saft-io-ctl` utility.
             } else if (filterTokens[3] == "BPC-START=0") {
                 filter |= 0x0ULL << 34;
             } else {
-                throw gr::exception(fmt::format("BPC-START flag has to be 1 or 0, was {}", filterTokens[3]));
+                throw gr::exception(std::format("BPC-START flag has to be 1 or 0, was {}", filterTokens[3]));
             }
             mask |= 0x1ULL << 34;
         }
@@ -193,7 +191,7 @@ it accordingly using the `saft-io-ctl` utility.
                 filter |= numericSid << 20u;
                 mask |= 0xfffull << 20u;
             } else {
-                throw gr::exception(fmt::format("Illegal Sequence ID: {}", filterTokens[4]));
+                throw gr::exception(std::format("Illegal Sequence ID: {}", filterTokens[4]));
             }
         }
         // numeric beam process id (to be extended to LSA pattern)
@@ -203,11 +201,11 @@ it accordingly using the `saft-io-ctl` utility.
                 filter |= numericBP << 6u;
                 mask |= 0x3fffull << 6u;
             } else {
-                throw gr::exception(fmt::format("Illegal Beam Process ID: {}", filterTokens[5]));
+                throw gr::exception(std::format("Illegal Beam Process ID: {}", filterTokens[5]));
             }
         }
         if (filterTokens.size() > 6) {
-            throw gr::exception(fmt::format("Filter Pattern contains too many tokens: {}", std::span(filterTokens.begin() + 6, filterTokens.end())));
+            throw gr::exception(std::format("Filter Pattern contains too many tokens: {}", std::span(filterTokens.begin() + 6, filterTokens.end())));
         }
         return {filter, mask};
     }
@@ -218,18 +216,18 @@ it accordingly using the `saft-io-ctl` utility.
         while (true) {
             unsigned long actionStart = actions.find('(', actionPos);
             if (actionStart == std::string::npos) {
-                throw gr::exception(fmt::format("Invalid action format, missing opening parenthesis, definition: {}, pos: {}", actions, actionPos));
+                throw gr::exception(std::format("Invalid action format, missing opening parenthesis, definition: {}, pos: {}", actions, actionPos));
             }
             std::size_t actionEnd = actions.find(')', actionStart);
             if (actionEnd == std::string::npos) {
-                throw gr::exception(fmt::format("Invalid action format, missing closing parenthesis, definition: {}, pos: {}", actions, actionPos));
+                throw gr::exception(std::format("Invalid action format, missing closing parenthesis, definition: {}, pos: {}", actions, actionPos));
             }
             auto parsedAction = std::string_view(actions.begin() + static_cast<long>(actionStart) + 1uz, actions.begin() + static_cast<long>(actionEnd)) //
                                 | std::views::split(","sv) | std::views::pairwise | std::views::stride(2) | std::views::transform([](auto t) {
                                       auto [tt, a] = t;
                                       std::uint64_t delay;
                                       if (std::from_chars_result result = std::from_chars(tt.begin(), tt.end(), delay); result.ptr != tt.end() || tt.empty()) {
-                                          throw gr::exception(fmt::format("Invalid action format, cannot parse delay to value: {}, error-code: {}", tt, make_error_code(result.ec).value()));
+                                          throw gr::exception(std::format("Invalid action format, cannot parse delay to value: {}, error-code: {}", tt, make_error_code(result.ec).value()));
                                       }
                                       return std::pair{delay, std::string(a.begin(), a.end())};
                                   }) |
@@ -238,7 +236,7 @@ it accordingly using the `saft-io-ctl` utility.
             if (actionEnd + 1 >= actions.size()) {
                 break;
             } else if (actions[actionEnd + 1] != ',') {
-                throw gr::exception(fmt::format("Invalid action format, actions should be separated by comma, definition: {}, pos: {}", actions, actionEnd));
+                throw gr::exception(std::format("Invalid action format, actions should be separated by comma, definition: {}, pos: {}", actions, actionEnd));
             } else {
                 actionPos = actionEnd + 2;
             }
@@ -249,7 +247,7 @@ it accordingly using the `saft-io-ctl` utility.
     static auto splitTriggerActions(const std::string& newTrigger) {
         const std::size_t pos = newTrigger.find("->");
         if (pos == std::string::npos) {
-            throw gr::exception(fmt::format("Invalid trigger definition (must contain '->' separator): {}", newTrigger));
+            throw gr::exception(std::format("Invalid trigger definition (must contain '->' separator): {}", newTrigger));
         }
         auto trigger = newTrigger.substr(0, pos);
         auto actions = newTrigger.substr(pos + 2);
@@ -257,15 +255,12 @@ it accordingly using the `saft-io-ctl` utility.
     }
 
     void updateEventTriggers() {
-        auto outputs = _timing.receiver->getOutputs() | std::views::transform([&sigGroup = _timing.saftSigGroup](auto kvp) {
-            auto& [name, path] = kvp;
-            return std::pair(name, saftlib::Output_Proxy::create(path, sigGroup));
-        }) | std::ranges::to<std::map>();
+        auto outputs = _timing.receiver->getOutputs() | std::views::transform([&sigGroup = _timing.saftSigGroup](auto kvp) { return std::pair(kvp.first, saftlib::Output_Proxy::create(kvp.second, sigGroup)); }) | std::ranges::to<std::map>();
 
         std::set<std::string> keepMatcher;
         for (auto& trigger : event_actions.value) {
             if (verbose_console) {
-                fmt::print("adding new trigger: {}\n", trigger);
+                std::print("adding new trigger: {}\n", trigger);
             }
             auto [triggerMatcher, triggerActions] = splitTriggerActions(trigger);
             keepMatcher.insert(triggerMatcher);
@@ -279,10 +274,10 @@ it accordingly using the `saft-io-ctl` utility.
                         keepAction.insert(triggerAction);
                         if (!_conditionProxies[triggerMatcher].contains(triggerAction)) {
                             if (verbose_console) {
-                                fmt::print("adding software condition for trigger {:#x}:{:#x}\n", filter, mask);
+                                std::print("adding software condition for trigger {:#x}:{:#x}\n", filter, mask);
                             }
                             if (!changes.empty()) {
-                                throw gr::exception(fmt::format("Illegal software condition specification: cannot have arguments: {}", parsedActions));
+                                throw gr::exception(std::format("Illegal software condition specification: cannot have arguments: {}", parsedActions));
                             }
                             auto condition = saftlib::SoftwareCondition_Proxy::create(_timing.sink->NewCondition(false, filter, mask, 0), _timing.saftSigGroup);
                             condition->setAcceptLate(true);
@@ -300,24 +295,24 @@ it accordingly using the `saft-io-ctl` utility.
                     }
                     if (!outputs.contains(ioName)) {
                         if (verbose_console) {
-                            fmt::print("ignoring non-existent output {}, available output ports: {}\n", ioName, outputs | std::views::keys);
+                            std::print("ignoring non-existent output {}, available output ports: {}\n", ioName, outputs | std::views::keys);
                         }
                         continue;
                     }
                     for (auto& [delay, state] : changes) {
-                        std::string triggerAction = fmt::format("{}({},{})", ioName, delay, state);
+                        std::string triggerAction = std::format("{}({},{})", ioName, delay, state);
                         keepAction.insert(triggerAction);
                         if (!_conditionProxies[triggerMatcher].contains(triggerAction)) {
                             if (verbose_console) {
-                                fmt::print("adding output condition for trigger {:#x}:{:#x}, setting {} to {} after {}ns\n", filter, mask, ioName, state, delay * 1000ull);
+                                std::print("adding output condition for trigger {:#x}:{:#x}, setting {} to {} after {}ns\n", filter, mask, ioName, state, delay * 1000ull);
                             }
                             std::uint64_t io_edge = state == "on" ? 1ull : 0ull;
                             try {
                                 _conditionProxies[triggerMatcher].insert({triggerAction, saftlib::OutputCondition_Proxy::create(outputs[ioName]->NewCondition(true, filter, mask, static_cast<int64_t>(delay * 1000ull), io_edge), _timing.saftSigGroup)});
                             } catch (...) {
-                                throw gr::exception(fmt::format("failed to add output condition for trigger {:#x}:{:#x}, setting {} to {} after {}ns\n", filter, mask, ioName, state, delay * 1000ull));
+                                throw gr::exception(std::format("failed to add output condition for trigger {:#x}:{:#x}, setting {} to {} after {}ns\n", filter, mask, ioName, state, delay * 1000ull));
                                 if (verbose_console) {
-                                    fmt::print("failed to add output condition for trigger {:#x}:{:#x}, setting {} to {} after {}ns\n", filter, mask, ioName, state, delay * 1000ull);
+                                    std::print("failed to add output condition for trigger {:#x}:{:#x}, setting {} to {} after {}ns\n", filter, mask, ioName, state, delay * 1000ull);
                                 }
                             }
                         }
@@ -387,11 +382,11 @@ it accordingly using the `saft-io-ctl` utility.
         meta.emplace("TIMING-ID", id);
         meta.emplace("TIMING-PARAM", event.param());
         if (event.isIo) {
-            bool        level = static_cast<bool>(id & 0x1ull);
-            std::string name  = _timing.idToIoName(id);
-            meta.emplace("IO-NAME", name);
+            bool        level  = static_cast<bool>(id & 0x1ull);
+            std::string ioName = _timing.idToIoName(id);
+            meta.emplace("IO-NAME", ioName);
             meta.emplace("IO-LEVEL", level);
-            tag.map.emplace(tag::TRIGGER_NAME.shortKey(), fmt::format("{}_{}", name, level ? "RISING" : "FALLING"));
+            tag.map.emplace(tag::TRIGGER_NAME.shortKey(), std::format("{}_{}", ioName, level ? "RISING" : "FALLING"));
             tag.map.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f);
         } else {
             meta.emplace("GID", event.gid);
@@ -410,7 +405,7 @@ it accordingly using the `saft-io-ctl` utility.
             }();
             meta.emplace("EVENT-NAME", eventName);
             tag.map.emplace(tag::TRIGGER_NAME.shortKey(), eventName);
-            tag.map.emplace(tag::CONTEXT.shortKey(), fmt::format("FAIR-TIMING:C={}.S={}.P={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
+            tag.map.emplace(tag::CONTEXT.shortKey(), std::format("FAIR-TIMING:C={}.S={}.P={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
             meta.emplace("BPCTS", event.bpcts); // chain execution time-stamp (i.e. unique chain identifier)
             meta.emplace("BPCID", event.bpcid); // chain ID (can contain multiple sequences)
             meta.emplace("SID", event.sid);     // chain ID -> sequence ID (can contain multiple beam-processes)
@@ -474,7 +469,7 @@ it accordingly using the `saft-io-ctl` utility.
             }
             outSpan.publishTag(timingTag.map, toPublish - 1);
             if (verbose_console) {
-                fmt::print("publishing tag, {} samples before, then sample with tag {}\n", samplesUntilCurrentEvent, timingTag.map);
+                std::print("publishing tag, {} samples before, then sample with tag {}\n", samplesUntilCurrentEvent, timingTag.map);
             }
         }
 

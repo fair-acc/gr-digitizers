@@ -497,7 +497,7 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     }
 }
 
-inline std::string getErrorMessage(PICO_STATUS status) { return fmt::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status)); }
+inline std::string getErrorMessage(PICO_STATUS status) { return std::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status)); }
 
 } // namespace fair::picoscope::detail
 

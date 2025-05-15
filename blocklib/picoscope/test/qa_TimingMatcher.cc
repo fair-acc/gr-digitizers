@@ -1,12 +1,12 @@
 #include <TimingMatcher.hpp>
 #include <boost/ut.hpp>
-#include <fmt/ranges.h>
+#include <format>
 
 using namespace std::string_literals;
 using namespace std::chrono_literals;
 
 template<>
-struct fmt::formatter<gr::Tag> {
+struct std::formatter<gr::Tag> {
     template<typename ParseContext>
     constexpr auto parse(ParseContext& ctx) {
         return ctx.begin();
@@ -14,7 +14,7 @@ struct fmt::formatter<gr::Tag> {
 
     template<typename FormatContext>
     constexpr auto format(const gr::Tag& tag, FormatContext& ctx) const {
-        return fmt::format_to(ctx.out(), "  {}->{{ {} }}\n", tag.index, tag.map);
+        return std::format_to(ctx.out(), "  {}->{{ {} }}\n", tag.index, tag.map);
     }
 };
 
@@ -37,7 +37,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
     };
 
     // small helper to print the content of the ranges if there is a mismatch
-    auto expectRangesEquals = [](const auto& r1, const auto& r2) { expect(std::ranges::equal(r1, r2)) << [&r1, &r2]() { return fmt::format("exp: {}\n got: {}", r1, r2); }; };
+    auto expectRangesEquals = [](const auto& r1, const auto& r2) { expect(std::ranges::equal(r1, r2)) << [&r1, &r2]() { return std::format("exp: {}\n got: {}", gr::join(r1), gr::join(r2)); }; };
 
     "simpleMatching"_test = [&] {
         unsigned long                 acqTimestamp = 123456789;
@@ -424,8 +424,8 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             matcher.maxDelay   = 10us;
             matcher.sampleRate = 1e6f;
             auto result        = matcher.match(std::vector<gr::property_map>{}, triggerSampleIndices, 250uz, std::chrono::nanoseconds(acqTimestamp));
-            expect(eq(result.processedTags, 0));
-            expect(eq(result.processedSamples, 240));
+            expect(eq(result.processedTags, 0uz));
+            expect(eq(result.processedSamples, 240uz));
             expectRangesEquals(
                 std::vector<gr::Tag>{
                     {100, generateTimingTag("UNKNOWN_EVENT", acqTimestamp + 100'000, 0.0f, false)},
@@ -439,8 +439,8 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             matcher.maxDelay   = 10us;
             matcher.sampleRate = 1e6f;
             auto result        = matcher.match(tags, std::vector<std::size_t>{}, 250uz, std::chrono::nanoseconds(acqTimestamp));
-            expect(eq(result.processedTags, 3));
-            expect(eq(result.processedSamples, 240));
+            expect(eq(result.processedTags, 3uz));
+            expect(eq(result.processedSamples, 240uz));
             expectRangesEquals(std::vector<gr::Tag>{}, result.tags);
         }
         { // empty hw edge list
@@ -448,8 +448,8 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             matcher.maxDelay   = 10us;
             matcher.sampleRate = 1e6f;
             auto result        = matcher.match(std::vector<gr::property_map>{}, std::vector<std::size_t>{}, 250uz, std::chrono::nanoseconds(acqTimestamp));
-            expect(eq(result.processedTags, 0));
-            expect(eq(result.processedSamples, 240));
+            expect(eq(result.processedTags, 0uz));
+            expect(eq(result.processedSamples, 240uz));
             expectRangesEquals(std::vector<gr::Tag>{}, result.tags);
         }
     };
@@ -468,7 +468,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             matcher.sampleRate = 1e6f;
             auto result        = matcher.match(tags, triggerSampleIndices, 8uz, std::chrono::nanoseconds(acqTimestamp));
 
-            expect(eq(2, result.processedTags));
+            expect(eq(2uz, result.processedTags));
             expect(eq(3uz, result.processedSamples)); // processed up to the last matching tag
             expectRangesEquals(
                 std::vector<gr::Tag>{
@@ -483,7 +483,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             matcher.sampleRate = 1e6f;
             auto result        = matcher.match(std::vector<property_map>{}, std::vector<std::size_t>{}, 8uz, std::chrono::nanoseconds(acqTimestamp));
 
-            expect(eq(0, result.processedTags));
+            expect(eq(0uz, result.processedTags));
             expect(eq(0uz, result.processedSamples));
             expectRangesEquals(std::vector<gr::Tag>{}, result.tags);
         }
@@ -535,8 +535,8 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         matcher.sampleRate = sampleRate;
         // chunk 1
         auto result = matcher.match(std::span(tags).subspan(0, 2), std::span(triggerSampleIndices).subspan(0, 3), 201uz, std::chrono::nanoseconds(acqTimestamp));
-        expect(eq(2, result.processedTags));
-        expect(eq(191, result.processedSamples));
+        expect(eq(2uz, result.processedTags));
+        expect(eq(191uz, result.processedSamples));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
@@ -547,7 +547,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         // chunk 2
         auto triggerSampleIndices2 = std::span(triggerSampleIndices).subspan(2, 2) | std::views::transform([&](std::size_t idx) { return idx - result.processedSamples; }) | std::ranges::to<std::vector>();
         auto result2               = matcher.match(std::span(tags).subspan(2, 3), triggerSampleIndices2, 115uz, std::chrono::nanoseconds(acqTimestamp + static_cast<std::size_t>(191.f * Ts)));
-        expect(eq(2, result2.processedTags));
+        expect(eq(2uz, result2.processedTags));
         expect(eq(105uz, result2.processedSamples));
         expectRangesEquals(
             std::vector<gr::Tag>{
@@ -561,7 +561,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         matcher.sampleRate         = sampleRate;
         auto triggerSampleIndices3 = std::span(triggerSampleIndices).subspan(4, 2) | std::views::transform([&](std::size_t idx) { return idx - result.processedSamples - result2.processedSamples; }) | std::ranges::to<std::vector>();
         auto result3               = matcher.match(std::span(tags).subspan(4, 2), triggerSampleIndices3, 104uz, std::chrono::nanoseconds(acqTimestamp + static_cast<std::size_t>((191.f + 105.f) * Ts)));
-        expect(eq(2, result3.processedTags));
+        expect(eq(2uz, result3.processedTags));
         expect(eq(94uz, result3.processedSamples));
         expectRangesEquals(
             std::vector<gr::Tag>{

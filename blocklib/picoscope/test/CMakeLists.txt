@@ -7,8 +7,16 @@ function(add_ut_test_tool TEST_NAME)
     ${TEST_NAME}
     PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(${TEST_NAME} PRIVATE gnuradio-core gr-testing gr-basic
-                                             fair-picoscope fair-helpers ut)
+  target_link_libraries(
+    ${TEST_NAME}
+    PRIVATE gnuradio-core
+            gr-testing
+            gr-basic
+            fair-picoscope
+            fair-helpers
+            ut
+            gnuradio-blocklib-core
+            GrBasicBlocksShared)
 endfunction()
 
 function(add_ut_test TEST_NAME)
@@ -25,9 +33,16 @@ function(add_ut_test TEST_NAME)
     ${TEST_NAME}
     PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(${TEST_NAME} PRIVATE gnuradio-core gr-testing gr-basic
-                                             fair-picoscope fair-helpers ut)
-  target_link_libraries(${TEST_NAME} PRIVATE gr-digitizers fmt ut)
+  target_link_libraries(
+    ${TEST_NAME}
+    PRIVATE gnuradio-core
+            gr-testing
+            gr-basic
+            fair-picoscope
+            fair-helpers
+            ut
+            gnuradio-blocklib-core
+            GrBasicBlocksShared)
   add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR}
                                      ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()

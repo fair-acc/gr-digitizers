@@ -112,7 +112,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
         } else if (coupling == Coupling::DC) {
             return PS4000A_DC;
         }
-        throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
+        throw std::runtime_error(std::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
     }
 
     static constexpr RangeType convertToRange(float range) {
@@ -138,7 +138,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
         case Falling: return PS4000A_FALLING;
         case Low: return PS4000A_BELOW;
         case High: return PS4000A_ABOVE;
-        default: throw std::runtime_error(fmt::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
+        default: throw std::runtime_error(std::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
         }
     };
 

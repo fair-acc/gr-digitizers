@@ -7,7 +7,7 @@
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/algorithm/dataset/DataSetUtils.hpp>
 
-#include <fmt/format.h>
+#include <format>
 
 #include <chrono>
 #include <functional>
@@ -94,20 +94,20 @@ constexpr std::size_t kDriverBufferSize = 65536;
 
 [[nodiscard]] std::expected<int, gr::Error> parseDigitalTriggerSource(std::string_view triggerSrc) {
     if (!triggerSrc.starts_with("DI")) {
-        return std::unexpected(gr::Error(fmt::format("Cannot parse digital trigger source (`{}`): it must start with `DI`.", triggerSrc)));
+        return std::unexpected(gr::Error(std::format("Cannot parse digital trigger source (`{}`): it must start with `DI`.", triggerSrc)));
     }
     std::string_view numberPart = triggerSrc.substr(2);
     if (numberPart.empty()) {
-        return std::unexpected(gr::Error(fmt::format("Cannot parse digital trigger source (`{}`): No digital channel number.", triggerSrc)));
+        return std::unexpected(gr::Error(std::format("Cannot parse digital trigger source (`{}`): No digital channel number.", triggerSrc)));
     }
     int value{-1};
     auto [_, ec] = std::from_chars(numberPart.data(), numberPart.data() + numberPart.size(), value);
     if (ec != std::errc()) {
-        return std::unexpected(gr::Error(fmt::format("Cannot parse digital trigger source (`{}`): Error parsing digital channel number.", triggerSrc)));
+        return std::unexpected(gr::Error(std::format("Cannot parse digital trigger source (`{}`): Error parsing digital channel number.", triggerSrc)));
     }
 
     if (value < 0 || value > 15) {
-        return std::unexpected(gr::Error(fmt::format("Cannot parse digital trigger source (`{}`): channel number is out of range [0, 15].", triggerSrc)));
+        return std::unexpected(gr::Error(std::format("Cannot parse digital trigger source (`{}`): channel number is out of range [0, 15].", triggerSrc)));
     }
 
     return value;
@@ -176,21 +176,9 @@ template<typename TEnum>
 [[nodiscard]] inline constexpr TEnum convertToEnum(std::string_view strEnum) {
     auto enumType = magic_enum::enum_cast<TEnum>(strEnum, magic_enum::case_insensitive);
     if (!enumType.has_value()) {
-        throw std::invalid_argument(fmt::format("Unknown value. Cannot convert string '{}' to enum '{}'", strEnum, gr::meta::type_name<TEnum>()));
+        throw std::invalid_argument(std::format("Unknown value. Cannot convert string '{}' to enum '{}'", strEnum, gr::meta::type_name<TEnum>()));
     }
     return enumType.value();
-}
-
-[[nodiscard]] inline std::string currentTime() {
-    using namespace std::chrono;
-
-    auto        now     = system_clock::now();
-    auto        ms      = duration_cast<milliseconds>(now.time_since_epoch()) % 1000;
-    std::time_t timeNow = system_clock::to_time_t(now);
-    struct tm   localTm;
-    localtime_r(&timeNow, &localTm);
-
-    return fmt::format("{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}", 1900 + localTm.tm_year, localTm.tm_mon + 1, localTm.tm_mday, localTm.tm_hour, localTm.tm_min, localTm.tm_sec, static_cast<int>(ms.count()));
 }
 } // namespace detail
 
@@ -374,7 +362,7 @@ public:
             if (i < signal_names.value.size()) {
                 ch.name = signal_names.value[i];
             } else {
-                ch.name = fmt::format("signal {} ({})", i, channel_ids.value[i]);
+                ch.name = std::format("signal {} ({})", i, channel_ids.value[i]);
             }
             if (i < signal_units.value.size()) {
                 ch.unit = std::string(signal_units.value[i]);
@@ -406,7 +394,7 @@ public:
             _disarmTriggerNameAndCtx = detail::createTriggerNameAndCtx(trigger_disarm);
 
             if (!trigger_arm.value.empty() && !trigger_disarm.value.empty() && trigger_arm == trigger_disarm) {
-                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` == `trigger_disarm`"));
+                this->emitErrorMessage(std::format("{}::settingsChanged()", this->name), gr::Error("Ill-formed settings: `trigger_arm` == `trigger_disarm`"));
             }
         }
 
@@ -415,7 +403,7 @@ public:
             if (parseRes.has_value()) {
                 _digitalChannelNumber = parseRes.value();
             } else {
-                this->emitErrorMessage(fmt::format("{}::settingsChanged()", this->name), parseRes.error());
+                this->emitErrorMessage(std::format("{}::settingsChanged()", this->name), parseRes.error());
             }
         }
 
@@ -448,10 +436,10 @@ public:
                 arm();
             }
             serial_number = serialNumber();
-            fmt::println("Picoscope serial number: {}", serial_number);
-            fmt::println("Picoscope device variant: {}", deviceVariant());
+            std::println("Picoscope serial number: {}", serial_number);
+            std::println("Picoscope device variant: {}", deviceVariant());
         } catch (const std::exception& e) {
-            fmt::println(std::cerr, "{}", e.what());
+            std::println(std::cerr, "{}", e.what());
         }
     }
 
@@ -466,7 +454,7 @@ public:
         }
 
         if (const auto status = self().driverStop(_handle); status != PICO_OK) {
-            this->emitErrorMessage(fmt::format("{}::disarm()", this->name), gr::Error(detail::getErrorMessage(status)));
+            this->emitErrorMessage(std::format("{}::disarm()", this->name), gr::Error(detail::getErrorMessage(status)));
         }
         _isArmed.store(false, std::memory_order_release);
     }
@@ -478,7 +466,7 @@ public:
 
         if (const auto status = self().openUnit(serial_number); status == PICO_POWER_SUPPLY_NOT_CONNECTED || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
             if (const auto statusPower = self().changePowerSource(_handle, status); statusPower != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::open() changePowerSource", this->name), gr::Error(detail::getErrorMessage(statusPower)));
+                this->emitErrorMessage(std::format("{}::open() changePowerSource", this->name), gr::Error(detail::getErrorMessage(statusPower)));
             }
         }
     }
@@ -488,7 +476,7 @@ public:
             return;
         }
         if (const auto status = self().closeUnit(_handle); status != PICO_OK) {
-            this->emitErrorMessage(fmt::format("{}::close()", this->name), gr::Error(detail::getErrorMessage(status)));
+            this->emitErrorMessage(std::format("{}::close()", this->name), gr::Error(detail::getErrorMessage(status)));
         } else {
             _handle = -1;
         }
@@ -502,18 +490,18 @@ public:
         // maximum value is used for conversion to volts
         if (const auto status = self().maximumValue(_handle, &(_maxValue)); status != PICO_OK) {
             self().closeUnit(_handle);
-            this->emitErrorMessage(fmt::format("{}::initialize() maximumValue", this->name), gr::Error(detail::getErrorMessage(status)));
+            this->emitErrorMessage(std::format("{}::initialize() maximumValue", this->name), gr::Error(detail::getErrorMessage(status)));
         }
 
         // configure memory segments and number of capture fo RapidBlock mode
         if constexpr (acquisitionMode == AcquisitionMode::RapidBlock) {
             int32_t maxSamples;
             if (const auto status = self().memorySegments(_handle, static_cast<uint32_t>(n_captures), &maxSamples); status != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::initialize() MemorySegments", this->name), gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(std::format("{}::initialize() MemorySegments", this->name), gr::Error(detail::getErrorMessage(status)));
             }
 
             if (const auto status = self().setNoOfCaptures(_handle, static_cast<uint32_t>(n_captures)); status != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::initialize() SetNoOfCaptures", this->name), gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(std::format("{}::initialize() SetNoOfCaptures", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
 
@@ -526,13 +514,13 @@ public:
 
             const auto status = self().setChannel(_handle, *channelEnum, true, coupling, static_cast<TPSImpl::ChannelRangeType>(range), static_cast<float>(channel.analogOffset));
             if (status != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::initialize() SetChannel", this->name), gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(std::format("{}::initialize() SetChannel", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
 
         // configure digital ports
         if (const auto status = self().setDigitalPorts(); status != PICO_OK) {
-            this->emitErrorMessage(fmt::format("{}::initialize() setDigitalPorts", this->name), gr::Error(detail::getErrorMessage(status)));
+            this->emitErrorMessage(std::format("{}::initialize() setDigitalPorts", this->name), gr::Error(detail::getErrorMessage(status)));
         }
 
         // apply trigger configuration
@@ -544,13 +532,13 @@ public:
 
             const auto status = self().setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
             if (status != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(std::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
         if (detail::isDigitalTrigger(trigger_source) && acquisitionMode == AcquisitionMode::RapidBlock) {
             const auto status = self().SetTriggerDigitalPort(_handle, _digitalChannelNumber, detail::convertToEnum<TriggerDirection>(trigger_direction));
             if (status != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::initialize() SetTriggerDigitalPort", this->name), gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(std::format("{}::initialize() SetTriggerDigitalPort", this->name), gr::Error(detail::getErrorMessage(status)));
             }
 
         } else {
@@ -558,7 +546,7 @@ public:
             // Note: To prevent any trigger events, one needs to set the threshold for all channels to the maximum value
             // const int16_t thresholdADC = self().maxADCCount() - 255; // 255 seems to be a magic number, most probably it is used for additional meta information
             // const auto status = self().setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0, 0);
-            for (std::size_t i = 0; i < self().maxChannel(); i++) {
+            for (std::size_t i = 0; i < static_cast<std::size_t>(self().maxChannel()); i++) {
                 const auto channelEnum = self().convertToChannel(i);
                 assert(channelEnum != std::nullopt);
                 const auto    direction    = self().convertToThresholdDirection(detail::convertToEnum<TriggerDirection>("Rising"));
@@ -566,7 +554,7 @@ public:
 
                 const auto status = self().setSimpleTrigger(_handle, false, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
                 if (status != PICO_OK) {
-                    this->emitErrorMessage(fmt::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
+                    this->emitErrorMessage(std::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
                 }
             }
         }
@@ -590,13 +578,13 @@ public:
                 const auto status = self().runBlock(_handle, static_cast<int32_t>(pre_samples), static_cast<int32_t>(post_samples), timebaseRes.timebase, &timeIndisposedMs, segmentIndex, static_cast<TPSImpl::BlockReadyType>(redirector), this);
 
                 if (status != PICO_OK) {
-                    this->emitErrorMessage(fmt::format("{}::arm() RunBlock", this->name), gr::Error(detail::getErrorMessage(status)));
+                    this->emitErrorMessage(std::format("{}::arm() RunBlock", this->name), gr::Error(detail::getErrorMessage(status)));
                 }
             }
         } else {
             using fair::picoscope::detail::kDriverBufferSize;
             if (const auto ec = self().setBuffers(kDriverBufferSize); ec) {
-                this->emitErrorMessage(fmt::format("{}::arm() setBuffers", this->name), ec.message());
+                this->emitErrorMessage(std::format("{}::arm() setBuffers", this->name), ec.message());
             }
 
             TimeInterval timeInterval = convertSampleRateToTimeInterval(sample_rate);
@@ -613,7 +601,7 @@ public:
                 static_cast<uint32_t>(kDriverBufferSize));  // the size of the overview buffers
 
             if (status != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::arm() RunStreaming", this->name), gr::Error(detail::getErrorMessage(status)));
+                this->emitErrorMessage(std::format("{}::arm() RunStreaming", this->name), gr::Error(detail::getErrorMessage(status)));
             }
             _actualSampleRate = convertTimeIntervalToSampleRate(timeInterval);
         }
@@ -630,7 +618,7 @@ public:
         // According to well-informed sources, the driver indicates the buffer overrun by setting all the bits of the overflow argument to true.
         if (static_cast<uint16_t>(overflow) == 0xffff) {
             // TODO: send tag
-            fmt::println(std::cerr, "Buffer overrun detected, continue...");
+            std::println(std::cerr, "Buffer overrun detected, continue...");
         }
     }
 
@@ -642,7 +630,7 @@ public:
                 _isArmed.store(false, std::memory_order_release);
                 return;
             } else {
-                this->emitErrorMessage(fmt::format("{}::rapidBlockCallback", this->name), ec.message());
+                this->emitErrorMessage(std::format("{}::rapidBlockCallback", this->name), ec.message());
                 _isArmed.store(false, std::memory_order_release);
                 return;
             }
@@ -659,7 +647,7 @@ public:
                     output.publish(0);
                 }
                 if (const auto ec = self().streamingPoll()) {
-                    this->emitErrorMessage(fmt::format("{}::processBulk", this->name), ec.message());
+                    this->emitErrorMessage(std::format("{}::processBulk", this->name), ec.message());
                     return gr::work::Status::ERROR;
                 }
             } else {
@@ -672,7 +660,7 @@ public:
             uint32_t nCompletedCaptures = 1;
 
             if (const auto status = self().getNoOfCaptures(_handle, &nCompletedCaptures); status != PICO_OK) {
-                this->emitErrorMessage(fmt::format("{}::processBulk getNofCaptures", this->name), detail::getErrorMessage(status));
+                this->emitErrorMessage(std::format("{}::processBulk getNofCaptures", this->name), detail::getErrorMessage(status));
                 return gr::work::Status::ERROR;
             }
 
@@ -682,10 +670,10 @@ public:
             for (std::size_t iCapture = 0; iCapture < availableCaptures; iCapture++) {
                 const auto getValuesResult = self().rapidBlockGetValues(iCapture, nSamples);
                 if (nSamples != getValuesResult.nSamples) {
-                    this->emitErrorMessage(fmt::format("{}::processBulk", this->name), fmt::format("Number of retrieved samples ({}) doesn't equal to required samples: pre_samples + post_samples ({})", getValuesResult.nSamples, nSamples));
+                    this->emitErrorMessage(std::format("{}::processBulk", this->name), std::format("Number of retrieved samples ({}) doesn't equal to required samples: pre_samples + post_samples ({})", getValuesResult.nSamples, nSamples));
                 }
                 if (getValuesResult.error) {
-                    this->emitErrorMessage(fmt::format("{}::processBulk", this->name), getValuesResult.error.message());
+                    this->emitErrorMessage(std::format("{}::processBulk", this->name), getValuesResult.error.message());
                     return gr::work::Status::ERROR;
                 }
                 processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, timingInSpan, digitalOutSpan, outputs);
@@ -728,7 +716,7 @@ public:
 
         const std::size_t availableSamples = std::min(availableOutputs, nSamples);
         if (availableSamples < nSamples) {
-            fmt::println(std::cerr, "Picoscope::processDriverDataStreaming: {} samples will be lost due to insufficient space in output buffers (require {}, available {})", nSamples - availableSamples, nSamples, availableOutputs);
+            std::println(std::cerr, "Picoscope::processDriverDataStreaming: {} samples will be lost due to insufficient space in output buffers (require {}, available {})", nSamples - availableSamples, nSamples, availableOutputs);
         }
 
         return availableSamples;
@@ -1052,7 +1040,7 @@ public:
         const auto     status     = self().getValues(_handle, offset, &nSamples32, 1, self().ratioNone(), static_cast<uint32_t>(iCapture), &overflow);
 
         if (status != PICO_OK) {
-            fmt::println(std::cerr, "GetValues: {}", detail::getErrorMessage(status));
+            std::println(std::cerr, "GetValues: {}", detail::getErrorMessage(status));
             return {{status}, 0, 0};
         }
         return {{}, static_cast<std::size_t>(nSamples32), overflow};
@@ -1067,20 +1055,20 @@ public:
             if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
                 const auto status = self().setDataBuffer(_handle, *channelEnum, channel.driverBuffer.data(), static_cast<int32_t>(nSamples), self().ratioNone());
                 if (status != PICO_OK) {
-                    fmt::println(std::cerr, "setDataBufferStreaming (chan {}): {}", static_cast<std::size_t>(*channelEnum), detail::getErrorMessage(status));
+                    std::println(std::cerr, "setDataBufferStreaming (chan {}): {}", static_cast<std::size_t>(*channelEnum), detail::getErrorMessage(status));
                     return {status};
                 }
             } else {
                 const auto status = self().setDataBufferForSegment(_handle, *channelEnum, channel.driverBuffer.data(), static_cast<int32_t>(nSamples), segmentIndex, self().ratioNone());
                 if (status != PICO_OK) {
-                    fmt::println(std::cerr, "setDataBufferRapidBlock (chan {}): {}", static_cast<std::size_t>(*channelEnum), detail::getErrorMessage(status));
+                    std::println(std::cerr, "setDataBufferRapidBlock (chan {}): {}", static_cast<std::size_t>(*channelEnum), detail::getErrorMessage(status));
                     return {status};
                 }
             }
         }
 
         if (const auto status = self().setDigitalBuffers(nSamples, segmentIndex); status != PICO_OK) {
-            fmt::println(std::cerr, "setDigitalBuffers: {}", detail::getErrorMessage(status));
+            std::println(std::cerr, "setDigitalBuffers: {}", detail::getErrorMessage(status));
             return {status};
         }
 

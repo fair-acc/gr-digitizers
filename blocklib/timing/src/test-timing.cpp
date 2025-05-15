@@ -19,8 +19,7 @@
 #include <implot.h>
 
 #include <OutputCondition_Proxy.hpp>
-#include <fmt/chrono.h>
-#include <fmt/ranges.h>
+#include <format>
 
 #include "../include/event_definitions.hpp"
 #include "fairPlot.hpp"
@@ -38,22 +37,22 @@ static constexpr double   minDouble  = 0;
 static constexpr double   maxDouble  = std::numeric_limits<double>::max();
 
 template<typename... T>
-void tableColumnString(const fmt::format_string<T...>& fmt, T&&... args) {
+void tableColumnString(const std::format_string<T...>& str, T&&... args) {
     if (ImGui::TableNextColumn()) {
-        ImGui::TextUnformatted(fmt::format(fmt, std::forward<T>(args)...).c_str());
+        ImGui::TextUnformatted(std::format(str, std::forward<T>(args)...).c_str());
     }
 }
 template<typename... T>
-void tableColumnStringColor(ImColor color, const fmt::format_string<T...>& fmt, T&&... args) {
+void tableColumnStringColor(ImColor color, const std::format_string<T...>& str, T&&... args) {
     if (ImGui::TableNextColumn()) {
         ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
-        ImGui::TextUnformatted(fmt::format(fmt, std::forward<T>(args)...).c_str());
+        ImGui::TextUnformatted(std::format(str, std::forward<T>(args)...).c_str());
     }
 }
 void tableColumnBool(bool state, ImColor trueColor, ImColor falseColor) {
     if (ImGui::TableNextColumn()) {
         ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, state ? trueColor : falseColor);
-        ImGui::TextUnformatted(fmt::format("{}", state ? "y" : "n").c_str());
+        ImGui::TextUnformatted(std::format("{}", state ? "y" : "n").c_str());
     }
 }
 template<typename T, T max>
@@ -144,7 +143,7 @@ std::pair<uint64_t, uint64_t> TimingGroupFilterDropdown() {
                 continue;
             }
             auto& [enumName, description] = strings;
-            dispStrings.push_back(fmt::format("{} ({})", enumName, gid));
+            dispStrings.push_back(std::format("{} ({})", enumName, gid));
             itms.push_back(dispStrings.back().c_str());
             uint64_t id = ((gid & ((1UL << 12) - 1)) << 48) + ((1 & ((1UL << 4) - 1)) << 60);
             res.emplace_back(id);
@@ -192,13 +191,13 @@ void drawSnoopedEventTableRow(const Timing::Event& evt, Timing& timing) {
         ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, evt.flags ? ImGui::GetColorU32({1.0, 0, 0, 0.4f}) : ImGui::GetColorU32(ImGui::GetStyle().Colors[ImGuiCol_TableRowBg]));
         auto delay = (static_cast<double>(evt.executed - evt.time)) * 1e-6;
         if (evt.flags & 1) {
-            ImGui::Text("%s", fmt::format(" !late (by {} ms)", delay).c_str());
+            ImGui::Text("%s", std::format(" !late (by {} ms)", delay).c_str());
         } else if (evt.flags & 2) {
-            ImGui::Text("%s", fmt::format(" !early (by {} ms)", delay).c_str());
+            ImGui::Text("%s", std::format(" !early (by {} ms)", delay).c_str());
         } else if (evt.flags & 4) {
-            ImGui::Text("%s", fmt::format(" !conflict (delayed by {} ms)", delay).c_str());
+            ImGui::Text("%s", std::format(" !conflict (delayed by {} ms)", delay).c_str());
         } else if (evt.flags & 8) {
-            ImGui::Text("%s", fmt::format(" !delayed (by {} ms)", delay).c_str());
+            ImGui::Text("%s", std::format(" !delayed (by {} ms)", delay).c_str());
         }
     }
     ImGui::TableNextColumn();
@@ -277,11 +276,11 @@ bool drawScheduledEventTableRow(Timing::Event& ev, Timing& timing, uint64_t defa
     tableColumnSlider<uint16_t, max_uint12>("##gid", ev.gid, 40.f);
     ImGui::SameLine();
     if (ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("%s", fmt::format("{}", timingGroupTable.contains(ev.gid) ? timingGroupTable.at(ev.gid).first : "UNKNOWN").c_str());
+        ImGui::SetTooltip("%s", std::format("{}", timingGroupTable.contains(ev.gid) ? timingGroupTable.at(ev.gid).first : "UNKNOWN").c_str());
     }
     tableColumnSlider<uint16_t, max_uint12>("##eventno", ev.eventNo, 40.f);
     ImGui::SameLine();
-    ImGui::TextUnformatted(fmt::format("{}", eventNrTable.contains(ev.eventNo) ? eventNrTable.at(ev.eventNo).first : "UNKNOWN").c_str());
+    ImGui::TextUnformatted(std::format("{}", eventNrTable.contains(ev.eventNo) ? eventNrTable.at(ev.eventNo).first : "UNKNOWN").c_str());
     tableColumnCheckbox("##beamin", ev.flagBeamin);
     tableColumnCheckbox("##bpcstart", ev.flagBpcStart);
     tableColumnCheckbox("##reqNoBeam", ev.reqNoBeam);
@@ -307,15 +306,15 @@ bool drawScheduledEventTableRow(Timing::Event& ev, Timing& timing, uint64_t defa
         ImGui::TableNextColumn();
         auto [name, _3] = outputConfig.at(outputName);
         if (trigger) {
-            ImGui::Checkbox(fmt::format("##{}", name).c_str(), &trigger->outputs[i]);
+            ImGui::Checkbox(std::format("##{}", name).c_str(), &trigger->outputs[i]);
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("%s", fmt::format("Output: {}", outputName).c_str());
+                ImGui::SetTooltip("%s", std::format("Output: {}", outputName).c_str());
             }
         } else {
             bool output_selected = false;
-            ImGui::Checkbox(fmt::format("##{}", name).c_str(), &output_selected);
+            ImGui::Checkbox(std::format("##{}", name).c_str(), &output_selected);
             if (ImGui::IsItemHovered()) {
-                ImGui::SetTooltip("%s", fmt::format("Output: {}", outputName).c_str());
+                ImGui::SetTooltip("%s", std::format("Output: {}", outputName).c_str());
             }
             if (output_selected) {
                 trigger             = Timing::Trigger{};
@@ -418,7 +417,7 @@ void saveLoadEvents(Timing& timing) {
     if (ImGui::Button("Save to Clipboard")) {
         std::string string;
         for (const auto& ev : timing.events) {
-            string.append(fmt::format("{:#x} {:#x} {}\n", ev.id(), ev.param(), ev.time));
+            string.append(std::format("{:#x} {:#x} {}\n", ev.id(), ev.param(), ev.time));
         }
         ImGui::SetClipboardText(string.c_str());
     }
@@ -586,7 +585,7 @@ void showTRConfig(Timing& timing, bool& imGuiDemo, bool& imPlotDemo) {
             return;
         }
         uint64_t trTime = timing.currentTimeTAI();
-        ImGui::TextUnformatted(fmt::format("{} -- ({} ns)\nTemperature: {}°C,\nGateware: {},\n(\"version\", \"{}\")", trTime, taiNsToUtc(trTime), timing.receiver->CurrentTemperature(), fmt::join(timing.receiver->getGatewareInfo(), ",\n"), timing.receiver->getGatewareVersion()).c_str());
+        ImGui::TextUnformatted(std::format("{} -- ({} ns)\nTemperature: {}°C,\nGateware: {},\n(\"version\", \"{}\")", trTime, taiNsToUtc(trTime), timing.receiver->CurrentTemperature(), gr::join(timing.receiver->getGatewareInfo(), ",\n"), timing.receiver->getGatewareVersion()).c_str());
         const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
         outputsTable(timing, TEXT_BASE_HEIGHT);
         ImGui::SameLine();
@@ -649,7 +648,7 @@ public:
         double time        = (static_cast<double>(currentTime - startTime)) * 1e-9;
         if (ImGui::CollapsingHeader("Plot", ImGuiTreeNodeFlags_DefaultOpen)) {
             if (ImPlot::BeginPlot("timing markers", ImVec2(-1, 0), ImPlotFlags_CanvasOnly)) {
-                ImPlot::SetupAxes(fmt::format("t [s] + {}", taiNsToUtc(currentTime)).c_str(), nullptr, 0, ImPlotAxisFlags_NoDecorations);
+                ImPlot::SetupAxes(std::format("t [s] + {}", taiNsToUtc(currentTime)).c_str(), nullptr, 0, ImPlotAxisFlags_NoDecorations);
                 ImPlot::SetupAxisLimits(ImAxis_X1, -plot_depth, 0, ImGuiCond_Always);
 
                 // plot freestanding events
@@ -737,14 +736,14 @@ std::pair<SDL_Window*, SDL_GLContext> openSDLWindow() {
     ImPlot::CreateContext();
     // Setup Platform/Renderer backends
 
-    fmt::print("Initilalizing SDL2 for OpenGL\n");
+    std::print("Initilalizing SDL2 for OpenGL\n");
     ImGui_ImplSDL2_InitForOpenGL(window, gl_context);
-    fmt::print("Initializing OpenGL; glsl_version={}\n", glsl_version);
+    std::print("Initializing OpenGL; glsl_version={}\n", glsl_version);
     if (!ImGui_ImplOpenGL3_Init(glsl_version)) {
         return {nullptr, nullptr};
     }
 
-    fmt::print("successfully set up sdl/opengl3\n");
+    std::print("successfully set up sdl/opengl3\n");
     return {window, gl_context};
 }
 
@@ -787,7 +786,7 @@ int showUI(Timing& timing) {
     timing.initialize();
     auto [window, gl_context] = openSDLWindow();
     if (!window) {
-        fmt::print("error creating SDL_window: {}\n", SDL_GetError());
+        std::print("error creating SDL_window: {}\n", SDL_GetError());
         return 200;
     }
 

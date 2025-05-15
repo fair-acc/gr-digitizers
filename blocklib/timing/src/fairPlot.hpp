@@ -132,7 +132,7 @@ void plotNamedEvents(const char* label_id, const FairPlot::ScrollingBuffer<N>& p
         const ImPlotPoint p{pointBuffer[i].x + xOffset, pointBuffer[i].y};
         auto              eventno = static_cast<uint16_t>(p.y);
         data[i]                   = p.x;
-        ImPlot::PlotText(fmt::format("{}({})", eventNrTable.contains(eventno) ? eventNrTable.at(eventno).first : "UNKNOWN", eventno).c_str(), p.x, yText, textOffset, ImPlotTextFlags_Vertical);
+        ImPlot::PlotText(std::format("{}({})", eventNrTable.contains(eventno) ? eventNrTable.at(eventno).first : "UNKNOWN", eventno).c_str(), p.x, yText, textOffset, ImPlotTextFlags_Vertical);
     }
     ImPlot::PlotInfLines(label_id, data.data(), static_cast<int>(pointBuffer.size), flags, 0, sizeof(double));
 }

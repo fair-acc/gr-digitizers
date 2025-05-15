@@ -1,6 +1,6 @@
 #include <TimingSource.hpp>
 #include <boost/ut.hpp>
-#include <fmt/core.h>
+#include <format>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/ConverterBlocks.hpp>
 #include <gnuradio-4.0/testing/TagMonitors.hpp>
@@ -16,7 +16,7 @@ const suite TimingBlockHelpers = [] {
     "filter-parsing"_test = []() {
         auto expectTiming = [](auto a, auto b) {
             auto aa = gr::timing::TimingSource::parseFilter(a);
-            expect(aa == b) << fmt::format("checking: {}\ngot: {:#x}, {:#x}\nexp: {:#x}, {:#x}\n", a, aa.first, aa.second, b.first, b.second);
+            expect(aa == b) << std::format("checking: {}\ngot: {:#x}, {:#x}\nexp: {:#x}, {:#x}\n", a, aa.first, aa.second, b.first, b.second);
         };
 
         expectTiming("", std::pair{0x1000000000000000ul, 0xf000000000000000ul});
@@ -40,7 +40,7 @@ const suite TimingBlockHelpers = [] {
         auto expectTrigger = [](const auto a, const auto& b) {
             const auto [trigger, actions] = gr::timing::TimingSource::splitTriggerActions(a);
             const auto aa                 = gr::timing::TimingSource::parseTriggerAction(actions);
-            expect(std::ranges::equal(aa, b)) << fmt::format("checking: {}\ngot: {}\nexp: {}\n", a, aa, b);
+            expect(std::ranges::equal(aa, b)) << std::format("checking: {}\ngot: {}\nexp: {}\n", a, aa, b);
         };
 
         expectTrigger("SIS100_RING->DIO1(20,on,5,off),DIO5(5,off)",                                      //
@@ -81,13 +81,13 @@ const suite TimingBlockHelpers = [] {
             gr::Tag tag{.index = 0uz, .map = {{"existingKey", "test"}}};
             gr::timing::TimingSource::addHwTriggerInfo(0x1136200000000000ul, tag, actionTrigger);
             gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO, gr::property_map{{"HW-TRIGGER", false}}}};
-            expect(std::ranges::equal(expected, tag.map)) << [&tag, &expected]() { return fmt::format("got: {} exp: {}", tag.map, expected); };
+            expect(std::ranges::equal(expected, tag.map)) << [&tag, &expected]() { return std::format("got: {} exp: {}", tag.map, expected); };
         }
         { // id matches first filter in the filter list -> HW-TRIGGER: true
             gr::Tag tag{.index = 0uz, .map = {{"existingKey", "test"}}};
             gr::timing::TimingSource::addHwTriggerInfo(0x1136100000000000ul, tag, actionTrigger);
             gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO, gr::property_map{{"HW-TRIGGER", true}}}};
-            expect(std::ranges::equal(expected, tag.map)) << [&tag, &expected]() { return fmt::format("got: {} exp: {}", tag.map, expected); };
+            expect(std::ranges::equal(expected, tag.map)) << [&tag, &expected]() { return std::format("got: {} exp: {}", tag.map, expected); };
         }
     };
 };
@@ -95,9 +95,9 @@ const suite TimingBlockHelpers = [] {
 std::thread dispatchSimulatedTiming(std::size_t n = 30, std::size_t schedule_dt = 200'000'000UL, std::size_t schedule_offset = 500'000'000UL) {
     return std::thread([=]() {
         static std::size_t uniqueId;
-        fmt::print("start replay of test timing data\n");
+        std::print("start replay of test timing data\n");
         Timing timing;
-        timing.saftAppName = fmt::format("qa_timingSource_dispatcher_{}_{}", getpid(), uniqueId++);
+        timing.saftAppName = std::format("qa_timingSource_dispatcher_{}_{}", getpid(), uniqueId++);
         timing.initialize();
         auto          outputs     = timing.receiver->getOutputs() | std::views::transform([&timing](auto kvp) {
             auto [name, path] = kvp;
@@ -125,7 +125,7 @@ std::thread dispatchSimulatedTiming(std::size_t n = 30, std::size_t schedule_dt 
                     if ((outputState & (0x1ull << (j + 1))) != ((outputState + 1) & (0x1ull << (j + 1)))) {
                         const bool state = ((outputState + 1) & (0x1ull << (j + 1))) > 0;
                         outputs[j + 1]->WriteOutput(state);
-                        // fmt::print("iteration {}, setting output {}({}) to {}\n", i, j + 1, outputs[j + 1]->getInput(), state);
+                        // std::print("iteration {}, setting output {}({}) to {}\n", i, j + 1, outputs[j + 1]->getInput(), state);
                     }
                 }
                 outputState = (outputState + 1) & ((0x1ull << (outputs.size() - 1)) - 1);
@@ -137,7 +137,7 @@ std::thread dispatchSimulatedTiming(std::size_t n = 30, std::size_t schedule_dt 
             }
             timing.saftSigGroup.wait_for_signal(1);
         }
-        fmt::print("finished replay of timing data\n");
+        std::print("finished replay of timing data\n");
     });
 }
 
@@ -162,18 +162,18 @@ const suite TimingBlock = [] {
         expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(timingSrc).to<"in">(sink)));
 
         scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{std::move(testGraph)};
-        fmt::print("starting flowgraph\n");
+        std::print("starting flowgraph\n");
         expect(sched.changeStateTo(gr::lifecycle::State::INITIALISED).has_value());
         auto res = sched.changeStateTo(gr::lifecycle::State::RUNNING);
         if (!res) {
-            fmt::print("failed to start: {}\n", res.error());
+            std::print("failed to start: {}\n", res.error());
         }
         expect(res.has_value());
 
         std::thread testEventDispatcherThread = dispatchSimulatedTiming();
         std::this_thread::sleep_for(6s);
         expect(sched.changeStateTo(gr::lifecycle::State::REQUESTED_STOP).has_value());
-        fmt::print("stopped flowgraph\n");
+        std::print("stopped flowgraph\n");
 
         testEventDispatcherThread.join();
 
@@ -190,11 +190,11 @@ const suite TimingBlock = [] {
             << "expected almost 4 iterations of the pattern. the first sample is dropped, because it has less than 100 samples";
 
         if (verbose) {
-            fmt::print("received{} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
+            std::print("received{} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
             if (!sink._tags.empty()) {
                 const auto firstTimestamp = std::get<std::uint64_t>(sink._tags[0].map[gr::tag::TRIGGER_TIME.shortKey()]);
                 for (auto& tag : sink._tags) {
-                    fmt::print("  {} - {}s: {}\n", tag.index, (static_cast<double>(std::get<std::uint64_t>(tag.map[gr::tag::TRIGGER_TIME.shortKey()]) - firstTimestamp)) * 1e-9, tag.map);
+                    std::print("  {} - {}s: {}\n", tag.index, (static_cast<double>(std::get<std::uint64_t>(tag.map[gr::tag::TRIGGER_TIME.shortKey()]) - firstTimestamp)) * 1e-9, tag.map);
                 }
             }
         }
@@ -219,11 +219,11 @@ const suite TimingBlock = [] {
         expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(timingSrc).to<"in">(sink)));
 
         scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{std::move(testGraph)};
-        fmt::print("starting flowgraph\n");
+        std::print("starting flowgraph\n");
         expect(sched.changeStateTo(gr::lifecycle::State::INITIALISED).has_value());
         auto res = sched.changeStateTo(gr::lifecycle::State::RUNNING);
         if (!res && verbose) {
-            fmt::print("failed to start: {}\n", res.error());
+            std::print("failed to start: {}\n", res.error());
         }
         expect(res.has_value());
 
@@ -231,7 +231,7 @@ const suite TimingBlock = [] {
         std::this_thread::sleep_for(6s);
 
         expect(sched.changeStateTo(gr::lifecycle::State::REQUESTED_STOP).has_value());
-        fmt::print("stopped flowgraph\n");
+        std::print("stopped flowgraph\n");
 
         testEventDispatcherThread.join();
 
@@ -250,11 +250,11 @@ const suite TimingBlock = [] {
             << "Wrong numnber of event triggered IO tags";
 
         if (verbose) {
-            fmt::print("received{} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
+            std::print("received{} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
             if (!sink._tags.empty()) {
                 const auto firstTimestamp = std::get<std::uint64_t>(sink._tags[0].map[gr::tag::TRIGGER_TIME.shortKey()]);
                 for (auto& tag : sink._tags) {
-                    fmt::print("  {} - {}s: {}\n", tag.index, (static_cast<double>(std::get<std::uint64_t>(tag.map[gr::tag::TRIGGER_TIME.shortKey()]) - firstTimestamp)) * 1e-9, tag.map);
+                    std::print("  {} - {}s: {}\n", tag.index, (static_cast<double>(std::get<std::uint64_t>(tag.map[gr::tag::TRIGGER_TIME.shortKey()]) - firstTimestamp)) * 1e-9, tag.map);
                 }
             }
         }
