@@ -1,29 +1,29 @@
 #ifndef IMPLOT_VISUALIZATION_FAIR_HEADER_H
 #define IMPLOT_VISUALIZATION_FAIR_HEADER_H
-#include <imgui.h>
 #include <chrono>
 #include <cmrc/cmrc.hpp>
-#include <fmt/chrono.h>
+#include <format>
+#include <imgui.h>
 #include <string_view>
 
 CMRC_DECLARE(ui_assets);
 
 namespace app_header {
 namespace detail {
-    void TextCentered(const std::string_view text) {
-        auto windowWidth = ImGui::GetWindowSize().x;
-        auto textWidth = ImGui::CalcTextSize(text.data(), text.data() + text.size()).x;
-        ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-        ImGui::Text("%s", text.data());
-    }
-
-    void TextRight(const std::string_view text) {
-        auto windowWidth = ImGui::GetWindowSize().x;
-        auto textWidth = ImGui::CalcTextSize(text.data(), text.data() + text.size()).x;
-        ImGui::SetCursorPosX(windowWidth - textWidth - ImGui::GetStyle().ItemSpacing.x);
-        ImGui::Text("%s", text.data());
-    }
+void TextCentered(const std::string_view text) {
+    auto windowWidth = ImGui::GetWindowSize().x;
+    auto textWidth   = ImGui::CalcTextSize(text.data(), text.data() + text.size()).x;
+    ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+    ImGui::Text("%s", text.data());
 }
+
+void TextRight(const std::string_view text) {
+    auto windowWidth = ImGui::GetWindowSize().x;
+    auto textWidth   = ImGui::CalcTextSize(text.data(), text.data() + text.size()).x;
+    ImGui::SetCursorPosX(windowWidth - textWidth - ImGui::GetStyle().ItemSpacing.x);
+    ImGui::Text("%s", text.data());
+}
+} // namespace detail
 
 ImFont* loadHeaderFont(float size) {
     ImFontConfig config;
@@ -31,19 +31,19 @@ ImFont* loadHeaderFont(float size) {
     config.OversampleV          = 1;
     config.PixelSnapH           = true;
     config.FontDataOwnedByAtlas = false;
-    ImGuiIO   &io       = ImGui::GetIO();
-    auto primaryFont = cmrc::ui_assets::get_filesystem().open("Roboto-Medium.ttf");
-    return io.Fonts->AddFontFromMemoryTTF(const_cast<char *>(primaryFont.begin()), static_cast<int>(primaryFont.size()), size, &config);
+    ImGuiIO& io                 = ImGui::GetIO();
+    auto     primaryFont        = cmrc::ui_assets::get_filesystem().open("Roboto-Medium.ttf");
+    return io.Fonts->AddFontFromMemoryTTF(const_cast<char*>(primaryFont.begin()), static_cast<int>(primaryFont.size()), size, &config);
 }
 
-void draw_header_bar(std::string_view title, ImFont *headerFont) {
+void draw_header_bar(std::string_view title, ImFont* headerFont) {
     using namespace detail;
     // localtime
     const auto clock         = std::chrono::system_clock::now();
-    const auto utcClock      = fmt::format("{:%Y-%m-%d %H:%M:%S (LOC)}", std::chrono::round<std::chrono::seconds>(clock));
+    const auto utcClock      = std::format("{:%Y-%m-%d %H:%M:%S (LOC)}", std::chrono::round<std::chrono::seconds>(clock));
     const auto utcStringSize = ImGui::CalcTextSize(utcClock.c_str());
 
-    const auto topLeft       = ImGui::GetCursorPos();
+    const auto topLeft = ImGui::GetCursorPos();
     // draw title
     ImGui::PushFont(headerFont);
     // suppress title if it doesn't fit or is likely to overlap
@@ -58,13 +58,15 @@ void draw_header_bar(std::string_view title, ImFont *headerFont) {
     // utc (using c-style timedate functions because of missing stdlib support)
     // const auto utc_clock = std::chrono::utc_clock::now(); // c++20 timezone is not implemented in gcc or clang yet
     // date + tz library unfortunately doesn't play too well with emscripten/fetchcontent
-    // const auto localtime = fmt::format("{:%H:%M:%S (%Z)}", date::make_zoned("utc", clock).get_sys_time());
+    // const auto localtime = std::format("{:%H:%M:%S (%Z)}", date::make_zoned("utc", clock).get_sys_time());
     std::string utctime; // assume maximum of 32 characters for datetime length
     utctime.resize(32);
     pos.y += ImGui::GetTextLineHeightWithSpacing();
     ImGui::SetCursorPos(pos);
     const auto utc = std::chrono::system_clock::to_time_t(clock);
-    struct tm localtime{};
+    // clang-format off
+    struct tm  localtime{};
+    // clang-format on
     const auto len = strftime(utctime.data(), utctime.size(), "%H:%M:%S (UTC)", gmtime_r(&utc, &localtime));
     TextRight(std::string_view(utctime.data(), len));
     auto posBeneathClock = ImGui::GetCursorPos();

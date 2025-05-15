@@ -191,10 +191,10 @@ public:
                 }
             } catch (std::invalid_argument& e) {
                 events.clear();
-                fmt::print("Error parsing data, cannot convert string to number: {}\n### data ###\n{}\n### data end ###\n", e.what(), string);
+                std::print("Error parsing data, cannot convert string to number: {}\n### data ###\n{}\n### data end ###\n", e.what(), string);
             } catch (std::out_of_range& e) {
                 events.clear();
-                fmt::print("Error parsing data, value out of range: {}\n### data ###\n{}\n### data end ###\n", e.what(), string);
+                std::print("Error parsing data, value out of range: {}\n### data ###\n{}\n### data end ###\n", e.what(), string);
             }
         }
     };
@@ -314,8 +314,7 @@ public:
                 std::map<std::string, std::string> devices = saftd->getDevices();
                 if (deviceName.empty()) {
                     if (devices.empty()) {
-                        std::cerr << "" << std::endl;
-                        fmt::print("No devices attached to saftd, continuing with simulated timing\n");
+                        std::println(std::cerr, "No devices attached to saftd, continuing with simulated timing");
                         simulate    = true;
                         initialized = true;
                         return;
@@ -323,8 +322,7 @@ public:
                     receiver = TimingReceiver_Proxy::create(devices.begin()->second, saftSigGroup);
                 } else {
                     if (!devices.contains(deviceName)) {
-                        std::cerr << "" << std::endl;
-                        fmt::print("Could not find device {}, continuing with simulated timing\n", deviceName);
+                        std::println(std::cerr, "Could not find device {}, continuing with simulated timing", deviceName);
                         simulate    = true;
                         initialized = true;
                         return;
@@ -339,7 +337,7 @@ public:
                 }
                 initialized = true;
             } catch (saftbus::Error& e) {
-                fmt::print("Error initializing saftbus client: {}\ncontinuing with simulated timing\n", e.what());
+                std::println("Error initializing saftbus client: {}\ncontinuing with simulated timing", e.what());
                 simulate    = true;
                 initialized = true;
                 return;

@@ -148,6 +148,7 @@ public:
             return {timebase, actualFreq};
         }
         }
+        throw std::runtime_error(std::format("Unsupported device resolution: {}", static_cast<int>(deviceResolution)));
     }
 
     static constexpr std::optional<std::size_t> convertToOutputIndex(std::string_view source) {
@@ -188,7 +189,7 @@ public:
         } else if (coupling == Coupling::DC) {
             return PS5000A_DC;
         }
-        throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
+        throw std::runtime_error(std::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
     }
 
     static constexpr RangeType convertToRange(float range) {
@@ -213,7 +214,7 @@ public:
         case Falling: return PS5000A_FALLING;
         case Low: return PS5000A_BELOW;
         case High: return PS5000A_ABOVE;
-        default: throw std::runtime_error(fmt::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
+        default: throw std::runtime_error(std::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
         }
     };
 

@@ -47,8 +47,7 @@ target_link_libraries(
             ps6000
             gr-digitizers-options
             gnuradio-core
-            gnuradio-algorithm
-            fmt)
+            gnuradio-algorithm)
 set_target_properties(
   gr-digitizers
   PROPERTIES

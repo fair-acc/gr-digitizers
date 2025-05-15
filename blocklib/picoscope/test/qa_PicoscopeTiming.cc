@@ -27,7 +27,7 @@ const boost::ut::suite PicoscopeTests = [] {
         using namespace std::chrono_literals;
         using namespace boost::ut;
 
-        fmt::println("testStreamingBasicsWithTiming");
+        std::println("testStreamingBasicsWithTiming");
 
         constexpr float kSampleRate = 80000.f; // [Hz]
         constexpr auto  kDuration   = 2s;
@@ -90,9 +90,9 @@ const boost::ut::suite PicoscopeTests = [] {
                                                                 {2'500'000'000, std::uint8_t{0b000}}                                                   //
             };
             std::size_t schedule_offset = 100'000'000;
-            fmt::print("start replay of test timing data\n");
+            std::println("start replay of test timing data");
             Timing timing;
-            timing.saftAppName = fmt::format("qa_picoscope_timing_dispatcher_{}", getpid());
+            timing.saftAppName = std::format("qa_picoscope_timing_dispatcher_{}", getpid());
             timing.initialize();
             auto          outputs     = timing.receiver->getOutputs() | std::views::transform([&timing](auto kvp) {
                 auto [name, path] = kvp;
@@ -117,18 +117,18 @@ const boost::ut::suite PicoscopeTests = [] {
                         }
                     }
                     outputState = newState;
-                    // fmt::print("changed outputs: {:0b}\n", newState);
+                    // std::print("changed outputs: {:0b}\n", newState);
                 } else if (std::holds_alternative<Timing::Event>(action)) { // publish event
                     auto event = std::get<Timing::Event>(action);
                     event.time = schedule_dt;
                     timing.injectEvent(event, start);
                     timing.saftSigGroup.wait_for_signal(0);
-                    // fmt::print("sent event: id:{:#x}, gid:{}, evNo:{}, bpid:{}\n", event.id(), event.gid, event.eventNo, event.bpid);
+                    // std::print("sent event: id:{:#x}, gid:{}, evNo:{}, bpid:{}\n", event.id(), event.gid, event.eventNo, event.bpid);
                 } else {
                     expect(false) << "unsupported event action";
                 }
             }
-            fmt::print("finished replay of timing data\n");
+            std::print("finished replay of timing data\n");
             return;
         });
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{std::move(flowGraph)};
@@ -138,9 +138,9 @@ const boost::ut::suite PicoscopeTests = [] {
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
         const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(kDuration).count();
-        fmt::println("Produced in worker: {}", ps._nSamplesPublished);
-        fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(kSampleRate) * 100., duration_cast<milliseconds>(kDuration).count());
-        fmt::println("Total: {}", sinkA._nSamplesProduced);
+        std::println("Produced in worker: {}", ps._nSamplesPublished);
+        std::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", kSampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(kSampleRate) * 100., duration_cast<milliseconds>(kDuration).count());
+        std::println("Total: {}", sinkA._nSamplesProduced);
 
         expect(ge(sinkA._nSamplesProduced, 80000UZ));
         expect(le(sinkA._nSamplesProduced, 170000UZ));
@@ -174,7 +174,8 @@ const boost::ut::suite PicoscopeTests = [] {
         expect(approx(sinkA._samples[timingEventSamplesFromTags[2] + 2], 3.0f, 1e-1f)) << "trigger channel should be zero after of timing event 2";
         expect(approx(sinkB._samples[timingEventSamplesFromTags[2]], 0.0f, 1e-1f)) << "state of IO2=inB should be LOW at timing event 2";
         expect(approx(sinkC._samples[timingEventSamplesFromTags[2]], 3.3f, 1e-1f)) << "state of IO2=inB should be HIGH at timing event 2";
-        fmt::print("timing events: {}\n", sinkA._tags | std::views::filter([](auto& t) { return t.map.contains("BPID"); }) | std::views::transform([](auto& t) { return std::pair(t.index, t.map); }));
+        auto timingEvents = sinkA._tags | std::views::filter([](auto& t) { return t.map.contains("BPID"); }) | std::views::transform([](auto& t) { return std::pair(t.index, t.map); }) | std::ranges::to<std::vector>();
+        std::print("timing events: {}\n", gr::join(timingEvents));
     };
 };
 

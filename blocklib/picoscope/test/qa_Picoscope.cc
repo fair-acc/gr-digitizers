@@ -26,7 +26,7 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
     using namespace gr;
     using namespace fair::picoscope;
 
-    fmt::println("testRapidBlockBasic({}) - {}", nCaptures, gr::meta::type_name<T>());
+    std::println("testRapidBlockBasic({}) - {}", nCaptures, gr::meta::type_name<T>());
 
     constexpr gr::Size_t preSamples   = 33;
     constexpr gr::Size_t postSamples  = 1000;
@@ -128,7 +128,7 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, bo
                 const auto countZeros    = std::ranges::count(sinkDigital._samples[iC].signal_values, 0);
                 const auto countNonZeros = (digitalPortUseExactValue) ? std::ranges::count(sinkDigital._samples[iC].signal_values, digitalPortExactValue) : std::ranges::count_if(sinkDigital._samples[iC].signal_values, [](int x) { return x != 0; });
                 const bool isEqual       = static_cast<double>(std::abs(countZeros - countNonZeros)) / static_cast<double>(countNonZeros) < 0.05;
-                fmt::println("Digital output rapid block testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
+                std::println("Digital output rapid block testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
                 expect(isEqual);
             }
         }
@@ -144,7 +144,7 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     using namespace fair::picoscope;
     Graph flowGraph;
 
-    fmt::println("testStreamingBasics - {}", gr::meta::type_name<T>());
+    std::println("testStreamingBasics - {}", gr::meta::type_name<T>());
 
     constexpr auto testDuration = 2s;
 
@@ -195,10 +195,10 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
     const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(testDuration).count();
-    fmt::println("Produced in worker: {}", ps._nSamplesPublished);
-    fmt::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", sampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(sampleRate) * 100., duration_cast<milliseconds>(testDuration).count());
-    fmt::println("Total samples: {}", sinkA._nSamplesProduced);
-    fmt::println("Total tags: {}", tagMonitor._tags.size());
+    std::println("Produced in worker: {}", ps._nSamplesPublished);
+    std::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", sampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(sampleRate) * 100., duration_cast<milliseconds>(testDuration).count());
+    std::println("Total samples: {}", sinkA._nSamplesProduced);
+    std::println("Total tags: {}", tagMonitor._tags.size());
 
     expect(ge(sinkA._nSamplesProduced, static_cast<std::size_t>(sampleRate)));
     expect(le(sinkA._nSamplesProduced, static_cast<std::size_t>(2.5f * sampleRate))); // 2 seconds
@@ -221,7 +221,7 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
         const auto countZeros    = std::ranges::count(sinkDigital._samples, 0);
         const auto countNonZeros = (digitalPortUseExactValue) ? std::ranges::count(sinkDigital._samples, digitalPortExactValue) : std::ranges::count_if(sinkDigital._samples, [](int x) { return x != 0; });
         const bool isEqual       = static_cast<double>(std::abs(countZeros - countNonZeros)) / static_cast<double>(countNonZeros) < 0.05;
-        fmt::println("Digital output streaming testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
+        std::println("Digital output streaming testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
         expect(isEqual);
     }
 }
@@ -273,7 +273,7 @@ const boost::ut::suite PicoscopeTests = [] {
     "rapid block multiple captures"_test = [] { testRapidBlockBasic<DataSet<float>>(3); };
 
     "rapid block 3 channels"_test = [] {
-        fmt::println("rapid block 3 channels");
+        std::println("rapid block 3 channels");
         constexpr gr::Size_t preSamples   = 33;
         constexpr gr::Size_t postSamples  = 1000;
         constexpr gr::Size_t nCaptures    = 5;
@@ -333,7 +333,7 @@ const boost::ut::suite PicoscopeTests = [] {
     };
 
     "rapid block continuous"_test = [] {
-        fmt::println("rapid block continuous");
+        std::println("rapid block continuous");
         using namespace std::chrono_literals;
 
         using T = DataSet<float>;
@@ -386,7 +386,7 @@ const boost::ut::suite PicoscopeTests = [] {
         std::this_thread::sleep_for(testDuration);
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
-        fmt::println("rapid block continuous: producedDatasets:{}, valid range: [{}, {}]", sinkA._nSamplesProduced, minDatasets, maxDatasets);
+        std::println("rapid block continuous: producedDatasets:{}, valid range: [{}, {}]", sinkA._nSamplesProduced, minDatasets, maxDatasets);
         expect(ge(sinkA._nSamplesProduced, minDatasets));
         expect(le(sinkA._nSamplesProduced, maxDatasets));
 
@@ -396,7 +396,7 @@ const boost::ut::suite PicoscopeTests = [] {
     };
 
     "tagContainsTrigger"_test = [] {
-        fmt::println("tagContainsTrigger");
+        std::println("tagContainsTrigger");
         using namespace std::chrono_literals;
         using namespace gr::tag;
 
@@ -404,7 +404,7 @@ const boost::ut::suite PicoscopeTests = [] {
             const auto tag = Tag(0, includeCtx ? property_map{{TRIGGER_NAME.shortKey(), tagTriggerName}, {CONTEXT.shortKey(), tagCtx}}                                       //
                                                : property_map{{TRIGGER_NAME.shortKey(), tagTriggerName}});
             const bool res = detail::tagContainsTrigger(tag, detail::createTriggerNameAndCtx(triggerNameAndCtx));
-            expect(eq(expectedResult, res)) << fmt::format("triggerNameAndCtx:{}, tag.map:{}", triggerNameAndCtx, tag.map);
+            expect(eq(expectedResult, res)) << std::format("triggerNameAndCtx:{}, tag.map:{}", triggerNameAndCtx, tag.map);
         };
 
         // both trigger_name and ctx are set
@@ -428,7 +428,7 @@ const boost::ut::suite PicoscopeTests = [] {
     };
 
     "rapid block arm/disarm trigger"_test = [] {
-        fmt::println("rapid block arm/disarm trigger");
+        std::println("rapid block arm/disarm trigger");
         using namespace std::chrono_literals;
         using namespace gr::tag;
 
@@ -507,7 +507,7 @@ const boost::ut::suite PicoscopeTests = [] {
     };
 
     "rapid partial captures"_test = [] {
-        fmt::println("rapid partial captures");
+        std::println("rapid partial captures");
         using namespace std::chrono_literals;
         using namespace gr::tag;
 

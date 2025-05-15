@@ -2,7 +2,7 @@
 #include <Picoscope4000a.hpp>
 #include <Picoscope5000a.hpp>
 #include <boost/ut.hpp>
-#include <fmt/format.h>
+#include <format>
 #include <gnuradio-4.0/Graph.hpp>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/testing/PerformanceMonitor.hpp>
@@ -23,10 +23,10 @@ auto createWatchdog(Scheduler& sched, std::chrono::seconds timeOut = 2s, std::ch
             }
             std::this_thread::sleep_for(pollingPeriod);
         }
-        fmt::println("watchdog kicked in");
+        std::println("watchdog kicked in");
         externalInterventionNeeded->store(true, std::memory_order_relaxed);
         sched.requestStop();
-        fmt::println("requested scheduler to stop");
+        std::println("requested scheduler to stop");
     });
 
     return std::make_pair(std::move(watchdogThread), externalInterventionNeeded);

@@ -139,7 +139,7 @@ public:
         } else if (coupling == Coupling::DC_50R) {
             return PS6000_DC_50R;
         }
-        throw std::runtime_error(fmt::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
+        throw std::runtime_error(std::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
     }
 
     static constexpr RangeType convertToRange(float range) {
@@ -164,7 +164,7 @@ public:
         case Falling: return PS6000_FALLING;
         case Low: return PS6000_BELOW;
         case High: return PS6000_ABOVE;
-        default: throw std::runtime_error(fmt::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
+        default: throw std::runtime_error(std::format("Unsupported trigger direction: {}", static_cast<int>(direction)));
         }
     };
 

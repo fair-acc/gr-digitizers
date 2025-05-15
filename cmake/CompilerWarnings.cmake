@@ -59,7 +59,6 @@ function(set_project_warnings project_name)
 
   set(GCC_WARNINGS
           ${CLANG_WARNINGS}
-          -Wno-dangling-reference # TODO: remove this once the fmt dangling reference bug is fixed
           -Wmisleading-indentation # warn if indentation implies blocks where blocks do not exist
           -Wduplicated-cond # warn if if / else chain has duplicated conditions
           -Wduplicated-branches # warn if if / else branches have duplicated code

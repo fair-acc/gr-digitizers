@@ -31,13 +31,13 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
   gnuradio4
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-  GIT_TAG b8de4f8440b454bdee86ff4070070a436d7e301c # main as of 2025-04-02
+  GIT_TAG 9a7e17e84b60d22c6dec756540b57ba8d40d62a6 # main as of 2025-05-14
 )
 
 FetchContent_Declare(
   ut
   GIT_REPOSITORY https://github.com/boost-ext/ut.git
-  GIT_TAG v2.0.1 # latest tag as of 2023-12-19
+  GIT_TAG v2.3.1 # latest tag as of 2025-04-02
 )
 
 add_library(gr-digitizers-options INTERFACE)
