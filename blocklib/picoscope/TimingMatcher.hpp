@@ -192,6 +192,8 @@ struct TimingMatcher {
 
         return result;
     }
+
+    void reset() { _lastMatchedTag = std::nullopt; }
 };
 
 } // namespace fair::picoscope::timingmatcher

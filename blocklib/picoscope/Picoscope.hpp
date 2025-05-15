@@ -538,16 +538,11 @@ public:
             if (status != PICO_OK) {
                 this->emitErrorMessage(std::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
             }
-        }
-
-        tagMatcher.sampleRate = sample_rate;
-
-        if (detail::isDigitalTrigger(trigger_source) && acquisitionMode == AcquisitionMode::RapidBlock) {
+        } else if (detail::isDigitalTrigger(trigger_source) && acquisitionMode == AcquisitionMode::RapidBlock) {
             const auto status = self().SetTriggerDigitalPort(_handle, _digitalChannelNumber, detail::convertToEnum<TriggerDirection>(trigger_direction));
             if (status != PICO_OK) {
                 this->emitErrorMessage(std::format("{}::initialize() SetTriggerDigitalPort", this->name), gr::Error(detail::getErrorMessage(status)));
             }
-
         } else {
             // Disable any trigger conditions, so captures occur IMMEDIATELY without waiting for any event
             // Note: To prevent any trigger events, one needs to set the threshold for all channels to the maximum value
@@ -565,6 +560,8 @@ public:
                 }
             }
         }
+
+        tagMatcher.sampleRate = sample_rate;
     }
 
     void arm() {
@@ -686,7 +683,9 @@ public:
                     this->emitErrorMessage(std::format("{}::processBulk", this->name), getValuesResult.error.message());
                     return gr::work::Status::ERROR;
                 }
-                processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, timingInSpan, digitalOutSpan, outputs);
+                auto now               = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
+                auto acquisitionLength = std::chrono::nanoseconds(static_cast<long>(static_cast<float>(getValuesResult.nSamples) * (1e9f / sample_rate)));
+                processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, timingInSpan, digitalOutSpan, outputs, now - acquisitionLength);
             }
 
             // if RapidBlock OR trigger_source is not set then consume all input tags
@@ -801,7 +800,7 @@ public:
         _nSamplesPublished += triggerTags.processedSamples;
     }
 
-    constexpr T createDataset(detail::Channel& channel, std::size_t nSamples)
+    constexpr T createDataset(detail::Channel& channel, std::size_t nSamples, std::span<gr::Tag> matchedTags)
     requires(acquisitionMode == AcquisitionMode::RapidBlock)
     {
         T ds{};
@@ -858,32 +857,44 @@ public:
     }
 
     template<gr::OutputSpanLike TOutSpan>
-    void processDriverDataRapidBlock(std::size_t iCapture, std::size_t nSamples, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs)
+    void processDriverDataRapidBlock(std::size_t iCapture, std::size_t nSamples, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs, std::chrono::nanoseconds acquisitionTime)
     requires(acquisitionMode == AcquisitionMode::RapidBlock)
     {
         using TSample = T::value_type;
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
-            outputs[channelIdx][iCapture] = createDataset(_channels[channelIdx], nSamples);
+            outputs[channelIdx][iCapture] = createDataset(_channels[channelIdx], nSamples, {});
             processSamplesOneChannel<TSample>(nSamples, 0, _channels[channelIdx], outputs[channelIdx][iCapture].signal_values);
+            // add Tags
             if constexpr (std::is_same_v<TSample, float> || std::is_same_v<TSample, std::int16_t>) {
                 gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]);
             } else {
                 // TODO: fix UncertainValue, it requires changes in GR4
             }
         }
-
-        // TODO: currently we assume that we have only trigger tags, and each trigger tag corresponds to iCapture
-        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
-            if (iCapture < timingInSpan.rawTags.size()) {
-                const auto&       tag      = timingInSpan.rawTags[iCapture];
-                const std::size_t tagIndex = static_cast<std::size_t>(pre_samples);
-                outputs[channelIdx][iCapture].timing_events[0].emplace_back(tagIndex, tag.map);
-            }
-        }
-
         digitalOutSpan[iCapture] = createDatasetDigital(nSamples);
         self().copyDigitalBuffersToOutput(digitalOutSpan[iCapture].signal_values, nSamples);
 
+        // perform matching
+        tagMatcher.reset(); // reset the tag matcher because for triggered acquisition there is always a gap in the data
+        const auto triggerSourceIndex = self().convertToOutputIndex(trigger_source);
+        if (triggerSourceIndex) {
+            std::span                samples(outputs[triggerSourceIndex.value()].data(), nSamples);
+            auto                     triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], outputs[triggerSourceIndex.value()][iCapture].signalValues(0));
+            std::span<const gr::Tag> tagspan        = std::span(timingInSpan.rawTags);
+            auto                     tags           = tagspan | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
+            auto                     triggerTags    = tagMatcher.match(tags, triggerOffsets, nSamples, acquisitionTime);
+            std::print("matched: ({}){}, {}\n  {},{}: {}\n", nSamples, triggerOffsets, tags, triggerTags.processedTags, triggerTags.processedSamples, triggerTags.tags);
+            if (!triggerTags.tags.empty()) {
+                for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
+                    auto& output = outputs[channelIdx][iCapture];
+                    for (auto& [index, map] : triggerTags.tags) {
+                        if (static_cast<std::ptrdiff_t>(index) >= 0u) { // TODO: think hard about tag index signedness... we often compute tag offsets that can become negative -> dangerous
+                            output.timing_events[0].push_back({index, map});
+                        }
+                    }
+                }
+            }
+        }
         _nSamplesPublished++;
     }
 

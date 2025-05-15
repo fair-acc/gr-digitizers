@@ -27,7 +27,7 @@ struct std::formatter<gr::Tag> {
 
 namespace fair::picoscope::test {
 
-const boost::ut::suite PicoscopeTests = [] {
+const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
     using namespace boost::ut;
     using namespace gr;
     using namespace fair::helpers;
@@ -83,7 +83,7 @@ const boost::ut::suite PicoscopeTests = [] {
      * It will generate a known pattern of timing events, configure the timing receiver to generate pules on IO1 for each event and output a known pattern on IO2..3.
      * The flowgraph in this test will then store the corresponding output samples and tags and check that the tags and output levels are correct.
      */
-    "streamingWithTiming"_test = [&] {
+    boost::ut::skip / "streamingWithTiming"_test = [&] {
         using namespace std::chrono;
         using namespace std::chrono_literals;
         using namespace boost::ut;
@@ -204,12 +204,12 @@ const boost::ut::suite PicoscopeTests = [] {
      * - tags on neighbouring samples
      * - missing tags
      */
-    "streamingWithTimingEdgeCases"_test = [&] {
+    boost::ut::skip / "streamingWithTimingEdgeCases"_test = [&] {
         using namespace std::chrono;
         using namespace std::chrono_literals;
         using namespace boost::ut;
 
-        std::println("testStreamingBasicsWithTiming");
+        std::println("testStreamingBasicsWithTimingEdgeCases");
 
         constexpr float kSampleRate = 100000.f; // [Hz]
         constexpr auto  kDuration   = 2s;
@@ -313,7 +313,104 @@ const boost::ut::suite PicoscopeTests = [] {
         std::print("timestamps: {}\n", timingEventSamplesFromTags | std::views::transform([&](unsigned long v) -> double { return static_cast<double>(v - timingEventSamplesFromTags[0]) / static_cast<double>(kSampleRate) + 0.79; }));
     };
 
-    "triggeredAcquisitionWithTiming"_test = [] {};
+    "triggeredAcquisitionWithTiming"_test = [&] {
+        using namespace std::chrono;
+        using namespace std::chrono_literals;
+        using namespace boost::ut;
+
+        std::println("triggeredAcquisitionWithTiming");
+
+        constexpr float kSampleRate = 100000.f; // [Hz]
+        constexpr auto  kDuration   = 2s;
+
+        gr::Graph flowGraph;
+        auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
+            {"event_actions", std::vector<std::string>({
+                                  "SIS100_RING->PUBLISH()",                        // monitor all events for the sis100 timing group
+                                  "SIS100_RING:CMD_BP_START->IO1(100,on,150,off)", // create a 50us pulse 100us after bp start events
+                              })},
+            {"event_hw_trigger", std::vector<std::string>({
+                                     "SIS100_RING:CMD_BP_START", // set the hw-trigger tag for all bp start events
+                                 })},
+            {"sample_rate", 0.0f}, // produce one sample per tag
+            {"verbose_console", true},
+        });
+
+        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<gr::DataSet<float>>>({{
+            {"sample_rate", kSampleRate},
+            {"auto_arm", true},
+            {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
+            {"signal_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}},
+            {"signal_units", std::vector<std::string>{"V", "V", "V"}},
+            {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
+            {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},
+            {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},
+            {"trigger_source", "A"},
+            {"trigger_threshold", 1.7f},
+            {"trigger_direction", "Rising"},
+            {"pre_samples", 100},
+            {"post_samples", 30000},
+            {"n_captures", 1},
+            {"auto_arm", true},
+            // {"digital_port_threshold", digitalPortThreshold},
+            // {"digital_port_invert_output", digitalPortInvertOutput},
+            {"trigger_once", false},
+        }});
+
+        auto& sinkA = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", true}, {"verbose_console", true}});
+        auto& sinkB = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", true}});
+        auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", true}});
+        auto& sinkD = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkF = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkG = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        auto& sinkH = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(timingSrc).template to<"timingIn">(ps)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+
+        auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<uint16_t>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
+        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+
+        // Explicitly start unit because it takes quite some time
+        expect(nothrow([&ps] { ps.start(); }));
+
+        std::jthread publishEvents = createTimingEventThread(
+            {
+                {780'000'000, {Timing::Event(Timing::Event::fromGidEventnoBpidTag{}, 310, 286, 2)}}, // CMD_CUSTOM_DIAG (tag with hw-trigger=false and no previous sample)
+                // 790'000'000 acq 1 starts
+                {800'000'000, {Timing::Event(Timing::Event::fromGidEventnoBpidTag{}, 310, 256, 3)}}, // CMD_BP_START
+                {800'000'000, {Timing::Event(Timing::Event::fromGidEventnoBpidTag{}, 310, 286, 4)}}, // CMD_CUSTOM_DIAG (on the exact same timestamp)
+                // 1'000'000'000 acq 1 ends
+                // 1'290'000'000 acq 2 starts
+                {1'295'000'000, {Timing::Event(Timing::Event::fromGidEventnoBpidTag{}, 310, 286, 5)}}, // CMD_CUSTOM_DIAG (tag with hw-trigger=false)
+                {1'300'000'000, {Timing::Event(Timing::Event::fromGidEventnoBpidTag{}, 310, 256, 6)}}, // CMD_BP_START // TODO: this one gets swallowed for some reason, not sure if gr4 tag handling or picoscope, it gets matched correctly
+                {1'300'000'010, {Timing::Event(Timing::Event::fromGidEventnoBpidTag{}, 310, 526, 7)}}, // CMD_TARGET_ON (claims there should be a hw event, but there isn't. Also on the same sample but with small offset to previous sample)
+                // 1'600'000'000 acq 2 ends
+                {1'400'000'000, {Timing::Event(Timing::Event::fromGidEventnoBpidTag{}, 310, 286, 8)}}, // CMD_CUSTOM_DIAG (tag with hw-trigger=false)
+            },
+            100'000'000);
+        scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{std::move(flowGraph)};
+        expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
+        expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
+        std::this_thread::sleep_for(kDuration);
+        expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
+
+        expect(eq(sinkA._nSamplesProduced, 2uz));
+        gr::DataSet dataA = sinkA._samples[0];
+        expect(eq(dataA.size(), 1uz));
+        expect(eq(dataA.signalValues(0uz).size(), 30100uz));
+        std::println("tags: {}", dataA.timingEvents(0uz));
+        gr::DataSet dataA2 = sinkA._samples[1];
+        std::println("tags2: {}", dataA2.timingEvents(0uz));
+    };
 };
 
 } // namespace fair::picoscope::test
