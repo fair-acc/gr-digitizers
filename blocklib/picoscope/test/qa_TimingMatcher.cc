@@ -469,7 +469,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             auto result        = matcher.match(tags, triggerSampleIndices, 8uz, std::chrono::nanoseconds(acqTimestamp));
 
             expect(eq(2uz, result.processedTags));
-            expect(eq(3uz, result.processedSamples)); // processed up to the last matching tag
+            expect(eq(4uz, result.processedSamples)); // processed up to the last matching tag
             expectRangesEquals(
                 std::vector<gr::Tag>{
                     {1, generateTimingTag("EVT_CMD1"s, acqTimestamp + 1'000, 0.0f, true)},

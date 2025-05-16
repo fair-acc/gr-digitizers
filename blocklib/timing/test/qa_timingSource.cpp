@@ -242,15 +242,15 @@ const suite TimingBlock = [] {
             std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())); }))        //
                                   | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && (std::get<1>(pair).at("IO-NAME") == "IO2" || std::get<1>(pair).at("IO-NAME") == "IO3"); })), //
             24, 2))
-            << "Wrong numnber of IO tags";
+            << "Wrong number of IO tags";
         expect(approx(                                                                                                                                                                                       //
             std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())); })) //                                                                                                  //
                                   | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && std::get<1>(pair).at("IO-NAME") == "IO1"; })),                                        //
             30, 2))
-            << "Wrong numnber of event triggered IO tags";
+            << "Wrong number of event triggered IO tags";
 
         if (verbose) {
-            std::print("received{} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
+            std::print("received {} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
             if (!sink._tags.empty()) {
                 const auto firstTimestamp = std::get<std::uint64_t>(sink._tags[0].map[gr::tag::TRIGGER_TIME.shortKey()]);
                 for (auto& tag : sink._tags) {
