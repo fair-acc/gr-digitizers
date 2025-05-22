@@ -30,7 +30,7 @@ struct MatcherResult {
  *  evt6 ──────────────────────────────────────────────────┘  corresponding pulse not yet occurred, has to be retained for the next chunk of data
  */
 struct TimingMatcher {
-    std::chrono::nanoseconds maxDelay;
+    std::chrono::nanoseconds timeout;
     float                    sampleRate = 1000.f;
 
     std::optional<std::pair<std::ptrdiff_t, std::uint64_t>> _lastMatchedTag; // last successfully matched tag: idx relative to the next unprocessed chunk -> time in ns
@@ -73,19 +73,22 @@ struct TimingMatcher {
                        }};
     }
 
-    gr::Tag alignTagRelativeToLastMatched(const gr::property_map& currentTag) {
-        float      Ts                                     = 1e9f / sampleRate;
-        const auto currentTagWRTime                       = std::chrono::nanoseconds(std::get<unsigned long>(currentTag.at(gr::tag::TRIGGER_TIME.shortKey())));
-        const auto currentTagOffset                       = std::chrono::nanoseconds(static_cast<unsigned long>(std::get<float>(currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()))));
-        auto [lastIdx, lastTime]                          = *_lastMatchedTag;
-        auto             deltaTime                        = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
-        auto             delta                            = static_cast<float>(deltaTime.count()) / Ts;
-        auto             deltaIdx                         = static_cast<long>(delta);
-        auto             deltaOffset                      = delta - static_cast<float>(deltaIdx);
-        auto             idx                              = lastIdx + deltaIdx;
+    std::optional<gr::Tag> alignTagRelativeToLastMatched(const gr::property_map& currentTag) {
+        float      Ts               = 1e9f / sampleRate;
+        const auto currentTagWRTime = std::chrono::nanoseconds(std::get<unsigned long>(currentTag.at(gr::tag::TRIGGER_TIME.shortKey())));
+        const auto currentTagOffset = std::chrono::nanoseconds(static_cast<unsigned long>(std::get<float>(currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()))));
+        auto [lastIdx, lastTime]    = *_lastMatchedTag;
+        auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
+        auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
+        auto deltaIdx               = static_cast<long>(delta);
+        auto deltaOffset            = delta - static_cast<float>(deltaIdx);
+        auto idx                    = lastIdx + deltaIdx;
+        if (idx < 0) { // tag was before the current chunk of data
+            return std::nullopt;
+        };
         gr::property_map matchedTag                       = currentTag;
         matchedTag.at(gr::tag::TRIGGER_OFFSET.shortKey()) = deltaOffset;
-        return {static_cast<std::size_t>(idx), matchedTag};
+        return gr::Tag{static_cast<std::size_t>(idx), matchedTag};
     }
 
     gr::Tag getOffsetAdjustedTag(auto currentFlankIndex, auto currentTagOffset, const gr::property_map& tagMap) {
@@ -98,7 +101,7 @@ struct TimingMatcher {
             offset += 1.0f;
         }
         matchedTagMap.at(gr::tag::TRIGGER_OFFSET.shortKey()) = offset;
-        return {currentFlankIndex + offsetIdx, matchedTagMap};
+        return {static_cast<std::size_t>(static_cast<long>(currentFlankIndex) + offsetIdx), matchedTagMap};
     }
 
     MatcherResult match(const std::span<const gr::property_map> tags, const std::span<const std::size_t>& triggerSampleIndices, const std::size_t nSamples, const std::chrono::nanoseconds localAcqTime) {
@@ -106,17 +109,20 @@ struct TimingMatcher {
         std::size_t   triggerIndex    = 0;
         std::size_t   unmatchedEvents = 0; // number of events hat have to be adjusted based on the next trigger that is found
         float         Ts              = 1e9f / sampleRate;
-        while (result.processedTags < tags.size() || triggerIndex < triggerSampleIndices.size()) { // keep processing as long as there is either unprocessed pulses or hw edges
-            if (result.processedTags >= tags.size()) {                                             // all event tags processed, checking for potential hw edges
+        auto          maxDelaySamples = static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(timeout).count()) * 1e-9f * sampleRate);
+        result.processedSamples       = std::max(result.processedSamples, nSamples > maxDelaySamples ? nSamples - maxDelaySamples : 0); // consume at leat all samples up to the deadline
+        while (result.processedTags + unmatchedEvents < tags.size() || triggerIndex < triggerSampleIndices.size()) {                    // keep processing as long as there is either unprocessed pulses or hw edges
+            if (result.processedTags + unmatchedEvents >= tags.size()) {                                                                // all event tags processed, checking for potential hw edges
                 const auto currentFlankIndex = triggerSampleIndices[triggerIndex];
-                const auto currentFlankTime  = localAcqTime + std::chrono::nanoseconds(static_cast<unsigned long>(1e9f / sampleRate * static_cast<float>(currentFlankIndex)));
-                if (currentFlankIndex < nSamples - static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(maxDelay).count()) * 1e-9f * sampleRate)) {
+                const auto currentFlankTime  = localAcqTime + std::chrono::nanoseconds(static_cast<unsigned long>(Ts * static_cast<float>(currentFlankIndex)));
+                if (currentFlankIndex < nSamples - static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(timeout).count()) * 1e-9f * sampleRate)) {
                     // unmatched hw edge found and deadline for tag to arrive has passed -> publish UNKNOWN_EVENT // evtX
                     result.tags.push_back(createUnknownEventTag(currentFlankIndex, currentFlankTime));
+                    result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
                     triggerIndex++;
                     continue;
-                } else { // hw-edge is too recent -> stop processing and check in the next invocation if we have a matching event tag
-                    break;
+                } else {
+                    break; // hw-edge is too recent -> stop processing and check in the next invocation if we have a matching event tag
                 }
             }
             const std::size_t       tagIndex   = result.processedTags + unmatchedEvents;
@@ -129,12 +135,18 @@ struct TimingMatcher {
             const auto currentTagLocalTime = std::chrono::nanoseconds(std::get<unsigned long>(metaMap.at("LOCAL-TIME")));
             const auto currentTagWRTime    = std::chrono::nanoseconds(std::get<unsigned long>(currentTag.at(gr::tag::TRIGGER_TIME.shortKey())));
             const auto currentTagOffset    = std::chrono::nanoseconds(static_cast<unsigned long>(std::get<float>(currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()))));
-            if (triggerIndex >= triggerSampleIndices.size()) {                                                                                            // there are remaining events, but no more hw edges to match
-                if ((currentTagLocalTime + maxDelay) < (localAcqTime + std::chrono::nanoseconds(static_cast<long>(static_cast<float>(nSamples) * Ts)))) { // we are sure the hw edge cannot still arrive
-                    if (_lastMatchedTag) {                                                                                                                // publish tags based on last matched trigger
-                        result.tags.push_back(alignTagRelativeToLastMatched(currentTag));
+            if (triggerIndex >= triggerSampleIndices.size()) {                                                                                                                                        // there are remaining events, but no more hw edges to match
+                if (!std::get<bool>(metaMap.at("HW-TRIGGER")) || (currentTagLocalTime + timeout) < (localAcqTime + std::chrono::nanoseconds(static_cast<long>(static_cast<float>(nSamples) * Ts)))) { // we are sure the hw edge cannot still arrive
+                    if (_lastMatchedTag) {                                                                                                                                                            // publish tags based on last matched trigger
+                        std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag);
+                        if (realignedTag) {
+                            result.processedSamples = std::max(result.processedSamples, realignedTag->index);
+                            result.tags.push_back(std::move(*realignedTag));
+                        }
+                        result.processedTags++;
+                    } else { // there is no previous tag, look at the next tag, but look at this one again before publishing the next sample
+                        unmatchedEvents++;
                     }
-                    result.processedTags++;
                     continue;
                 } else { // tag will not be consumed and handled in the next iteration
                     break;
@@ -144,15 +156,19 @@ struct TimingMatcher {
             const auto currentFlankIndex = triggerSampleIndices[triggerIndex];
             const auto currentFlankTime  = localAcqTime + std::chrono::nanoseconds(static_cast<unsigned long>(1e9f / sampleRate * static_cast<float>(currentFlankIndex)));
 
-            if ((currentTagLocalTime + maxDelay) < localAcqTime) { // outdated tag -> drop // evt0 in diagram
+            if ((currentTagLocalTime + timeout) < localAcqTime) { // outdated tag -> drop // evt0 in diagram
                 result.processedTags++;
                 continue;
             }
 
-            if (!std::get<bool>(metaMap.at("HW-TRIGGER")) || (currentTagLocalTime + maxDelay) < currentFlankTime) {
+            if (!std::get<bool>(metaMap.at("HW-TRIGGER")) || (currentTagLocalTime + timeout) < currentFlankTime) {
                 // event either explicitly has no hardware trigger or the next hw edge is too far away
                 if (_lastMatchedTag) { // publish tags based on last matched trigger // evtB or evt5 in diagram
-                    result.tags.push_back(alignTagRelativeToLastMatched(currentTag));
+                    std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag);
+                    if (realignedTag) {
+                        result.processedSamples = std::max(result.processedSamples, realignedTag->index);
+                        result.tags.push_back(std::move(*realignedTag));
+                    }
                     result.processedTags++;
                 } else { // there is currently no previous matched tag, keep tags to attach after the next trigger was detected // evtA in diagram
                     unmatchedEvents++;
@@ -160,39 +176,49 @@ struct TimingMatcher {
                 continue;
             }
 
-            if ((currentFlankTime + maxDelay) < currentTagLocalTime) { // hw edge without corresponding event
+            if ((currentFlankTime + timeout) < currentTagLocalTime) { // hw edge without corresponding event
                 result.tags.push_back(createUnknownEventTag(currentFlankIndex, currentFlankTime));
+                result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
                 triggerIndex++; // skip outdated timing message(s)
                 continue;
             }
 
             // regular case, next hw edge belongs to the next tag
-            _lastMatchedTag = {currentFlankIndex, std::chrono::nanoseconds(currentFlankTime).count()};
+            _lastMatchedTag = {currentFlankIndex, std::chrono::nanoseconds(currentTagWRTime).count()};
             while (unmatchedEvents > 0) { // align all previously unaligned tags relative to this one
-                result.tags.push_back(alignTagRelativeToLastMatched(tags[tagIndex - unmatchedEvents]));
+                std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(tags[tagIndex - unmatchedEvents]);
+                if (realignedTag) {
+                    result.tags.push_back(std::move(*realignedTag));
+                }
                 unmatchedEvents--;
+                result.processedTags++;
             }
             result.tags.emplace_back(getOffsetAdjustedTag(currentFlankIndex, currentTagOffset, currentTag));
+            result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
             result.processedTags++;
             triggerIndex++;
         } // (result.processedTags < tags.size() || triggerIndex < triggerSampleIndices.size())
 
-        // calculate the sample index up until where all matching is finished
-        auto maxDelaySamples    = static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(maxDelay).count()) * 1e-9f * sampleRate);
-        result.processedSamples = 0;
-        if (triggerSampleIndices.size() > triggerIndex - 1) {
-            result.processedSamples = std::max(result.processedSamples, triggerSampleIndices[triggerIndex - 1] - 1); // process at least until the sample before the last matched trigger
-        }
-        if (nSamples > maxDelaySamples) {
-            result.processedSamples = std::max(result.processedSamples, nSamples - maxDelaySamples); // consume all samples up to the deadline
-        }
-
         if (_lastMatchedTag) { // re-adjust the last matched tag index relative to the start of the next sample chunk
             _lastMatchedTag->first -= static_cast<long>(result.processedSamples);
+        }
+        while (unmatchedEvents > 0) { // drop outdated unmatched tags
+            auto&      unconsumedTag          = tags[result.processedTags];
+            auto&      metaMap                = std::get<gr::property_map>(unconsumedTag.at(gr::tag::TRIGGER_META_INFO.shortKey()));
+            const auto unconsumedTagLocalTime = std::chrono::nanoseconds(std::get<unsigned long>(metaMap.at("LOCAL-TIME")));
+            const auto lastSampleTime         = localAcqTime + std::chrono::nanoseconds(static_cast<uint64_t>(static_cast<float>(nSamples) * Ts));
+            if (unconsumedTagLocalTime < lastSampleTime - timeout) {
+                result.processedTags++;
+            } else {
+                break;
+            }
+            unmatchedEvents--;
         }
 
         return result;
     }
+
+    void reset() { _lastMatchedTag = std::nullopt; }
 };
 
 } // namespace fair::picoscope::timingmatcher
