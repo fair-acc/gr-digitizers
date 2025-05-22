@@ -88,7 +88,7 @@ it accordingly using the `saft-io-ctl` utility.
     MsgPortIn ctxInfo;
 
     A<std::vector<std::string>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
-    A<std::vector<std::string>, "event hardware trigger", Doc<"A list of matchers, whoose events will get a `HW_TRIGGER=true` entry in the event metadata">, Visible>                                                           event_hw_trigger;
+    A<std::vector<std::string>, "event hardware trigger", Doc<"A list of matchers, whose events will get a `HW_TRIGGER=true` entry in the event metadata">, Visible>                                                            event_hw_trigger;
     A<float, "avg. sample rate", Doc<"Controls the sample rate at which to publish the digital output state. A value of 0.0f means samples are published only when there's an event.">, Visible>                                sample_rate     = 1000.f;
     A<std::string, "timing device name", Doc<"Specifies the timing device to use. In case it is left empty, the first timing device that is found is used.">>                                                                   timing_device   = "";
     A<std::uint64_t, "max delay", Doc<"Maximum delay for messages from the timing hardware. Only used for sample_rate != 0.0f">, Unit<"ns">>                                                                                    max_delay       = 10'000'000; // 10 ms // todo: uint64t ns
@@ -126,6 +126,15 @@ it accordingly using the `saft-io-ctl` utility.
         if (verbose_console) {
             std::println("stop {}", this->name);
         }
+        std::ranges::for_each(_conditionProxies, [](auto& pair) {
+            auto& [conditionString, proxyMap] = pair;
+            std::ranges::for_each(proxyMap, [](auto& kvp) {
+                auto& [proxyName, proxy] = kvp;
+                std::visit([](auto proxyVal) { proxyVal->Destroy(); }, proxy);
+            });
+        });
+        _conditionProxies.clear();
+        _timing.stop();
         this->requestStop();
     }
 
@@ -255,7 +264,10 @@ it accordingly using the `saft-io-ctl` utility.
     }
 
     void updateEventTriggers() {
-        auto outputs = _timing.receiver->getOutputs() | std::views::transform([&sigGroup = _timing.saftSigGroup](auto kvp) { return std::pair(kvp.first, saftlib::Output_Proxy::create(kvp.second, sigGroup)); }) | std::ranges::to<std::map>();
+        auto outputs = _timing.receiver->getOutputs() | std::views::transform([&sigGroup = _timing.saftSigGroup](auto kvp) {
+            auto& [outputName, path] = kvp;
+            return std::pair(outputName, saftlib::Output_Proxy::create(path, sigGroup));
+        }) | std::ranges::to<std::map>();
 
         std::set<std::string> keepMatcher;
         for (auto& trigger : event_actions.value) {
@@ -354,7 +366,7 @@ it accordingly using the `saft-io-ctl` utility.
     }
 
     static void addHwTriggerInfo(std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
-        auto& metaMapVariant = tag.map[gr::tag::TRIGGER_META_INFO];
+        auto& metaMapVariant = tag.map[gr::tag::TRIGGER_META_INFO.shortKey()];
         if (std::holds_alternative<std::monostate>(metaMapVariant)) {
             metaMapVariant = property_map{}; // initialize empty property map
         } else if (!std::holds_alternative<gr::property_map>(metaMapVariant)) {
@@ -378,7 +390,7 @@ it accordingly using the `saft-io-ctl` utility.
         gr::property_map meta;
         std::uint64_t    id = event.id();
         tag.map.emplace(tag::TRIGGER_TIME.shortKey(), taiNsToUtcNs(event.time));
-        meta.emplace("LOCAL-TIME", currentTime);
+        meta.emplace("LOCAL-TIME", static_cast<std::uint64_t>(currentTime));
         meta.emplace("TIMING-ID", id);
         meta.emplace("TIMING-PARAM", event.param());
         if (event.isIo) {
@@ -469,7 +481,7 @@ it accordingly using the `saft-io-ctl` utility.
             }
             outSpan.publishTag(timingTag.map, toPublish - 1);
             if (verbose_console) {
-                std::print("publishing tag, {} samples before, then sample with tag {}\n", samplesUntilCurrentEvent, timingTag.map);
+                std::print("publishing tag, localtime: {}, {} samples before, then sample with tag {}\n", currentTime, samplesUntilCurrentEvent, timingTag.map);
             }
         }
 

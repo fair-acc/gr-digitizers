@@ -304,6 +304,21 @@ public:
         }
     }
 
+    void stop() {
+        if (!simulate & initialized) {
+            outputs.clear();
+            ioCondition->Destroy();
+            ioCondition.reset();
+            condition->Destroy();
+            condition.reset();
+            sink->Destroy();
+            sink.reset();
+            receiver.reset();
+            saftd.reset();
+        }
+        initialized = false;
+    }
+
     void initialize() {
         if (simulate) {
             initialized = true;
