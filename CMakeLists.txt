@@ -31,7 +31,7 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
   gnuradio4
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-  GIT_TAG 9a7e17e84b60d22c6dec756540b57ba8d40d62a6 # main as of 2025-05-14
+  GIT_TAG bc72101f79fec3071ee4e391007269873bea14bf # main as of 2025-05-23
 )
 
 FetchContent_Declare(
@@ -63,7 +63,7 @@ else()
     FetchContent_Declare(
       imgui
       GIT_REPOSITORY https://github.com/ocornut/imgui.git
-      GIT_TAG v1.91.5)
+      GIT_TAG v1.91.9b-docking)
 
     # Enables 32 bit vertex indices for ImGui
     add_compile_definitions("ImDrawIdx=unsigned int")
