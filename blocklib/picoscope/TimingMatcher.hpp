@@ -82,7 +82,7 @@ struct TimingMatcher {
         auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
         auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
         auto deltaIdx               = static_cast<long>(delta);
-        auto deltaOffset            = delta - static_cast<float>(deltaIdx);
+        auto deltaOffset            = (delta - static_cast<float>(deltaIdx)) / sampleRate;
         auto idx                    = lastIdx + deltaIdx;
         if (idx < 0) { // tag was before the current chunk of data
             return std::nullopt;
