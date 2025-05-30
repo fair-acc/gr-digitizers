@@ -231,6 +231,7 @@ public:
     std::shared_ptr<TimingReceiver_Proxy> receiver;
     std::string                           saftAppName = "gr_timing_example";
     std::string                           deviceName;
+    bool                                  snoopIO = true;
 
 private:
     void updateExistingTrigger(const Trigger& trigger, const std::map<uint64_t, Timing::Trigger>::iterator& existing, const std::string& output) {
@@ -278,7 +279,7 @@ public:
         });
         condition->setActive(true);
         // Digital IO ports
-        if (!ioCondition) {
+        if (!ioCondition && snoopIO) {
             for (auto& [ioName, ioAddress] : receiver->getInputs()) {
                 uint64_t prefix        = ECA_EVENT_ID_LATCH + (map_PrefixName.size() << 1); // fixed prefix for software condition, rest of the bits identify IO, least significant bit is io level
                 map_PrefixName[prefix] = ioName;

@@ -105,6 +105,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
         auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
             {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_CUSTOM_DIAG_1->IO1(100,on,150,off),PUBLISH()"})}, // create a 50us pulse 100us after the timing event
             {"event_hw_trigger", std::vector<std::string>({"SIS100_RING:CMD_CUSTOM_DIAG_1"})},                             // All diag events produce hw triggers, so set the HW-TRIGGER flag in their tags
+            {"io_events", true},
             {"sample_rate", 0.0f},
             {"verbose_console", false},
         });
@@ -234,6 +235,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
                                      "SIS100_RING:CMD_BP_START",  // set the hw-trigger tag for all bp start events
                                      "SIS100_RING:CMD_TARGET_ON", // let's claim this tag should also produce an edge, to simulate a missing timing event
                                  })},
+            {"io_events", true},
             {"sample_rate", 0.0f}, // produce one sample per tag
             {"verbose_console", true},
         });
@@ -346,6 +348,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
             {"event_hw_trigger", std::vector<std::string>({
                                      "SIS100_RING:CMD_BP_START", // set the hw-trigger tag for all bp start events
                                  })},
+            {"io_events", true},
             {"sample_rate", 0.0f}, // produce one sample per tag
             {"verbose_console", true},
         });
