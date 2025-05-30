@@ -88,14 +88,14 @@ it accordingly using the `saft-io-ctl` utility.
     MsgPortIn ctxInfo;
 
     A<std::vector<std::string>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
-    A<std::vector<std::string>, "event hardware trigger", Doc<"A list of matchers, whose events will get a `HW_TRIGGER=true` entry in the event metadata">, Visible>                                                            event_hw_trigger;
+    A<bool, "io event tags", Doc<"Whether to publish event tags for rising/falling edges of IO ports">>                                                                                                                         io_events       = false;
     A<float, "avg. sample rate", Doc<"Controls the sample rate at which to publish the digital output state. A value of 0.0f means samples are published only when there's an event.">, Visible>                                sample_rate     = 1000.f;
     A<std::string, "timing device name", Doc<"Specifies the timing device to use. In case it is left empty, the first timing device that is found is used.">>                                                                   timing_device   = "";
     A<std::uint64_t, "max delay", Doc<"Maximum delay for messages from the timing hardware. Only used for sample_rate != 0.0f">, Unit<"ns">>                                                                                    max_delay       = 10'000'000; // 10 ms // todo: uint64t ns
     A<bool, "verbose console", Doc<"For debugging">>                                                                                                                                                                            verbose_console = false;
     // TODO: enable/disable publishing on input port changes -> For now everything is published, add in follow-up PR
 
-    GR_MAKE_REFLECTABLE(TimingSource, out, ctxInfo, event_actions, event_hw_trigger, sample_rate, timing_device, max_delay, verbose_console);
+    GR_MAKE_REFLECTABLE(TimingSource, out, ctxInfo, event_actions, io_events, sample_rate, timing_device, max_delay, verbose_console);
 
     using ConditionsType = std::map<std::string, std::map<std::string, std::variant<std::shared_ptr<saftlib::OutputCondition_Proxy>, std::shared_ptr<saftlib::SoftwareCondition_Proxy>>>>;
     Timing _timing;
@@ -115,6 +115,7 @@ it accordingly using the `saft-io-ctl` utility.
             std::println("starting {}", this->name);
         }
         _timing.saftAppName = std::format("{}_{}", this->unique_name | std::views::filter([](auto c) { return std::isalnum(c); }) | std::ranges::to<std::string>(), getpid());
+        _timing.snoopIO     = io_events;
         _timing.snoopID     = 0xffffffffffffffffull; // Workaround: make the default condition of _timing not listen to anything
         _timing.snoopMask   = 0xffffffffffffffffull;
         _timing.initialize();
@@ -264,6 +265,8 @@ it accordingly using the `saft-io-ctl` utility.
     }
 
     void updateEventTriggers() {
+        eventHwTrigger.clear();
+
         auto outputs = _timing.receiver->getOutputs() | std::views::transform([&sigGroup = _timing.saftSigGroup](auto kvp) {
             auto& [outputName, path] = kvp;
             return std::pair(outputName, saftlib::Output_Proxy::create(path, sigGroup));
@@ -311,6 +314,9 @@ it accordingly using the `saft-io-ctl` utility.
                         }
                         continue;
                     }
+                    if (std::find(eventHwTrigger.begin(), eventHwTrigger.end(), std::tuple{filter, mask}) == eventHwTrigger.end()) {
+                        eventHwTrigger.push_back({filter, mask});
+                    }
                     for (auto& [delay, state] : changes) {
                         std::string triggerAction = std::format("{}({},{})", ioName, delay, state);
                         keepAction.insert(triggerAction);
@@ -351,18 +357,6 @@ it accordingly using the `saft-io-ctl` utility.
                 updateEventTriggers();
             }
         } // end io triggers
-        if (newSettings.contains("event_hw_trigger") && event_hw_trigger != std::get<std::vector<std::string>>(oldSettings.at("event_hw_trigger"))) {
-            eventHwTrigger.clear();
-            updateEventHwTrigger(event_hw_trigger.value, eventHwTrigger);
-        }
-    }
-
-    static void updateEventHwTrigger(const std::vector<std::string>& hwTriggerStrings, std::vector<std::tuple<std::uint64_t, std::uint64_t>>& _eventHwTrigger) {
-        _eventHwTrigger.clear();
-        for (const std::string& triggerMatcher : hwTriggerStrings) {
-            auto [filter, mask] = parseFilter(triggerMatcher);
-            _eventHwTrigger.push_back({filter, mask});
-        }
     }
 
     static void addHwTriggerInfo(std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {

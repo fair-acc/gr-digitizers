@@ -63,7 +63,8 @@ struct TimingMatcher {
     static gr::Tag createUnknownEventTag(unsigned long index, std::chrono::nanoseconds currentFlankTime) {
         return {index, gr::property_map{
                            {gr::tag::TRIGGER_NAME.shortKey(), "UNKNOWN_EVENT"},
-                           {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::size_t>(currentFlankTime.count())},
+                           // TODO: As for the unmatched trigger only the local time is known, the WR time would have to be realigned based on last_matched_tag
+                           // {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::size_t>(currentFlankTime.count())},
                            {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f},
                            {gr::tag::TRIGGER_META_INFO.shortKey(),
                                gr::property_map{
@@ -81,7 +82,7 @@ struct TimingMatcher {
         auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
         auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
         auto deltaIdx               = static_cast<long>(delta);
-        auto deltaOffset            = delta - static_cast<float>(deltaIdx);
+        auto deltaOffset            = (delta - static_cast<float>(deltaIdx)) / sampleRate;
         auto idx                    = lastIdx + deltaIdx;
         if (idx < 0) { // tag was before the current chunk of data
             return std::nullopt;
