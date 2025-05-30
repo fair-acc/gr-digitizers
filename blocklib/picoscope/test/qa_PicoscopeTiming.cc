@@ -34,7 +34,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
     using namespace fair::picoscope;
 
     // small helper to print the content of the ranges if there is a mismatch
-    auto expectRangesEquals = [](const auto& r1, const auto& r2) { expect(std::ranges::equal(r1, r2)) << [&r1, &r2]() { return std::format("exp: {}\n got: {}", r1, r2); }; };
+    auto expectRangesEquals = [](const auto& r1, const auto& r2, std::source_location source_location = std::source_location::current()) { expect(std::ranges::equal(r1, r2), source_location) << [&r1, &r2]() { return std::format("exp: {}\n got: {}", r1, r2); }; };
 
     auto createTimingEventThread = [](std::vector<std::pair<std::uint64_t, std::variant<Timing::Event, std::uint8_t>>> events, std::size_t schedule_offset) {
         return std::jthread([events, schedule_offset]() {
@@ -104,7 +104,6 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
         gr::Graph flowGraph;
         auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
             {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_CUSTOM_DIAG_1->IO1(100,on,150,off),PUBLISH()"})}, // create a 50us pulse 100us after the timing event
-            {"event_hw_trigger", std::vector<std::string>({"SIS100_RING:CMD_CUSTOM_DIAG_1"})},                             // All diag events produce hw triggers, so set the HW-TRIGGER flag in their tags
             {"io_events", true},
             {"sample_rate", 0.0f},
             {"verbose_console", false},
@@ -228,13 +227,10 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
         gr::Graph flowGraph;
         auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
             {"event_actions", std::vector<std::string>({
-                                  "SIS100_RING->PUBLISH()",                      // monitor all events for the sis100 timing group
-                                  "SIS100_RING:CMD_BP_START->IO1(10,on,60,off)", // create a 50us pulse 10us after bp start events
+                                  "SIS100_RING->PUBLISH()",                        // monitor all events for the sis100 timing group
+                                  "SIS100_RING:CMD_BP_START->IO1(10,on,60,off)",   // create a 50us pulse 10us after bp start events
+                                  "SIS100_RING:CMD_TARGET_ON->IO3(10,on,110,off)", // produce an edge on the unconnected io3, to simulate a missing timing event
                               })},
-            {"event_hw_trigger", std::vector<std::string>({
-                                     "SIS100_RING:CMD_BP_START",  // set the hw-trigger tag for all bp start events
-                                     "SIS100_RING:CMD_TARGET_ON", // let's claim this tag should also produce an edge, to simulate a missing timing event
-                                 })},
             {"io_events", true},
             {"sample_rate", 0.0f}, // produce one sample per tag
             {"verbose_console", true},
@@ -345,9 +341,6 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
                                   "SIS100_RING->PUBLISH()",                        // monitor all events for the sis100 timing group
                                   "SIS100_RING:CMD_BP_START->IO1(100,on,150,off)", // create a 50us pulse 100us after bp start events
                               })},
-            {"event_hw_trigger", std::vector<std::string>({
-                                     "SIS100_RING:CMD_BP_START", // set the hw-trigger tag for all bp start events
-                                 })},
             {"io_events", true},
             {"sample_rate", 0.0f}, // produce one sample per tag
             {"verbose_console", true},
