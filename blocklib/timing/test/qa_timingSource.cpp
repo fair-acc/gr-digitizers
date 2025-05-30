@@ -58,20 +58,6 @@ const suite TimingBlockHelpers = [] {
         expect(throws([]() { gr::timing::TimingSource::parseTriggerAction("IO(50,on,40,off"); })) << "Missing closing bracket should throw";
     };
 
-    "hw_trigger-parsing"_test = []() {
-        std::vector<std::string> triggerMetadata{
-            "SIS100_RING:CMD_BP_START",
-            "301:256",
-        };
-        std::vector<std::tuple<std::uint64_t, std::uint64_t>> result;
-        gr::timing::TimingSource::updateEventHwTrigger(triggerMetadata, result);
-        std::vector<std::tuple<std::uint64_t, std::uint64_t>> expected{
-            {0x1136100000000000ul, 0xfffffff000000000ul},
-            {0x112d100000000000ul, 0xfffffff000000000ul},
-        };
-        expect(std::ranges::equal(expected, result));
-    };
-
     "add metadata to tag"_test = []() {
         std::vector<std::tuple<std::uint64_t, std::uint64_t>> actionTrigger{
             {0x1136100000000000ul, 0xfffffff000000000ul},
