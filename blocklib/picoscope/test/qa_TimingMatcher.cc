@@ -535,6 +535,84 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             },
             result3.tags);
     };
+
+    "extended matching"_test = [&] {
+        using namespace boost::ut;
+        using namespace std::chrono_literals;
+
+        constexpr float    sampleRate   = 1e6f; // 1 µs/sample
+        constexpr unsigned nSamples     = 80;   //
+        constexpr auto     timeout      = 10us; // ⇒ maxDelaySamples = 10
+        unsigned long      acqTimestamp = 0;
+
+        TimingMatcher matcher{.timeout = timeout, .sampleRate = sampleRate};
+
+        // 1st match
+        std::vector<gr::property_map> tags1{                                //
+            generateTimingTag("EVT_A"s, acqTimestamp + 10'000, 0.0f, true), //
+            generateTimingTag("EVT_B"s, acqTimestamp + 25'000, 0.0f, true)};
+        std::vector<std::size_t>      triggerSampleIndices1{10};
+        auto                          result1 = matcher.match(tags1, triggerSampleIndices1, nSamples, std::chrono::nanoseconds(acqTimestamp));
+
+        expect(eq(2uz, result1.processedTags));
+        expect(eq(70uz, result1.processedSamples));
+        expect(eq(-60, matcher._lastMatchedTag.value().first)); // only first tag was matched at index 10
+        expect(eq(10000, matcher._lastMatchedTag.value().second));
+
+        std::vector<gr::Tag> expectedTags1{                                       //
+            {10, generateTimingTag("EVT_A"s, acqTimestamp + 10'000, 0.0f, true)}, //
+            {25, generateTimingTag("EVT_B"s, acqTimestamp + 25'000, 0.0f, true)}};
+        expectRangesEquals(expectedTags1, result1.tags);
+
+        // 2nd match
+        std::vector<gr::property_map> tags2{                                 //
+            generateTimingTag("EVT_C"s, acqTimestamp + 110'000, 0.0f, true), //
+            generateTimingTag("EVT_D"s, acqTimestamp + 135'000, 0.0f, false)};
+        std::vector<std::size_t>      triggerSampleIndices2{40}; // always local index
+
+        auto result2 = matcher.match(tags2, triggerSampleIndices2, nSamples, std::chrono::nanoseconds(acqTimestamp + 70'000));
+
+        expect(eq(2uz, result2.processedTags));
+        expect(eq(70uz, result2.processedSamples));
+        expect(eq(-30, matcher._lastMatchedTag.value().first)); // only first tag was matched at index 40
+        expect(eq(110000, matcher._lastMatchedTag.value().second));
+
+        std::vector<gr::Tag> expectedTags2{                                        //
+            {40, generateTimingTag("EVT_C"s, acqTimestamp + 110'000, 0.0f, true)}, //
+            {65, generateTimingTag("EVT_D"s, acqTimestamp + 135'000, 0.0f, false)}};
+        expectRangesEquals(expectedTags2, result2.tags);
+
+        // 3rd match
+        std::vector<gr::property_map> tags3{};
+        std::vector<std::size_t>      triggerSampleIndices3{}; // always local index
+        auto                          result3 = matcher.match(tags3, triggerSampleIndices3, nSamples, std::chrono::nanoseconds(acqTimestamp + 140'000));
+
+        expect(eq(0uz, result3.processedTags));
+        expect(eq(70uz, result3.processedSamples));
+        expect(eq(-100, matcher._lastMatchedTag.value().first));
+        expect(eq(110000, matcher._lastMatchedTag.value().second));
+
+        std::vector<gr::Tag> expectedTags3{};
+        expectRangesEquals(expectedTags3, result3.tags);
+
+        // 4th match
+        std::vector<gr::property_map> tags4{                                  //
+            generateTimingTag("EVT_E"s, acqTimestamp + 220'000, 0.0f, false), //
+            generateTimingTag("EVT_F"s, acqTimestamp + 260'000, 0.0f, true)};
+        std::vector<std::size_t>      triggerSampleIndices4{50}; // always local index
+
+        auto result4 = matcher.match(tags4, triggerSampleIndices4, nSamples, std::chrono::nanoseconds(acqTimestamp + 210'000));
+
+        expect(eq(2uz, result4.processedTags));
+        expect(eq(70uz, result4.processedSamples));
+        expect(eq(-20, matcher._lastMatchedTag.value().first));
+        expect(eq(260'000, matcher._lastMatchedTag.value().second));
+
+        std::vector<gr::Tag> expectedTags4{                                         //
+            {10, generateTimingTag("EVT_E"s, acqTimestamp + 220'000, 0.0f, false)}, //
+            {50, generateTimingTag("EVT_F"s, acqTimestamp + 260'000, 0.0f, true)}};
+        expectRangesEquals(expectedTags4, result4.tags);
+    };
 };
 } // namespace fair::picoscope::test
 
