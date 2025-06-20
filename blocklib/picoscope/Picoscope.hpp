@@ -269,6 +269,8 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
 
     int _digitalChannelNumber = -1; // used only if digital trigger is set
 
+    std::vector<gr::Tag> _unpublishedDroppedSamplesTags;
+
     GR_MAKE_REFLECTABLE(Picoscope, timingIn, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                 //
         auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, //
         trigger_source, trigger_threshold, trigger_direction, digital_port_threshold, digital_port_invert_output, trigger_arm, trigger_disarm, systemtime_interval, matcher_timeout);
@@ -736,7 +738,8 @@ public:
     void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs, std::chrono::nanoseconds acquisitionTime)
     requires(acquisitionMode == AcquisitionMode::Streaming)
     {
-        std::size_t availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
+        std::size_t       availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
+        const std::size_t nDroppedSamples  = nSamples - availableSamples;
 
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
             processSamplesOneChannel<T>(availableSamples, offset, _channels[channelIdx], outputs[channelIdx]);
@@ -751,22 +754,52 @@ public:
         auto                     triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
         std::span<const gr::Tag> tagspan        = std::span(timingInSpan.rawTags);
         auto                     tags           = tagspan | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
-        auto                     triggerTags    = tagMatcher.match(tags, triggerOffsets, availableSamples, acquisitionTime - acquisitionTimeOffset);
+        // Always provide nSamples to match() so dropped samples are considered
+        auto triggerTags = tagMatcher.match(tags, triggerOffsets, nSamples, acquisitionTime - acquisitionTimeOffset);
 
-        // publish tags
-        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
-            auto& channel = _channels[channelIdx];
-            auto& output  = outputs[channelIdx];
-            if (!channel.signalInfoTagPublished) {
-                output.publishTag(channel.toTagMap(), 0);
-                channel.signalInfoTagPublished = true;
+        if (nDroppedSamples > 0) {
+            _unpublishedDroppedSamplesTags.emplace_back(availableSamples, gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), static_cast<gr::Size_t>(nDroppedSamples)}});
+        }
+        const std::size_t nDroppedSamplesLimit              = triggerTags.processedSamples;
+        auto              firstUnpublishedDroppedSamplesTag = std::ranges::find_if(_unpublishedDroppedSamplesTags, [nDroppedSamplesLimit](const gr::Tag& t) { return t.index < nDroppedSamplesLimit; });
+        const bool        haveUnpublishedDroppedSamples     = firstUnpublishedDroppedSamplesTag != _unpublishedDroppedSamplesTags.end();
+
+        // Tags must be published in order of their index, so the merged vector must be sorted.
+        // mergedTags vector stores only pointers to Tag to avoid Tag copying.
+        // But do it only if _unpublishedDroppedSamplesTags not empty
+        std::vector<const gr::Tag*> mergedTags;
+
+        if (haveUnpublishedDroppedSamples) {
+            mergedTags.reserve(_unpublishedDroppedSamplesTags.size() + triggerTags.tags.size());
+            for (auto it = firstUnpublishedDroppedSamplesTag; it != _unpublishedDroppedSamplesTags.end(); ++it) {
+                if (it->index < nDroppedSamplesLimit) {
+                    mergedTags.push_back(&*it);
+                }
             }
-            if (triggerTags.tags.empty()) {
-                continue;
+            for (auto& t : triggerTags.tags) {
+                mergedTags.push_back(&t);
             }
-            for (auto& [index, map] : triggerTags.tags) {
-                output.publishTag(map, index);
+            std::ranges::sort(mergedTags, std::less{}, [](const gr::Tag* p) { return p->index; });
+        }
+
+        auto publishTagsForAllChannels = [&](const auto& tags) {
+            for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
+                auto& channel = _channels[channelIdx];
+                auto& output  = outputs[channelIdx];
+                if (!channel.signalInfoTagPublished) {
+                    output.publishTag(channel.toTagMap(), 0);
+                    channel.signalInfoTagPublished = true;
+                }
+                for (const gr::Tag* tag : tags) {
+                    output.publishTag(tag->map, tag->index);
+                }
             }
+        };
+
+        if (mergedTags.empty()) {
+            publishTagsForAllChannels(triggerTags.tags | std::views::transform([](auto& t) { return &t; }));
+        } else {
+            publishTagsForAllChannels(mergedTags);
         }
 
         self().copyDigitalBuffersToOutput(digitalOutSpan, triggerTags.processedSamples);
@@ -786,6 +819,13 @@ public:
             // Otherwise, tags will not be propagated correctly.
             // const std::size_t nSamplesToPublish = i < _state.channels.size() ? availableSamples : 0UZ;
             outputs[i].publish(triggerTags.processedSamples);
+        }
+
+        if (!_unpublishedDroppedSamplesTags.empty()) {
+            _unpublishedDroppedSamplesTags.erase(std::remove_if(_unpublishedDroppedSamplesTags.begin(), _unpublishedDroppedSamplesTags.end(), [nDroppedSamplesLimit](const gr::Tag& t) { return t.index < nDroppedSamplesLimit; }), _unpublishedDroppedSamplesTags.end());
+            for (auto& tag : _unpublishedDroppedSamplesTags) {
+                tag.index = tag.index >= triggerTags.processedSamples ? tag.index - triggerTags.processedSamples : 0;
+            }
         }
 
         // save the unpublished part of the chunk to be reprocessed in the next iteration
