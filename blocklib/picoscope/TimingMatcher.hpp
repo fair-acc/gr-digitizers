@@ -184,6 +184,15 @@ struct TimingMatcher {
                 continue;
             }
 
+            std::optional<gr::Tag> realignedDiagTag = alignTagRelativeToLastMatched(currentTag);
+            if (realignedDiagTag) {
+                const std::size_t indexTolerance = 3;
+                if (std::max(realignedDiagTag->index, currentFlankIndex) - std::min(realignedDiagTag->index, currentFlankIndex) > indexTolerance) {
+                    std::println("TimingMatcher. Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
+                        realignedDiagTag->index, currentFlankIndex, indexTolerance);
+                }
+            }
+
             // regular case, next hw edge belongs to the next tag
             _lastMatchedTag = {currentFlankIndex, std::chrono::nanoseconds(currentTagWRTime).count()};
             while (unmatchedEvents > 0) { // align all previously unaligned tags relative to this one
