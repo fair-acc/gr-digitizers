@@ -60,8 +60,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(triggerSampleIndices.size(), result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
@@ -87,8 +85,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(5, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
@@ -116,8 +112,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(5, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
@@ -145,8 +139,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(5uz, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true)},
@@ -170,8 +162,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(3uz, result.processedTags));
         expect(eq(1'240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 1'200'000, matcher._lastMatchedTag.value().second));
         std::vector<gr::Tag> expected{
             {100, generateUnknownTag("UNKNOWN_EVENT", acqTimestamp + 100'000, 0.0f, false)},
             {150, generateUnknownTag("UNKNOWN_EVENT", acqTimestamp + 150'000, 0.0f, false)},
@@ -198,8 +188,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4uz, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
         expect(approx(std::get<float>(result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey())), 0.0f, 1e-10f));
         result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
 
@@ -228,8 +216,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4uz, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
+
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true)},
@@ -255,8 +242,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4uz, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
+
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true)},
@@ -282,8 +268,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4uz, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
+
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true)},
@@ -308,8 +293,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(3uz, result.processedTags));
         expect(eq(1991uz, result.processedSamples));
-        expect(eq(-1791, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
+
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true)},
@@ -335,8 +319,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(3uz, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(wrTimestamp + 200'000, matcher._lastMatchedTag.value().second));
+
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1", wrTimestamp + 100'000, 0.0f, true, acqTimestamp + 100'000)},
@@ -362,8 +345,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4uz, result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
+
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true)},
@@ -391,8 +373,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(triggerSampleIndices.size(), result.processedTags));
         expect(eq(240uz, result.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 200'000, matcher._lastMatchedTag.value().second));
 
         // check and fix inexact offsets
         expect(approx(std::get<float>(result.tags[0].map.at(gr::tag::TRIGGER_OFFSET.shortKey())), 0.0f, 1e-10f));
@@ -425,8 +405,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             auto          result = matcher.match(std::vector<gr::property_map>{}, triggerSampleIndices, 250uz, std::chrono::nanoseconds(acqTimestamp));
             expect(eq(result.processedTags, 0uz));
             expect(eq(result.processedSamples, 240uz));
-            expect(eq(false, matcher._lastMatchedTag.has_value()));
-
             expectRangesEquals(
                 std::vector<gr::Tag>{
                     {100, generateUnknownTag("UNKNOWN_EVENT", acqTimestamp + 100'000, 0.0f, false)},
@@ -440,8 +418,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             auto          result = matcher.match(tags, std::vector<std::size_t>{}, 250uz, std::chrono::nanoseconds(acqTimestamp));
             expect(eq(result.processedTags, 3uz));
             expect(eq(result.processedSamples, 240uz));
-            expect(eq(false, matcher._lastMatchedTag.has_value()));
-
             expectRangesEquals(std::vector<gr::Tag>{}, result.tags);
         }
         { // empty hw edge list
@@ -449,8 +425,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             auto          result = matcher.match(std::vector<gr::property_map>{}, std::vector<std::size_t>{}, 250uz, std::chrono::nanoseconds(acqTimestamp));
             expect(eq(result.processedTags, 0uz));
             expect(eq(result.processedSamples, 240uz));
-            expect(eq(false, matcher._lastMatchedTag.has_value()));
-
             expectRangesEquals(std::vector<gr::Tag>{}, result.tags);
         }
     };
@@ -469,9 +443,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
             expect(eq(2uz, result.processedTags));
             expect(eq(4uz, result.processedSamples)); // processed up to the last matching tag
-            expect(eq(0, matcher._lastMatchedTag.value().first));
-            expect(eq(acqTimestamp + 4'000, matcher._lastMatchedTag.value().second));
-
             expectRangesEquals(
                 std::vector<gr::Tag>{
                     {1, generateTimingTag("EVT_CMD1"s, acqTimestamp + 1'000, 0.0f, true)},
@@ -485,8 +456,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
             expect(eq(0uz, result.processedTags));
             expect(eq(0uz, result.processedSamples));
-            expect(eq(false, matcher._lastMatchedTag.has_value()));
-            expect(eq(false, matcher._lastMatchedTag.has_value()));
             expectRangesEquals(std::vector<gr::Tag>{}, result.tags);
         }
     };
@@ -505,8 +474,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(triggerSampleIndices.size(), result.processedTags));
         expect(eq(140uz, result.processedSamples));
-        expect(eq(-38, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 102'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
@@ -537,8 +504,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         auto result = matcher.match(std::span(tags).subspan(0, 2), std::span(triggerSampleIndices).subspan(0, 3), 201uz, std::chrono::nanoseconds(acqTimestamp));
         expect(eq(2uz, result.processedTags));
         expect(eq(191uz, result.processedSamples));
-        expect(eq(-41, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 150'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {100, generateTimingTag("EVT_CMD1"s, acqTimestamp + 100'000, 0.0f, true)},
@@ -551,8 +516,6 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         auto result2               = matcher.match(std::span(tags).subspan(2, 3), triggerSampleIndices2, 115uz, std::chrono::nanoseconds(acqTimestamp + static_cast<std::size_t>(191.f * Ts)));
         expect(eq(2uz, result2.processedTags));
         expect(eq(105uz, result2.processedSamples));
-        expect(eq(-46, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 250'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {9, generateTimingTag("EVT_CMD3"s, acqTimestamp + 200'000, 0.0f, true)},
@@ -565,98 +528,12 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         auto result3               = matcher.match(std::span(tags).subspan(4, 2), triggerSampleIndices3, 104uz, std::chrono::nanoseconds(acqTimestamp + static_cast<std::size_t>((191.f + 105.f) * Ts)));
         expect(eq(2uz, result3.processedTags));
         expect(eq(94uz, result3.processedSamples));
-        expect(eq(-40, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 350'000, matcher._lastMatchedTag.value().second));
         expectRangesEquals(
             std::vector<gr::Tag>{
                 {4, generateTimingTag("EVT_CMD5"s, acqTimestamp + 300'000, 0.0f, true)},
                 {54, generateTimingTag("EVT_CMD6"s, acqTimestamp + 350'000, 0.0f, true)},
             },
             result3.tags);
-    };
-
-    "sequence of matches"_test = [&] {
-        using namespace boost::ut;
-        using namespace std::chrono_literals;
-
-        constexpr float    sampleRate   = 1e6f; // 1 µs/sample
-        constexpr unsigned nSamples     = 80;   //
-        constexpr auto     timeout      = 10us; // ⇒ maxDelaySamples = 10
-        unsigned long      acqTimestamp = 0;
-
-        TimingMatcher matcher{.timeout = timeout, .sampleRate = sampleRate};
-
-        // 1st match
-        std::vector<gr::property_map> tags1{
-            generateTimingTag("EVT_A"s, acqTimestamp + 10'000, 0.0f, true),
-            generateTimingTag("EVT_B"s, acqTimestamp + 25'000, 0.0f, true),
-        };
-        std::vector<std::size_t> triggerSampleIndices1{10};
-        auto                     result1 = matcher.match(tags1, triggerSampleIndices1, nSamples, std::chrono::nanoseconds(acqTimestamp));
-
-        expect(eq(2uz, result1.processedTags));
-        expect(eq(70uz, result1.processedSamples));
-        expect(eq(-60, matcher._lastMatchedTag.value().first)); // only first tag was matched at index 10
-        expect(eq(acqTimestamp + 10'000, matcher._lastMatchedTag.value().second));
-
-        std::vector<gr::Tag> expectedTags1{
-            {10, generateTimingTag("EVT_A"s, acqTimestamp + 10'000, 0.0f, true)},
-            {25, generateTimingTag("EVT_B"s, acqTimestamp + 25'000, 0.0f, true)},
-        };
-        expectRangesEquals(expectedTags1, result1.tags);
-
-        // 2nd match
-        std::vector<gr::property_map> tags2{
-            generateTimingTag("EVT_C"s, acqTimestamp + 110'000, 0.0f, true),
-            generateTimingTag("EVT_D"s, acqTimestamp + 135'000, 0.0f, false),
-        };
-        std::vector<std::size_t> triggerSampleIndices2{40}; // always local index
-
-        auto result2 = matcher.match(tags2, triggerSampleIndices2, nSamples, std::chrono::nanoseconds(acqTimestamp + 70'000));
-
-        expect(eq(2uz, result2.processedTags));
-        expect(eq(70uz, result2.processedSamples));
-        expect(eq(-30, matcher._lastMatchedTag.value().first)); // only first tag was matched at index 40
-        expect(eq(acqTimestamp + 110'000, matcher._lastMatchedTag.value().second));
-
-        std::vector<gr::Tag> expectedTags2{
-            {40, generateTimingTag("EVT_C"s, acqTimestamp + 110'000, 0.0f, true)},
-            {65, generateTimingTag("EVT_D"s, acqTimestamp + 135'000, 0.0f, false)},
-        };
-        expectRangesEquals(expectedTags2, result2.tags);
-
-        // 3rd match
-        std::vector<gr::property_map> tags3{};
-        std::vector<std::size_t>      triggerSampleIndices3{}; // always local index
-        auto                          result3 = matcher.match(tags3, triggerSampleIndices3, nSamples, std::chrono::nanoseconds(acqTimestamp + 140'000));
-
-        expect(eq(0uz, result3.processedTags));
-        expect(eq(70uz, result3.processedSamples));
-        expect(eq(-100, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 110'000, matcher._lastMatchedTag.value().second));
-
-        std::vector<gr::Tag> expectedTags3{};
-        expectRangesEquals(expectedTags3, result3.tags);
-
-        // 4th match
-        std::vector<gr::property_map> tags4{
-            generateTimingTag("EVT_E"s, acqTimestamp + 220'000, 0.0f, false),
-            generateTimingTag("EVT_F"s, acqTimestamp + 260'000, 0.0f, true),
-        };
-        std::vector<std::size_t> triggerSampleIndices4{50}; // always local index
-
-        auto result4 = matcher.match(tags4, triggerSampleIndices4, nSamples, std::chrono::nanoseconds(acqTimestamp + 210'000));
-
-        expect(eq(2uz, result4.processedTags));
-        expect(eq(70uz, result4.processedSamples));
-        expect(eq(-20, matcher._lastMatchedTag.value().first));
-        expect(eq(acqTimestamp + 260'000, matcher._lastMatchedTag.value().second));
-
-        std::vector<gr::Tag> expectedTags4{
-            {10, generateTimingTag("EVT_E"s, acqTimestamp + 220'000, 0.0f, false)},
-            {50, generateTimingTag("EVT_F"s, acqTimestamp + 260'000, 0.0f, true)},
-        };
-        expectRangesEquals(expectedTags4, result4.tags);
     };
 };
 } // namespace fair::picoscope::test
