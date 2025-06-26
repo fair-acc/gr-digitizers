@@ -75,6 +75,9 @@ struct TimingMatcher {
     }
 
     std::optional<gr::Tag> alignTagRelativeToLastMatched(const gr::property_map& currentTag) {
+        if (!_lastMatchedTag.has_value()) {
+            return std::nullopt;
+        }
         float      Ts               = 1e9f / sampleRate;
         const auto currentTagWRTime = std::chrono::nanoseconds(std::get<unsigned long>(currentTag.at(gr::tag::TRIGGER_TIME.shortKey())));
         const auto currentTagOffset = std::chrono::nanoseconds(static_cast<unsigned long>(std::get<float>(currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()))));

@@ -791,12 +791,12 @@ public:
         // save the unpublished part of the chunk to be reprocessed in the next iteration
         for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
             // todo: this drops some samples if less than the new samples is processed
-            auto processedEnd = offset + ((triggerTags.processedSamples > _channels[channelIdx].unpublishedSamples.size()) ? ( triggerTags.processedSamples - _channels[channelIdx].unpublishedSamples.size()) : 0);
+            auto processedEnd = offset + ((triggerTags.processedSamples > _channels[channelIdx].unpublishedSamples.size()) ? (triggerTags.processedSamples - _channels[channelIdx].unpublishedSamples.size()) : 0);
             if ((processedEnd >= _channels[channelIdx].driverBuffer.size()) || (processedEnd + availableSamples - triggerTags.processedSamples > _channels[channelIdx].driverBuffer.size())) {
                 std::println("Error: prevented out of bounds read of driver data[{}, {}], offset={}, triggerTags.processedSamples={}, _chan.unpublishedSamples.size()={}, availableSamples={}", //
-                           processedEnd, processedEnd + availableSamples - triggerTags.processedSamples, offset, triggerTags.processedSamples, _channels[channelIdx].unpublishedSamples.size(), availableSamples);
+                    processedEnd, processedEnd + availableSamples - triggerTags.processedSamples, offset, triggerTags.processedSamples, _channels[channelIdx].unpublishedSamples.size(), availableSamples);
             } else {
-                const auto driverData   = std::span(_channels[channelIdx].driverBuffer).subspan(processedEnd, availableSamples - triggerTags.processedSamples);
+                const auto driverData = std::span(_channels[channelIdx].driverBuffer).subspan(processedEnd, availableSamples - triggerTags.processedSamples);
                 _channels[channelIdx].unpublishedSamples.clear();
                 std::ranges::copy(driverData, std::back_inserter(_channels[channelIdx].unpublishedSamples));
             }
