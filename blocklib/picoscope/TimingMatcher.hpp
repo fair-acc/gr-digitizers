@@ -1,15 +1,17 @@
 #ifndef GR_DIGITIZERS_TIMINGMATCHER_HPP
 #define GR_DIGITIZERS_TIMINGMATCHER_HPP
+#include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/Buffer.hpp>
-#include <gnuradio-4.0/Tag.hpp>
+#include <gnuradio-4.0/Message.hpp>
 
 namespace fair::picoscope::timingmatcher {
 using namespace std::chrono_literals;
 
 struct MatcherResult {
-    std::size_t          processedTags    = 0;
-    std::size_t          processedSamples = 0;
-    std::vector<gr::Tag> tags{};
+    std::size_t              processedTags    = 0;
+    std::size_t              processedSamples = 0;
+    std::vector<gr::Tag>     tags{};
+    std::vector<std::string> messages{}; // diagnostic or error messages
 };
 
 /**
@@ -191,8 +193,8 @@ struct TimingMatcher {
             if (realignedDiagTag) {
                 const std::size_t indexTolerance = 3;
                 if (std::max(realignedDiagTag->index, currentFlankIndex) - std::min(realignedDiagTag->index, currentFlankIndex) > indexTolerance) {
-                    std::println("TimingMatcher. Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
-                        realignedDiagTag->index, currentFlankIndex, indexTolerance);
+                    result.messages.emplace_back(std::format("Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
+                        realignedDiagTag->index, currentFlankIndex, indexTolerance));
                 }
             }
 
