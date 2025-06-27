@@ -75,6 +75,9 @@ struct TimingMatcher {
     }
 
     std::optional<gr::Tag> alignTagRelativeToLastMatched(const gr::property_map& currentTag) {
+        if (!_lastMatchedTag.has_value()) {
+            return std::nullopt;
+        }
         float      Ts               = 1e9f / sampleRate;
         const auto currentTagWRTime = std::chrono::nanoseconds(std::get<unsigned long>(currentTag.at(gr::tag::TRIGGER_TIME.shortKey())));
         const auto currentTagOffset = std::chrono::nanoseconds(static_cast<unsigned long>(std::get<float>(currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()))));
@@ -182,6 +185,15 @@ struct TimingMatcher {
                 result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
                 triggerIndex++; // skip outdated timing message(s)
                 continue;
+            }
+
+            std::optional<gr::Tag> realignedDiagTag = alignTagRelativeToLastMatched(currentTag);
+            if (realignedDiagTag) {
+                const std::size_t indexTolerance = 3;
+                if (std::max(realignedDiagTag->index, currentFlankIndex) - std::min(realignedDiagTag->index, currentFlankIndex) > indexTolerance) {
+                    std::println("TimingMatcher. Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
+                        realignedDiagTag->index, currentFlankIndex, indexTolerance);
+                }
             }
 
             // regular case, next hw edge belongs to the next tag
