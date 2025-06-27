@@ -76,13 +76,13 @@ struct TimingMatcher {
                        }};
     }
 
-    std::optional<gr::Tag> alignTagRelativeToLastMatched(const gr::property_map& currentTag) {
+    std::optional<gr::Tag> alignTagRelativeToLastMatched(const gr::property_map& currentTag, bool doOffset = true) {
         if (!_lastMatchedTag.has_value()) {
             return std::nullopt;
         }
         float      Ts               = 1e9f / sampleRate;
         const auto currentTagWRTime = std::chrono::nanoseconds(std::get<unsigned long>(currentTag.at(gr::tag::TRIGGER_TIME.shortKey())));
-        const auto currentTagOffset = std::chrono::nanoseconds(static_cast<unsigned long>(std::get<float>(currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()))));
+        const auto currentTagOffset = doOffset ? std::chrono::nanoseconds(static_cast<unsigned long>(std::get<float>(currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey())))) : std::chrono::nanoseconds(0);
         auto [lastIdx, lastTime]    = *_lastMatchedTag;
         auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
         auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
@@ -189,17 +189,20 @@ struct TimingMatcher {
                 continue;
             }
 
-            std::optional<gr::Tag> realignedDiagTag = alignTagRelativeToLastMatched(currentTag);
+            std::optional<gr::Tag> realignedDiagTag            = alignTagRelativeToLastMatched(currentTag, false);
+            const std::size_t      currentFlankIndexWithOffset = getOffsetAdjustedTag(currentFlankIndex, currentTagOffset, currentTag).index;
             if (realignedDiagTag) {
                 const std::size_t indexTolerance = 3;
-                if (std::max(realignedDiagTag->index, currentFlankIndex) - std::min(realignedDiagTag->index, currentFlankIndex) > indexTolerance) {
-                    result.messages.emplace_back(std::format("Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
-                        realignedDiagTag->index, currentFlankIndex, indexTolerance));
+                if (std::max(realignedDiagTag->index, currentFlankIndexWithOffset) - std::min(realignedDiagTag->index, currentFlankIndexWithOffset) > indexTolerance) {
+                    result.messages.emplace_back(std::format("Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndexWithOffset:{} is more than tolerance ({})", //
+                        realignedDiagTag->index, currentFlankIndexWithOffset, indexTolerance));
+                    std::println("Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndexWithOffset:{} is more than tolerance ({})", //
+                        realignedDiagTag->index, currentFlankIndexWithOffset, indexTolerance);
                 }
             }
 
             // regular case, next hw edge belongs to the next tag
-            _lastMatchedTag = {currentFlankIndex, std::chrono::nanoseconds(currentTagWRTime).count()};
+            _lastMatchedTag = {currentFlankIndexWithOffset, std::chrono::nanoseconds(currentTagWRTime).count()};
             while (unmatchedEvents > 0) { // align all previously unaligned tags relative to this one
                 std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(tags[tagIndex - unmatchedEvents]);
                 if (realignedTag) {
