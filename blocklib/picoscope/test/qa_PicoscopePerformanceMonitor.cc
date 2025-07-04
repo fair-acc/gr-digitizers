@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
         expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 7>(ps).template to<"in">(sinkH)));
     }
 
-    auto sched                                        = scheduler::Simple{std::move(graph), threadPool};
+    auto sched                                        = scheduler::Simple{std::move(graph)};
     auto [watchdogThread, externalInterventionNeeded] = createWatchdog(sched, runTime > 0 ? std::chrono::seconds(runTime) : 20s);
     expect(sched.runAndWait().has_value());
 
