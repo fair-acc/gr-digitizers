@@ -33,6 +33,13 @@ auto createWatchdog(Scheduler& sched, std::chrono::seconds timeOut = 2s, std::ch
 }
 } // namespace
 
+void registerDefaultThreadPool() {
+    using namespace gr::thread_pool;
+    auto threadPool = std::make_shared<ThreadPoolWrapper>(std::make_unique<BasicThreadPool>(std::string(kDefaultCpuPoolId), TaskType::CPU_BOUND, 1U, 1U), "CPU");
+    threadPool->setThreadBounds(2U, 2U);
+    Manager::instance().replacePool(std::string(kDefaultCpuPoolId), std::move(threadPool));
+}
+
 int main(int argc, char* argv[]) {
     using namespace boost::ut;
     using namespace gr;
@@ -55,7 +62,7 @@ int main(int argc, char* argv[]) {
     constexpr gr::Size_t evaluatePerfRate = 1'000'000;
     constexpr float      publishRate      = 1.f;
 
-    auto threadPool = std::make_shared<gr::thread_pool::BasicThreadPool>("custom pool", gr::thread_pool::CPU_BOUND, 2, 2);
+    registerDefaultThreadPool();
 
     Graph graph;
 
@@ -94,7 +101,7 @@ int main(int argc, char* argv[]) {
         expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 7>(ps).template to<"in">(sinkH)));
     }
 
-    auto sched                                        = scheduler::Simple{std::move(graph), threadPool};
+    auto sched                                        = scheduler::Simple{std::move(graph)};
     auto [watchdogThread, externalInterventionNeeded] = createWatchdog(sched, runTime > 0 ? std::chrono::seconds(runTime) : 20s);
     expect(sched.runAndWait().has_value());
 

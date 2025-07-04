@@ -31,14 +31,14 @@ set(ENABLE_TESTING OFF)
 FetchContent_Declare(
   gnuradio4
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-  GIT_TAG bc72101f79fec3071ee4e391007269873bea14bf # main as of 2025-05-23
-)
+  GIT_TAG 72997a580d3b62c67e661a6e60705202dfdb6478 # main as of 2025-07-07
+  EXCLUDE_FROM_ALL)
 
 FetchContent_Declare(
   ut
   GIT_REPOSITORY https://github.com/boost-ext/ut.git
   GIT_TAG v2.3.1 # latest tag as of 2025-04-02
-)
+  EXCLUDE_FROM_ALL)
 
 add_library(gr-digitizers-options INTERFACE)
 include(cmake/CompilerWarnings.cmake)
