@@ -163,7 +163,6 @@ if(ENABLE_GR_DIGITIZERS_TESTING
       EXECUTABLE
       ctest
       DEPENDENCIES
-      qa_BlockScalingOffset
       EXCLUDE
       "$CMAKE_BUILD_DIR/*"
       "concepts/.*"
@@ -174,7 +173,6 @@ if(ENABLE_GR_DIGITIZERS_TESTING
       EXECUTABLE
       ctest
       DEPENDENCIES
-      qa_BlockScalingOffset
       EXCLUDE
       "$CMAKE_BUILD_DIR/*"
       "concepts/.*"
