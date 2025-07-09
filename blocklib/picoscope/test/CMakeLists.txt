@@ -39,7 +39,6 @@ function(add_ut_test TEST_NAME)
             gr-testing
             gr-basic
             fair-picoscope
-            fair-helpers
             ut
             gnuradio-blocklib-core
             GrBasicBlocksShared)

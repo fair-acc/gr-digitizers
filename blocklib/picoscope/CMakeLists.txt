@@ -49,7 +49,7 @@ target_link_libraries(
             gnuradio-core
             gnuradio-algorithm)
 set_target_properties(
-  gr-digitizers
+  fair-picoscope
   PROPERTIES
     PUBLIC_HEADER
     "Picoscope.hpp;Picoscope3000a.hpp;Picoscope4000a.hpp;Picoscope5000a.hpp;StatusMessages.hpp"
