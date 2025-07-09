@@ -22,12 +22,11 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   add_compile_options(-fdiagnostics-color=always)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 
 include(cmake/CMakeRC.cmake)
 include(FetchContent)
 
-set(ENABLE_TESTING OFF)
 FetchContent_Declare(
   gnuradio4
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
@@ -125,16 +124,12 @@ endif()
 if(NOT EMSCRIPTEN)
   option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
   option(ENABLE_TIMING "Enable TimingReceiver support" ON)
-  set(PICOSCOPE_PREFIX
-      "/opt/picoscope"
-      CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
 endif()
 
 find_package(PkgConfig REQUIRED)
 
 if(ENABLE_PICOSCOPE)
-  pkg_check_modules(zlib REQUIRED IMPORTED_TARGET zlib)
-  pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+  find_package(PicoScope REQUIRED COMPONENTS ps3000a ps4000a ps5000a ps6000)
 endif()
 
 if(ENABLE_TIMING AND NOT EMSCRIPTEN)
