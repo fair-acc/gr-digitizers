@@ -1,100 +1,30 @@
 #ifndef FAIR_PICOSCOPE_PICOSCOPE_HPP
 #define FAIR_PICOSCOPE_PICOSCOPE_HPP
 
-#include "StatusMessages.hpp"
+#include "PicoscopeAPI.hpp"
 
-#include <PicoConnectProbes.h>
-#include <TimingMatcher.hpp>
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/algorithm/dataset/DataSetUtils.hpp>
+#include <gnuradio-4.0/HistoryBuffer.hpp>
 
 #include <format>
 
 #include <chrono>
 #include <functional>
 #include <queue>
+#include <string_view>
 
 namespace fair::picoscope {
-using namespace std::chrono_literals;
-
-struct Error {
-    PICO_STATUS code = PICO_OK;
-
-    [[nodiscard]] std::string message() const { return detail::getErrorMessage(code); }
-
-    explicit constexpr operator bool() const noexcept { return code != PICO_OK; }
-};
-
-enum class AcquisitionMode { Streaming, RapidBlock };
-
-enum class Coupling {
-    DC,     // DC, 1 MOhm
-    AC,     // AC, 1 MOhm
-    DC_50R, // DC, 50 Ohm
-};
-
-enum class TriggerDirection { Rising, Falling, Low, High };
-
-enum class TimeUnits { fs, ps, ns, us, ms, s };
-
-struct GetValuesResult {
-    Error       error;
-    std::size_t nSamples;
-    int16_t     overflow;
-};
-
-struct TimebaseResult {
-    uint32_t timebase;
-    float    actualFreq;
-};
-
-struct TimeInterval {
-    TimeUnits unit;
-    uint32_t  interval;
-};
-
-[[nodiscard]] inline constexpr TimeInterval convertSampleRateToTimeInterval(float sampleRate) {
-    const double intervalSec = 1.0 / static_cast<double>(sampleRate);
-    double       factor      = 0.;
-    TimeUnits    unit;
-
-    if (intervalSec < 0.000001) {
-        unit   = TimeUnits::ps;
-        factor = 1e12;
-    } else if (intervalSec < 0.001) {
-        unit   = TimeUnits::ns;
-        factor = 1e9;
-    } else if (intervalSec < 0.1) {
-        unit   = TimeUnits::us;
-        factor = 1e6;
-    } else {
-        unit   = TimeUnits::ms;
-        factor = 1e3;
-    }
-    return {unit, static_cast<std::uint32_t>(factor / static_cast<double>(sampleRate))};
-}
-
-[[nodiscard]] inline constexpr float convertTimeIntervalToSampleRate(TimeInterval timeInterval) {
-    double factor;
-    switch (timeInterval.unit) {
-    case TimeUnits::fs: factor = 1e15; break;
-    case TimeUnits::ps: factor = 1e12; break;
-    case TimeUnits::ns: factor = 1e9; break;
-    case TimeUnits::us: factor = 1e6; break;
-    case TimeUnits::ms: factor = 1e3; break;
-    default: factor = 1.; break;
-    }
-    return timeInterval.interval == 0 ? 1.f : static_cast<float>(factor / static_cast<double>(timeInterval.interval));
-}
+using namespace std::literals;
 
 namespace detail {
 
-constexpr std::size_t kDriverBufferSize = 65536;
+constexpr std::size_t kDriverBufferSize = 65536; // TODO: make driver buffer size configurable or dependant on settings?
 
-[[nodiscard]] inline bool isDigitalTrigger(std::string_view source) { return !source.empty() && source.starts_with("DI"); }
-[[nodiscard]] inline bool isAnalogTrigger(std::string_view source) { return !source.empty() && !source.starts_with("DI"); }
+[[nodiscard]] static inline bool isDigitalTrigger(std::string_view source) { return !source.empty() && source.starts_with("DI"); }
+[[nodiscard]] static inline bool isAnalogTrigger(std::string_view source) { return !source.empty() && !source.starts_with("DI"); }
 
-[[nodiscard]] std::expected<int, gr::Error> parseDigitalTriggerSource(std::string_view triggerSrc) {
+[[nodiscard]] static std::expected<int, gr::Error> parseDigitalTriggerSource(std::string_view triggerSrc) {
     if (!triggerSrc.starts_with("DI")) {
         return std::unexpected(gr::Error(std::format("Cannot parse digital trigger source (`{}`): it must start with `DI`.", triggerSrc)));
     }
@@ -116,14 +46,14 @@ constexpr std::size_t kDriverBufferSize = 65536;
 }
 
 struct Channel {
-    std::string          id;
-    std::vector<int16_t> driverBuffer;
-    std::vector<int16_t> unpublishedSamples; // samples that could not be processed in the last iteration
-    bool                 signalInfoTagPublished = false;
+    std::string id;
+    bool        signalInfoTagPublished = false;
+
+    std::vector<int16_t>       driverBuffer;
+    gr::HistoryBuffer<int16_t> unpublished{kDriverBufferSize}; // Size will be adjusted to fit n samples
 
     // settings
     std::string name;
-    float       sampleRate;
     std::string unit         = "V";
     std::string quantity     = "Voltage";
     float       range        = 2.f;
@@ -132,43 +62,44 @@ struct Channel {
     float       offset       = 0.f;
     Coupling    coupling     = Coupling::DC;
 
-    [[nodiscard]] gr::property_map toTagMap() const {
-        return {{std::string(gr::tag::SIGNAL_NAME.shortKey()), name},      //
-            {std::string(gr::tag::SAMPLE_RATE.shortKey()), sampleRate},    //
-            {std::string(gr::tag::SIGNAL_QUANTITY.shortKey()), quantity},  //
-            {std::string(gr::tag::SIGNAL_UNIT.shortKey()), unit},          //
-            {std::string(gr::tag::SIGNAL_MIN.shortKey()), offset - range}, //
-            {std::string(gr::tag::SIGNAL_MAX.shortKey()), offset + range}};
+    [[nodiscard]] gr::property_map toTagMap(float sampleRate) const {
+        return {
+            { std::string(gr::tag::SIGNAL_NAME.shortKey()), name },
+            { std::string(gr::tag::SAMPLE_RATE.shortKey()), sampleRate },
+            { std::string(gr::tag::SIGNAL_QUANTITY.shortKey()), quantity },
+            { std::string(gr::tag::SIGNAL_UNIT.shortKey()), unit },
+            { std::string(gr::tag::SIGNAL_MIN.shortKey()), offset - range },
+            { std::string(gr::tag::SIGNAL_MAX.shortKey()), offset + range },
+        };
     }
 };
 
 struct TriggerNameAndCtx {
-    std::string triggerName{};
-    std::string ctx{};
-    bool        isCtxSet{true}; // This is needed to differentiate whether an empty ("") context is set.
+    std::string                triggerName{};
+    std::optional<std::string> ctx{};
 };
 
-[[nodiscard]] inline TriggerNameAndCtx createTriggerNameAndCtx(const std::string& triggerNameAndCtx) {
+[[nodiscard]] static inline TriggerNameAndCtx createTriggerNameAndCtx(const std::string& triggerNameAndCtx) {
     if (triggerNameAndCtx.empty()) {
         return {};
     }
     const std::size_t pos = triggerNameAndCtx.find('/');
     if (pos != std::string::npos) { // trigger_name and ctx
-        return {triggerNameAndCtx.substr(0, pos), (pos < triggerNameAndCtx.size() - 1) ? triggerNameAndCtx.substr(pos + 1) : "", true};
+        return {triggerNameAndCtx.substr(0, pos), (pos < triggerNameAndCtx.size() - 1) ? triggerNameAndCtx.substr(pos + 1) : ""};
     } else { // only trigger_name
-        return {triggerNameAndCtx, "", false};
+        return {triggerNameAndCtx, std::nullopt};
     }
 }
 
-[[nodiscard]] inline bool tagContainsTrigger(const gr::Tag& tag, const TriggerNameAndCtx& triggerNameAndCtx) {
-    if (triggerNameAndCtx.isCtxSet) { // trigger_name and ctx
-        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey()) && tag.map.contains(gr::tag::CONTEXT.shortKey())) {
-            const std::string tagTriggerName = std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey()));
-            return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName && std::get<std::string>(tag.map.at(gr::tag::CONTEXT.shortKey())) == triggerNameAndCtx.ctx;
+[[nodiscard]] static inline bool tagContainsTrigger(const gr::property_map& map, const TriggerNameAndCtx& triggerNameAndCtx) {
+    if (triggerNameAndCtx.ctx) { // trigger_name and ctx
+        if (map.contains(gr::tag::TRIGGER_NAME.shortKey()) && map.contains(gr::tag::CONTEXT.shortKey())) {
+            const std::string tagTriggerName = std::get<std::string>(map.at(gr::tag::TRIGGER_NAME.shortKey()));
+            return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName && std::get<std::string>(map.at(gr::tag::CONTEXT.shortKey())) == *triggerNameAndCtx.ctx;
         }
     } else { // only trigger_name
-        if (tag.map.contains(gr::tag::TRIGGER_NAME.shortKey())) {
-            const std::string tagTriggerName = std::get<std::string>(tag.map.at(gr::tag::TRIGGER_NAME.shortKey()));
+        if (map.contains(gr::tag::TRIGGER_NAME.shortKey())) {
+            const std::string tagTriggerName = std::get<std::string>(map.at(gr::tag::TRIGGER_NAME.shortKey()));
             return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName;
         }
     }
@@ -201,39 +132,21 @@ using gr::Visible;
  * - For `DataSet<SampleType>`, the acquisition mode is **RapidBlock**.
  * - For `SampleType`, the acquisition mode is **Streaming**.
  */
-
 template<typename T>
 concept PicoscopeOutput = std::disjunction_v<std::is_same<T, std::int16_t>, std::is_same<T, float>, std::is_same<T, gr::UncertainValue<float>>, //
     std::is_same<T, gr::DataSet<std::int16_t>>, std::is_same<T, gr::DataSet<float>>, std::is_same<T, gr::DataSet<gr::UncertainValue<float>>>>;
 
-// helper struct to conditionally enable BlockingIO at compile time
-template<typename TPSImpl, bool>
-struct PicoscopeBlockingHelper;
-
-template<typename TPSImpl>
-struct PicoscopeBlockingHelper<TPSImpl, false> { // Streaming mode
-    using type = gr::Block<TPSImpl, gr::SupportedTypes<int16_t, float, gr::UncertainValue<float>>>;
-};
-
-template<typename TPSImpl>
-struct PicoscopeBlockingHelper<TPSImpl, true> { // RapidBlock mode
-    using type = gr::Block<TPSImpl, gr::SupportedTypes<gr::DataSet<int16_t>, gr::DataSet<float>, gr::DataSet<gr::UncertainValue<float>>>, gr::BlockingIO<false>>;
-};
-
-template<PicoscopeOutput T, typename TPSImpl, typename TTagMatcher = timingmatcher::TimingMatcher>
-struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type {
-    using super_t                                    = typename PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::type;
+template<PicoscopeOutput T, PicoscopeImplementationLike TPSImpl, typename TTagMatcher = timingmatcher::TimingMatcher>
+struct Picoscope : gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTypes<int16_t, float, gr::UncertainValue<float>, gr::DataSet<int16_t>, gr::DataSet<float>, gr::DataSet<gr::UncertainValue<float>>>> {
+    using SuperT = gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTypes<int16_t, float, gr::UncertainValue<float>, gr::DataSet<int16_t>, gr::DataSet<float>, gr::DataSet<gr::UncertainValue<float>>>>;
     static constexpr AcquisitionMode acquisitionMode = gr::DataSetLike<T> ? AcquisitionMode::RapidBlock : AcquisitionMode::Streaming;
 
-    Picoscope(gr::property_map props) : super_t(std::move(props)) {}
-
-    A<std::string, "serial number">                                                  serial_number;
+    A<std::string, "serial number, empty selects first available device">            serial_number;
     A<float, "sample rate", Visible>                                                 sample_rate              = 10000.f;
     A<gr::Size_t, "pre-samples">                                                     pre_samples              = 1000;  // RapidBlock mode only
     A<gr::Size_t, "post-samples">                                                    post_samples             = 1000;  // RapidBlock mode only
     A<gr::Size_t, "no. captures (rapid block mode)">                                 n_captures               = 1;     // RapidBlock mode only
     A<bool, "trigger once (rapid block mode)">                                       trigger_once             = false; // RapidBlock mode only
-    A<float, "poll rate (streaming mode)">                                           streaming_mode_poll_rate = 0.001; // TODO, not used for the moment
     A<bool, "do arm at start?">                                                      auto_arm                 = true;
     A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">       channel_ids;
     A<std::vector<float>, "Voltage range of enabled channels">                       channel_ranges;         // PS channel setting
@@ -246,21 +159,22 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
     A<std::vector<float>, "Signal offset of the enabled channels">                   signal_offsets; // only for floats and UncertainValues
     A<std::string, "trigger channel (A, B, C, ... or DI1, DI2, DI3, ...)">           trigger_source;
     A<float, "trigger threshold, analog only">                                       trigger_threshold          = 0.f;
-    A<std::string, "trigger direction">                                              trigger_direction          = std::string("Rising");
+    A<std::string, "trigger direction">                                              trigger_direction          = "Rising";
     A<std::string, "trigger filter: `<trigger_name>[/<ctx>]`">                       trigger_filter             = "";
     A<std::string, "arm trigger: `<trigger_name>[/<ctx>]`, if empty not used">       trigger_arm                = ""; // RapidBlock mode only
     A<std::string, "disarm trigger: `<trigger_name>[/<ctx>]`, if empty not used">    trigger_disarm             = ""; // RapidBlock mode only
-    A<gr::Size_t, "time between two systemtime tags in ms">                          systemtime_interval        = 1000UZ;
     A<int16_t, "digital port threshold (ADC: –32767 (–5 V) to 32767 (+5 V))">        digital_port_threshold     = 0;     // only used if digital ports are available: 3000a, 5000a series
     A<bool, "invert digital port output">                                            digital_port_invert_output = false; // only used if digital ports are available: 3000a, 5000a series
     A<gr::Size_t, "Timeout after which to not match trigger pulses", gr::Unit<"ns">> matcher_timeout            = 10'000'000z;
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
 
+    std::vector<gr::PortOut<T>> out{TPSImpl::N_ANALOG_CHANNELS};
+
+    // only used for ports with digital ports (3000a + 5000a)
     using TDigitalOutput = std::conditional<gr::DataSetLike<T>, gr::DataSet<uint16_t>, uint16_t>::type;
     gr::PortOut<TDigitalOutput> digitalOut;
 
-    int16_t     _handle            = -1; // identifier for the scope device
     float       _actualSampleRate  = 0;
     std::size_t _nSamplesPublished = 0; // for debugging purposes
 
@@ -269,91 +183,379 @@ struct Picoscope : public PicoscopeBlockingHelper<TPSImpl, gr::DataSetLike<T>>::
 
     int _digitalChannelNumber = -1; // used only if digital trigger is set
 
-    GR_MAKE_REFLECTABLE(Picoscope, timingIn, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, streaming_mode_poll_rate,                                 //
+    GR_MAKE_REFLECTABLE(Picoscope, timingIn, out, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures,                                //
         auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, //
-        trigger_source, trigger_threshold, trigger_direction, digital_port_threshold, digital_port_invert_output, trigger_arm, trigger_disarm, systemtime_interval, matcher_timeout);
+        trigger_source, trigger_threshold, trigger_direction, digital_port_threshold, digital_port_invert_output, trigger_arm, trigger_disarm, matcher_timeout);
 
 private:
-    std::atomic<std::size_t>                       _streamingSamples = 0UZ;
-    std::atomic<std::size_t>                       _streamingOffset  = 0UZ;
-    std::queue<gr::property_map>                   _timingMessages;
-    std::atomic<bool>                              _isArmed = false; // for RapidBlock mode only
+    std::optional<TPSImpl> _picoscope;
+
+    bool                                           _isArmed = false; // for RapidBlock mode only
     std::vector<detail::Channel>                   _channels;
     int16_t                                        _maxValue       = 0; // maximum ADC count used for ADC conversion
-    std::chrono::high_resolution_clock::time_point _nextSystemtime = std::chrono::high_resolution_clock::now();
 
-    using ReaderType              = decltype(timingIn.buffer().tagBuffer.new_reader());
-    ReaderType _tagReaderInternal = timingIn.buffer().tagBuffer.new_reader();
+    // only used for ports with digital ports (3000a + 5000a)
+    std::array<std::vector<int16_t>, 2>            _digitalBuffers;
+    gr::HistoryBuffer<uint16_t>                    _unpublishedDigital{detail::kDriverBufferSize};
 
     TTagMatcher tagMatcher{.timeout = std::chrono::nanoseconds(matcher_timeout.value), .sampleRate = sample_rate.value};
 
 public:
     ~Picoscope() { stop(); }
+    using SuperT::SuperT; // inherit Block constructor
 
-    template<typename = void>
-    gr::work::Result work(std::size_t requestedWork = std::numeric_limits<std::size_t>::max()) noexcept {
-        if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
-            return this->workInternal(requestedWork);
-        } else { // AcquisitionMode::RapidBlock
-
-            const bool blockIsActive = gr::lifecycle::isActive(this->state());
-            if (!blockIsActive) {
-                this->ioLastWorkStatus.exchange(gr::work::Status::DONE, std::memory_order_relaxed);
-            } else {
-
-                if (timingIn.isConnected() && _tagReaderInternal.available() > 0) {
-                    gr::ReaderSpanLike auto tagData = _tagReaderInternal.get();
-
-                    if (!trigger_arm.value.empty() || !trigger_disarm.value.empty()) {
-                        // find last arm trigger or last disarm trigger
-                        const std::size_t IndexNotSet            = std::numeric_limits<std::size_t>::max();
-                        std::size_t       lastArmTriggerIndex    = IndexNotSet;
-                        std::size_t       lastDisarmTriggerIndex = IndexNotSet;
-
-                        for (int i = static_cast<int>(tagData.size()) - 1; i >= 0; i--) {
-                            const auto     iSizeT = static_cast<std::size_t>(i);
-                            const gr::Tag& tag    = tagData[iSizeT];
-
-                            if (lastArmTriggerIndex == IndexNotSet && detail::tagContainsTrigger(tag, _armTriggerNameAndCtx)) {
-                                lastArmTriggerIndex = iSizeT;
-                            }
-                            if (lastDisarmTriggerIndex == IndexNotSet && detail::tagContainsTrigger(tag, _disarmTriggerNameAndCtx)) {
-                                lastDisarmTriggerIndex = iSizeT;
-                            }
-                            // both arm/disarm triggers were found
-                            if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) {
-                                break;
-                            }
+    template<gr::OutputSpanLike TOutSpan>
+    requires(acquisitionMode == AcquisitionMode::Streaming)
+    gr::work::Status processStreaming(gr::InputSpanLike auto& timingInSpan, std::span<TOutSpan>& outputs, gr::OutputSpanLike auto& digitalOutSpan, TPSImpl::NSamplesType noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t /*triggerAt*/, int16_t /*triggered*/, int16_t /*autoStop*/) {
+        auto acquisitionTime = std::chrono::system_clock::now() - std::chrono::nanoseconds(static_cast<long>(1e9f / sample_rate * noOfSamples));
+        auto nLeftoverToProcess = std::min(_channels[0].unpublished.size(), outputs[0].size()); // check for leftover samples
+        auto nDriverSamplesProcessable = std::min(noOfSamples, static_cast<TPSImpl::NSamplesType>(outputs[0].size() - nLeftoverToProcess));
+        // find triggers and match
+        fair::picoscope::timingmatcher::MatcherResult matchedTags;
+        if (!trigger_source->empty()) { // find triggers
+            auto triggerEdges = [&]() -> std::vector<std::size_t> {
+                if (detail::isAnalogTrigger(trigger_source)) {
+                    auto triggerSourceIndex = TPSImpl::convertToOutputIndex(trigger_source);
+                    if (triggerSourceIndex) {
+                        std::span samples(_channels[triggerSourceIndex.value()].unpublished.data(), nLeftoverToProcess);
+                        return findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
+                    } else {
+                        return {};
+                    }
+                } else if (detail::isDigitalTrigger(trigger_source)) {
+                    return {}; // todo: implement digital triggers
+                }
+            }();
+            // match tags for leftover samples
+            std::span<const gr::Tag> tag_span = std::span(timingInSpan.rawTags);
+            auto tags = tag_span | std::views::transform([](const auto &t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
+            auto acquisitionTimeOffset = std::chrono::nanoseconds(
+                    static_cast<long>(static_cast<float>(_channels[0].unpublished.size()) * (1e9f / sample_rate)));
+            matchedTags = tagMatcher.match(tags, triggerEdges, nLeftoverToProcess, (acquisitionTime - acquisitionTimeOffset).time_since_epoch());
+            // match tags for new samples
+            if (matchedTags.processedSamples >= _channels[0].unpublished.size()) {
+                auto triggerEdgesDriver = [&]() -> std::vector<std::size_t> {
+                    if (detail::isAnalogTrigger(trigger_source)) {
+                        auto triggerSourceIndex = TPSImpl::convertToOutputIndex(trigger_source);
+                        if (triggerSourceIndex) {
+                            std::span samples(outputs[triggerSourceIndex.value()].data() + startIndex, nDriverSamplesProcessable);
+                            return findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
+                        } else {
+                            return {};
                         }
-
-                        if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex == IndexNotSet) { // only arm
-                            arm();
-                        }
-
-                        if (lastArmTriggerIndex == IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) { // only disarm
-                            disarm();
-                        }
-
-                        if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) { // both arm and disarm
-                            disarm();
-                            if (lastArmTriggerIndex > lastDisarmTriggerIndex) { // disarm before arm
-                                arm();
-                            }
-                        }
-                    } // arm/disarm triggers
-                    std::ignore = tagData.consume(tagData.size());
-                } // Tags are available
-
-                if (auto_arm) {
-                    arm();
+                    } else if (detail::isDigitalTrigger(trigger_source)) {
+                        return {}; // todo: implement digital triggers
+                    }
+                }();
+                auto tagsDriver   = tag_span | std::views::drop(nLeftoverToProcess) | std::views::transform([](const auto &t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
+                auto matchedTags2 = tagMatcher.match(tagsDriver, triggerEdgesDriver, static_cast<std::size_t>(nDriverSamplesProcessable),
+                                                     acquisitionTime.time_since_epoch());
+                std::ranges::copy(matchedTags2.tags, std::back_inserter(matchedTags.tags));
+                std::ranges::copy(matchedTags2.messages, std::back_inserter(matchedTags.messages));
+                matchedTags.processedSamples += matchedTags2.processedSamples;
+                matchedTags.processedTags += matchedTags2.processedTags;
+            }
+            // consume timing tags
+            auto lastTimingSampleIndex = tag_span[matchedTags.processedTags - 1].index - timingInSpan.streamIndex + 1;
+            timingInSpan.consumeTags(lastTimingSampleIndex);
+            std::ignore = timingInSpan.consume(lastTimingSampleIndex);
+            // emit matcher messages
+            for (const auto &msg: matchedTags.messages) {
+                this->emitErrorMessage(std::format("{}::TimingMatcher", this->name), msg);
+            }
+        } else { // end trigger detection
+            matchedTags.processedSamples = nLeftoverToProcess + nDriverSamplesProcessable;
+            std::ignore = timingInSpan.consume(timingInSpan.size()); // consume all timing tags if there are no triggers configured?
+            // todo: publish tags on a best effort basis based on system time and sample counting
+        }
+        for (const auto &[channel, output]: std::views::zip(_channels, outputs)) { // copy and publish all analog channel data
+            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue);
+            // copy leftover data from circular buffer
+            for (std::size_t i = 0; i < nLeftoverToProcess; ++i) {
+                if constexpr (std::is_same_v<T, float>) {
+                    output[i] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(channel.unpublished.front());
+                } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
+                    output[i] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(channel.unpublished.front()), _picoscope->uncertainty());
+                } else if constexpr (std::is_same_v<T, int16_t>) {
+                    output[i] = channel.unpublished.front();
+                }
+                channel.unpublished.pop_front();
+            }
+            // copy driver data to output
+            auto nDriverDataToPublish = std::min(std::min(noOfSamples, static_cast<TPSImpl::NSamplesType>(output.size() - nLeftoverToProcess)), static_cast<TPSImpl::NSamplesType>(matchedTags.processedSamples - nLeftoverToProcess));
+            const auto driverData = std::span(channel.driverBuffer).subspan(startIndex, nDriverDataToPublish);
+            for (std::size_t i = 0; i < static_cast<std::size_t>(nDriverDataToPublish); ++i) {
+                if constexpr (std::is_same_v<T, float>) {
+                    output[i + nLeftoverToProcess] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]);
+                } else if constexpr (std::is_same_v<T, gr::UncertainValue<float>>) {
+                    output[i + nLeftoverToProcess] = gr::UncertainValue( channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]), _picoscope->uncertainty());
+                } else if constexpr (std::is_same_v<T, int16_t>) {
+                    output[i + nLeftoverToProcess] = driverData[i]; // std::ranges::copy(driverData, output.begin() + static_cast<std::ptrdiff_t>(channel.unpublished.size()));
                 }
             }
-            const auto& [accumulatedRequestedWork, performedWork] = this->ioWorkDone.getAndReset();
-            return {accumulatedRequestedWork, performedWork, this->ioLastWorkStatus.load()};
+            // copy leftover data to circular buffer
+            std::ranges::copy(std::span(channel.driverBuffer).subspan(startIndex + nDriverDataToPublish, noOfSamples - nDriverDataToPublish), std::back_inserter(channel.unpublished));
+            // publish tags
+            if (!channel.signalInfoTagPublished) {
+                output.publishTag(channel.toTagMap(sample_rate), 0);
+                channel.signalInfoTagPublished = true;
+            }
+            if (overflow == 0xffff) {
+                output.publishTag({{"Buffer Overrun", "Buffer overflow, samples might be lost"}}, 0); // TODO: verify correct tag to indicate buffer overrun
+            } else if (overflow & (0x1 << TPSImpl::convertToOutputIndex(channel.id).value())) {
+                output.publishTag({{"OVERFLOW", "Values in this channel might be out of range"}}, 0); // TODO: verify correct tag for out of range
+            }
+            for (auto &[index, map]: matchedTags.tags) {
+                output.publishTag(map, index);
+            }
+            // publish samples
+            output.publish(matchedTags.processedSamples);
+            // diagnostics
+        } // end foreach analog channel
+        if constexpr (TPSImpl::N_DIGITAL_CHANNELS > 0) { // publish all data for digital channels
+            // copy old data
+            // todo: implement
+            for (std::size_t i = 0; i < nLeftoverToProcess; ++i) {
+                digitalOutSpan[i] = _unpublishedDigital.front();
+                _unpublishedDigital.pop_front();
+            }
+            // copy new data
+            for (std::size_t i = 0; i < nDriverSamplesProcessable; i++) {
+                auto value = static_cast<uint16_t>(0x00FF & _digitalBuffers[1][i]);
+                value <<= 8;
+                value |= static_cast<uint16_t>(0x00FF & _digitalBuffers[0][i]);
+                if (digital_port_invert_output) {
+                    value = ~value;
+                }
+                digitalOutSpan[i] = value;
+            }
+            // publish TimingTags TODO: add channel metadata?
+            for (auto &[index, map]: matchedTags.tags) {
+                digitalOutSpan.publishTag(map, index);
+            }
+            // publishSamples
+            digitalOutSpan.publish(matchedTags.processedSamples);
+            // copy leftover driver data
+            const auto nDriverDataToPublish = std::min(std::min(noOfSamples, static_cast<TPSImpl::NSamplesType>(digitalOutSpan.size() - nLeftoverToProcess)), static_cast<TPSImpl::NSamplesType>(matchedTags.processedSamples - nLeftoverToProcess));
+            //std::ranges::copy(std::span(channel.driverBuffer).subspan(startIndex + nDriverDataToPublish, noOfSamples - nDriverDataToPublish), std::back_inserter(channel.unpublished));
+            for (std::size_t i = 0; i < noOfSamples - nDriverDataToPublish; ++i) {
+                const std::size_t sampleIndex = startIndex + nDriverDataToPublish + i;
+                auto value = static_cast<uint16_t>(0x00FF & _digitalBuffers[1][sampleIndex]);
+                value <<= 8;
+                value |= static_cast<uint16_t>(0x00FF & _digitalBuffers[0][sampleIndex]);
+                if (digital_port_invert_output) {
+                    value = ~value;
+                }
+                _unpublishedDigital.push_back(value);
+            }
+        } // end digital ports
+        _nSamplesPublished += matchedTags.processedSamples;
+        return gr::work::Status::OK;
+    }
+
+    template<gr::OutputSpanLike TOutSpan>
+    requires(acquisitionMode == AcquisitionMode::RapidBlock)
+    gr::work::Status processTriggered(gr::InputSpanLike auto& timingInSpan, std::span<TOutSpan>& outputs, gr::OutputSpanLike auto& digitalOutSpan) {
+        using TSample = T::value_type;
+        handleSoftwareArming(timingInSpan.tags());
+
+        if (!_isArmed) {
+            return gr::work::Status::OK; // nothing to do here as the triggering is currently disabled
+        }
+        const auto nSamples = pre_samples + post_samples;
+        const auto acquisitionTime = std::chrono::system_clock::now();
+
+        uint32_t nCompletedCaptures = 1;
+        if (const auto status = _picoscope->getNoOfProcessedCaptures(&nCompletedCaptures); status != PICO_OK) {
+            this->emitErrorMessage(std::format("{}::processBulk getNofProcessedCaptures", this->name), detail::getErrorMessage(status));
+            return gr::work::Status::ERROR;
+        }
+        nCompletedCaptures              = std::min(nCompletedCaptures, static_cast<std::uint32_t>(n_captures.value));
+        std::uint32_t availableCaptures = nCompletedCaptures;
+        for (auto &output: outputs) {
+            availableCaptures = std::min(availableCaptures, static_cast<std::uint32_t>(output.size()));
+        }
+        availableCaptures = std::min(availableCaptures, static_cast<std::uint32_t>(digitalOutSpan.size()));
+        int16_t ready;
+        if (const auto status = _picoscope->isReady(&ready); status != PICO_OK) {
+            this->emitErrorMessage(std::format("{}::processBulk isReady", this->name), detail::getErrorMessage(status));
+            return gr::work::Status::ERROR;
+        }
+        if (availableCaptures == 0 || ready == 0) { // no new data to publish
+            // todo: consume old timing tags while there are no updates happening
+            for (auto& output : outputs) { output.publish(0); }
+            digitalOutSpan.publish(0);
+            if (nCompletedCaptures == 0) {
+                return gr::work::Status::INSUFFICIENT_INPUT_ITEMS; // TODO: do we need a new enum value here to indicate to the scheduler that we are blocked waiting on external input
+            } else {
+                return gr::work::Status::INSUFFICIENT_OUTPUT_ITEMS;
+            }
+        }
+
+        std::uint32_t acquiredSamples = nSamples; // todo: check if this has to be multiplied with the number of captures to collect
+        std::int16_t overflow = 0;
+        int64_t maxSamples = 4096;
+        if (const auto status = _picoscope->getValuesBulk(&acquiredSamples, 0 /*fromSegment*/, availableCaptures - 1, 1, _picoscope->ratioNone(), &overflow); status != PICO_OK) {
+            this->emitErrorMessage(std::format("{}::processBulk getValuesBulk", this->name), detail::getErrorMessage(status));
+            return gr::work::Status::ERROR;
+        }
+        if (nSamples != acquiredSamples) {
+            this->emitErrorMessage(std::format("{}::processBulk", this->name), std::format("Number of retrieved samples ({}) doesn't equal to required samples: pre_samples + post_samples ({})", acquiredSamples, nSamples));
+        }
+        for (std::size_t i = 0; i < availableCaptures; i++) {
+            for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
+                auto& channel = _channels[channelIdx];
+                const float voltageMultiplier = channel.range / static_cast<float>(_maxValue);
+                outputs[channelIdx][i] = createDataset(_channels[channelIdx], nSamples);
+                const auto driverData = std::span(channel.driverBuffer).subspan(i * nSamples, static_cast<std::size_t>(nSamples));
+                for (std::size_t j = 0; j < static_cast<std::size_t>(nSamples); ++j) {
+                    if constexpr (std::is_same_v<TSample, float>) {
+                        outputs[channelIdx][i].signal_values[j] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[j]);
+                    } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
+                        outputs[channelIdx][i].signal_values[j] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[j]), _picoscope->uncertainty());
+                    } else if constexpr (std::is_same_v<TSample, int16_t>) {
+                        outputs[channelIdx][i].signal_values[j] = driverData[j]; // std::ranges::copy(driverData, output.begin() + static_cast<std::ptrdiff_t>(channel.unpublished.size()));
+                    }
+                }
+                // add Tags
+                if constexpr (std::is_same_v<TSample, float> || std::is_same_v<TSample, std::int16_t>) {
+                    gr::dataset::updateMinMax<TSample>(outputs[channelIdx][i]);
+                } else {
+                    // TODO: fix UncertainValue, it requires changes in GR4
+                }
+            }
+            if constexpr (TPSImpl::N_DIGITAL_CHANNELS > 0) {
+                digitalOutSpan[i] = createDatasetDigital(nSamples);
+                // todo: copy data
+            }
+
+            // perform matching
+            tagMatcher.reset(); // reset the tag matcher because for triggered acquisition there is always a gap in the data
+            const auto triggerSourceIndex = _picoscope->convertToOutputIndex(trigger_source);
+            if (triggerSourceIndex) {
+                std::vector<std::size_t> triggerOffsets{};
+                if (const auto externalChannelIndex = _picoscope->convertToOutputIndex("EXTERNAL"); externalChannelIndex && triggerSourceIndex == externalChannelIndex) {
+                    // For the external trigger input, we only know that there was a trigger after `pre_samples` samples.
+                    triggerOffsets = {pre_samples};
+                } else {
+                    std::span samples = std::span(outputs[triggerSourceIndex.value()].data(), nSamples);
+                    triggerOffsets    = findAnalogTriggers(_channels[triggerSourceIndex.value()], outputs[triggerSourceIndex.value()][i].signalValues(0));
+                }
+                std::span<const gr::Tag> tag_span       = std::span(timingInSpan.rawTags);
+                auto                     tags           = tag_span | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
+                auto                     triggerTags    = tagMatcher.match(tags, triggerOffsets, nSamples, acquisitionTime.time_since_epoch());
+                if (!triggerTags.tags.empty()) {
+                    for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
+                        auto& output = outputs[channelIdx][i];
+                        for (auto& [index, map] : triggerTags.tags) {
+                            if (static_cast<std::ptrdiff_t>(index) >= 0u) {
+                                output.timing_events[0].push_back({static_cast<std::ptrdiff_t>(index), map});
+                            }
+                        }
+                    }
+                }
+                for (const auto& msg : triggerTags.messages) {
+                    this->emitErrorMessage(std::format("{}::TimingMatcher", this->name), msg);
+                }
+            }
+        }
+
+        const std::size_t nInputs = timingInSpan.size();
+        std::ignore               = timingInSpan.consume(nInputs);
+        timingInSpan.consumeTags(nInputs);
+
+        for (std::size_t i = 0; i < outputs.size(); i++) {
+            if (availableCaptures < nCompletedCaptures) {
+                outputs[i].publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples * (nCompletedCaptures - availableCaptures)}}, 0);
+            }
+            outputs[i].publish(availableCaptures);
+        }
+        digitalOutSpan.publish(availableCaptures);
+
+        if (_channels.empty()) {
+            return gr::work::Status::OK;
+        }
+
+        if (trigger_once) {
+            return gr::work::Status::DONE;
+        }
+        return gr::work::Status::OK;
+    }
+
+    template<gr::OutputSpanLike TOutSpan>
+    gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, std::span<TOutSpan>& outputs, gr::OutputSpanLike auto& digitalOutSpan) {
+        if (!_picoscope || !_picoscope->isOpened()) { // early return if the picoscope was not yet opened correctly or settings are not yet applied
+            // TODO: implement async open and retry
+            return {};
+        }
+        if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
+            using self_t = decltype(this);
+            struct StreamingContext { // helper class to pass data to the callback function called by the getLatestValues function
+                decltype(timingInSpan)& timingIn;
+                std::span<TOutSpan>& out;
+                decltype(digitalOutSpan)& digitalOut;
+                self_t self;
+                gr::work::Status result = gr::work::Status::INSUFFICIENT_INPUT_ITEMS;
+            } streamingCtx{timingInSpan, outputs, digitalOutSpan, this};
+
+            // fetch new values // note: the callback gets executed inside this function call on the same thread
+            const auto status = _picoscope->getStreamingLatestValues(static_cast<TPSImpl::StreamingReadyType>([](int16_t /*handle*/, TPSImpl::NSamplesType noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t triggerAt, int16_t triggered, int16_t autoStop, void* data) {
+                auto streamingContext = static_cast<StreamingContext*>(data);
+                streamingContext->result = streamingContext->self->processStreaming(streamingContext->timingIn, streamingContext->out, streamingContext->digitalOut, noOfSamples, startIndex, overflow, triggerAt, triggered, autoStop);
+            }), &streamingCtx);
+            if (status == PICO_OK && streamingCtx.result == gr::work::Status::OK ) { // processed data
+                return gr::work::Status::OK;
+            } else if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION || streamingCtx.result == gr::work::Status::INSUFFICIENT_INPUT_ITEMS) { // no data to fetch yet => check and process leftover data and return
+                if (_channels[0].unpublished.size() > 0) { // process unpublished data leftover from the latest invocation
+                    return  processStreaming(timingInSpan, outputs, digitalOutSpan, 0, 0, 0, 0, 0, 0);
+                } else {
+                    for (auto& output : outputs) { output.publish(0); }
+                    digitalOutSpan.publish(0);
+                    return gr::work::Status::OK;
+                }
+            } else {
+                this->emitErrorMessage(std::format("{}::processBulk: error while getting Latest streaming values: ", this->name), detail::getErrorMessage(status));
+                return gr::work::Status::ERROR;
+            }
+        } else { // Triggered (Rapid Block) Acquisition
+            return processTriggered(timingInSpan, outputs, digitalOutSpan);
         }
     }
 
-    [[nodiscard]] bool isOpened() const { return _handle > 0; }
+    // TODO: Q: should this also enable/disable streaming acquisition?
+    void handleSoftwareArming(auto tagData) {
+        if (timingIn.isConnected() ) {
+            if (!trigger_arm.value.empty() || !trigger_disarm.value.empty()) {
+                // find last arm trigger or last disarm trigger
+                const std::ptrdiff_t IndexNotSet         = std::numeric_limits<std::ptrdiff_t>::max();
+                std::ptrdiff_t lastArmTriggerIndex    = IndexNotSet;
+                std::ptrdiff_t lastDisarmTriggerIndex = IndexNotSet;
+                for (const auto &[i, tag_map] : tagData | std::views::reverse) {
+                    if (lastArmTriggerIndex == IndexNotSet && detail::tagContainsTrigger(tag_map, _armTriggerNameAndCtx)) {
+                        lastArmTriggerIndex = i;
+                    }
+                    if (lastDisarmTriggerIndex == IndexNotSet && detail::tagContainsTrigger(tag_map, _disarmTriggerNameAndCtx)) {
+                        lastDisarmTriggerIndex = i;
+                    }
+                    if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) { // both arm/disarm triggers were found
+                        break;
+                    }
+                }
+                if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex == IndexNotSet) { // only arm
+                    arm();
+                }
+                if (lastArmTriggerIndex == IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) { // only disarm
+                    disarm();
+                }
+                if (lastArmTriggerIndex != IndexNotSet && lastDisarmTriggerIndex != IndexNotSet) { // both arm and disarm
+                    disarm();
+                    if (lastArmTriggerIndex > lastDisarmTriggerIndex) { // disarm before arm
+                        arm();
+                    }
+                }
+            } // arm/disarm triggers
+        } // Tags are available
+    }
 
     void settingsChanged(const gr::property_map& /*oldSettings*/, const gr::property_map& newSettings) {
         _channels.clear();
@@ -362,7 +564,6 @@ public:
         for (std::size_t i = 0; i < channel_ids.value.size(); ++i) {
             detail::Channel& ch = _channels[i];
             ch.id               = channel_ids.value[i];
-            ch.sampleRate       = sample_rate;
 
             if (i < signal_names.value.size()) {
                 ch.name = signal_names.value[i];
@@ -418,6 +619,8 @@ public:
                                  || newSettings.contains("channel_couplings") || newSettings.contains("trigger_source") || newSettings.contains("trigger_threshold") //
                                  || newSettings.contains("trigger_direction") || newSettings.contains("digital_port_threshold") || newSettings.contains("matcher_timeout");
 
+        // todo: check which changes need re-arming and which can be done during processing. e.g. the channel_ranges can be adjusted without restarting the acquisition
+
         if (needsReinit) {
             initialize();
             if (auto_arm) {
@@ -427,10 +630,8 @@ public:
         }
     }
 
-    void start() noexcept {
-        _tagReaderInternal = timingIn.buffer().tagBuffer.new_reader();
-
-        if (isOpened()) {
+    void start() {
+        if (_picoscope && _picoscope->isOpened()) {
             return;
         }
 
@@ -438,9 +639,10 @@ public:
             open();
             initialize();
             if (auto_arm) {
+                _isArmed = true;
                 arm();
             }
-            serial_number = serialNumber();
+            serial_number = serialNumber(); // todo: need to update setting?
             std::println("Picoscope serial number: {}", serial_number);
             std::println("Picoscope device variant: {}", deviceVariant());
         } catch (const std::exception& e) {
@@ -448,116 +650,150 @@ public:
         }
     }
 
-    void stop() noexcept {
+    void stop() {
         disarm();
         close();
     }
 
     void disarm() {
-        if (!isOpened()) {
+        if (_picoscope && _picoscope->isOpened()) {
             return;
         }
 
-        if (const auto status = self().driverStop(_handle); status != PICO_OK) {
+        if (const auto status = _picoscope->driverStop(); status != PICO_OK) {
             this->emitErrorMessage(std::format("{}::disarm()", this->name), gr::Error(detail::getErrorMessage(status)));
         }
-        _isArmed.store(false, std::memory_order_release);
+        _isArmed = false;
     }
 
     void open() {
-        if (isOpened()) {
+        if (_picoscope && _picoscope->isOpened()) {
             return;
         }
 
-        if (const auto status = self().openUnit(serial_number); status == PICO_POWER_SUPPLY_NOT_CONNECTED || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
-            if (const auto statusPower = self().changePowerSource(_handle, status); statusPower != PICO_OK) {
+        _picoscope = TPSImpl{};
+        if (const auto status = _picoscope->openUnit(serial_number); status == PICO_POWER_SUPPLY_NOT_CONNECTED || status == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
+            if (const auto statusPower = _picoscope->changePowerSource(status); statusPower != PICO_OK) {
                 this->emitErrorMessage(std::format("{}::open() changePowerSource", this->name), gr::Error(detail::getErrorMessage(statusPower)));
             }
         }
     }
 
     void close() {
-        if (!isOpened()) {
+        if (!_picoscope || !_picoscope->isOpened()) {
             return;
         }
-        if (const auto status = self().closeUnit(_handle); status != PICO_OK) {
+        if (const auto status = _picoscope->closeUnit(); status != PICO_OK) {
             this->emitErrorMessage(std::format("{}::close()", this->name), gr::Error(detail::getErrorMessage(status)));
         } else {
-            _handle = -1;
+            _picoscope = std::nullopt;
         }
     }
 
     void initialize() {
-        if (!isOpened()) {
+        if (!_picoscope || !_picoscope->isOpened()) {
             return;
         }
 
         // maximum value is used for conversion to volts
-        if (const auto status = self().maximumValue(_handle, &(_maxValue)); status != PICO_OK) {
-            self().closeUnit(_handle);
-            this->emitErrorMessage(std::format("{}::initialize() maximumValue", this->name), gr::Error(detail::getErrorMessage(status)));
-        }
-
-        // configure memory segments and number of capture fo RapidBlock mode
-        if constexpr (acquisitionMode == AcquisitionMode::RapidBlock) {
-            int32_t maxSamples;
-            if (const auto status = self().memorySegments(_handle, static_cast<uint32_t>(n_captures), &maxSamples); status != PICO_OK) {
-                this->emitErrorMessage(std::format("{}::initialize() MemorySegments", this->name), gr::Error(detail::getErrorMessage(status)));
-            }
-
-            if (const auto status = self().setNoOfCaptures(_handle, static_cast<uint32_t>(n_captures)); status != PICO_OK) {
-                this->emitErrorMessage(std::format("{}::initialize() SetNoOfCaptures", this->name), gr::Error(detail::getErrorMessage(status)));
+        if (const auto status = _picoscope->maximumValue(&(_maxValue)); status != PICO_OK) {
+            if (const auto closeStatus = _picoscope->closeUnit(); closeStatus != PICO_OK) {
+                this->emitErrorMessage(std::format("{}::initialize() maximumValue (also failed to properly close the picoscope: {})", this->name, detail::getErrorMessage(closeStatus)), gr::Error(detail::getErrorMessage(status)));
+            } else {
+                this->emitErrorMessage(std::format("{}::initialize() maximumValue", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
 
         // configure analog channels
         for (const auto& channel : _channels) {
-            const auto channelEnum = self().convertToChannel(channel.id);
+            const auto channelEnum = _picoscope->convertToChannel(channel.id);
+            if (!channelEnum) {
+                this->emitErrorMessage(std::format("{}::initialize() SetChannel", this->name), gr::Error(std::format("could not convert channel id to channel: {}", channel.id)));
+                return;
+            }
             assert(channelEnum);
-            const auto coupling = self().convertToCoupling(channel.coupling);
-            const auto range    = self().convertToRange(channel.range);
+            const auto coupling = _picoscope->convertToCoupling(channel.coupling);
+            const auto range    = _picoscope->convertToRange(channel.range);
 
-            const auto status = self().setChannel(_handle, *channelEnum, true, coupling, static_cast<TPSImpl::ChannelRangeType>(range), static_cast<float>(channel.analogOffset));
-            if (status != PICO_OK) {
+            if (const auto status = _picoscope->setChannel(*channelEnum, true, coupling, range, static_cast<float>(channel.analogOffset)); status != PICO_OK) {
                 this->emitErrorMessage(std::format("{}::initialize() SetChannel", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         }
 
         // configure digital ports
-        if (const auto status = self().setDigitalPorts(); status != PICO_OK) {
-            this->emitErrorMessage(std::format("{}::initialize() setDigitalPorts", this->name), gr::Error(detail::getErrorMessage(status)));
+        if constexpr (TPSImpl::N_DIGITAL_CHANNELS > 0) {
+            if (const auto status = _picoscope->setDigitalPorts(digital_port_threshold); status != PICO_OK) {
+                this->emitErrorMessage(std::format("{}::initialize() setDigitalPorts", this->name), gr::Error(detail::getErrorMessage(status)));
+            }
+        }
+
+        // configure memory segments and number of captures for the RapidBlock mode
+        int32_t maxSamples = detail::kDriverBufferSize;
+        if constexpr (acquisitionMode == AcquisitionMode::RapidBlock) {
+            if (const auto status = _picoscope->memorySegments(static_cast<uint32_t>(n_captures), &maxSamples); status != PICO_OK) {
+                this->emitErrorMessage(std::format("{}::initialize() MemorySegments", this->name), gr::Error(detail::getErrorMessage(status)));
+            }
+
+            if (const auto status = _picoscope->setNoOfCaptures(static_cast<uint32_t>(n_captures)); status != PICO_OK) {
+                this->emitErrorMessage(std::format("{}::initialize() SetNoOfCaptures", this->name), gr::Error(detail::getErrorMessage(status)));
+            }
         }
 
         // apply trigger configuration
         if (detail::isAnalogTrigger(trigger_source) && acquisitionMode == AcquisitionMode::RapidBlock) {
-            const auto channelEnum = self().convertToChannel(trigger_source);
+            const auto channelEnum = _picoscope->convertToChannel(trigger_source);
             assert(channelEnum != std::nullopt);
-            const auto    direction    = self().convertToThresholdDirection(detail::convertToEnum<TriggerDirection>(trigger_direction));
+            const auto    direction    = _picoscope->convertToThresholdDirection(detail::convertToEnum<TriggerDirection>(trigger_direction));
             const int16_t thresholdADC = convertVoltageToADCCount(trigger_threshold);
 
-            const auto status = self().setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
+            const auto status = _picoscope->setSimpleTrigger(true, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
             if (status != PICO_OK) {
                 this->emitErrorMessage(std::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
             }
         } else if (detail::isDigitalTrigger(trigger_source) && acquisitionMode == AcquisitionMode::RapidBlock) {
-            const auto status = self().SetTriggerDigitalPort(_handle, _digitalChannelNumber, detail::convertToEnum<TriggerDirection>(trigger_direction));
-            if (status != PICO_OK) {
-                this->emitErrorMessage(std::format("{}::initialize() SetTriggerDigitalPort", this->name), gr::Error(detail::getErrorMessage(status)));
+            if constexpr (TPSImpl::N_DIGITAL_CHANNELS > 0) {
+                const auto status = _picoscope->setTriggerDigitalPort(_digitalChannelNumber, detail::convertToEnum<TriggerDirection>(trigger_direction));
+                if (status != PICO_OK) {
+                    this->emitErrorMessage(std::format("{}::initialize() setTriggerDigitalPort", this->name), gr::Error(detail::getErrorMessage(status)));
+                }
             }
         } else {
             // Disable any trigger conditions, so captures occur IMMEDIATELY without waiting for any event
             // Note: To prevent any trigger events, one needs to set the threshold for all channels to the maximum value
-            // const int16_t thresholdADC = self().maxADCCount() - 255; // 255 seems to be a magic number, most probably it is used for additional meta information
-            // const auto status = self().setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0, 0);
-            for (std::size_t i = 0; i < static_cast<std::size_t>(self().maxChannel()); i++) {
-                const auto channelEnum = self().convertToChannel(i);
+            // const int16_t thresholdADC = _picoscope->maxADCCount() - 255; // 255 seems to be a magic number, most probably it is used for additional meta information
+            // const auto status = _picoscope->setSimpleTrigger(_handle, true, channelEnum.value(), thresholdADC, direction, 0, 0);
+            for (std::size_t i = 0; i < static_cast<std::size_t>(_picoscope->maxChannel()); i++) {
+                const auto channelEnum = _picoscope->convertToChannel(i);
                 assert(channelEnum != std::nullopt);
-                const auto    direction    = self().convertToThresholdDirection(detail::convertToEnum<TriggerDirection>("Rising"));
+                const auto    direction    = _picoscope->convertToThresholdDirection(detail::convertToEnum<TriggerDirection>("Rising"));
                 const int16_t thresholdADC = 0;
 
-                const auto status = self().setSimpleTrigger(_handle, false, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
+                const auto status = _picoscope->setSimpleTrigger(false, channelEnum.value(), thresholdADC, direction, 0 /* delay */, 0 /* auto trigger */);
                 if (status != PICO_OK) {
                     this->emitErrorMessage(std::format("{}::initialize() setSimpleTrigger", this->name), gr::Error(detail::getErrorMessage(status)));
+                }
+            }
+        }
+
+        if constexpr (acquisitionMode == AcquisitionMode::RapidBlock) {
+            for (const auto& [idx, channel]: std::views::zip(std::views::iota(0), _channels)) { // clang does not yet support std::views::enumerate
+                auto bufferSize = std::min(static_cast<int32_t>(maxSamples), static_cast<int32_t>(channel.driverBuffer.size() / n_captures));
+                for (uint32_t segmentIdx = 0; segmentIdx < n_captures; segmentIdx++) {
+                    if (const auto status = _picoscope->setDataBufferForSegment(TPSImpl::convertToChannel(channel.id).value(), channel.driverBuffer.data() + (bufferSize * segmentIdx), bufferSize, segmentIdx, _picoscope->ratioNone()); status != PICO_OK) {
+                        this->emitErrorMessage(std::format("{}::initialize() setDataBufferForSegment (analog)", this->name), gr::Error(detail::getErrorMessage(status)));
+                    }
+                }
+            }
+            if constexpr (TPSImpl::N_DIGITAL_CHANNELS > 0) {
+                for (int i = 0; i < TPSImpl::N_DIGITAL_CHANNELS; i++) {
+                    _digitalBuffers[i].resize(detail::kDriverBufferSize);
+                    auto bufferSize = static_cast<int32_t>(detail::kDriverBufferSize) / n_captures;
+                    // this is a bit annoying because the PS3000 defines the Enum for the digital Ports as a different type
+                    for (uint32_t segmentIdx = 0; segmentIdx < n_captures; segmentIdx++) {
+                        if (const auto status = _picoscope->setDataBufferForSegment(static_cast<TPSImpl::ChannelType>(TPSImpl::DIGI_PORT_0 + i), _digitalBuffers[i].data(), bufferSize, segmentIdx, _picoscope->ratioNone()); status != PICO_OK) {
+                            this->emitErrorMessage(std::format("{}::initialize() setDataBufferForSegment (digital)", this->name), gr::Error(detail::getErrorMessage(status)));
+                        }
+                    }
                 }
             }
         }
@@ -567,252 +803,55 @@ public:
     }
 
     void arm() {
-        if (!isOpened()) {
+        if (!_picoscope || !_picoscope->isOpened()) {
             return;
         }
 
         if constexpr (acquisitionMode == AcquisitionMode::RapidBlock) {
-            bool expected = false;
-            if (_isArmed.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
-                const auto timebaseRes = self().convertSampleRateToTimebase(_handle, sample_rate);
+            if (_isArmed) { // software-based arming based on timing tags
+                const auto timebaseRes = _picoscope->convertSampleRateToTimebase(sample_rate);
                 _actualSampleRate      = timebaseRes.actualFreq;
 
                 static auto    redirector = [](int16_t, PICO_STATUS status, void* vobj) { static_cast<decltype(this)>(vobj)->rapidBlockCallback({status}); };
                 int32_t        timeIndisposedMs;
                 const uint32_t segmentIndex = 0; // only one segment for streaming mode
-
-                const auto status = self().runBlock(_handle, static_cast<int32_t>(pre_samples), static_cast<int32_t>(post_samples), timebaseRes.timebase, &timeIndisposedMs, segmentIndex, static_cast<TPSImpl::BlockReadyType>(redirector), this);
+                const auto status = _picoscope->runBlock(static_cast<int32_t>(pre_samples), static_cast<int32_t>(post_samples), timebaseRes.timebase, &timeIndisposedMs, segmentIndex, static_cast<TPSImpl::BlockReadyType>(redirector), this);
 
                 if (status != PICO_OK) {
                     this->emitErrorMessage(std::format("{}::arm() RunBlock", this->name), gr::Error(detail::getErrorMessage(status)));
                 }
             }
-        } else {
+        } else { // Streaming
             using fair::picoscope::detail::kDriverBufferSize;
-            if (const auto ec = self().setBuffers(kDriverBufferSize); ec) {
+            if (const auto ec = setBuffers(kDriverBufferSize); ec) {
                 this->emitErrorMessage(std::format("{}::arm() setBuffers", this->name), ec.message());
             }
 
-            TimeInterval timeInterval = convertSampleRateToTimeInterval(sample_rate);
+            TimeInterval timeInterval = detail::convertSampleRateToTimeInterval(sample_rate);
 
-            const auto status = self().runStreaming(        //
-                _handle,                                    // identifier for the scope device
-                &timeInterval.interval,                     // in: desired interval, out: actual interval
-                self().convertTimeUnits(timeInterval.unit), // time unit of interval
-                0,                                          // pre-trigger-samples (unused)
-                static_cast<uint32_t>(kDriverBufferSize),   // post-trigger-samples
-                false,                                      // autoStop
-                1,                                          // downsampling ratio
-                self().ratioNone(),                         // downsampling ratio mode
-                static_cast<uint32_t>(kDriverBufferSize));  // the size of the overview buffers
+            const auto status = _picoscope->runStreaming(        //
+                &timeInterval.interval,                          // in: desired interval, out: actual interval
+                _picoscope->convertTimeUnits(timeInterval.unit), // time unit of the interval
+                0,                                               // pre-trigger-samples (unused)
+                static_cast<uint32_t>(kDriverBufferSize),        // post-trigger-samples
+                false,                                           // autoStop
+                1,                                               // downsampling ratio
+                _picoscope->ratioNone(),                         // downsampling ratio mode
+                static_cast<uint32_t>(kDriverBufferSize));       // the size of the overview buffers
 
             if (status != PICO_OK) {
                 this->emitErrorMessage(std::format("{}::arm() RunStreaming", this->name), gr::Error(detail::getErrorMessage(status)));
             }
-            _actualSampleRate = convertTimeIntervalToSampleRate(timeInterval);
+            _actualSampleRate = detail::convertTimeIntervalToSampleRate(timeInterval);
         }
     }
 
-    void streamingCallback(int32_t nrSamplesSigned, uint32_t idx, int16_t overflow)
-    requires(acquisitionMode == AcquisitionMode::Streaming)
-    {
-        _streamingSamples = static_cast<std::size_t>(nrSamplesSigned);
-        _streamingOffset  = static_cast<std::size_t>(idx);
-        // NOTE: according to the programmer's guide the data should be copied-out inside the callback function. Not sure if the driver might overwrite the buffer with new data after the callback has returned
-        assert(nrSamplesSigned >= 0);
-
-        // According to well-informed sources, the driver indicates the buffer overrun by setting all the bits of the overflow argument to true.
-        if (static_cast<uint16_t>(overflow) == 0xffff) {
-            // TODO: send tag
-            std::println(std::cerr, "Buffer overrun detected, continue...");
-        }
-    }
-
-    void rapidBlockCallback(Error ec)
-    requires(acquisitionMode == AcquisitionMode::RapidBlock)
-    {
-        if (ec) {
-            if (ec.code == PICO_CANCELLED) {
-                _isArmed.store(false, std::memory_order_release);
-                return;
-            } else {
-                this->emitErrorMessage(std::format("{}::rapidBlockCallback", this->name), ec.message());
-                _isArmed.store(false, std::memory_order_release);
-                return;
-            }
-        }
-        this->invokeWork();
-        _isArmed.store(false, std::memory_order_release);
-    }
-
-    template<gr::OutputSpanLike TOutSpan>
-    gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs) {
-        if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
-            if (_streamingSamples == 0) {
-                for (auto& output : outputs) {
-                    output.publish(0);
-                }
-                if (const auto ec = self().streamingPoll()) {
-                    this->emitErrorMessage(std::format("{}::processBulk", this->name), ec.message());
-                    return gr::work::Status::ERROR;
-                }
-            } else {
-                auto now               = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
-                auto acquisitionLength = std::chrono::nanoseconds(static_cast<long>(static_cast<float>(_streamingSamples) * (1e9f / sample_rate)));
-                processDriverDataStreaming(_streamingSamples, _streamingOffset, timingInSpan, digitalOutSpan, outputs, now - acquisitionLength);
-                _streamingSamples = 0;
-            }
-        } else {
-            const auto nSamples = pre_samples + post_samples;
-
-            uint32_t nCompletedCaptures = 1;
-
-            if (const auto status = self().getNoOfCaptures(_handle, &nCompletedCaptures); status != PICO_OK) {
-                this->emitErrorMessage(std::format("{}::processBulk getNofCaptures", this->name), detail::getErrorMessage(status));
-                return gr::work::Status::ERROR;
-            }
-
-            nCompletedCaptures                  = std::min(static_cast<gr::Size_t>(nCompletedCaptures), n_captures.value);
-            const std::size_t availableCaptures = calculateAvailableOutputs(nCompletedCaptures, digitalOutSpan, outputs);
-
-            for (std::size_t iCapture = 0; iCapture < availableCaptures; iCapture++) {
-                const auto getValuesResult = self().rapidBlockGetValues(iCapture, nSamples);
-                if (nSamples != getValuesResult.nSamples) {
-                    this->emitErrorMessage(std::format("{}::processBulk", this->name), std::format("Number of retrieved samples ({}) doesn't equal to required samples: pre_samples + post_samples ({})", getValuesResult.nSamples, nSamples));
-                }
-                if (getValuesResult.error) {
-                    this->emitErrorMessage(std::format("{}::processBulk", this->name), getValuesResult.error.message());
-                    return gr::work::Status::ERROR;
-                }
-                auto now               = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch());
-                auto acquisitionLength = std::chrono::nanoseconds(static_cast<long>(static_cast<float>(getValuesResult.nSamples) * (1e9f / sample_rate)));
-                processDriverDataRapidBlock(iCapture, getValuesResult.nSamples, timingInSpan, digitalOutSpan, outputs, now - acquisitionLength);
-            }
-
-            // if RapidBlock OR trigger_source is not set then consume all input tags
-            if (acquisitionMode == AcquisitionMode::RapidBlock || self().convertToOutputIndex(trigger_source) == std::nullopt) {
-                const std::size_t nInputs = timingInSpan.size();
-                std::ignore               = timingInSpan.consume(nInputs);
-                timingInSpan.consumeTags(nInputs);
-            }
-
-            for (std::size_t i = 0; i < outputs.size(); i++) {
-                if (availableCaptures < nCompletedCaptures) {
-                    outputs[i].publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES.shortKey(), nSamples * (nCompletedCaptures - availableCaptures)}}, 0);
-                }
-                outputs[i].publish(nCompletedCaptures);
-            }
-            digitalOutSpan.publish(nCompletedCaptures);
-        }
-
-        if (_channels.empty()) {
-            return gr::work::Status::OK;
-        }
-
-        if (trigger_once) {
-            return gr::work::Status::DONE;
-        }
-
-        return gr::work::Status::OK;
-    }
-
-    template<gr::OutputSpanLike TOutSpan>
-    [[nodiscard]] std::size_t calculateAvailableOutputs(std::size_t nSamples, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs) const {
-        std::size_t availableOutputs = std::numeric_limits<std::size_t>::max();
-        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
-            availableOutputs = std::min(availableOutputs, outputs[channelIdx].size());
-        }
-        availableOutputs = std::min(availableOutputs, digitalOutSpan.size());
-
-        const std::size_t availableSamples = std::min(availableOutputs, nSamples);
-        if (availableSamples < nSamples) {
-            std::println(std::cerr, "Picoscope::processDriverDataStreaming: {} samples will be lost due to insufficient space in output buffers (require {}, available {})", nSamples - availableSamples, nSamples, availableOutputs);
-        }
-
-        return availableSamples;
-    }
-
-    template<gr::OutputSpanLike TOutSpan>
-    void processDriverDataStreaming(std::size_t nSamples, std::size_t offset, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs, std::chrono::nanoseconds acquisitionTime)
-    requires(acquisitionMode == AcquisitionMode::Streaming)
-    {
-        std::size_t availableSamples = calculateAvailableOutputs(nSamples, digitalOutSpan, outputs);
-
-        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
-            processSamplesOneChannel<T>(availableSamples, offset, _channels[channelIdx], outputs[channelIdx]);
-        }
-
-        std::size_t unpublishedOffset = _channels[0].unpublishedSamples.size();
-        availableSamples += unpublishedOffset;
-        auto acquisitionTimeOffset = std::chrono::nanoseconds(static_cast<long>(static_cast<float>(unpublishedOffset) * (1e9f / sample_rate)));
-
-        const auto               triggerSourceIndex = self().convertToOutputIndex(trigger_source);
-        std::span                samples(outputs[triggerSourceIndex.value()].data(), availableSamples);
-        auto                     triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], samples);
-        std::span<const gr::Tag> tagspan        = std::span(timingInSpan.rawTags);
-        auto                     tags           = tagspan | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
-        auto                     triggerTags    = tagMatcher.match(tags, triggerOffsets, availableSamples, acquisitionTime - acquisitionTimeOffset);
-
-        for (const auto& msg : triggerTags.messages) {
-            this->emitErrorMessage(std::format("{}::TimingMatcher", this->name), msg);
-        }
-
-        // publish tags
-        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
-            auto& channel = _channels[channelIdx];
-            auto& output  = outputs[channelIdx];
-            if (!channel.signalInfoTagPublished) {
-                output.publishTag(channel.toTagMap(), 0);
-                channel.signalInfoTagPublished = true;
-            }
-            if (triggerTags.tags.empty()) {
-                continue;
-            }
-            for (auto& [index, map] : triggerTags.tags) {
-                output.publishTag(map, index);
-            }
-        }
-
-        self().copyDigitalBuffersToOutput(digitalOutSpan, triggerTags.processedSamples);
-        for (auto& [index, map] : triggerTags.tags) {
-            digitalOutSpan.publishTag(map, index);
-        }
-        digitalOutSpan.publish(triggerTags.processedSamples);
-
-        auto lastTimingSampleIndex = tagspan[triggerTags.processedTags - 1].index - timingInSpan.streamIndex + 1;
-        timingInSpan.consumeTags(lastTimingSampleIndex);
-        std::ignore = timingInSpan.consume(lastTimingSampleIndex);
-
-        // publish samples
-        for (std::size_t i = 0; i < outputs.size(); i++) {
-            // TODO: The issue is that the Block class does not properly handle optional ports such that sample limits are calculated wrongly.
-            // Therefore, we must connect all output ports of the picoscope and ensure that samples are published for all ports.
-            // Otherwise, tags will not be propagated correctly.
-            // const std::size_t nSamplesToPublish = i < _state.channels.size() ? availableSamples : 0UZ;
-            outputs[i].publish(triggerTags.processedSamples);
-        }
-
-        // save the unpublished part of the chunk to be reprocessed in the next iteration
-        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
-            // todo: this drops some samples if less than the new samples is processed
-            auto processedEnd = offset + ((triggerTags.processedSamples > _channels[channelIdx].unpublishedSamples.size()) ? (triggerTags.processedSamples - _channels[channelIdx].unpublishedSamples.size()) : 0);
-            if ((processedEnd >= _channels[channelIdx].driverBuffer.size()) || (processedEnd + availableSamples - triggerTags.processedSamples > _channels[channelIdx].driverBuffer.size())) {
-                const std::string errMsg = std::format("Error: prevented out of bounds read of driver data[{}, {}], offset={}, triggerTags.processedSamples={}, _chan.unpublishedSamples.size()={}, availableSamples={}", //
-                    processedEnd, processedEnd + availableSamples - triggerTags.processedSamples, offset, triggerTags.processedSamples, _channels[channelIdx].unpublishedSamples.size(), availableSamples);
-                this->emitErrorMessage(std::format("{}::processDriverDataStreaming", this->name), errMsg);
-            } else {
-                const auto driverData = std::span(_channels[channelIdx].driverBuffer).subspan(processedEnd, availableSamples - triggerTags.processedSamples);
-                _channels[channelIdx].unpublishedSamples.clear();
-                std::ranges::copy(driverData, std::back_inserter(_channels[channelIdx].unpublishedSamples));
-            }
-        }
-
-        _nSamplesPublished += triggerTags.processedSamples;
-    }
+    void rapidBlockCallback(Error /*ec*/) requires(acquisitionMode == AcquisitionMode::RapidBlock) { this->progress->incrementAndGet(); } // wake-up block processing
 
     constexpr T createDataset(detail::Channel& channel, std::size_t nSamples)
     requires(acquisitionMode == AcquisitionMode::RapidBlock)
     {
+        using TSample = T::value_type;
         T ds{};
         ds.timestamp = 0;
 
@@ -832,7 +871,6 @@ public:
         ds.axis_values[0].resize(nSamples);
 
         // generate time axis
-        using TSample            = T::value_type;
         int         i            = 0;
         const auto  pre          = static_cast<int>(pre_samples);
         const float samplePeriod = 1.0f / sample_rate;
@@ -842,104 +880,34 @@ public:
                 ++i;
                 return TSample{t};
             } else if constexpr (std::is_same_v<TSample, std::int16_t>) {
-                return static_cast<std::int16_t>(i++);
+                return static_cast<std::int16_t>(i++ - pre); // todo: alternative would be to multiply by 1e9 and export as nanoseconds instead of index
+            } else {
+                static_assert(false, "unsupported sample type");
             }
         });
 
         ds.meta_information.resize(1);
-        ds.meta_information[0] = channel.toTagMap();
+        ds.meta_information[0] = channel.toTagMap(sample_rate);
 
         return ds;
     }
 
     constexpr TDigitalOutput createDatasetDigital(std::size_t nSamples)
-    requires(acquisitionMode == AcquisitionMode::RapidBlock)
+    requires(TPSImpl::N_DIGITAL_CHANNELS > 0 && acquisitionMode == AcquisitionMode::RapidBlock)
     {
         TDigitalOutput ds{};
-        ds.extents = {1, static_cast<int32_t>(nSamples)};
+        ds.extents = {static_cast<int32_t>(nSamples)};
         ds.layout  = gr::LayoutRight{};
 
         ds.signal_values.resize(nSamples);
         ds.signal_ranges.resize(1);
         ds.timing_events.resize(1);
+        // todo: add time axis data
 
         return ds;
     }
 
-    template<gr::OutputSpanLike TOutSpan>
-    void processDriverDataRapidBlock(std::size_t iCapture, std::size_t nSamples, gr::InputSpanLike auto& timingInSpan, gr::OutputSpanLike auto& digitalOutSpan, std::span<TOutSpan>& outputs, std::chrono::nanoseconds acquisitionTime)
-    requires(acquisitionMode == AcquisitionMode::RapidBlock)
-    {
-        using TSample = T::value_type;
-        for (std::size_t channelIdx = 0; channelIdx < _channels.size(); channelIdx++) {
-            outputs[channelIdx][iCapture] = createDataset(_channels[channelIdx], nSamples);
-            processSamplesOneChannel<TSample>(nSamples, 0, _channels[channelIdx], outputs[channelIdx][iCapture].signal_values);
-            // add Tags
-            if constexpr (std::is_same_v<TSample, float> || std::is_same_v<TSample, std::int16_t>) {
-                gr::dataset::updateMinMax<TSample>(outputs[channelIdx][iCapture]);
-            } else {
-                // TODO: fix UncertainValue, it requires changes in GR4
-            }
-        }
-        digitalOutSpan[iCapture] = createDatasetDigital(nSamples);
-        self().copyDigitalBuffersToOutput(digitalOutSpan[iCapture].signal_values, nSamples);
-
-        // perform matching
-        tagMatcher.reset(); // reset the tag matcher because for triggered acquisition there is always a gap in the data
-        const auto triggerSourceIndex = self().convertToOutputIndex(trigger_source);
-        if (triggerSourceIndex) {
-            std::span                samples(outputs[triggerSourceIndex.value()].data(), nSamples);
-            auto                     triggerOffsets = findAnalogTriggers(_channels[triggerSourceIndex.value()], outputs[triggerSourceIndex.value()][iCapture].signalValues(0));
-            std::span<const gr::Tag> tagspan        = std::span(timingInSpan.rawTags);
-            auto                     tags           = tagspan | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
-            auto                     triggerTags    = tagMatcher.match(tags, triggerOffsets, nSamples, acquisitionTime);
-            if (!triggerTags.tags.empty()) {
-                for (std::size_t channelIdx = 0; channelIdx < _channels.size(); ++channelIdx) {
-                    auto& output = outputs[channelIdx][iCapture];
-                    for (auto& [index, map] : triggerTags.tags) {
-                        if (static_cast<std::ptrdiff_t>(index) >= 0u) {
-                            output.timing_events[0].push_back({index, map});
-                        }
-                    }
-                }
-            }
-            for (const auto& msg : triggerTags.messages) {
-                this->emitErrorMessage(std::format("{}::TimingMatcher", this->name), msg);
-            }
-        }
-        _nSamplesPublished++;
-    }
-
-    template<typename TSample>
-    void processSamplesOneChannel(std::size_t availableSamples, std::size_t offset, detail::Channel& channel, std::span<TSample> output) {
-
-        const auto driverData = std::span(channel.driverBuffer).subspan(offset, availableSamples);
-
-        if constexpr (std::is_same_v<TSample, int16_t>) {
-            std::ranges::copy(channel.unpublishedSamples, output.begin());
-            std::ranges::copy(driverData, output.begin() + static_cast<std::ptrdiff_t>(channel.unpublishedSamples.size()));
-        } else {
-            const float voltageMultiplier = channel.range / static_cast<float>(_maxValue);
-            // TODO use SIMD
-            std::size_t nUnpublishedSamples = channel.unpublishedSamples.size();
-            for (std::size_t i = 0; i < nUnpublishedSamples; ++i) {
-                if constexpr (std::is_same_v<TSample, float>) {
-                    output[i] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(channel.unpublishedSamples[i]);
-                } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
-                    output[i] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(channel.unpublishedSamples[i]), self().uncertainty());
-                }
-            }
-            for (std::size_t i = 0; i < availableSamples; ++i) {
-                if constexpr (std::is_same_v<TSample, float>) {
-                    output[i + nUnpublishedSamples] = channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]);
-                } else if constexpr (std::is_same_v<TSample, gr::UncertainValue<float>>) {
-                    output[i + nUnpublishedSamples] = gr::UncertainValue(channel.offset + channel.scale * voltageMultiplier * static_cast<float>(driverData[i]), self().uncertainty());
-                }
-            }
-        }
-    }
-
-    template<typename TSample>
+    template <typename TSample>
     std::vector<std::size_t> findAnalogTriggers(const detail::Channel& triggerChannel, std::span<TSample> samples) {
         if (samples.empty()) {
             return {};
@@ -986,7 +954,7 @@ public:
         return triggerOffsets;
     }
 
-    std::vector<std::size_t> findDigitalTriggers(int digitalChannelNumber, std::span<std::uint16_t> samples) {
+    std::vector<std::size_t> findDigitalTriggers(int digitalChannelNumber, std::span<std::uint16_t> samples) requires(TPSImpl::N_DIGITAL_CHANNELS > 0) {
         if (samples.empty()) {
             return {};
         }
@@ -1020,71 +988,49 @@ public:
     }
 
     [[nodiscard]] constexpr int16_t convertVoltageToADCCount(float value) {
-        value = std::clamp(value, self().extTriggerMinValueVoltage(), self().extTriggerMaxValueVoltage());
-        return static_cast<int16_t>((value / self().extTriggerMaxValueVoltage()) * static_cast<float>(self().extTriggerMaxValue()));
+        value = std::clamp(value, _picoscope->extTriggerMinValueVoltage(), _picoscope->extTriggerMaxValueVoltage());
+        return static_cast<int16_t>((value / _picoscope->extTriggerMaxValueVoltage()) * static_cast<float>(_picoscope->extTriggerMaxValue()));
     }
 
-    [[nodiscard]] Error streamingPoll() {
-        static auto redirector = [](int16_t /*handle*/, TPSImpl::NSamplesType noOfSamples, uint32_t startIndex, int16_t overflow, uint32_t /*triggerAt*/, int16_t /*triggered*/, int16_t /*autoStop*/, void* vobj) { static_cast<decltype(this)>(vobj)->streamingCallback(noOfSamples, startIndex, overflow); };
-
-        const auto status = self().getStreamingLatestValues(_handle, static_cast<TPSImpl::StreamingReadyType>(redirector), this);
-        if (status == PICO_BUSY || status == PICO_DRIVER_FUNCTION) {
-            return {};
-        }
-        return {status};
-    }
-
-    [[nodiscard]] fair::picoscope::GetValuesResult rapidBlockGetValues(std::size_t iCapture, std::size_t nSamples) {
-        if (const auto ec = self().setBuffers(nSamples, static_cast<uint32_t>(iCapture)); ec) {
-            return {ec, 0, 0};
-        }
-
-        const uint32_t offset     = 0;
-        auto           nSamples32 = static_cast<uint32_t>(nSamples);
-        int16_t        overflow   = 0;
-        const auto     status     = self().getValues(_handle, offset, &nSamples32, 1, self().ratioNone(), static_cast<uint32_t>(iCapture), &overflow);
-
-        if (status != PICO_OK) {
-            std::println(std::cerr, "GetValues: {}", detail::getErrorMessage(status));
-            return {{status}, 0, 0};
-        }
-        return {{}, static_cast<std::size_t>(nSamples32), overflow};
-    }
-
-    [[nodiscard]] Error setBuffers(size_t nSamples, uint32_t segmentIndex = 0UZ) {
+    [[nodiscard]] Error setBuffers(size_t nSamples, uint32_t segmentIndex = 0U) {
         for (auto& channel : _channels) {
-            const auto channelEnum = self().convertToChannel(channel.id);
-            assert(channelEnum);
+            const auto channelEnum = _picoscope->convertToChannel(channel.id);
+            if (!channelEnum) {
+                return {PICO_INVALID_CHANNEL};
+            }
 
             channel.driverBuffer.resize(std::max(nSamples, channel.driverBuffer.size()));
             if constexpr (acquisitionMode == AcquisitionMode::Streaming) {
-                const auto status = self().setDataBuffer(_handle, *channelEnum, channel.driverBuffer.data(), static_cast<int32_t>(nSamples), self().ratioNone());
+                const auto status = _picoscope->setDataBuffer(*channelEnum, channel.driverBuffer.data(), static_cast<int32_t>(nSamples), _picoscope->ratioNone());
                 if (status != PICO_OK) {
-                    std::println(std::cerr, "setDataBufferStreaming (chan {}): {}", static_cast<std::size_t>(*channelEnum), detail::getErrorMessage(status));
                     return {status};
                 }
             } else {
-                const auto status = self().setDataBufferForSegment(_handle, *channelEnum, channel.driverBuffer.data(), static_cast<int32_t>(nSamples), segmentIndex, self().ratioNone());
+                const auto status = _picoscope->setDataBufferForSegment(*channelEnum, channel.driverBuffer.data(), static_cast<int32_t>(nSamples), segmentIndex, _picoscope->ratioNone());
                 if (status != PICO_OK) {
-                    std::println(std::cerr, "setDataBufferRapidBlock (chan {}): {}", static_cast<std::size_t>(*channelEnum), detail::getErrorMessage(status));
                     return {status};
                 }
             }
         }
 
-        if (const auto status = self().setDigitalBuffers(nSamples, segmentIndex); status != PICO_OK) {
-            std::println(std::cerr, "setDigitalBuffers: {}", detail::getErrorMessage(status));
-            return {status};
+        if constexpr (TPSImpl::N_DIGITAL_CHANNELS > 0) {
+            for (int i = 0; i < TPSImpl::N_DIGITAL_CHANNELS; i++) {
+                _digitalBuffers[i].resize(nSamples);
+                // this is a bit annoying because the PS3000 defines the Enum for the digital Ports as a different type
+                if (const auto status = _picoscope->setDataBufferForSegment(static_cast<TPSImpl::ChannelType>(TPSImpl::DIGI_PORT_0 + i), _digitalBuffers[i].data(), static_cast<int32_t>(nSamples), segmentIndex, _picoscope->ratioNone()); status != PICO_OK) {
+                    return {status};
+                }
+            }
         }
 
         return {};
     }
 
-    [[nodiscard]] std::string getUnitInfoTopic(int16_t handle, PICO_INFO info) const {
+    [[nodiscard]] std::string getUnitInfoTopic(PICO_INFO info) const {
         std::array<int8_t, 40> line{};
         int16_t                requiredSize;
 
-        auto status = self().getUnitInfo(handle, line.data(), line.size(), &requiredSize, info);
+        auto status = _picoscope->getUnitInfo(line.data(), line.size(), &requiredSize, info);
         if (status == PICO_OK) {
             return {reinterpret_cast<char*>(line.data()), static_cast<std::size_t>(requiredSize)};
         }
@@ -1094,7 +1040,7 @@ public:
 
     [[nodiscard]] std::string driverVersion() const {
         const std::string prefix  = "Picoscope Linux Driver, ";
-        auto              version = getUnitInfoTopic(_handle, PICO_DRIVER_VERSION);
+        auto              version = getUnitInfoTopic(PICO_DRIVER_VERSION);
 
         if (auto i = version.find(prefix); i != std::string::npos) {
             version.erase(i, prefix.length());
@@ -1102,15 +1048,11 @@ public:
         return version;
     }
 
-    [[nodiscard]] std::string hardwareVersion() const { return getUnitInfoTopic(_handle, PICO_HARDWARE_VERSION); }
+    [[nodiscard]] std::string hardwareVersion() const { return getUnitInfoTopic(PICO_HARDWARE_VERSION); }
 
-    [[nodiscard]] std::string serialNumber() const { return getUnitInfoTopic(_handle, PICO_BATCH_AND_SERIAL); }
+    [[nodiscard]] std::string serialNumber() const { return getUnitInfoTopic(PICO_BATCH_AND_SERIAL); }
 
-    [[nodiscard]] std::string deviceVariant() const { return getUnitInfoTopic(_handle, PICO_VARIANT_INFO); }
-
-    [[nodiscard]] constexpr auto& self() noexcept { return *static_cast<TPSImpl*>(this); }
-
-    [[nodiscard]] constexpr const auto& self() const noexcept { return *static_cast<const TPSImpl*>(this); }
+    [[nodiscard]] std::string deviceVariant() const { return getUnitInfoTopic(PICO_VARIANT_INFO); }
 };
 
 } // namespace fair::picoscope

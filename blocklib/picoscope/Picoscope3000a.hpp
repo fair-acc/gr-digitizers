@@ -1,7 +1,7 @@
 #ifndef FAIR_PICOSCOPE_PICOSCOPE3000A_HPP
 #define FAIR_PICOSCOPE_PICOSCOPE3000A_HPP
 
-#include <Picoscope.hpp>
+#include <PicoscopeAPI.hpp>
 
 #include <ps3000aApi.h>
 
@@ -18,20 +18,11 @@ typedef enum enPS3000AConditionsInfo { PS3000A_CLEAR = 0x00000001, PS3000A_ADD =
 
 typedef enum enPS3000ADeviceResolution { PS3000A_DR_8BIT } PS3000A_DEVICE_RESOLUTION;
 
-template<typename T>
-struct Picoscope3000a : public fair::picoscope::Picoscope<T, Picoscope3000a<T>> {
-    using super_t = fair::picoscope::Picoscope<T, Picoscope3000a<T>>;
+struct Picoscope3000a {
+    static constexpr std::size_t N_ANALOG_CHANNELS = 4uz;
+    static constexpr std::size_t N_DIGITAL_CHANNELS = 2uz;
+    static constexpr std::underlying_type_t<PS3000A_DIGITAL_PORT> DIGI_PORT_0 = PS3000A_DIGITAL_PORT0;
 
-    Picoscope3000a(gr::property_map props) : super_t(std::move(props)) {}
-
-    std::vector<gr::PortOut<T>> out{4};
-
-    GR_MAKE_REFLECTABLE(Picoscope3000a, out);
-
-private:
-    std::array<std::vector<int16_t>, 2> _digitalBuffers;
-
-public:
     using ChannelType            = PS3000A_CHANNEL;
     using ConditionType          = PS3000A_CONDITION;
     using CouplingType           = PS3000A_COUPLING;
@@ -47,7 +38,7 @@ public:
     using DeviceResolutionType   = PS3000A_DEVICE_RESOLUTION;
     using NSamplesType           = int32_t;
 
-    TimeUnitsType convertTimeUnits(TimeUnits tu) const {
+    static TimeUnitsType convertTimeUnits(TimeUnits tu) {
         switch (tu) {
         case TimeUnits::fs: return PS3000A_FS;
         case TimeUnits::ps: return PS3000A_PS;
@@ -59,7 +50,9 @@ public:
         return PS3000A_MAX_TIME_UNITS;
     }
 
-    [[nodiscard]] constexpr TimebaseResult convertSampleRateToTimebase(int16_t /*handle*/, float desiredFreq) {
+    int16_t _handle;
+
+    [[nodiscard]] static constexpr TimebaseResult convertSampleRateToTimebase(float desiredFreq) {
         // https://www.picotech.com/download/manuals/picoscope-3000-series-a-api-programmers-guide.pdf, page 15
 
         // For PicoScope 3000A / 3000D Series
@@ -133,6 +126,8 @@ public:
         throw std::runtime_error(std::format("Unsupported coupling mode: {}", static_cast<int>(coupling)));
     }
 
+    [[nodiscard]] bool isOpened() const { return _handle > 0; }
+
     static constexpr RangeType convertToRange(float range) {
         static constexpr std::array<std::pair<float, RangeType>, 12> rangeMap = {{                      //
             {0.01f, PS3000A_10MV}, {0.02f, PS3000A_20MV}, {0.05f, PS3000A_50MV}, {0.1f, PS3000A_100MV}, //
@@ -148,7 +143,7 @@ public:
         return upperIt != rangeMap.end() ? upperIt->second : PS3000A_50V;
     }
 
-    constexpr ThresholdDirectionType convertToThresholdDirection(TriggerDirection direction) {
+    static constexpr ThresholdDirectionType convertToThresholdDirection(TriggerDirection direction) {
         using enum TriggerDirection;
         switch (direction) {
         case Rising: return PS3000A_RISING;
@@ -159,77 +154,60 @@ public:
         }
     };
 
-    constexpr float uncertainty() {
+    static constexpr float uncertainty() {
         // TODO: https://www.picotech.com/oscilloscope/3000/picoscope-3000-oscilloscope-specifications
         return 0.0000160f;
     }
 
-    PICO_STATUS
-    setDataBuffer(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) { return ps3000aSetDataBuffer(handle, channel, buffer, bufferLth, 0UZ, mode); }
+    PICO_STATUS setDataBuffer(ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) const { return ps3000aSetDataBuffer(_handle, channel, buffer, bufferLth, 0UZ, mode); }
 
-    PICO_STATUS
-    setDataBufferForSegment(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) { return ps3000aSetDataBuffer(handle, channel, buffer, bufferLth, segmentIndex, mode); }
+    PICO_STATUS setDataBufferForSegment(ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) const { return ps3000aSetDataBuffer(_handle, channel, buffer, bufferLth, segmentIndex, mode); }
 
-    PICO_STATUS
-    getTimebase2(int16_t handle, uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) { return ps3000aGetTimebase2(handle, timebase, noSamples, timeIntervalNanoseconds, /* oversample */ 0, maxSamples, segmentIndex); }
+    PICO_STATUS getTimebase2(uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) const { return ps3000aGetTimebase2(_handle, timebase, noSamples, timeIntervalNanoseconds, /* oversample */ 0, maxSamples, segmentIndex); }
 
-    PICO_STATUS
-    openUnit(const std::string& serial_number) {
-        // take any if serial number is not provided (useful for testing purposes)
+    PICO_STATUS openUnit(const std::string& serial_number) {
+        // take any if the serial number is not provided (useful for testing purposes)
         if (serial_number.empty()) {
-            return ps3000aOpenUnit(&(this->_handle), nullptr);
+            return ps3000aOpenUnit(&_handle, nullptr);
         } else {
-            return ps3000aOpenUnit(&(this->_handle), const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps3000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
         }
     }
 
-    PICO_STATUS
-    closeUnit(int16_t handle) { return ps3000aCloseUnit(handle); }
+    [[nodiscard]] PICO_STATUS closeUnit() const { return ps3000aCloseUnit(_handle); }
 
-    PICO_STATUS
-    changePowerSource(int16_t handle, PICO_STATUS powerstate) { return ps3000aChangePowerSource(handle, powerstate); }
+    [[nodiscard]] PICO_STATUS changePowerSource(PICO_STATUS powerstate) const { return ps3000aChangePowerSource(_handle, powerstate); }
 
-    PICO_STATUS
-    maximumValue(int16_t handle, int16_t* value) { return ps3000aMaximumValue(handle, value); }
+    PICO_STATUS maximumValue(int16_t* value) const { return ps3000aMaximumValue(_handle, value); }
 
-    PICO_STATUS
-    memorySegments(int16_t handle, uint32_t nSegments, int32_t* nMaxSamples) { return ps3000aMemorySegments(handle, nSegments, nMaxSamples); }
+    PICO_STATUS memorySegments(uint32_t nSegments, int32_t* nMaxSamples) const { return ps3000aMemorySegments(_handle, nSegments, nMaxSamples); }
 
-    PICO_STATUS
-    setNoOfCaptures(int16_t handle, uint32_t nCaptures) { return ps3000aSetNoOfCaptures(handle, nCaptures); }
+    [[nodiscard]] PICO_STATUS setNoOfCaptures(uint32_t nCaptures) const { return ps3000aSetNoOfCaptures(_handle, nCaptures); }
 
-    PICO_STATUS
-    getNoOfCaptures(int16_t handle, uint32_t* nCaptures) const { return ps3000aGetNoOfCaptures(handle, nCaptures); }
+    PICO_STATUS getNoOfCaptures(uint32_t* nCaptures) const { return ps3000aGetNoOfCaptures(_handle, nCaptures); }
 
-    PICO_STATUS
-    getNoOfProcessedCaptures(int16_t handle, uint32_t* nProcessedCaptures) const { return ps3000aGetNoOfProcessedCaptures(handle, nProcessedCaptures); }
+    PICO_STATUS getNoOfProcessedCaptures(uint32_t* nProcessedCaptures) const { return ps3000aGetNoOfProcessedCaptures(_handle, nProcessedCaptures); }
 
-    PICO_STATUS
-    setChannel(int16_t handle, ChannelType channel, int16_t enabled, CouplingType type, ChannelRangeType range, float analogOffset) { return ps3000aSetChannel(handle, channel, enabled, type, range, analogOffset); }
+    [[nodiscard]] PICO_STATUS setChannel(ChannelType channel, int16_t enabled, CouplingType type, ChannelRangeType range, float analogOffset) const { return ps3000aSetChannel(_handle, channel, enabled, type, range, analogOffset); }
 
-    int maxChannel() { return PS3000A_MAX_CHANNELS; }
+    static int maxChannel() { return PS3000A_MAX_CHANNELS; }
 
-    int extTriggerMaxValue() { return PS3000A_EXT_MAX_VALUE; }
+    static int extTriggerMaxValue() { return PS3000A_EXT_MAX_VALUE; }
+    static int extTriggerMinValue() { return PS3000A_EXT_MIN_VALUE; }
 
-    int extTriggerMinValue() { return PS3000A_EXT_MIN_VALUE; }
+    static float extTriggerMaxValueVoltage() { return 5.f; }
+    static float extTriggerMinValueVoltage() { return -5.f; }
 
-    float extTriggerMaxValueVoltage() { return 5.f; }
+    static CouplingType analogCoupling() { return PS3000A_AC; }
 
-    float extTriggerMinValueVoltage() { return -5.f; }
+    static TriggerStateType conditionDontCare() { return PS3000A_CONDITION_DONT_CARE; }
 
-    CouplingType analogCoupling() { return PS3000A_AC; }
+    static ConditionsInfoType conditionsInfoClear() { return PS3000A_CLEAR; }
+    static ConditionsInfoType conditionsInfoAdd() { return PS3000A_ADD; }
 
-    TriggerStateType conditionDontCare() { return PS3000A_CONDITION_DONT_CARE; }
+    [[nodiscard]] PICO_STATUS setSimpleTrigger(int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) const { return ps3000aSetSimpleTrigger(_handle, enable, source, threshold, direction, delay, autoTriggerMs); }
 
-    ConditionsInfoType conditionsInfoClear() { return PS3000A_CLEAR; }
-
-    ConditionsInfoType conditionsInfoAdd() { return PS3000A_ADD; }
-
-    PICO_STATUS
-    setSimpleTrigger(int16_t handle, int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) { return ps3000aSetSimpleTrigger(handle, enable, source, threshold, direction, delay, autoTriggerMs); }
-
-    PS3000A_TRIGGER_CONDITIONS
-    convertToTriggerConditions(ConditionType* conditions, int16_t nConditions) {
+    static PS3000A_TRIGGER_CONDITIONS convertToTriggerConditions(ConditionType* conditions, int16_t nConditions) {
         PS3000A_TRIGGER_CONDITIONS result{};
         for (int16_t i = 0; i < nConditions; ++i) {
             const ConditionType& cond = conditions[i];
@@ -250,74 +228,44 @@ public:
         return result;
     }
 
-    PICO_STATUS
-    setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType) {
+    PICO_STATUS setTriggerChannelConditions(ConditionType* conditions, int16_t nConditions, ConditionsInfoType) const {
         PS3000A_TRIGGER_CONDITIONS conds = convertToTriggerConditions(conditions, nConditions);
-        return ps3000aSetTriggerChannelConditions(handle, &conds, 1);
+        return ps3000aSetTriggerChannelConditions(_handle, &conds, 1);
     }
 
-    PICO_STATUS
-    driverStop(int16_t handle) { return ps3000aStop(handle); }
+    [[nodiscard]] PICO_STATUS driverStop() const { return ps3000aStop(_handle); }
 
-    PICO_STATUS
-    runBlock(int16_t handle, int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) { return ps3000aRunBlock(handle, noOfPreTriggerSamples, noOfPostTriggerSamples, timebase, /* oversample, not used*/ 0, timeIndisposed, segmentIndex, ready, param); }
+    PICO_STATUS runBlock(int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) const { return ps3000aRunBlock(_handle, noOfPreTriggerSamples, noOfPostTriggerSamples, timebase, /* oversample, not used*/ 0, timeIndisposed, segmentIndex, ready, param); }
 
-    PICO_STATUS
-    runStreaming(int16_t handle, uint32_t* sampleInterval, TimeUnitsType timeUnits, uint32_t maxPreTriggerSamples, uint32_t maxPostTriggerSamples, int16_t autoStop, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t overviewBufferSize) { return ps3000aRunStreaming(handle, sampleInterval, timeUnits, maxPreTriggerSamples, maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode, overviewBufferSize); }
+    PICO_STATUS runStreaming(uint32_t* sampleInterval, TimeUnitsType timeUnits, uint32_t maxPreTriggerSamples, uint32_t maxPostTriggerSamples, int16_t autoStop, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t overviewBufferSize) const { return ps3000aRunStreaming(_handle, sampleInterval, timeUnits, maxPreTriggerSamples, maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode, overviewBufferSize); }
 
-    RatioModeType ratioNone() { return PS3000A_RATIO_MODE_NONE; }
+    static RatioModeType ratioNone() { return PS3000A_RATIO_MODE_NONE; }
 
-    PICO_STATUS
-    getStreamingLatestValues(int16_t handle, StreamingReadyType ready, void* param) { return ps3000aGetStreamingLatestValues(handle, ready, param); }
+    PICO_STATUS getStreamingLatestValues(StreamingReadyType ready, void* param) const { return ps3000aGetStreamingLatestValues(_handle, ready, param); }
 
-    PICO_STATUS
-    getValues(int16_t handle, uint32_t startIndex, uint32_t* noOfSamples, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t segmentIndex, int16_t* overflow) { return ps3000aGetValues(handle, startIndex, noOfSamples, downSampleRatio, downSampleRatioMode, segmentIndex, overflow); }
+    PICO_STATUS getValues(uint32_t startIndex, uint32_t* noOfSamples, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t segmentIndex, int16_t* overflow) const { return ps3000aGetValues(_handle, startIndex, noOfSamples, downSampleRatio, downSampleRatioMode, segmentIndex, overflow); }
 
-    PICO_STATUS
-    getUnitInfo(int16_t handle, int8_t* string, int16_t stringLength, int16_t* requiredSize, PICO_INFO info) const { return ps3000aGetUnitInfo(handle, string, stringLength, requiredSize, info); }
+    PICO_STATUS getValuesBulk(uint32_t* noOfSamples, uint32_t fromSegmentIndex, uint32_t toSegmentIndex, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, int16_t* overflow) const { return ps3000aGetValuesBulk(_handle, noOfSamples, fromSegmentIndex, toSegmentIndex, downSampleRatio, downSampleRatioMode, overflow); }
 
-    PICO_STATUS
-    getDeviceResolution(int16_t, DeviceResolutionType*) const { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
+    PICO_STATUS isReady(int16_t* ready) const { return ps3000aIsReady(_handle, ready); }
 
-    // Digital picoscope inputs
+    PICO_STATUS getValuesTriggerTimeOffsetBulk64(int64_t* times, TimeUnitsType* timeUnits, uint32_t fromSegmentIndex, uint32_t toSegmentIndex) const { return ps3000aGetValuesTriggerTimeOffsetBulk64(_handle, times, timeUnits, fromSegmentIndex, toSegmentIndex); }
 
-    [[nodiscard]] PICO_STATUS setDigitalPorts() {
+    PICO_STATUS getUnitInfo(int8_t* string, int16_t stringLength, int16_t* requiredSize, PICO_INFO info) const { return ps3000aGetUnitInfo(_handle, string, stringLength, requiredSize, info); }
+
+    static PICO_STATUS getDeviceResolution(int16_t, DeviceResolutionType*) { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
+
+    [[nodiscard]] PICO_STATUS setDigitalPorts(int16_t digitalPortThreshold) const {
         for (std::size_t i = 0; i < 2; i++) {
             const PS3000A_DIGITAL_PORT channelId = i == 0 ? PS3000A_DIGITAL_PORT0 : PS3000A_DIGITAL_PORT1;
-            if (const PICO_STATUS status = ps3000aSetDigitalPort(this->_handle, channelId, true, this->digital_port_threshold); status != PICO_OK) {
+            if (const PICO_STATUS status = ps3000aSetDigitalPort(_handle, channelId, true, digitalPortThreshold); status != PICO_OK) {
                 return status;
             }
         }
         return PICO_OK;
     }
 
-    [[nodiscard]] PICO_STATUS setDigitalBuffers(size_t nSamples, uint32_t segmentIndex) {
-        for (std::size_t i = 0; i < 2; i++) {
-            const auto channelId = i == 0 ? PS3000A_DIGITAL_PORT0 : PS3000A_DIGITAL_PORT1;
-            _digitalBuffers[i].resize(std::max(nSamples, _digitalBuffers[i].size()));
-            const PICO_STATUS status = setDataBufferForSegment(this->_handle, static_cast<PS3000A_CHANNEL>(static_cast<int>(channelId)), _digitalBuffers[i].data(), static_cast<int32_t>(nSamples), segmentIndex, ratioNone());
-
-            if (status != PICO_OK) {
-                return status;
-            }
-        }
-        return PICO_OK;
-    }
-
-    void copyDigitalBuffersToOutput(std::span<std::uint16_t> output, std::size_t nSamples) {
-        assert(output.size() >= nSamples);
-        for (std::size_t i = 0; i < nSamples; i++) {
-            uint16_t value = 0x00FF & static_cast<uint16_t>(_digitalBuffers[1][i]);
-            value <<= 8;
-            value |= 0x00FF & static_cast<uint16_t>(_digitalBuffers[0][i]);
-            if (this->digital_port_invert_output) {
-                value = ~value;
-            }
-            output[i] = value;
-        }
-    }
-
-    [[nodiscard]] PICO_STATUS SetTriggerDigitalPort(int16_t handle, int pinNumber, TriggerDirection direction) {
+    [[nodiscard]] PICO_STATUS setTriggerDigitalPort(int pinNumber, TriggerDirection direction) const {
         if (pinNumber < 0 || pinNumber > 15) {
             return PICO_INVALID_DIGITAL_CHANNEL;
         }
@@ -331,22 +279,31 @@ public:
         }
 
         // activate digital trigger, conds[7] is digital
-        PS3000A_TRIGGER_CONDITIONS_V2 conds = {PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, //
-            PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_DONT_CARE, PS3000A_CONDITION_TRUE};
-        if (const PICO_STATUS status = ps3000aSetTriggerChannelConditionsV2(handle, &conds, 1); status != PICO_OK) {
+        PS3000A_TRIGGER_CONDITIONS_V2 conds = {
+            PS3000A_CONDITION_DONT_CARE, // channelA;
+            PS3000A_CONDITION_DONT_CARE, // channelB;
+            PS3000A_CONDITION_DONT_CARE, // channelC;
+            PS3000A_CONDITION_DONT_CARE, // channelD;
+            PS3000A_CONDITION_DONT_CARE, // external;
+            PS3000A_CONDITION_DONT_CARE, // aux;
+            PS3000A_CONDITION_DONT_CARE, // pulseWidthQualifier;
+            PS3000A_CONDITION_TRUE,      // digital;
+        };
+        if (const PICO_STATUS status = ps3000aSetTriggerChannelConditionsV2(_handle, &conds, 1); status != PICO_OK) {
             return status;
         }
 
         PS3000A_DIGITAL_CHANNEL_DIRECTIONS pinTrig;
         pinTrig.channel   = static_cast<PS3000A_DIGITAL_CHANNEL>(pinNumber);
         pinTrig.direction = digitalDirection;
-
-        if (const PICO_STATUS status = ps3000aSetTriggerDigitalPortProperties(handle, &pinTrig, 1); status != PICO_OK) {
+        if (const PICO_STATUS status = ps3000aSetTriggerDigitalPortProperties(_handle, &pinTrig, 1); status != PICO_OK) {
             return status;
         }
         return PICO_OK;
     }
 };
+
+static_assert(PicoscopeImplementationLike<Picoscope3000a>);
 
 } // namespace fair::picoscope
 

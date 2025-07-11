@@ -13,7 +13,6 @@ function(add_ut_test_tool TEST_NAME)
             gr-testing
             gr-basic
             fair-picoscope
-            fair-helpers
             ut
             gnuradio-blocklib-core
             GrBasicBlocksShared)
@@ -47,6 +46,7 @@ function(add_ut_test TEST_NAME)
 endfunction()
 
 add_ut_test_tool(qa_Picoscope)
+add_ut_test_tool(qa_PicoscopeAPI)
 add_ut_test_tool(qa_PicoscopePerformanceMonitor)
 add_ut_test(qa_TimingMatcher)
 

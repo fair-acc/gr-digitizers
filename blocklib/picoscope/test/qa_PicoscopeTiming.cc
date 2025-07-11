@@ -3,7 +3,7 @@
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/testing/TagMonitors.hpp>
 
-#include <HelperBlocks.hpp>
+#include <Picoscope.hpp>
 #include <Picoscope4000a.hpp>
 #include <TimingSource.hpp>
 
@@ -30,11 +30,7 @@ namespace fair::picoscope::test {
 const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
     using namespace boost::ut;
     using namespace gr;
-    using namespace fair::helpers;
     using namespace fair::picoscope;
-
-    // small helper to print the content of the ranges if there is a mismatch
-    auto expectRangesEquals = [](const auto& r1, const auto& r2, std::source_location source_location = std::source_location::current()) { expect(std::ranges::equal(r1, r2), source_location) << [&r1, &r2]() { return std::format("exp: {}\n got: {}", r1, r2); }; };
 
     auto createTimingEventThread = [](std::vector<std::pair<std::uint64_t, std::variant<Timing::Event, std::uint8_t>>> events, std::size_t schedule_offset) {
         return std::jthread([events, schedule_offset]() {
@@ -109,7 +105,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
             {"verbose_console", false},
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float>>({{
+        auto& ps = flowGraph.emplaceBlock<Picoscope<float, Picoscope4000a>>({{
             {"sample_rate", kSampleRate},
             {"auto_arm", true},
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
@@ -236,7 +232,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
             {"verbose_console", true},
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float>>({{
+        auto& ps = flowGraph.emplaceBlock<Picoscope<float, Picoscope4000a>>({{
             {"sample_rate", kSampleRate},
             {"auto_arm", true},
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
@@ -346,7 +342,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
             {"verbose_console", true},
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<gr::DataSet<float>>>({{
+        auto& ps = flowGraph.emplaceBlock<Picoscope<gr::DataSet<float>, Picoscope4000a>>({{
             {"sample_rate", kSampleRate},
             {"auto_arm", true},
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
