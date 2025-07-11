@@ -1,7 +1,7 @@
 #ifndef FAIR_PICOSCOPE_PICOSCOPE6000_HPP
 #define FAIR_PICOSCOPE_PICOSCOPE6000_HPP
 
-#include <Picoscope.hpp>
+#include <PicoscopeAPI.hpp>
 
 #include <ps6000Api.h>
 
@@ -18,20 +18,10 @@ typedef enum enPS6000ConditionsInfo { PS6000_CLEAR = 0x00000001, PS6000_ADD = 0x
 
 typedef enum enPS6000DeviceResolution { PS6000A_DR_8BIT } PS6000_DEVICE_RESOLUTION;
 
-template<typename T>
-struct Picoscope6000 : public fair::picoscope::Picoscope<T, Picoscope6000<T>> {
-    using super_t = fair::picoscope::Picoscope<T, Picoscope6000<T>>;
+struct Picoscope6000 {
+    static constexpr std::size_t N_ANALOG_CHANNELS = 4uz;
+    static constexpr std::size_t N_DIGITAL_CHANNELS = 0uz;
 
-    Picoscope6000(gr::property_map props) : super_t(std::move(props)) {}
-
-    std::vector<gr::PortOut<T>> out{4};
-
-    GR_MAKE_REFLECTABLE(Picoscope6000, out);
-
-private:
-    std::array<std::vector<int16_t>, 2> _digitalBuffers;
-
-public:
     using ChannelType            = PS6000_CHANNEL;
     using ConditionType          = PS6000_CONDITION;
     using CouplingType           = PS6000_COUPLING;
@@ -47,7 +37,9 @@ public:
     using DeviceResolutionType   = PS6000_DEVICE_RESOLUTION;
     using NSamplesType           = uint32_t;
 
-    TimeUnitsType convertTimeUnits(TimeUnits tu) const {
+    int16_t _handle;
+
+    static TimeUnitsType convertTimeUnits(TimeUnits tu) {
         switch (tu) {
         case TimeUnits::fs: return PS6000_FS;
         case TimeUnits::ps: return PS6000_PS;
@@ -59,7 +51,7 @@ public:
         return PS6000_MAX_TIME_UNITS;
     }
 
-    [[nodiscard]] constexpr TimebaseResult convertSampleRateToTimebase(int16_t /*handle*/, float desiredFreq) {
+    [[nodiscard]] static constexpr TimebaseResult convertSampleRateToTimebase(float desiredFreq) {
         // https://www.picotech.com/download/manuals/picoscope-6000-series-programmers-guide.pdf, page 24
         // For PicoScope 6000 Series:
         // -------------------------------------------------------------------------------------------------
@@ -157,7 +149,7 @@ public:
         return upperIt != rangeMap.end() ? upperIt->second : PS6000_50V;
     }
 
-    constexpr ThresholdDirectionType convertToThresholdDirection(TriggerDirection direction) {
+    static constexpr ThresholdDirectionType convertToThresholdDirection(TriggerDirection direction) {
         using enum TriggerDirection;
         switch (direction) {
         case Rising: return PS6000_RISING;
@@ -168,92 +160,75 @@ public:
         }
     };
 
-    constexpr float uncertainty() {
+    static constexpr float uncertainty() {
         // TODO https://www.picotech.com/oscilloscope/6000/picoscope-6000-specifications
         return 0.0000200f;
     }
 
-    PICO_STATUS
-    setDataBuffer(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) { return ps6000SetDataBuffer(handle, channel, buffer, static_cast<uint32_t>(bufferLth), mode); }
+    PICO_STATUS setDataBuffer(ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) const { return ps6000SetDataBuffer(_handle, channel, buffer, static_cast<uint32_t>(bufferLth), mode); }
 
-    PICO_STATUS
-    setDataBufferForSegment(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) { return ps6000SetDataBufferBulk(handle, channel, buffer, static_cast<uint32_t>(bufferLth), segmentIndex, mode); }
+    PICO_STATUS setDataBufferForSegment(ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) const { return ps6000SetDataBufferBulk(_handle, channel, buffer, static_cast<uint32_t>(bufferLth), segmentIndex, mode); }
 
-    PICO_STATUS
-    getTimebase2(int16_t handle, uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) {
+    PICO_STATUS getTimebase2(uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) const {
         // Need to do convertion because picoscope 6000 API requires uint32_t, other APIs requires int32_t
-        uint32_t          maxSamplesU = static_cast<uint32_t>(*maxSamples);
-        const PICO_STATUS status      = ps6000GetTimebase2(handle, timebase, static_cast<uint32_t>(noSamples), timeIntervalNanoseconds, /* oversample */ 0, &maxSamplesU, segmentIndex);
-        *maxSamples                   = static_cast<int32_t>(maxSamplesU);
+        auto          maxSamplesU = static_cast<uint32_t>(*maxSamples);
+        const PICO_STATUS status  = ps6000GetTimebase2(_handle, timebase, static_cast<uint32_t>(noSamples), timeIntervalNanoseconds, /* oversample */ 0, &maxSamplesU, segmentIndex);
+        *maxSamples               = static_cast<int32_t>(maxSamplesU);
         return status;
     }
 
-    PICO_STATUS
-    openUnit(const std::string& serial_number) {
+    PICO_STATUS openUnit(const std::string& serial_number) {
         // take any if serial number is not provided (useful for testing purposes)
         if (serial_number.empty()) {
-            return ps6000OpenUnit(&(this->_handle), nullptr);
+            return ps6000OpenUnit(&_handle, nullptr);
         } else {
-            return ps6000OpenUnit(&(this->_handle), const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps6000OpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
         }
     }
 
-    PICO_STATUS
-    closeUnit(int16_t handle) { return ps6000CloseUnit(handle); }
+    [[nodiscard]] PICO_STATUS closeUnit() const { return ps6000CloseUnit(_handle); }
 
-    PICO_STATUS
-    changePowerSource(int16_t, PICO_STATUS) { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
+    static PICO_STATUS changePowerSource(PICO_STATUS) { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
 
-    PICO_STATUS
-    maximumValue(int16_t, int16_t* value) {
+    static PICO_STATUS maximumValue(int16_t* value) {
         *value = PS6000_MAX_VALUE;
         return PICO_OK;
     }
 
-    PICO_STATUS
-    memorySegments(int16_t handle, uint32_t nSegments, int32_t* nMaxSamples) {
+    PICO_STATUS memorySegments(uint32_t nSegments, int32_t* nMaxSamples) const {
         // Need to do convertion because picoscope 6000 API requires uint32_t, other APIs requires int32_t
-        uint32_t          nMaxSamplesU = static_cast<uint32_t>(*nMaxSamples);
-        const PICO_STATUS status       = ps6000MemorySegments(handle, nSegments, &nMaxSamplesU);
-        *nMaxSamples                   = static_cast<int32_t>(nMaxSamplesU);
+        auto          nMaxSamplesU = static_cast<uint32_t>(*nMaxSamples);
+        const PICO_STATUS status   = ps6000MemorySegments(_handle, nSegments, &nMaxSamplesU);
+        *nMaxSamples               = static_cast<int32_t>(nMaxSamplesU);
         return status;
     }
 
-    PICO_STATUS
-    setNoOfCaptures(int16_t handle, uint32_t nCaptures) { return ps6000SetNoOfCaptures(handle, nCaptures); }
+    [[nodiscard]] PICO_STATUS setNoOfCaptures(uint32_t nCaptures) const { return ps6000SetNoOfCaptures(_handle, nCaptures); }
 
-    PICO_STATUS
-    getNoOfCaptures(int16_t handle, uint32_t* nCaptures) const { return ps6000GetNoOfCaptures(handle, nCaptures); }
+    PICO_STATUS getNoOfCaptures(uint32_t* nCaptures) const { return ps6000GetNoOfCaptures(_handle, nCaptures); }
 
-    PICO_STATUS
-    getNoOfProcessedCaptures(int16_t handle, uint32_t* nProcessedCaptures) const { return ps6000GetNoOfProcessedCaptures(handle, nProcessedCaptures); }
+    PICO_STATUS getNoOfProcessedCaptures(uint32_t* nProcessedCaptures) const { return ps6000GetNoOfProcessedCaptures(_handle, nProcessedCaptures); }
 
-    PICO_STATUS
-    setChannel(int16_t handle, ChannelType channel, int16_t enabled, CouplingType type, ChannelRangeType range, float analogOffset) { return ps6000SetChannel(handle, channel, enabled, type, range, analogOffset, PS6000_BW_FULL); }
+    [[nodiscard]] PICO_STATUS setChannel(ChannelType channel, int16_t enabled, CouplingType type, ChannelRangeType range, float analogOffset) const { return ps6000SetChannel(_handle, channel, enabled, type, range, analogOffset, PS6000_BW_FULL); }
 
-    int maxChannel() { return PS6000_MAX_CHANNELS; }
+    static int maxChannel() { return PS6000_MAX_CHANNELS; }
 
-    int extTriggerMaxValue() { return 32767; } // TODO: taken from 3000a
+    static int extTriggerMaxValue() { return 32767; } // TODO: taken from 3000a
+    static int extTriggerMinValue() { return -32767; } // TODO: taken from 3000a
 
-    int extTriggerMinValue() { return -32767; } // TODO: taken from 3000a
+    static float extTriggerMaxValueVoltage() { return 5.f; }
+    static float extTriggerMinValueVoltage() { return -5.f; }
 
-    float extTriggerMaxValueVoltage() { return 5.f; }
+    static CouplingType analogCoupling() { return PS6000_AC; }
 
-    float extTriggerMinValueVoltage() { return -5.f; }
+    static TriggerStateType conditionDontCare() { return PS6000_CONDITION_DONT_CARE; }
 
-    CouplingType analogCoupling() { return PS6000_AC; }
+    static ConditionsInfoType conditionsInfoClear() { return PS6000_CLEAR; }
+    static ConditionsInfoType conditionsInfoAdd() { return PS6000_ADD; }
 
-    TriggerStateType conditionDontCare() { return PS6000_CONDITION_DONT_CARE; }
+    [[nodiscard]] PICO_STATUS setSimpleTrigger(int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) const { return ps6000SetSimpleTrigger(_handle, enable, source, threshold, direction, delay, autoTriggerMs); }
 
-    ConditionsInfoType conditionsInfoClear() { return PS6000_CLEAR; }
-
-    ConditionsInfoType conditionsInfoAdd() { return PS6000_ADD; }
-
-    PICO_STATUS
-    setSimpleTrigger(int16_t handle, int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) { return ps6000SetSimpleTrigger(handle, enable, source, threshold, direction, delay, autoTriggerMs); }
-
-    PS6000_TRIGGER_CONDITIONS
-    convertToTriggerConditions(ConditionType* conditions, int16_t nConditions) {
+    static PS6000_TRIGGER_CONDITIONS convertToTriggerConditions(ConditionType* conditions, int16_t nConditions) {
         PS6000_TRIGGER_CONDITIONS result{};
         for (int16_t i = 0; i < nConditions; ++i) {
             const ConditionType& cond = conditions[i];
@@ -274,45 +249,37 @@ public:
         return result;
     }
 
-    PICO_STATUS
-    setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType) {
+    PICO_STATUS setTriggerChannelConditions(ConditionType* conditions, int16_t nConditions, ConditionsInfoType) const {
         PS6000_TRIGGER_CONDITIONS conds = convertToTriggerConditions(conditions, nConditions);
-        return ps6000SetTriggerChannelConditions(handle, &conds, 1);
+        return ps6000SetTriggerChannelConditions(_handle, &conds, 1);
     }
 
-    PICO_STATUS
-    driverStop(int16_t handle) { return ps6000Stop(handle); }
+    [[nodiscard]] PICO_STATUS driverStop() const { return ps6000Stop(_handle); }
 
-    PICO_STATUS
-    runBlock(int16_t handle, int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) { //
-        return ps6000RunBlock(handle, static_cast<uint32_t>(noOfPreTriggerSamples), static_cast<uint32_t>(noOfPostTriggerSamples), timebase, /* oversample, not used*/ 0, timeIndisposed, segmentIndex, ready, param);
+    PICO_STATUS runBlock(int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) const { //
+        return ps6000RunBlock(_handle, static_cast<uint32_t>(noOfPreTriggerSamples), static_cast<uint32_t>(noOfPostTriggerSamples), timebase, /* oversample, not used*/ 0, timeIndisposed, segmentIndex, ready, param);
     }
 
-    PICO_STATUS
-    runStreaming(int16_t handle, uint32_t* sampleInterval, TimeUnitsType timeUnits, uint32_t maxPreTriggerSamples, uint32_t maxPostTriggerSamples, int16_t autoStop, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t overviewBufferSize) { //
-        return ps6000RunStreaming(handle, sampleInterval, timeUnits, maxPreTriggerSamples, maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode, overviewBufferSize);
+    PICO_STATUS runStreaming(uint32_t* sampleInterval, TimeUnitsType timeUnits, uint32_t maxPreTriggerSamples, uint32_t maxPostTriggerSamples, int16_t autoStop, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t overviewBufferSize) const { //
+        return ps6000RunStreaming(_handle, sampleInterval, timeUnits, maxPreTriggerSamples, maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode, overviewBufferSize);
     }
 
-    RatioModeType ratioNone() { return PS6000_RATIO_MODE_NONE; }
+    static RatioModeType ratioNone() { return PS6000_RATIO_MODE_NONE; }
 
-    PICO_STATUS
-    getStreamingLatestValues(int16_t handle, StreamingReadyType ready, void* param) { return ps6000GetStreamingLatestValues(handle, ready, param); }
+    PICO_STATUS getStreamingLatestValues(StreamingReadyType ready, void* param) const { return ps6000GetStreamingLatestValues(_handle, ready, param); }
 
-    PICO_STATUS
-    getValues(int16_t handle, uint32_t startIndex, uint32_t* noOfSamples, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t segmentIndex, int16_t* overflow) { return ps6000GetValues(handle, startIndex, noOfSamples, downSampleRatio, downSampleRatioMode, segmentIndex, overflow); }
+    PICO_STATUS getValues(uint32_t startIndex, uint32_t* noOfSamples, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t segmentIndex, int16_t* overflow) const { return ps6000GetValues(_handle, startIndex, noOfSamples, downSampleRatio, downSampleRatioMode, segmentIndex, overflow); }
 
-    PICO_STATUS
-    getUnitInfo(int16_t handle, int8_t* string, int16_t stringLength, int16_t* requiredSize, PICO_INFO info) const { return ps6000GetUnitInfo(handle, string, stringLength, requiredSize, info); }
+    PICO_STATUS getValuesBulk(uint32_t* noOfSamples, uint32_t fromSegmentIndex, uint32_t toSegmentIndex, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, int16_t* overflow) const { return ps6000GetValuesBulk(_handle, noOfSamples, fromSegmentIndex, toSegmentIndex, downSampleRatio, downSampleRatioMode, overflow); }
 
-    PICO_STATUS
-    getDeviceResolution(int16_t, DeviceResolutionType*) const { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
+    PICO_STATUS getValuesTriggerTimeOffsetBulk64(int64_t* times, TimeUnitsType* timeUnits, uint32_t fromSegmentIndex, uint32_t toSegmentIndex) const { return ps6000GetValuesTriggerTimeOffsetBulk64(_handle, times, timeUnits, fromSegmentIndex, toSegmentIndex); }
 
-    // Digital picoscope inputs, not supported by picoscope 6000
-    [[nodiscard]] PICO_STATUS setDigitalPorts() { return PICO_OK; }
-    [[nodiscard]] PICO_STATUS setDigitalBuffers(size_t, uint32_t) { return PICO_OK; }
-    void                      copyDigitalBuffersToOutput(std::span<std::uint16_t>, std::size_t) {}
-    [[nodiscard]] PICO_STATUS SetTriggerDigitalPort(int16_t, int, TriggerDirection) { return PICO_OK; }
+    PICO_STATUS getUnitInfo(int8_t* string, int16_t stringLength, int16_t* requiredSize, PICO_INFO info) const { return ps6000GetUnitInfo(_handle, string, stringLength, requiredSize, info); }
+
+    static PICO_STATUS getDeviceResolution(DeviceResolutionType*) { return PICO_NOT_SUPPORTED_BY_THIS_DEVICE; }
 };
+
+static_assert(PicoscopeImplementationLike<Picoscope6000>);
 
 } // namespace fair::picoscope
 

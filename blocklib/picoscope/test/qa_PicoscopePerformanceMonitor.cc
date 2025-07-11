@@ -1,4 +1,4 @@
-#include <HelperBlocks.hpp>
+#include <Picoscope.hpp>
 #include <Picoscope4000a.hpp>
 #include <Picoscope5000a.hpp>
 #include <boost/ut.hpp>
@@ -44,7 +44,6 @@ int main(int argc, char* argv[]) {
     using namespace boost::ut;
     using namespace gr;
     using namespace gr::testing;
-    using namespace fair::helpers;
     using namespace fair::picoscope;
 
     int runTime = 60; // in seconds
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]) {
     using SampleType = float;
 
     // Replace with your connected Picoscope device
-    using PicoscopeT = Picoscope5000a<SampleType>;
+    using PicoscopeT = Picoscope5000a;
 
     constexpr float      kSampleRate      = 1'000'000.f;
     constexpr gr::Size_t evaluatePerfRate = 1'000'000;
@@ -68,12 +67,12 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::string> channelIds    = {"A", "B", "C", "D"};
     std::vector<float>       channelRanges = {5.f, 5.f, 5.f, 5.f};
-    if constexpr (std::is_same_v<Picoscope4000a<SampleType>, PicoscopeT>) {
+    if constexpr (PicoscopeT::N_ANALOG_CHANNELS == 8) {
         channelIds.insert(channelIds.end(), {"E", "F", "G", "H"});
         channelRanges.insert(channelRanges.end(), {5.f, 5.f, 5.f, 5.f});
     }
 
-    auto& ps = graph.emplaceBlock<PicoscopeT>({{{"sample_rate", kSampleRate}, {"auto_arm", true}, //
+    auto& ps = graph.emplaceBlock<Picoscope<SampleType, PicoscopeT>>({{{"sample_rate", kSampleRate}, {"auto_arm", true}, //
         {"channel_ids", channelIds}, {"channel_ranges", channelRanges}}});
 
     auto& perfMonitorA = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf A"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
@@ -89,7 +88,7 @@ int main(int argc, char* argv[]) {
     auto& sinkDigital = graph.emplaceBlock<testing::TagSink<uint16_t, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
     expect(eq(ConnectionResult::SUCCESS, graph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
 
-    if constexpr (std::is_same_v<Picoscope4000a<SampleType>, PicoscopeT>) {
+    if constexpr (PicoscopeT::N_ANALOG_CHANNELS == 8) {
         auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
         auto& perfMonitorF = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf F"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
         auto& sinkG        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});

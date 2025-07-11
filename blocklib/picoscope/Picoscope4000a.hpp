@@ -1,38 +1,35 @@
 #ifndef FAIR_PICOSCOPE_PICOSCOPE4000A_HPP
 #define FAIR_PICOSCOPE_PICOSCOPE4000A_HPP
 
-#include <Picoscope.hpp>
+#include <PicoscopeAPI.hpp>
 
 #include <ps4000aApi.h>
 
 namespace fair::picoscope {
 
-template<typename T>
-struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> {
-    using super_t = fair::picoscope::Picoscope<T, Picoscope4000a<T>>;
+struct Picoscope4000a {
+    static constexpr std::size_t N_ANALOG_CHANNELS = 8uz;
+    static constexpr std::size_t N_DIGITAL_CHANNELS = 0uz;
 
-    Picoscope4000a(gr::property_map props) : super_t(std::move(props)) {}
+    using ChannelType              = PS4000A_CHANNEL;
+    using ConditionType            = PS4000A_CONDITION;
+    using CouplingType             = PS4000A_COUPLING;
+    using RangeType                = PICO_CONNECT_PROBE_RANGE;
+    using ThresholdDirectionType   = PS4000A_THRESHOLD_DIRECTION;
+    using TriggerStateType         = PS4000A_TRIGGER_STATE;
+    using TriggerDirectionType     = PS4000A_DIRECTION;
+    using TriggerChannelProperties = PS4000A_TRIGGER_CHANNEL_PROPERTIES;
+    using ConditionsInfoType       = PS4000A_CONDITIONS_INFO;
+    using TimeUnitsType            = PS4000A_TIME_UNITS;
+    using StreamingReadyType       = ps4000aStreamingReady;
+    using BlockReadyType           = ps4000aBlockReady;
+    using RatioModeType            = PS4000A_RATIO_MODE;
+    using DeviceResolutionType     = PS4000A_DEVICE_RESOLUTION;
+    using NSamplesType             = int32_t;
 
-    std::vector<gr::PortOut<T>> out{8};
+    int16_t _handle;
 
-    using ChannelType            = PS4000A_CHANNEL;
-    using ConditionType          = PS4000A_CONDITION;
-    using CouplingType           = PS4000A_COUPLING;
-    using RangeType              = PS4000A_RANGE;
-    using ChannelRangeType       = PICO_CONNECT_PROBE_RANGE;
-    using ThresholdDirectionType = PS4000A_THRESHOLD_DIRECTION;
-    using TriggerStateType       = PS4000A_TRIGGER_STATE;
-    using ConditionsInfoType     = PS4000A_CONDITIONS_INFO;
-    using TimeUnitsType          = PS4000A_TIME_UNITS;
-    using StreamingReadyType     = ps4000aStreamingReady;
-    using BlockReadyType         = ps4000aBlockReady;
-    using RatioModeType          = PS4000A_RATIO_MODE;
-    using DeviceResolutionType   = PS4000A_DEVICE_RESOLUTION;
-    using NSamplesType           = int32_t;
-
-    GR_MAKE_REFLECTABLE(Picoscope4000a, out);
-
-    TimeUnitsType convertTimeUnits(TimeUnits tu) const {
+    static constexpr TimeUnitsType convertTimeUnits(TimeUnits tu) {
         switch (tu) {
         case TimeUnits::fs: return PS4000A_FS;
         case TimeUnits::ps: return PS4000A_PS;
@@ -44,7 +41,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
         return PS4000A_MAX_TIME_UNITS;
     }
 
-    [[nodiscard]] constexpr TimebaseResult convertSampleRateToTimebase(int16_t /*handle*/, float desiredFreq) {
+    [[nodiscard]] static constexpr TimebaseResult convertSampleRateToTimebase(float desiredFreq) {
         // https://www.picotech.com/download/manuals/picoscope-4000-series-a-api-programmers-guide.pdf, page 24
         // For picoscope PicoScope 4824 and 4000A Series
         // -----------------------------------------------------------------------------
@@ -73,8 +70,7 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
     }
 
     static constexpr std::optional<std::size_t> convertToOutputIndex(std::string_view source) {
-        static constexpr std::array<std::pair<std::string_view, std::size_t>, 8> channelMap{{{"A", 0}, {"B", 1}, {"C", 2}, {"D", 3}, {"E", 4}, {"F", 5}, {"G", 6}, {"H", 7}}};
-
+        static constexpr std::array<std::pair<std::string_view, std::size_t>, 9> channelMap{{{"A", 0Z}, {"B", 1Z}, {"C", 2Z}, {"D", 3Z}, {"E", 4Z}, {"F", 5Z}, {"G", 6Z}, {"H", 7Z}, {"EXTERNAL", 8Z}}};
         const auto it = std::ranges::find_if(channelMap, [source](auto&& kv) { return kv.first == source; });
         if (it != channelMap.end()) {
             return it->second;
@@ -83,25 +79,23 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
     }
 
     static constexpr std::optional<ChannelType> convertToChannel(std::string_view source) {
-        static constexpr std::array<std::pair<std::string_view, ChannelType>, 9> channelMap{{                       //
-            {"A", PS4000A_CHANNEL_A}, {"B", PS4000A_CHANNEL_B}, {"C", PS4000A_CHANNEL_C}, {"D", PS4000A_CHANNEL_D}, //
-            {"E", PS4000A_CHANNEL_E}, {"F", PS4000A_CHANNEL_F}, {"G", PS4000A_CHANNEL_G}, {"H", PS4000A_CHANNEL_H}, {"EXTERNAL", PS4000A_EXTERNAL}}};
-
-        const auto it = std::ranges::find_if(channelMap, [source](auto&& kv) { return kv.first == source; });
-        if (it != channelMap.end()) {
-            return it->second;
-        }
-        return std::nullopt;
+        return convertToOutputIndex(source).and_then([](std::size_t index) {return convertToChannel(index);});
     }
 
     static constexpr std::optional<ChannelType> convertToChannel(std::size_t channelIndex) {
-        static constexpr std::array<std::pair<std::size_t, ChannelType>, 9> channelMap{{                            //
-            {0UZ, PS4000A_CHANNEL_A}, {1UZ, PS4000A_CHANNEL_B}, {2UZ, PS4000A_CHANNEL_C}, {3UZ, PS4000A_CHANNEL_D}, //
-            {4UZ, PS4000A_CHANNEL_E}, {5UZ, PS4000A_CHANNEL_F}, {6UZ, PS4000A_CHANNEL_G}, {7UZ, PS4000A_CHANNEL_H}, {8UZ, PS4000A_EXTERNAL}}};
-
-        const auto it = std::ranges::find_if(channelMap, [channelIndex](auto&& kv) { return kv.first == channelIndex; });
-        if (it != channelMap.end()) {
-            return it->second;
+        static constexpr std::array<ChannelType, 9> channelMap{{
+            PS4000A_CHANNEL_A,
+            PS4000A_CHANNEL_B,
+            PS4000A_CHANNEL_C,
+            PS4000A_CHANNEL_D,
+            PS4000A_CHANNEL_E,
+            PS4000A_CHANNEL_F,
+            PS4000A_CHANNEL_G,
+            PS4000A_CHANNEL_H,
+            PS4000A_EXTERNAL,
+        }};
+        if (channelIndex < channelMap.size()) {
+            return channelMap[channelIndex];
         }
         return std::nullopt;
     }
@@ -116,11 +110,23 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
     }
 
     static constexpr RangeType convertToRange(float range) {
-        static constexpr std::array<std::pair<float, RangeType>, 14> rangeMap = {{                      //
-            {0.01f, PS4000A_10MV}, {0.02f, PS4000A_20MV}, {0.05f, PS4000A_50MV}, {0.1f, PS4000A_100MV}, //
-            {0.2f, PS4000A_200MV}, {0.5f, PS4000A_500MV}, {1.f, PS4000A_1V}, {2.f, PS4000A_2V},         //
-            {5.f, PS4000A_5V}, {10.f, PS4000A_10V}, {20.f, PS4000A_20V}, {50.f, PS4000A_50V},           //
-            {100.f, PS4000A_100V}, {200.f, PS4000A_200V}}};
+        // note: since some picoscope 4000a models accept "smart" probes, the range is not given as PicoRange, but as ProbeRange
+        static constexpr std::array<std::pair<float, RangeType>, 14> rangeMap = {{
+            {000.01f, PICO_X1_PROBE_10MV /* PS4000A_10MV */},
+            {000.02f, PICO_X1_PROBE_20MV /* PS4000A_20MV */},
+            {000.05f, PICO_X1_PROBE_50MV /* PS4000A_50MV */},
+            {000.10f, PICO_X1_PROBE_100MV /* PS4000A_100MV */},
+            {000.20f, PICO_X1_PROBE_200MV /* PS4000A_200MV */},
+            {000.50f, PICO_X1_PROBE_500MV/* PS4000A_500MV */},
+            {001.00f, PICO_X1_PROBE_1V /* PS4000A_1V */},
+            {002.00f, PICO_X1_PROBE_2V /* PS4000A_2V */},
+            {005.00f, PICO_X1_PROBE_5V /* PS4000A_5V */},
+            {010.00f, PICO_X1_PROBE_10V /* PS4000A_10V */},
+            {020.00f, PICO_X1_PROBE_20V /* PS4000A_20V */},
+            {050.00f, PICO_X1_PROBE_50V /* PS4000A_50V */},
+            {100.00f, PICO_X1_PROBE_100V /* PS4000A_100V */},
+            {200.00f, PICO_X1_PROBE_200V /* PS4000A_200V */},
+        }};
 
         const auto exactIt = std::ranges::find_if(rangeMap, [range](auto& kv) { return std::fabs(kv.first - range) < 1e-6f; });
         if (exactIt != rangeMap.end()) {
@@ -128,10 +134,10 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
         }
         // if no exact match -> find the next higher range
         const auto upperIt = std::ranges::find_if(rangeMap, [range](const auto& kv) { return kv.first > range; });
-        return upperIt != rangeMap.end() ? upperIt->second : PS4000A_200V;
+        return upperIt != rangeMap.end() ? upperIt->second : PICO_X1_PROBE_RANGES;
     }
 
-    constexpr ThresholdDirectionType convertToThresholdDirection(TriggerDirection direction) {
+    static constexpr ThresholdDirectionType convertToThresholdDirection(TriggerDirection direction) {
         using enum TriggerDirection;
         switch (direction) {
         case Rising: return PS4000A_RISING;
@@ -142,107 +148,144 @@ struct Picoscope4000a : public fair::picoscope::Picoscope<T, Picoscope4000a<T>> 
         }
     };
 
-    constexpr float uncertainty() {
+    static constexpr float uncertainty() {
         // TODO https://www.picotech.com/oscilloscope/4000/picoscope-4000-specifications
         return 0.0000045f;
     }
 
-    PICO_STATUS
-    setDataBuffer(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) { return ps4000aSetDataBuffer(handle, channel, buffer, bufferLth, 0UZ, mode); }
+    PICO_STATUS setDataBuffer(ChannelType channel, int16_t* buffer, int32_t bufferLth, RatioModeType mode) const { return ps4000aSetDataBuffer(_handle, channel, buffer, bufferLth, 0UZ, mode); }
 
-    PICO_STATUS
-    setDataBufferForSegment(int16_t handle, ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) { return ps4000aSetDataBuffer(handle, channel, buffer, bufferLth, segmentIndex, mode); }
+    PICO_STATUS setDataBufferForSegment(ChannelType channel, int16_t* buffer, int32_t bufferLth, uint32_t segmentIndex, RatioModeType mode) const { return ps4000aSetDataBuffer(_handle, channel, buffer, bufferLth, segmentIndex, mode); }
 
-    PICO_STATUS
-    getTimebase2(int16_t handle, uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) { return ps4000aGetTimebase2(handle, timebase, noSamples, timeIntervalNanoseconds, maxSamples, segmentIndex); }
+    PICO_STATUS getTimebase2(uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) const { return ps4000aGetTimebase2(_handle, timebase, noSamples, timeIntervalNanoseconds, maxSamples, segmentIndex); }
 
-    PICO_STATUS
-    openUnit(const std::string& serial_number) {
-        // take any if serial number is not provided (useful for testing purposes)
-        if (serial_number.empty()) {
-            return ps4000aOpenUnit(&this->_handle, nullptr);
+    PICO_STATUS openUnit(const std::string& serial_number) {
+        if (serial_number.empty()) { // take any if serial number is not provided (useful for testing purposes)
+            return ps4000aOpenUnit(&_handle, nullptr);
         } else {
-            return ps4000aOpenUnit(&this->_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps4000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
         }
     }
 
-    PICO_STATUS
-    closeUnit(int16_t handle) { return ps4000aCloseUnit(handle); }
+    [[nodiscard]] PICO_STATUS closeUnit() const { return ps4000aCloseUnit(_handle); }
 
-    PICO_STATUS
-    changePowerSource(int16_t handle, PICO_STATUS powerstate) { return ps4000aChangePowerSource(handle, powerstate); }
+    [[nodiscard]] PICO_STATUS changePowerSource(PICO_STATUS powerState) const { return ps4000aChangePowerSource(_handle, powerState); }
 
-    PICO_STATUS
-    maximumValue(int16_t handle, int16_t* value) { return ps4000aMaximumValue(handle, value); }
+    PICO_STATUS maximumValue(int16_t* value) const { return ps4000aMaximumValue(_handle, value); }
 
-    PICO_STATUS
-    memorySegments(int16_t handle, uint32_t nSegments, int32_t* nMaxSamples) { return ps4000aMemorySegments(handle, nSegments, nMaxSamples); }
+    PICO_STATUS memorySegments(uint32_t nSegments, int32_t* nMaxSamples) const { return ps4000aMemorySegments(_handle, nSegments, nMaxSamples); }
 
-    PICO_STATUS
-    setNoOfCaptures(int16_t handle, uint32_t nCaptures) { return ps4000aSetNoOfCaptures(handle, nCaptures); }
+    [[nodiscard]] PICO_STATUS setNoOfCaptures(uint32_t nCaptures) const { return ps4000aSetNoOfCaptures(_handle, nCaptures); }
 
-    PICO_STATUS
-    getNoOfCaptures(int16_t handle, uint32_t* nCaptures) const { return ps4000aGetNoOfCaptures(handle, nCaptures); }
+    PICO_STATUS getNoOfCaptures(uint32_t* nCaptures) const { return ps4000aGetNoOfCaptures(_handle, nCaptures); }
 
-    PICO_STATUS
-    getNoOfProcessedCaptures(int16_t handle, uint32_t* nProcessedCaptures) const { return ps4000aGetNoOfProcessedCaptures(handle, nProcessedCaptures); }
+    PICO_STATUS getNoOfProcessedCaptures(uint32_t* nProcessedCaptures) const { return ps4000aGetNoOfProcessedCaptures(_handle, nProcessedCaptures); }
 
-    PICO_STATUS
-    setChannel(int16_t handle, ChannelType channel, int16_t enabled, CouplingType type, ChannelRangeType range, float analogOffset) { return ps4000aSetChannel(handle, channel, enabled, type, range, analogOffset); }
+    [[nodiscard]] PICO_STATUS setChannel(ChannelType channel, int16_t enabled, CouplingType type, RangeType range, float analogOffset) const { return ps4000aSetChannel(_handle, channel, enabled, type, range, analogOffset); }
 
-    int maxChannel() { return PS4000A_MAX_CHANNELS; }
+    static int maxChannel() { return PS4000A_MAX_CHANNELS; }
 
-    int extTriggerMaxValue() { return PS4000A_EXT_MAX_VALUE; }
+    static int extTriggerMaxValue() { return PS4000A_EXT_MAX_VALUE; }
 
-    int extTriggerMinValue() { return PS4000A_EXT_MIN_VALUE; }
+    static int extTriggerMinValue() { return PS4000A_EXT_MIN_VALUE; }
 
-    float extTriggerMaxValueVoltage() { return 5.f; }
+    static float extTriggerMaxValueVoltage() { return 5.f; }
 
-    float extTriggerMinValueVoltage() { return -5.f; }
+    static float extTriggerMinValueVoltage() { return -5.f; }
 
-    CouplingType analogCoupling() { return PS4000A_AC; }
+    static CouplingType analogCoupling() { return PS4000A_AC; }
 
-    TriggerStateType conditionDontCare() { return PS4000A_CONDITION_DONT_CARE; }
+    static TriggerStateType conditionDontCare() { return PS4000A_CONDITION_DONT_CARE; }
+    static TriggerStateType conditionTrue() { return PS4000A_CONDITION_TRUE; }
+    static TriggerStateType conditionFalse() { return PS4000A_CONDITION_FALSE; }
 
-    ConditionsInfoType conditionsInfoClear() { return PS4000A_CLEAR; }
+    static ConditionsInfoType conditionsInfoClear() { return PS4000A_CLEAR; }
+    static ConditionsInfoType conditionsInfoAdd() { return PS4000A_ADD; }
 
-    ConditionsInfoType conditionsInfoAdd() { return PS4000A_ADD; }
+    [[nodiscard]] PICO_STATUS setSimpleTrigger(int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) const { return ps4000aSetSimpleTrigger(_handle, enable, source, threshold, direction, delay, autoTriggerMs); }
 
-    PICO_STATUS
-    setSimpleTrigger(int16_t handle, int16_t enable, ChannelType source, int16_t threshold, ThresholdDirectionType direction, uint32_t delay, int16_t autoTriggerMs) { return ps4000aSetSimpleTrigger(handle, enable, source, threshold, direction, delay, autoTriggerMs); }
+    PICO_STATUS setTriggerChannelConditions(ConditionType* conditions, int16_t nConditions, ConditionsInfoType info) const { return ps4000aSetTriggerChannelConditions(_handle, conditions, nConditions, info); }
 
-    PICO_STATUS
-    setTriggerChannelConditions(int16_t handle, ConditionType* conditions, int16_t nConditions, ConditionsInfoType info) { return ps4000aSetTriggerChannelConditions(handle, conditions, nConditions, info); }
+    [[nodiscard]] PICO_STATUS driverStop() const { return ps4000aStop(_handle); }
 
-    PICO_STATUS
-    driverStop(int16_t handle) { return ps4000aStop(handle); }
+    PICO_STATUS runBlock(int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) const { return ps4000aRunBlock(_handle, noOfPreTriggerSamples, noOfPostTriggerSamples, timebase, timeIndisposed, segmentIndex, ready, param); }
 
-    PICO_STATUS
-    runBlock(int16_t handle, int32_t noOfPreTriggerSamples, int32_t noOfPostTriggerSamples, uint32_t timebase, int32_t* timeIndisposed, uint32_t segmentIndex, BlockReadyType ready, void* param) { return ps4000aRunBlock(handle, noOfPreTriggerSamples, noOfPostTriggerSamples, timebase, timeIndisposed, segmentIndex, ready, param); }
+    PICO_STATUS runStreaming(uint32_t* sampleInterval, TimeUnitsType timeUnits, uint32_t maxPreTriggerSamples, uint32_t maxPostTriggerSamples, int16_t autoStop, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t overviewBufferSize) const { return ps4000aRunStreaming(_handle, sampleInterval, timeUnits, maxPreTriggerSamples, maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode, overviewBufferSize); }
 
-    PICO_STATUS
-    runStreaming(int16_t handle, uint32_t* sampleInterval, TimeUnitsType timeUnits, uint32_t maxPreTriggerSamples, uint32_t maxPostTriggerSamples, int16_t autoStop, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t overviewBufferSize) { return ps4000aRunStreaming(handle, sampleInterval, timeUnits, maxPreTriggerSamples, maxPostTriggerSamples, autoStop, downSampleRatio, downSampleRatioMode, overviewBufferSize); }
+    static RatioModeType ratioNone() { return PS4000A_RATIO_MODE_NONE; }
 
-    RatioModeType ratioNone() { return PS4000A_RATIO_MODE_NONE; }
+    PICO_STATUS getStreamingLatestValues(StreamingReadyType ready, void* param) const { return ps4000aGetStreamingLatestValues(_handle, ready, param); }
 
-    PICO_STATUS
-    getStreamingLatestValues(int16_t handle, StreamingReadyType ready, void* param) { return ps4000aGetStreamingLatestValues(handle, ready, param); }
+    PICO_STATUS getValues(uint32_t startIndex, uint32_t* noOfSamples, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t segmentIndex, int16_t* overflow) const { return ps4000aGetValues(_handle, startIndex, noOfSamples, downSampleRatio, downSampleRatioMode, segmentIndex, overflow); }
 
-    PICO_STATUS
-    getValues(int16_t handle, uint32_t startIndex, uint32_t* noOfSamples, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, uint32_t segmentIndex, int16_t* overflow) { return ps4000aGetValues(handle, startIndex, noOfSamples, downSampleRatio, downSampleRatioMode, segmentIndex, overflow); }
+    PICO_STATUS getValuesBulk(uint32_t* noOfSamples, uint32_t fromSegmentIndex, uint32_t toSegmentIndex, uint32_t downSampleRatio, RatioModeType downSampleRatioMode, int16_t* overflow) const { return ps4000aGetValuesBulk(_handle, noOfSamples, fromSegmentIndex, toSegmentIndex, downSampleRatio, downSampleRatioMode, overflow); }
 
-    PICO_STATUS
-    getUnitInfo(int16_t handle, int8_t* string, int16_t stringLength, int16_t* requiredSize, PICO_INFO info) const { return ps4000aGetUnitInfo(handle, string, stringLength, requiredSize, info); }
+    PICO_STATUS getValuesTriggerTimeOffsetBulk64(int64_t* times, TimeUnitsType* timeUnits, uint32_t fromSegmentIndex, uint32_t toSegmentIndex) const { return ps4000aGetValuesTriggerTimeOffsetBulk64(_handle, times, timeUnits, fromSegmentIndex, toSegmentIndex); }
 
-    PICO_STATUS
-    getDeviceResolution(int16_t handle, DeviceResolutionType* deviceResolution) const { return ps4000aGetDeviceResolution(handle, deviceResolution); }
+    PICO_STATUS getUnitInfo(int8_t* string, int16_t stringLength, int16_t* requiredSize, PICO_INFO info) const { return ps4000aGetUnitInfo(_handle, string, stringLength, requiredSize, info); }
 
-    // Digital picoscope inputs, not supported by picoscope 4000a
-    [[nodiscard]] PICO_STATUS setDigitalPorts() { return PICO_OK; }
-    [[nodiscard]] PICO_STATUS setDigitalBuffers(size_t, uint32_t) { return PICO_OK; }
-    void                      copyDigitalBuffersToOutput(std::span<std::uint16_t>, std::size_t) {}
-    [[nodiscard]] PICO_STATUS SetTriggerDigitalPort(int16_t, int, TriggerDirection) { return PICO_OK; }
+    PICO_STATUS getDeviceResolution(DeviceResolutionType* deviceResolution) const { return ps4000aGetDeviceResolution(_handle, deviceResolution); }
+
+    //PICO_STATUS static setTriggerChannelDirections(int16_t _handle, std::span<TriggerDirectionType> triggerDirections) { return ps4000aSetTriggerChannelDirections(_handle, triggerDirections.data(), static_cast<int16_t>(triggerDirections.size())); };
+
+    //TriggerChannelProperties thresholdMode() { return PS4000A_LEVEL; } ;
+    //PICO_STATUS static setTriggerChannelProperties(int16_t _handle, std::span<TriggerChannelProperties> triggerProperties, bool auxOutputEnable, int32_t autoTriggerMilliseconds) { return ps4000aSetTriggerChannelProperties(_handle, triggerProperties.data(), static_cast<int16_t>(triggerProperties.size()), auxOutputEnable, autoTriggerMilliseconds); };
+
+    std::vector<std::pair<std::string, PICO_FIRMWARE_INFO>> checkFirmwareUpdates(uint16_t& updatesRequired) const {
+        std::vector<PICO_FIRMWARE_INFO> firmwareInfo{};
+        int16_t nFirmwareInfo = 32;
+        firmwareInfo.resize(static_cast<std::size_t>(nFirmwareInfo));
+        if (ps4000aCheckForUpdate(_handle, firmwareInfo.data(), &nFirmwareInfo, &updatesRequired) != PICO_OK) { return {}; }
+        if (ps4000aCheckForUpdate(_handle, nullptr, &nFirmwareInfo, &updatesRequired) != PICO_OK) { return {}; } // seems like the number of firmware infos populated is only set if we provide a nullptr, so calling again
+        firmwareInfo.resize(static_cast<std::size_t>(nFirmwareInfo));
+        auto firmwareType = [](auto &info) -> std::string {
+            switch (info.firmwareType) {
+                case PICO_DRIVER_VERSION:
+                    return "driver";
+                case PICO_USB_VERSION:
+                    return "usb";
+                case PICO_HARDWARE_VERSION:
+                    return "hardware";
+                case PICO_VARIANT_INFO:
+                    return "variant";
+                case PICO_BATCH_AND_SERIAL:
+                    return "batch/serial";
+                case PICO_CAL_DATE:
+                    return "cal";
+                case PICO_KERNEL_VERSION:
+                    return "kernel";
+                case PICO_DIGITAL_HARDWARE_VERSION:
+                    return "hardware";
+                case PICO_ANALOGUE_HARDWARE_VERSION:
+                    return "analogue hardware";
+                case PICO_FIRMWARE_VERSION_1:
+                    return "firmware 1";
+                case PICO_FIRMWARE_VERSION_2:
+                    return "firmware 2";
+                case PICO_MAC_ADDRESS:
+                    return "mac address";
+                case PICO_SHADOW_CAL:
+                    return "shadow";
+                case PICO_IPP_VERSION:
+                    return "ipp";
+                case PICO_DRIVER_PATH:
+                    return "driver path";
+                case PICO_FIRMWARE_VERSION_3:
+                    return "firmware 3";
+                case PICO_FRONT_PANEL_FIRMWARE_VERSION:
+                    return "front panel firmware";
+                case PICO_BOOTLOADER_VERSION:
+                    return "bootloader";
+                default:
+                    return "unknown";
+            }
+        };
+        return firmwareInfo | std::views::transform([&](auto &info) {return std::pair{firmwareType(info), info};}) | std::ranges::to<std::vector>();
+    }
+
 };
+
+static_assert(PicoscopeImplementationLike<Picoscope4000a>);
 
 } // namespace fair::picoscope
 
