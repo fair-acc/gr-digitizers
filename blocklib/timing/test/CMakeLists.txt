@@ -10,8 +10,7 @@ function(add_ut_test TEST_NAME)
   endif()
   target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR}/include
                                                   ${CMAKE_CURRENT_BINARY_DIR})
-  target_link_libraries(${TEST_NAME} PRIVATE gr-digitizers ut
-                                             gnuradio-blocklib-core)
+  target_link_libraries(${TEST_NAME} PRIVATE fair-picoscope ut gnuradio-blocklib-core)
   add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR}
                                      ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()

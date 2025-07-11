@@ -3,14 +3,25 @@
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/testing/TagMonitors.hpp>
 
-#include <HelperBlocks.hpp>
+#include <Picoscope.hpp>
+#include <Picoscope3000a.hpp>
 #include <Picoscope4000a.hpp>
+#include <Picoscope5000a.hpp>
+#include <Picoscope6000.hpp>
 #include <TimingSource.hpp>
 
 #include <format>
-#include <print>
 
 using namespace std::string_literals;
+using namespace fair::picoscope;
+
+// enumerate the picoscope types to be tested
+using picoscopeTypes = std::tuple<
+        Picoscope3000a,
+        Picoscope4000a,
+        Picoscope5000a,
+        Picoscope6000
+>;
 
 template<>
 struct std::formatter<gr::Tag> {
@@ -27,14 +38,10 @@ struct std::formatter<gr::Tag> {
 
 namespace fair::picoscope::test {
 
-const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
+const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = []<PicoscopeImplementationLike TPSimpl> {
     using namespace boost::ut;
     using namespace gr;
-    using namespace fair::helpers;
     using namespace fair::picoscope;
-
-    // small helper to print the content of the ranges if there is a mismatch
-    auto expectRangesEquals = [](const auto& r1, const auto& r2, std::source_location source_location = std::source_location::current()) { expect(std::ranges::equal(r1, r2), source_location) << [&r1, &r2]() { return std::format("exp: {}\n got: {}", r1, r2); }; };
 
     auto createTimingEventThread = [](std::vector<std::pair<std::uint64_t, std::variant<Timing::Event, std::uint8_t>>> events, std::size_t schedule_offset) {
         return std::jthread([events, schedule_offset]() {
@@ -103,22 +110,22 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
 
         gr::Graph flowGraph;
         auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
-            {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_CUSTOM_DIAG_1->IO1(100,on,150,off),PUBLISH()"})}, // create a 50us pulse 100us after the timing event
+            {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_CUSTOM_DIAG_1->IO3(100,on,150,off),PUBLISH()"})}, // create a 50us pulse 100us after the timing event
             {"io_events", true},
             {"sample_rate", 0.0f},
             {"verbose_console", false},
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float>>({{
+        auto& ps = flowGraph.emplaceBlock<Picoscope<float, Picoscope4000a>>({{
             {"sample_rate", kSampleRate},
             {"auto_arm", true},
-            {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
-            {"signal_names", std::vector<std::string>{"Trigger", "IO2", "IO3"}},
+            {"channel_ids", std::vector<std::string>{"A", "B", "H"}},
+            {"signal_names", std::vector<std::string>{"I01", "IO2", "Trigger"}},
             {"signal_units", std::vector<std::string>{"V", "V", "V"}},
             {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
             {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},
             {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},
-            {"trigger_source", "A"},
+            {"trigger_source", "H"},
             {"trigger_threshold", 1.7f},
             {"trigger_direction", "Rising"},
         }});
@@ -163,10 +170,12 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
             },
             100'000'000);
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{std::move(flowGraph)};
+        gr::MsgPortOut _toScheduler;
+        expect(_toScheduler.connect(sched.msgIn) == gr::ConnectionResult::SUCCESS) << fatal;
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(kDuration);
-        expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
+        gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, "test");
 
         const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(kDuration).count();
         std::println("Produced in worker: {}", ps._nSamplesPublished);
@@ -236,7 +245,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
             {"verbose_console", true},
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<float>>({{
+        auto& ps = flowGraph.emplaceBlock<Picoscope<float, Picoscope4000a>>({{
             {"sample_rate", kSampleRate},
             {"auto_arm", true},
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
@@ -346,7 +355,7 @@ const boost::ut::suite<"PicoscopeTimingTests"> PicoscopeTimingTests = [] {
             {"verbose_console", true},
         });
 
-        auto& ps = flowGraph.emplaceBlock<Picoscope4000a<gr::DataSet<float>>>({{
+        auto& ps = flowGraph.emplaceBlock<Picoscope<gr::DataSet<float>, Picoscope4000a>>({{
             {"sample_rate", kSampleRate},
             {"auto_arm", true},
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},

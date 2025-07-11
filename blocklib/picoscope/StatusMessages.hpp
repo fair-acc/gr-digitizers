@@ -2,8 +2,23 @@
 #define FAIR_PICOSCOPE_STATUS_MESSAGES_HPP
 
 #include <PicoStatus.h>
+#include <PicoVersion.h>
 
 #include <string>
+#include <format>
+
+namespace std {
+    template<>
+    struct formatter<PICO_VERSION> {
+        static constexpr auto parse(std::format_parse_context& ctx) {
+            return ctx.begin();
+        }
+
+        static auto format(const PICO_VERSION v, std::format_context& ctx) {
+            return std::format_to(ctx.out(), "{}.{}r{}b{}", v.major_, v.minor_, v.revision_, v.build_);
+        }
+    };
+}
 
 namespace fair::picoscope::detail {
 
@@ -498,6 +513,12 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
 }
 
 inline std::string getErrorMessage(PICO_STATUS status) { return std::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status)); }
+
+struct PicoscopeError {
+    PICO_STATUS errorCode;
+    [[nodiscard]] std::string_view getError() const { return statusToString(errorCode); }
+    [[nodiscard]] std::string_view getDescription() const { return statusToStringVerbose(errorCode); }
+};
 
 } // namespace fair::picoscope::detail
 
