@@ -1,5 +1,6 @@
 if(NOT EMSCRIPTEN AND NOT CLANG)
-  add_library(timing INTERFACE include/timing.hpp include/TimingSource.hpp)
+  add_library(timing INTERFACE include/fair/timing/timing.hpp
+              include/fair/timing/TimingSource.hpp)
   target_include_directories(timing
                              INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/)
   target_link_libraries(timing INTERFACE PkgConfig::saftlib

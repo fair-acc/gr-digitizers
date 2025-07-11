@@ -2,8 +2,17 @@
 #define FAIR_PICOSCOPE_STATUS_MESSAGES_HPP
 
 #include <PicoStatus.h>
+#include <PicoVersion.h>
 
+#include <format>
 #include <string>
+
+template<>
+struct std::formatter<PICO_VERSION> {
+    static constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+    static auto format(const PICO_VERSION v, std::format_context& ctx) { return std::format_to(ctx.out(), "{}.{}r{}b{}", v.major_, v.minor_, v.revision_, v.build_); }
+};
 
 namespace fair::picoscope::detail {
 
@@ -204,6 +213,11 @@ constexpr std::string_view statusToString(PICO_STATUS status) {
     }
 }
 
+/**
+ * Documentation strings for the PICO_STATUS return values.
+ * These are taken from the comments for the constants in the Headers for picoscope.
+ * Take care that they sometimes will not match the actual problem because the error constants got re-used in different contexts!
+ */
 constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     switch (status) {
     case PICO_OK: return "The PicoScope is functioning correctly.";
@@ -222,9 +236,7 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_INVALID_PARAMETER: return "A parameter value is not valid.";
     case PICO_INVALID_TIMEBASE: return "The timebase is not supported or is invalid.";
     case PICO_INVALID_VOLTAGE_RANGE: return "The voltage range is not supported or is invalid.";
-    case PICO_INVALID_CHANNEL:
-        return "The channel number is not valid on this device or no channels have been "
-               "set.";
+    case PICO_INVALID_CHANNEL: return "The channel number is not valid on this device or no channels have been set.";
     case PICO_INVALID_TRIGGER_CHANNEL: return "The channel set for a trigger is not available on this device.";
     case PICO_INVALID_CONDITION_CHANNEL: return "The channel set for a condition is not available on this device.";
     case PICO_NO_SIGNAL_GENERATOR: return "The device does not have a signal generator.";
@@ -235,78 +247,46 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_DATA_NOT_AVAILABLE: return "No data is available from a run block call.";
     case PICO_STRING_BUFFER_TO_SMALL: return "The buffer passed for the information was too small.";
     case PICO_ETS_NOT_SUPPORTED: return "ETS is not supported on this device.";
-    case PICO_AUTO_TRIGGER_TIME_TO_SHORT:
-        return "The auto trigger time is less than the time it will take to collect the "
-               "pre-trigger data.";
+    case PICO_AUTO_TRIGGER_TIME_TO_SHORT: return "The auto trigger time is less than the time it will take to collect the pre-trigger data.";
     case PICO_BUFFER_STALL: return "The collection of data has stalled as unread data would be overwritten.";
-    case PICO_TOO_MANY_SAMPLES:
-        return "Number of samples requested is more than available in the current memory "
-               "segment.";
+    case PICO_TOO_MANY_SAMPLES: return "Number of samples requested is more than available in the current memory segment.";
     case PICO_TOO_MANY_SEGMENTS: return "Not possible to create number of segments requested.";
-    case PICO_PULSE_WIDTH_QUALIFIER:
-        return "A null pointer has been passed in the trigger function or one of the "
-               "parameters is out of range.";
+    case PICO_PULSE_WIDTH_QUALIFIER: return "A null pointer has been passed in the trigger function or one of the parameters is out of range.";
     case PICO_DELAY: return "One or more of the hold-off parameters are out of range.";
     case PICO_SOURCE_DETAILS: return "One or more of the source details are incorrect.";
     case PICO_CONDITIONS: return "One or more of the conditions are incorrect.";
-    case PICO_USER_CALLBACK:
-        return "The driver's thread is currently in the <API>Ready callback function and "
-               "therefore the action cannot be carried out.";
-    case PICO_DEVICE_SAMPLING:
-        return "An attempt is being made to get stored data while streaming. Either stop "
-               "streaming by calling <API>Stop, or use <API>GetStreamingLatestValues.";
+    case PICO_USER_CALLBACK: return "The driver's thread is currently in the <API>Ready callback function and therefore the action cannot be carried out.";
+    case PICO_DEVICE_SAMPLING: return "An attempt is being made to get stored data while streaming. Either stop streaming by calling <API>Stop, or use <API>GetStreamingLatestValues.";
     case PICO_NO_SAMPLES_AVAILABLE: return "Data is unavailable because a run has not been completed.";
     case PICO_SEGMENT_OUT_OF_RANGE: return "The memory segment index is out of range.";
     case PICO_BUSY: return "The device is busy so data cannot be returned yet.";
     case PICO_STARTINDEX_INVALID: return "The start time to get stored data is out of range.";
     case PICO_INVALID_INFO: return "The information number requested is not a valid number.";
-    case PICO_INFO_UNAVAILABLE:
-        return "The handle is invalid so no information is available about the device. "
-               "Only PICO_DRIVER_VERSION is available.";
+    case PICO_INFO_UNAVAILABLE: return "The handle is invalid so no information is available about the device. Only PICO_DRIVER_VERSION is available.";
     case PICO_INVALID_SAMPLE_INTERVAL: return "The sample interval selected for streaming is out of range.";
-    case PICO_TRIGGER_ERROR:
-        return "ETS is set but no trigger has been set. A trigger setting is required "
-               "for ETS.";
+    case PICO_TRIGGER_ERROR: return "ETS is set but no trigger has been set. A trigger setting is required for ETS.";
     case PICO_MEMORY: return "Driver cannot allocate memory.";
     case PICO_SIG_GEN_PARAM: return "Incorrect parameter passed to the signal generator.";
-    case PICO_SHOTS_SWEEPS_WARNING:
-        return "Conflict between the shots and sweeps parameters sent to the signal "
-               "generator.";
-    case PICO_SIGGEN_TRIGGER_SOURCE:
-        return "A software trigger has been sent but the trigger source is not a "
-               "software trigger.";
-    case PICO_AUX_OUTPUT_CONFLICT:
-        return "An <API>SetTrigger call has found a conflict between the trigger source "
-               "and the AUX output enable.";
+    case PICO_SHOTS_SWEEPS_WARNING: return "Conflict between the shots and sweeps parameters sent to the signal generator.";
+    case PICO_SIGGEN_TRIGGER_SOURCE: return "A software trigger has been sent but the trigger source is not a software trigger.";
+    case PICO_AUX_OUTPUT_CONFLICT: return "An <API>SetTrigger call has found a conflict between the trigger source and the AUX output enable.";
     case PICO_AUX_OUTPUT_ETS_CONFLICT: return "ETS mode is being used and AUX is set as an input.";
-    case PICO_WARNING_EXT_THRESHOLD_CONFLICT:
-        return "Attempt to set different EXT input thresholds set for signal generator "
-               "and oscilloscope trigger.";
-    case PICO_WARNING_AUX_OUTPUT_CONFLICT:
-        return "An <API>SetTrigger... function has set AUX as an output and the signal "
-               "generator is using it as a trigger.";
-    case PICO_SIGGEN_OUTPUT_OVER_VOLTAGE:
-        return "The combined peak to peak voltage and the analog offset voltage exceed "
-               "the maximum voltage the signal generator can produce.";
+    case PICO_WARNING_EXT_THRESHOLD_CONFLICT: return "Attempt to set different EXT input thresholds set for signal generator and oscilloscope trigger.";
+    case PICO_WARNING_AUX_OUTPUT_CONFLICT: return "An <API>SetTrigger... function has set AUX as an output and the signal generator is using it as a trigger.";
+    case PICO_SIGGEN_OUTPUT_OVER_VOLTAGE: return "The combined peak to peak voltage and the analog offset voltage exceed the maximum voltage the signal generator can produce.";
     case PICO_DELAY_NULL: return "NULL pointer passed as delay parameter.";
     case PICO_INVALID_BUFFER: return "The buffers for overview data have not been set while streaming.";
     case PICO_SIGGEN_OFFSET_VOLTAGE: return "The analog offset voltage is out of range.";
     case PICO_SIGGEN_PK_TO_PK: return "The analog peak-to-peak voltage is out of range.";
     case PICO_CANCELLED: return "A block collection has been cancelled.";
     case PICO_SEGMENT_NOT_USED: return "The segment index is not currently being used.";
-    case PICO_INVALID_CALL:
-        return "The wrong GetValues function has been called for the collection mode in "
-               "use.";
+    case PICO_INVALID_CALL: return "The wrong GetValues function has been called for the collection mode in use.";
     case PICO_GET_VALUES_INTERRUPTED: return "";
     case PICO_NOT_USED: return "The function is not available.";
     case PICO_INVALID_SAMPLERATIO: return "The aggregation ratio requested is out of range.";
     case PICO_INVALID_STATE: return "Device is in an invalid state.";
-    case PICO_NOT_ENOUGH_SEGMENTS:
-        return "The number of segments allocated is fewer than the number of captures "
-               "requested.";
-    case PICO_DRIVER_FUNCTION:
-        return "A driver function has already been called and not yet finished. Only one "
-               "call to the driver can be made at any one time.";
+    case PICO_NOT_ENOUGH_SEGMENTS: return "The number of segments allocated is fewer than the number of captures requested.";
+    case PICO_DRIVER_FUNCTION: return "A driver function has already been called and not yet finished. Only one call to the driver can be made at any one time.";
     case PICO_RESERVED: return "Not used";
     case PICO_INVALID_COUPLING: return "An invalid coupling type was specified in <API>SetChannel.";
     case PICO_BUFFERS_NOT_SET: return "An attempt was made to get data before a data buffer was defined.";
@@ -314,9 +294,7 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_RAPID_NOT_SUPPORT_AGGREGATION: return "Aggregation was requested in rapid block mode.";
     case PICO_INVALID_TRIGGER_PROPERTY: return "An invalid parameter was passed to <API>SetTriggerChannelProperties.";
     case PICO_INTERFACE_NOT_CONNECTED: return "The driver was unable to contact the oscilloscope.";
-    case PICO_RESISTANCE_AND_PROBE_NOT_ALLOWED:
-        return "Resistance-measuring mode is not allowed in conjunction with the "
-               "specified probe.";
+    case PICO_RESISTANCE_AND_PROBE_NOT_ALLOWED: return "Resistance-measuring mode is not allowed in conjunction with the specified probe.";
     case PICO_POWER_FAILED: return "The device was unexpectedly powered down.";
     case PICO_SIGGEN_WAVEFORM_SETUP_FAILED: return "A problem occurred in <API>SetSigGenBuiltIn or <API>SetSigGenArbitrary.";
     case PICO_FPGA_FAIL: return "FPGA not successfully set up.";
@@ -326,37 +304,20 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_ANALOG_BOARD: return "There is an error within the device hardware.";
     case PICO_CONFIG_FAIL_AWG: return "Unable to configure the signal generator.";
     case PICO_INITIALISE_FPGA: return "The FPGA cannot be initialized, so unit cannot be opened.";
-    case PICO_EXTERNAL_FREQUENCY_INVALID:
-        return "The frequency for the external clock is not within 15% of the nominal "
-               "value.";
+    case PICO_EXTERNAL_FREQUENCY_INVALID: return "The frequency for the external clock is not within 15% of the nominal value.";
     case PICO_CLOCK_CHANGE_ERROR: return "The FPGA could not lock the clock signal.";
-    case PICO_TRIGGER_AND_EXTERNAL_CLOCK_CLASH:
-        return "You are trying to configure the AUX input as both a trigger and a "
-               "reference clock.";
-    case PICO_PWQ_AND_EXTERNAL_CLOCK_CLASH:
-        return "You are trying to congfigure the AUX input as both a pulse width "
-               "qualifier and a reference clock.";
+    case PICO_TRIGGER_AND_EXTERNAL_CLOCK_CLASH: return "You are trying to configure the AUX input as both a trigger and a reference clock.";
+    case PICO_PWQ_AND_EXTERNAL_CLOCK_CLASH: return "You are trying to congfigure the AUX input as both a pulse width qualifier and a reference clock.";
     case PICO_UNABLE_TO_OPEN_SCALING_FILE: return "The requested scaling file cannot be opened.";
     case PICO_MEMORY_CLOCK_FREQUENCY: return "The frequency of the memory is reporting incorrectly.";
     case PICO_I2C_NOT_RESPONDING: return "The I2C that is being actioned is not responding to requests.";
     case PICO_NO_CAPTURES_AVAILABLE: return "There are no captures available and therefore no data can be returned.";
-    case PICO_TOO_MANY_TRIGGER_CHANNELS_IN_USE:
-        return "The number of trigger channels is greater than 4, except for a PS4824 "
-               "where 8 channels are allowed for rising/falling/rising_or_falling "
-               "trigger directions.";
-    case PICO_INVALID_TRIGGER_DIRECTION:
-        return "When more than 4 trigger channels are set on a PS4824 and the direction "
-               "is out of range.";
-    case PICO_INVALID_TRIGGER_STATES:
-        return "When more than 4 trigger channels are set and their trigger condition "
-               "states are not <API>_CONDITION_TRUE.";
-    case PICO_NOT_USED_IN_THIS_CAPTURE_MODE:
-        return "The capture mode the device is currently running in does not support the "
-               "current request.";
+    case PICO_TOO_MANY_TRIGGER_CHANNELS_IN_USE: return "The number of trigger channels is greater than 4, except for a PS4824 where 8 channels are allowed for rising/falling/rising_or_falling trigger directions.";
+    case PICO_INVALID_TRIGGER_DIRECTION: return "When more than 4 trigger channels are set on a PS4824 and the direction is out of range.";
+    case PICO_INVALID_TRIGGER_STATES: return "When more than 4 trigger channels are set and their trigger condition states are not <API>_CONDITION_TRUE.";
+    case PICO_NOT_USED_IN_THIS_CAPTURE_MODE: return "The capture mode the device is currently running in does not support the current request.";
     case PICO_GET_DATA_ACTIVE: return "";
-    case PICO_IP_NETWORKED:
-        return "The device is currently connected via the IP Network socket and thus the "
-               "call made is not supported.";
+    case PICO_IP_NETWORKED: return "The device is currently connected via the IP Network socket and thus the call made is not supported.";
     case PICO_INVALID_IP_ADDRESS: return "An incorrect IP address has been passed to the driver.";
     case PICO_IPSOCKET_FAILED: return "The IP socket has failed.";
     case PICO_IPSOCKET_TIMEDOUT: return "The IP socket has timed out.";
@@ -368,23 +329,14 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_BANDWIDTH_NOT_SUPPORTED: return "Bandwidth limiting is not supported on the opened device.";
     case PICO_INVALID_BANDWIDTH: return "The value requested for the bandwidth limit is out of range.";
     case PICO_AWG_NOT_SUPPORTED: return "The arbitrary waveform generator is not supported by the opened device.";
-    case PICO_ETS_NOT_RUNNING:
-        return "Data has been requested with ETS mode set but run block has not been "
-               "called, or stop has been called.";
+    case PICO_ETS_NOT_RUNNING: return "Data has been requested with ETS mode set but run block has not been called, or stop has been called.";
     case PICO_SIG_GEN_WHITENOISE_NOT_SUPPORTED: return "White noise output is not supported on the opened device.";
     case PICO_SIG_GEN_WAVETYPE_NOT_SUPPORTED: return "The wave type requested is not supported by the opened device.";
     case PICO_INVALID_DIGITAL_PORT: return "The requested digital port number is out of range (MSOs only).";
-    case PICO_INVALID_DIGITAL_CHANNEL:
-        return "The digital channel is not in the range <API>_DIGITAL_CHANNEL0 "
-               "to<API>_DIGITAL_CHANNEL15, the digital channels that are supported.";
-    case PICO_INVALID_DIGITAL_TRIGGER_DIRECTION:
-        return "The digital trigger direction is not a valid trigger direction and "
-               "should be equal in value to one of the <API>_DIGITAL_DIRECTION "
-               "enumerations.";
+    case PICO_INVALID_DIGITAL_CHANNEL: return "The digital channel is not in the range <API>_DIGITAL_CHANNEL0 to<API>_DIGITAL_CHANNEL15, the digital channels that are supported.";
+    case PICO_INVALID_DIGITAL_TRIGGER_DIRECTION: return "The digital trigger direction is not a valid trigger direction and should be equal in value to one of the <API>_DIGITAL_DIRECTION enumerations.";
     case PICO_SIG_GEN_PRBS_NOT_SUPPORTED: return "Signal generator does not generate pseudo-random binary sequence.";
-    case PICO_ETS_NOT_AVAILABLE_WITH_LOGIC_CHANNELS:
-        return "When a digital port is enabled, ETS sample mode is not available for "
-               "use.";
+    case PICO_ETS_NOT_AVAILABLE_WITH_LOGIC_CHANNELS: return "When a digital port is enabled, ETS sample mode is not available for use.";
     case PICO_WARNING_REPEAT_VALUE: return "";
     case PICO_POWER_SUPPLY_CONNECTED: return "4-channel scopes only: The DC power supply is connected.";
     case PICO_POWER_SUPPLY_NOT_CONNECTED: return "4-channel scopes only: The DC power supply is not connected.";
@@ -394,20 +346,12 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_USB3_0_DEVICE_NON_USB3_0_PORT: return "A USB 3.0 device is connected to a non-USB 3.0 port.";
     case PICO_NOT_SUPPORTED_BY_THIS_DEVICE: return "A function has been called that is not supported by the current device.";
     case PICO_INVALID_DEVICE_RESOLUTION: return "The device resolution is invalid (out of range).";
-    case PICO_INVALID_NUMBER_CHANNELS_FOR_RESOLUTION:
-        return "The number of channels that can be enabled is limited in 15 and 16-bit "
-               "modes. (Flexible Resolution Oscilloscopes only)";
+    case PICO_INVALID_NUMBER_CHANNELS_FOR_RESOLUTION: return "The number of channels that can be enabled is limited in 15 and 16-bit modes. (Flexible Resolution Oscilloscopes only)";
     case PICO_CHANNEL_DISABLED_DUE_TO_USB_POWERED: return "USB power not sufficient for all requested channels.";
     case PICO_SIGGEN_DC_VOLTAGE_NOT_CONFIGURABLE: return "The signal generator does not have a configurable DC offset.";
-    case PICO_NO_TRIGGER_ENABLED_FOR_TRIGGER_IN_PRE_TRIG:
-        return "An attempt has been made to define pre-trigger delay without first "
-               "enabling a trigger.";
-    case PICO_TRIGGER_WITHIN_PRE_TRIG_NOT_ARMED:
-        return "An attempt has been made to define pre-trigger delay without first "
-               "arming a trigger.";
-    case PICO_TRIGGER_WITHIN_PRE_NOT_ALLOWED_WITH_DELAY:
-        return "Pre-trigger delay and post-trigger delay cannot be used at the same "
-               "time.";
+    case PICO_NO_TRIGGER_ENABLED_FOR_TRIGGER_IN_PRE_TRIG: return "An attempt has been made to define pre-trigger delay without first enabling a trigger.";
+    case PICO_TRIGGER_WITHIN_PRE_TRIG_NOT_ARMED: return "An attempt has been made to define pre-trigger delay without first arming a trigger.";
+    case PICO_TRIGGER_WITHIN_PRE_NOT_ALLOWED_WITH_DELAY: return "Pre-trigger delay and post-trigger delay cannot be used at the same time.";
     case PICO_TRIGGER_INDEX_UNAVAILABLE: return "The array index points to a nonexistent trigger.";
     case PICO_AWG_CLOCK_FREQUENCY: return "";
     case PICO_TOO_MANY_CHANNELS_IN_USE: return "There are more 4 analog channels with a trigger condition set.";
@@ -425,37 +369,21 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_INVALID_RESISTANCE_CONVERSION: return "The range cannot have resistance conversion applied.";
     case PICO_INVALID_VALUE_IN_MAX_BUFFER: return "An invalid value is in the max buffer.";
     case PICO_INVALID_VALUE_IN_MIN_BUFFER: return "An invalid value is in the min buffer.";
-    case PICO_SIGGEN_FREQUENCY_OUT_OF_RANGE:
-        return "When calculating the frequency for phase conversion, the frequency is "
-               "greater than that supported by the current variant.";
-    case PICO_EEPROM2_CORRUPT:
-        return "The device's EEPROM is corrupt. Contact Pico Technology support: "
-               "https://www.picotech.com/tech-support.";
+    case PICO_SIGGEN_FREQUENCY_OUT_OF_RANGE: return "When calculating the frequency for phase conversion, the frequency is greater than that supported by the current variant.";
+    case PICO_EEPROM2_CORRUPT: return "The device's EEPROM is corrupt. Contact Pico Technology support: https://www.picotech.com/tech-support.";
     case PICO_EEPROM2_FAIL: return "The EEPROM has failed.";
     case PICO_SERIAL_BUFFER_TOO_SMALL: return "The serial buffer is too small for the required information.";
-    case PICO_SIGGEN_TRIGGER_AND_EXTERNAL_CLOCK_CLASH:
-        return "The signal generator trigger and the external clock have both been set. "
-               "This is not allowed.";
-    case PICO_WARNING_SIGGEN_AUXIO_TRIGGER_DISABLED:
-        return "The AUX trigger was enabled and the external clock has been enabled, so "
-               "the AUX has been automatically disabled.";
-    case PICO_SIGGEN_GATING_AUXIO_NOT_AVAILABLE:
-        return "The AUX I/O was set as a scope trigger and is now being set as a signal "
-               "generator gating trigger. This is not allowed.";
-    case PICO_SIGGEN_GATING_AUXIO_ENABLED:
-        return "The AUX I/O was set by the signal generator as a gating trigger and is "
-               "now being set as a scope trigger. This is not allowed.";
+    case PICO_SIGGEN_TRIGGER_AND_EXTERNAL_CLOCK_CLASH: return "The signal generator trigger and the external clock have both been set. This is not allowed.";
+    case PICO_WARNING_SIGGEN_AUXIO_TRIGGER_DISABLED: return "The AUX trigger was enabled and the external clock has been enabled, so the AUX has been automatically disabled.";
+    case PICO_SIGGEN_GATING_AUXIO_NOT_AVAILABLE: return "The AUX I/O was set as a scope trigger and is now being set as a signal generator gating trigger. This is not allowed.";
+    case PICO_SIGGEN_GATING_AUXIO_ENABLED: return "The AUX I/O was set by the signal generator as a gating trigger and is now being set as a scope trigger. This is not allowed.";
     case PICO_RESOURCE_ERROR: return "A resource has failed to initialise ";
     case PICO_TEMPERATURE_TYPE_INVALID: return "The temperature type is out of range";
     case PICO_TEMPERATURE_TYPE_NOT_SUPPORTED: return "A requested temperature type is not supported on this device";
     case PICO_TIMEOUT: return "A read/write to the device has timed out";
     case PICO_DEVICE_NOT_FUNCTIONING: return "The device cannot be connected correctly";
-    case PICO_INTERNAL_ERROR:
-        return "The driver has experienced an unknown error and is unable to recover "
-               "from this error";
-    case PICO_MULTIPLE_DEVICES_FOUND:
-        return "Used when opening units via IP and more than multiple units have the "
-               "same ip address";
+    case PICO_INTERNAL_ERROR: return "The driver has experienced an unknown error and is unable to recover from this error";
+    case PICO_MULTIPLE_DEVICES_FOUND: return "Used when opening units via IP and more than multiple units have the same ip address";
     case PICO_WARNING_NUMBER_OF_SEGMENTS_REDUCED: return "";
     case PICO_CAL_PINS_STATES: return "the calibration pin states argument is out of range";
     case PICO_CAL_PINS_FREQUENCY: return "the calibration pin frequency argument is out of range";
@@ -464,25 +392,15 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     case PICO_CAL_PINS_OFFSET: return "the calibration pin offset argument is out of range";
     case PICO_PROBE_FAULT: return "the probe's identity has a problem";
     case PICO_PROBE_IDENTITY_UNKNOWN: return "the probe has not been identified";
-    case PICO_PROBE_POWER_DC_POWER_SUPPLY_REQUIRED:
-        return "enabling the probe would cause the device to exceed the allowable "
-               "current limit";
-    case PICO_PROBE_NOT_POWERED_WITH_DC_POWER_SUPPLY:
-        return "the DC power supply is connected; enabling the probe would cause the "
-               "device to exceed the allowable current limit";
+    case PICO_PROBE_POWER_DC_POWER_SUPPLY_REQUIRED: return "enabling the probe would cause the device to exceed the allowable current limit";
+    case PICO_PROBE_NOT_POWERED_WITH_DC_POWER_SUPPLY: return "the DC power supply is connected; enabling the probe would cause the device to exceed the allowable current limit";
     case PICO_PROBE_CONFIG_FAILURE: return "failed to complete probe configuration";
-    case PICO_PROBE_INTERACTION_CALLBACK:
-        return "failed to set the callback function, as currently in current callback "
-               "function";
+    case PICO_PROBE_INTERACTION_CALLBACK: return "failed to set the callback function, as currently in current callback function";
     case PICO_UNKNOWN_INTELLIGENT_PROBE: return "the probe has been verified but not know on this driver";
     case PICO_INTELLIGENT_PROBE_CORRUPT: return "the intelligent probe cannot be verified";
-    case PICO_PROBE_COLLECTION_NOT_STARTED:
-        return "the callback is null, probe collection will only start when first "
-               "callback is a none null pointer";
+    case PICO_PROBE_COLLECTION_NOT_STARTED: return "the callback is null, probe collection will only start when first callback is a none null pointer";
     case PICO_PROBE_POWER_CONSUMPTION_EXCEEDED: return "the current drawn by the probe(s) has exceeded the allowed limit";
-    case PICO_WARNING_PROBE_CHANNEL_OUT_OF_SYNC:
-        return "the channel range limits have changed due to connecting or disconnecting "
-               "a probe the channel has been enabled";
+    case PICO_WARNING_PROBE_CHANNEL_OUT_OF_SYNC: return "the channel range limits have changed due to connecting or disconnecting a probe the channel has been enabled";
     case PICO_DEVICE_TIME_STAMP_RESET: return "The time stamp per waveform segment has been reset.";
     case PICO_WATCHDOGTIMER: return "An internal erorr has occurred and a watchdog timer has been called.";
     case PICO_IPP_NOT_FOUND: return "The picoipp.dll has not been found.";
@@ -497,8 +415,8 @@ constexpr std::string_view statusToStringVerbose(PICO_STATUS status) {
     }
 }
 
-inline std::string getErrorMessage(PICO_STATUS status) { return std::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status)); }
+inline std::string getErrorMessage(const PICO_STATUS status) { return std::format("{} ({})", detail::statusToStringVerbose(status), detail::statusToString(status)); }
 
 } // namespace fair::picoscope::detail
 
-#endif // FAIR_PICOSCOPE_STATUS_MESSAGE_H
+#endif // FAIR_PICOSCOPE_STATUS_MESSAGES_HPP

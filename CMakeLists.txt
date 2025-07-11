@@ -30,7 +30,7 @@ include(FetchContent)
 FetchContent_Declare(
   gnuradio4
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-  GIT_TAG 72997a580d3b62c67e661a6e60705202dfdb6478 # main as of 2025-07-07
+  GIT_TAG 677e09f77bd757adce311a8c1d3de0253b860c86 # main as of 2025-11-06
   EXCLUDE_FROM_ALL)
 
 # Workaround: Add Python dependency which is missing for the single header
@@ -46,6 +46,30 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/boost-ext/ut.git
   GIT_TAG v2.3.1 # latest tag as of 2025-04-02
   EXCLUDE_FROM_ALL)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "(Clang|GNU)")
+  if(ADDRESS_SANITIZER)
+    set(SANITIZER_FLAGS
+        -fsanitize=address -fsanitize-address-use-after-scope -fsanitize=leak
+        -fno-omit-frame-pointer -fstack-protector-strong)
+  elseif(UB_SANITIZER)
+    set(SANITIZER_FLAGS
+        -fsanitize=undefined -fsanitize-address-use-after-scope -fsanitize=leak
+        -fno-omit-frame-pointer -fstack-protector-strong)
+  elseif(THREAD_SANITIZER)
+    set(SANITIZER_FLAGS -fsanitize=thread -fsanitize=thread)
+  endif()
+
+  if(DEFINED SANITIZER_FLAGS)
+    add_compile_options(${SANITIZER_FLAGS} -fno-omit-frame-pointer
+                        -fstack-protector-strong)
+    if(NOT EMSCRIPTEN)
+      add_compile_options(${SANITIZER_FLAGS} -fstack-clash-protection)
+    endif()
+    add_link_options(${SANITIZER_FLAGS})
+    message(STATUS "Enabled sanitizer flags: ${SANITIZER_FLAGS}")
+  endif()
+endif()
 
 add_library(gr-digitizers-options INTERFACE)
 include(cmake/CompilerWarnings.cmake)

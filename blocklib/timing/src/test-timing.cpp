@@ -6,6 +6,13 @@
 #include <unordered_set>
 
 // UI
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 #include <SDL3/SDL.h>
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <SDL3/SDL_opengles2.h>
@@ -13,18 +20,20 @@
 #include <SDL3/SDL_opengl.h>
 #endif
 #include "ImScoped.hpp"
+#include "fairPlot.hpp"
+#include "fair_header.h"
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
 #include <implot.h>
+#pragma GCC diagnostic pop
 
 #include <OutputCondition_Proxy.hpp>
-#include <format>
 
-#include "../include/event_definitions.hpp"
-#include "fairPlot.hpp"
-#include "fair_header.h"
-#include <timing.hpp>
+#include <fair/timing/event_definitions.hpp>
+#include <fair/timing/timing.hpp>
+
+static std::chrono::time_point<std::chrono::system_clock> taiNsToUtc(uint64_t input) { return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input) + std::chrono::years(12u))); }
 
 enum class InjectState { STOPPED, RUNNING, SINGLE };
 static constexpr uint64_t max_uint64 = std::numeric_limits<uint64_t>::max();
@@ -697,7 +706,7 @@ std::pair<SDL_Window*, SDL_GLContext> openSDLWindow() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    // glslVersionOut = "#version 300 es"; //TODO: check compatibility of this
+    // glslVersionOut = "#version 300 es";
     const char* glsl_version = "#version 100";
 #else
 #ifdef __APPLE__
@@ -719,7 +728,7 @@ std::pair<SDL_Window*, SDL_GLContext> openSDLWindow() {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    auto        window_flags = static_cast<SDL_WindowFlags>(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+    auto        window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
     SDL_Window* window       = SDL_CreateWindow("Fair Timing Util", 1280, 720, window_flags);
     if (!window) {
         return {nullptr, nullptr};

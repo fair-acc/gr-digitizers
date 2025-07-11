@@ -4,7 +4,6 @@
 // gr
 #include <gnuradio-4.0/CircularBuffer.hpp>
 // timing
-#include <CommonFunctions.h>
 #include <Input.hpp>
 #include <Input_Proxy.hpp>
 #include <Output.hpp>
@@ -24,8 +23,6 @@ using saftlib::SAFTd_Proxy;
 using saftlib::SoftwareActionSink_Proxy;
 using saftlib::SoftwareCondition_Proxy;
 using saftlib::TimingReceiver_Proxy;
-
-static std::chrono::time_point<std::chrono::system_clock> taiNsToUtc(uint64_t input) { return std::chrono::utc_clock::to_sys(std::chrono::tai_clock::to_utc(std::chrono::tai_clock::time_point{} + std::chrono::nanoseconds(input) + std::chrono::years(12u))); }
 
 class Timing {
 public:
@@ -348,7 +345,7 @@ public:
                 }
                 sink = SoftwareActionSink_Proxy::create(receiver->NewSoftwareActionSink(saftAppName), saftSigGroup);
                 updateSnoopFilter();
-                for (const auto& [i, output] : receiver->getOutputs() | std::views::enumerate) {
+                for (const auto& [i, output] : std::views::zip(std::views::iota(0U), receiver->getOutputs())) {
                     const auto& [name, port] = output;
                     outputs.emplace_back(i, name, port);
                 }

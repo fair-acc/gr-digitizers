@@ -1,3 +1,5 @@
+#ifndef IMSCOPED_HPP
+#define IMSCOPED_HPP
 #include <imgui.h>
 #include <implot.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -57,3 +59,4 @@ using ListBox  = detail::Widget<&ImGui::BeginListBox, &ImGui::EndListBox>;
 using Disabled = detail::WidgetVoid<&ImGui::BeginDisabled, &ImGui::EndDisabled>;
 using Tooltip  = detail::WidgetVoid<&ImGui::BeginTooltip, &ImGui::EndTooltip>;
 } // namespace ImScoped
+#endif // IMSCOPED_HPP

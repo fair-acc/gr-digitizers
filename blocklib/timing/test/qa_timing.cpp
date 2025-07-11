@@ -1,5 +1,5 @@
 #include <boost/ut.hpp>
-#include <timing.hpp>
+#include <fair/timing/timing.hpp>
 
 using namespace std::string_literals;
 

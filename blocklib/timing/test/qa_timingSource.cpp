@@ -1,5 +1,5 @@
-#include <TimingSource.hpp>
 #include <boost/ut.hpp>
+#include <fair/timing/TimingSource.hpp>
 #include <format>
 #include <gnuradio-4.0/Scheduler.hpp>
 #include <gnuradio-4.0/basic/ConverterBlocks.hpp>
@@ -147,7 +147,8 @@ const suite TimingBlock = [] {
 
         expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(timingSrc).to<"in">(sink)));
 
-        scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{std::move(testGraph)};
+        scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{};
+        std::ignore = sched.exchange(std::move(testGraph));
         std::print("starting flowgraph\n");
         expect(sched.changeStateTo(gr::lifecycle::State::INITIALISED).has_value());
         auto res = sched.changeStateTo(gr::lifecycle::State::RUNNING);
@@ -204,7 +205,8 @@ const suite TimingBlock = [] {
 
         expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(timingSrc).to<"in">(sink)));
 
-        scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{std::move(testGraph)};
+        scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{};
+        std::ignore = sched.exchange(std::move(testGraph));
         std::print("starting flowgraph\n");
         expect(sched.changeStateTo(gr::lifecycle::State::INITIALISED).has_value());
         auto res = sched.changeStateTo(gr::lifecycle::State::RUNNING);

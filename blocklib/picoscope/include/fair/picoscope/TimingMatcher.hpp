@@ -21,13 +21,13 @@ struct MatcherResult {
  *  pulse                ──────┘ └───────┘ └──────┘  └─
  *  triggerSampleIndices       2                  3
  *  tag                 x   x  x    x             xx       x
- *  tag0 ───────────────┘   │  │    │             ││       │  outdated tag: cannot be matched anymore and has to be dropped
+ *  tag0 ───────────────┘   │  │    │             ││       │  outdated tag: cannot be matched any more and has to be dropped
  *  evtA ───────────────────┘  │    │             ││       │  tag without corresponding pulse, tag["HW-TRIGGER"] = false and no existing matched tag
  *  evt1 ──────────────────────┘    │             ││       │  regular tag with a corresponding hw edge
  *  evtB ───────────────────────────┘             ││       │  tag without corresponding pulse, tag["HW-TRIGGER"] = false but a tag was matched before
  *                                       !        ││       │  pulse without a tag metadata -> EVENT_UNKNOWN
  *  evt4 ─────────────────────────────────────────┘│       │  first of two overlapping hardware pulses can be treated like a regular pulse
- *  evt5 ──────────────────────────────────────────┘       │  trigger pulses overlap -> position tag relative to last matched tag
+ *  evt5 ──────────────────────────────────────────┘       │  trigger pulses overlap -> position tag relative to the last matched tag
  *  evt6 ──────────────────────────────────────────────────┘  corresponding pulse not yet occurred, has to be retained for the next chunk of data
  */
 struct TimingMatcher {
@@ -98,11 +98,11 @@ struct TimingMatcher {
 
     gr::Tag getOffsetAdjustedTag(auto currentFlankIndex, auto currentTagOffset, const gr::property_map& tagMap) {
         gr::property_map matchedTagMap = tagMap;
-        auto             deltaT        = static_cast<float>(currentTagOffset.count()) * (sampleRate / 1e9f);
+        const float      deltaT        = static_cast<float>(currentTagOffset.count()) * (sampleRate / 1e9f);
         auto             offsetIdx     = static_cast<long>(deltaT);
-        auto             offset        = deltaT - static_cast<float>(offsetIdx);
+        float            offset        = deltaT - static_cast<float>(offsetIdx);
         if (offset < 0.0f) {
-            offsetIdx--;
+            --offsetIdx;
             offset += 1.0f;
         }
         matchedTagMap.at(gr::tag::TRIGGER_OFFSET.shortKey()) = offset;
@@ -112,18 +112,22 @@ struct TimingMatcher {
     MatcherResult match(const std::span<const gr::property_map> tags, const std::span<const std::size_t>& triggerSampleIndices, const std::size_t nSamples, const std::chrono::nanoseconds localAcqTime) {
         MatcherResult result;
         std::size_t   triggerIndex    = 0;
-        std::size_t   unmatchedEvents = 0; // number of events hat have to be adjusted based on the next trigger that is found
+        std::size_t   unmatchedEvents = 0; // number of events that have to be adjusted based on the next trigger that is found
         float         Ts              = 1e9f / sampleRate;
         auto          maxDelaySamples = static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(timeout).count()) * 1e-9f * sampleRate);
-        result.processedSamples       = std::max(result.processedSamples, nSamples > maxDelaySamples ? nSamples - maxDelaySamples : 0); // consume at leat all samples up to the deadline
-        while (result.processedTags + unmatchedEvents < tags.size() || triggerIndex < triggerSampleIndices.size()) {                    // keep processing as long as there is either unprocessed pulses or hw edges
-            if (result.processedTags + unmatchedEvents >= tags.size()) {                                                                // all event tags processed, checking for potential hw edges
+        result.processedSamples       = nSamples > maxDelaySamples ? nSamples - maxDelaySamples : 0;                 // consume at least all samples up to the deadline
+        while (result.processedTags + unmatchedEvents < tags.size() || triggerIndex < triggerSampleIndices.size()) { // keep processing as long as there is either unprocessed pulses or hw edges
+            if (result.processedTags + unmatchedEvents >= tags.size()) {                                             // all event tags processed, checking for potential hw edges
                 const auto currentFlankIndex = triggerSampleIndices[triggerIndex];
                 const auto currentFlankTime  = localAcqTime + std::chrono::nanoseconds(static_cast<unsigned long>(Ts * static_cast<float>(currentFlankIndex)));
                 if (currentFlankIndex < nSamples - static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(timeout).count()) * 1e-9f * sampleRate)) {
                     // unmatched hw edge found and deadline for tag to arrive has passed -> publish UNKNOWN_EVENT // evtX
-                    result.tags.push_back(createUnknownEventTag(currentFlankIndex, currentFlankTime));
-                    result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
+                    if (!result.tags.empty() && result.tags.back().index > currentFlankIndex) {
+                        // this should normally not happen, but there are some cases where a hardware event is published based on realigning it instead of the hardware edge and so the hardware edge is not consumed
+                        result.messages.emplace_back(std::format("Cannot publish UNKNOWN_EVENT at {}, there have already been tags published before at {}", currentFlankIndex, result.tags.back().index));
+                    } else {
+                        result.tags.push_back(createUnknownEventTag(currentFlankIndex, currentFlankTime));
+                    }
                     triggerIndex++;
                     continue;
                 } else {
@@ -133,6 +137,7 @@ struct TimingMatcher {
             const std::size_t       tagIndex   = result.processedTags + unmatchedEvents;
             const gr::property_map& currentTag = tags[tagIndex];
             if (!checkValidTimingTag(currentTag)) {
+                result.messages.emplace_back(std::format("Invalid timing tag at index {}: {}", tagIndex, currentTag));
                 result.processedTags++;
                 continue;
             }
@@ -144,9 +149,14 @@ struct TimingMatcher {
                 if (!std::get<bool>(metaMap.at("HW-TRIGGER")) || (currentTagLocalTime + timeout) < (localAcqTime + std::chrono::nanoseconds(static_cast<long>(static_cast<float>(nSamples) * Ts)))) { // we are sure the hw edge cannot still arrive
                     if (_lastMatchedTag) {                                                                                                                                                            // publish tags based on last matched trigger
                         std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag);
+                        if (realignedTag && realignedTag->index >= result.processedSamples) {
+                            break; // tag will be moved outside the current data chunk and has to be handled in the next iteration
+                        }
                         if (realignedTag) {
                             result.processedSamples = std::max(result.processedSamples, realignedTag->index);
                             result.tags.push_back(std::move(*realignedTag));
+                        } else {
+                            result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
                         }
                         result.processedTags++;
                     } else { // there is no previous tag, look at the next tag, but look at this one again before publishing the next sample
@@ -163,16 +173,18 @@ struct TimingMatcher {
 
             if ((currentTagLocalTime + timeout) < localAcqTime) { // outdated tag -> drop // evt0 in diagram
                 result.processedTags++;
+                result.messages.emplace_back(std::format("dropping outdated tag1: {}", currentTag));
                 continue;
             }
 
             if (!std::get<bool>(metaMap.at("HW-TRIGGER")) || (currentTagLocalTime + timeout) < currentFlankTime) {
                 // event either explicitly has no hardware trigger or the next hw edge is too far away
-                if (_lastMatchedTag) { // publish tags based on last matched trigger // evtB or evt5 in diagram
-                    std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag);
-                    if (realignedTag) {
+                if (_lastMatchedTag) { // publish tags based on the last-matched trigger // evtB or evt5 in the diagram
+                    if (std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag)) {
                         result.processedSamples = std::max(result.processedSamples, realignedTag->index);
                         result.tags.push_back(std::move(*realignedTag));
+                    } else {
+                        result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
                     }
                     result.processedTags++;
                 } else { // there is currently no previous matched tag, keep tags to attach after the next trigger was detected // evtA in diagram
@@ -188,9 +200,8 @@ struct TimingMatcher {
                 continue;
             }
 
-            std::optional<gr::Tag> realignedDiagTag = alignTagRelativeToLastMatched(currentTag);
-            if (realignedDiagTag) {
-                const std::size_t indexTolerance = 3;
+            if (std::optional<gr::Tag> realignedDiagTag = alignTagRelativeToLastMatched(currentTag)) {
+                constexpr std::size_t indexTolerance = 3;
                 if (std::max(realignedDiagTag->index, currentFlankIndex) - std::min(realignedDiagTag->index, currentFlankIndex) > indexTolerance) {
                     result.messages.emplace_back(std::format("Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
                         realignedDiagTag->index, currentFlankIndex, indexTolerance));
@@ -200,9 +211,10 @@ struct TimingMatcher {
             // regular case, next hw edge belongs to the next tag
             _lastMatchedTag = {currentFlankIndex, std::chrono::nanoseconds(currentTagWRTime).count()};
             while (unmatchedEvents > 0) { // align all previously unaligned tags relative to this one
-                std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(tags[tagIndex - unmatchedEvents]);
-                if (realignedTag) {
+                if (std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(tags[tagIndex - unmatchedEvents])) {
                     result.tags.push_back(std::move(*realignedTag));
+                } else {
+                    result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
                 }
                 unmatchedEvents--;
                 result.processedTags++;
@@ -221,8 +233,9 @@ struct TimingMatcher {
             auto&      metaMap                = std::get<gr::property_map>(unconsumedTag.at(gr::tag::TRIGGER_META_INFO.shortKey()));
             const auto unconsumedTagLocalTime = std::chrono::nanoseconds(std::get<unsigned long>(metaMap.at("LOCAL-TIME")));
             const auto lastSampleTime         = localAcqTime + std::chrono::nanoseconds(static_cast<uint64_t>(static_cast<float>(nSamples) * Ts));
-            if (unconsumedTagLocalTime < lastSampleTime - timeout) {
+            if (unconsumedTagLocalTime < lastSampleTime - 2 * timeout) { // needs twice the timeout, since it is already contained once in the unpublished samples
                 result.processedTags++;
+                result.messages.emplace_back(std::format("dropping outdated(lastSampletTime={}, timeout={}) tag3: {}", lastSampleTime, timeout, unconsumedTag));
             } else {
                 break;
             }
