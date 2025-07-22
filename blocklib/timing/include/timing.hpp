@@ -93,7 +93,7 @@ public:
      * The additional fields `executed` and `flags` do not correspond to fields in the timing message but are used to
      * store local meta-information on whether the event was processed in time.
      */
-    struct Event {
+    struct alignas(64) Event {
         // eventid - 64
         uint8_t  fid = 1; // 4
         uint16_t gid;     // 12
@@ -198,6 +198,7 @@ public:
             }
         }
     };
+    static_assert(std::has_single_bit(sizeof(Event)));
 
     struct Trigger {
         std::array<bool, 20> outputs;
