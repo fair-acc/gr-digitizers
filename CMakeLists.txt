@@ -73,7 +73,7 @@ else()
       GIT_TAG v0.16)
     FetchContent_MakeAvailable(imgui implot gnuradio4 ut)
 
-    find_package(SDL2 REQUIRED)
+    find_package(SDL3 REQUIRED)
     find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
     # imgui and implot are not CMake Projects, so we have to define their
@@ -83,12 +83,12 @@ else()
       ${imgui_SOURCE_DIR}/imgui_demo.cpp
       ${imgui_SOURCE_DIR}/imgui_draw.cpp
       ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-      ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
+      ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
       ${imgui_SOURCE_DIR}/imgui_tables.cpp
       ${imgui_SOURCE_DIR}/imgui_widgets.cpp
       ${imgui_SOURCE_DIR}/imgui.cpp
       ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp)
-    target_link_libraries(imgui PUBLIC SDL2::SDL2 OpenGL::GL)
+    target_link_libraries(imgui PUBLIC SDL3::SDL3 OpenGL::GL)
     target_compile_options(
       imgui PRIVATE -w) # imgui does lots of oldstyle casts and pointer
                         # arithmethic leading to many warnings
