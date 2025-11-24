@@ -24,7 +24,7 @@ RUN sudo apt-get update \
 RUN sudo apt-get update \
     && sudo apt-get -y install libsigc++-2.0-dev libxslt1-dev libboost-all-dev \
     && cd $(mktmp -d) \
-    && git clone --branch v3.1.4 --depth=1 https://github.com/GSI-CS-CO/saftlib.git \
+    && git clone --branch v3.2.2 --depth=1 https://github.com/GSI-CS-CO/saftlib.git \
     && cd saftlib \
     && ./autogen.sh \
     && ./configure \
