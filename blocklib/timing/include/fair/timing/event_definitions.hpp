@@ -1,6 +1,8 @@
 #ifndef GR_DIGITIZERS_EVENT_DEFINITIONS_HPP
 #define GR_DIGITIZERS_EVENT_DEFINITIONS_HPP
 
+#include <map>
+
 struct TimingColor {
     int r = 0x0, g = 0x0, b = 0x0, a = 0xff;
 };

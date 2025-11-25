@@ -1,0 +1,8 @@
+# Picoscope and libusb seem to leak some data
+leak:libusb
+leak:libps6000
+leak:libps5000a
+leak:libps4000a
+leak:libps3000a
+# this is a known soapy leak.
+leak:libSoapySDR

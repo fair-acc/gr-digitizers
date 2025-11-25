@@ -1,14 +1,8 @@
 #ifndef GR_DIGITIZERS_TIMINGSOURCE_HPP
 #define GR_DIGITIZERS_TIMINGSOURCE_HPP
 
-#include <atomic>
 #include <chrono>
-#include <condition_variable>
-#include <iostream>
-#include <optional>
-#include <queue>
 #include <random>
-#include <thread>
 
 #include <format>
 
@@ -19,19 +13,21 @@
 
 #include "gnuradio-4.0/TriggerMatcher.hpp"
 
-#include "./event_definitions.hpp"
-#include "./timing.hpp"
+#include "event_definitions.hpp"
+#include "timing.hpp"
 
 namespace gr::timing {
 
 // static std::uint64_t taiNsToUtcNs(uint64_t input) { return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(taiNsToUtc(input).time_since_epoch()).count()); }
 //  should use some library function after validating the correct timestamp
-static std::uint64_t taiNsToUtcNs(uint64_t input) { return input - std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::seconds(37u)).count(); }
+static std::uint64_t taiNsToUtcNs(const uint64_t input) { return input - std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::seconds(37u)).count(); }
 
-struct TimingSource : public gr::Block<TimingSource, BlockingIO<true>> {
+struct TimingSource : gr::Block<TimingSource, BlockingIO<true>> {
+    using base = gr::Block<TimingSource, BlockingIO<true>>;
+    using base::Block;
     template<typename T, gr::meta::fixed_string description = "", typename... Arguments>
     using A               = gr::Annotated<T, description, Arguments...>;
-    using Description     = Doc<R""(A source block that generates clock signals as they are received from a White Rabbit timing receiver.
+    using Description     = Doc<R"""(A source block that generates clock signals as they are received from a White Rabbit timing receiver.
 
 The `event_actions` parameter is a list of strings, where each defines a matcher and a list of actions, separated by an arrow `->` character sequence.
 The matcher has the format `<GID>[:<EVT>[:BPC-START=<1|0>[:BEAM-IN=<1|0>[:<SID>[:BPID]]]]]`, where GID and EVT can be either Names or numeric values for
@@ -60,32 +56,13 @@ tags: [
   ...
 ]
 ```
-If you need a continuous stream of samples synchronised to the timing tags, you can set a non-zero sample rate, e.g. `sample_rate: 250.0` in Hz, which will cause the block to output
-data at that average sampling rate. If no events are received, there is a configured delay at which the samples will be published anyway.
-```
-samples:  [0, 1, 0, 0, 3, 2, 2, ...]
-tags: [
-  1 -> { BEAM-IN: true, BPC-START: false, BPCID: 0, BPCTS: 0, BPID: 0, EVENT-NAME: CMD_BP_START, EVENT-NO: 256, GID: 310, SID: 0, TIMING-GROUP: UNKNOWN-TIMING-GROUP, TIMING-ID: 1240196373932933120, TIMING-PARAM: 0, gr:trigger_offset: 0, trigger_name: CMD_BP_START/FAIR-TIMING:B=0.P=0.C=0.T=310, trigger_time: 633103525799216 }
-  4 -> { IO-LEVEL: true, IO-NAME: IO1, TIMING-ID: 18446181123756130306, TIMING-PARAM: 0, gr:trigger_offset: 0, trigger_name: IO2_FALLING, trigger_time: 633103024372976 }
-  ...
-]
- ```
-
-Also signal changes on the digital IOs will be added as tags to the output ports and change the value that will be output on the output port's bits left of the LSB(which indicates the presence of a tag):
-```
-timingSource.out [uint8t]:     0b   0    0    0    0    1    1    1    1
-Timing Receiver IO port state:                         IO3  IO2  IO1  tag_present
-```
-
-This block does not change the configuration of the ports as input or output ports, so if you want to use a port as an output port you will have to configure
-it accordingly using the `saft-io-ctl` utility.
-)"">;
+)""">;
     using ClockSourceType = std::chrono::tai_clock;
     using TimePoint       = std::chrono::time_point<ClockSourceType>;
 
-    PortOut<std::uint8_t> out;
+    gr::PortOut<std::uint8_t> out{};
     // TODO: PortIn< std::uint8_t, Async> DIO1..3 // Follow-up-PR
-    MsgPortIn ctxInfo;
+    // MsgPortIn ctxInfo;
 
     A<std::vector<std::string>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
     A<bool, "io event tags", Doc<"Whether to publish event tags for rising/falling edges of IO ports">>                                                                                                                         io_events       = false;
@@ -95,20 +72,20 @@ it accordingly using the `saft-io-ctl` utility.
     A<bool, "verbose console", Doc<"For debugging">>                                                                                                                                                                            verbose_console = false;
     // TODO: enable/disable publishing on input port changes -> For now everything is published, add in follow-up PR
 
-    GR_MAKE_REFLECTABLE(TimingSource, out, ctxInfo, event_actions, io_events, sample_rate, timing_device, max_delay, verbose_console);
+    GR_MAKE_REFLECTABLE(TimingSource, out, /*ctxInfo,*/ event_actions, io_events, sample_rate, timing_device, max_delay, verbose_console);
 
     using ConditionsType = std::map<std::string, std::map<std::string, std::variant<std::shared_ptr<saftlib::OutputCondition_Proxy>, std::shared_ptr<saftlib::SoftwareCondition_Proxy>>>>;
     Timing _timing;
     using EventReaderType         = decltype(_timing.snooped.new_reader());
     EventReaderType _event_reader = _timing.snooped.new_reader();
-    ConditionsType  _conditionProxies;
-    TimePoint       _startTime;
+    ConditionsType  _conditionProxies{};
+    TimePoint       _startTime{};
     std::size_t     _publishedSamples = 0;
     std::uint8_t    _lastOutputState  = 0;
     std::uint8_t    _outputState      = 0;
     std::uint8_t    _nextOutputState  = 0;
 
-    std::vector<std::tuple<std::uint64_t, std::uint64_t>> eventHwTrigger;
+    std::vector<std::tuple<std::uint64_t, std::uint64_t>> eventHwTrigger{};
 
     void start() {
         if (verbose_console) {
@@ -131,7 +108,7 @@ it accordingly using the `saft-io-ctl` utility.
             auto& [conditionString, proxyMap] = pair;
             std::ranges::for_each(proxyMap, [](auto& kvp) {
                 auto& [proxyName, proxy] = kvp;
-                std::visit([](auto proxyVal) { proxyVal->Destroy(); }, proxy);
+                std::visit([](const auto& proxyVal) { proxyVal->Destroy(); }, proxy);
             });
         });
         _conditionProxies.clear();
@@ -141,7 +118,7 @@ it accordingly using the `saft-io-ctl` utility.
 
     static std::pair<std::uint64_t, std::uint64_t> parseFilter(const std::string& newFilter) {
         std::vector<std::string_view> filterTokens = std::views::split(newFilter, ":"sv) | std::views::transform([](auto r) { return std::string_view(r.begin(), r.end()); }) | std::ranges::to<std::vector>();
-        // initialize with the fixed format identifier
+        // initialise with the fixed format identifier
         uint64_t filter = 0x1000000000000000UL;
         uint64_t mask   = 0xf000000000000000UL;
         // timing group ID, given as string or numeric value
@@ -242,7 +219,7 @@ it accordingly using the `saft-io-ctl` utility.
                                       return std::pair{delay, std::string(a.begin(), a.end())};
                                   }) |
                                 std::ranges::to<std::vector>();
-            parsedActions.push_back(std::pair{actions.substr(actionPos, actionStart - actionPos), std::move(parsedAction)});
+            parsedActions.emplace_back(actions.substr(actionPos, actionStart - actionPos), std::move(parsedAction));
             if (actionEnd + 1 >= actions.size()) {
                 break;
             } else if (actions[actionEnd + 1] != ',') {
@@ -314,8 +291,8 @@ it accordingly using the `saft-io-ctl` utility.
                         }
                         continue;
                     }
-                    if (std::find(eventHwTrigger.begin(), eventHwTrigger.end(), std::tuple{filter, mask}) == eventHwTrigger.end()) {
-                        eventHwTrigger.push_back({filter, mask});
+                    if (std::ranges::find(eventHwTrigger, std::tuple{filter, mask}) == eventHwTrigger.end()) {
+                        eventHwTrigger.emplace_back(filter, mask);
                     }
                     for (auto& [delay, state] : changes) {
                         std::string triggerAction = std::format("{}({},{})", ioName, delay, state);
@@ -359,12 +336,12 @@ it accordingly using the `saft-io-ctl` utility.
         } // end io triggers
     }
 
-    static void addHwTriggerInfo(std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
+    static void addHwTriggerInfo(const std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
         auto& metaMapVariant = tag.map[gr::tag::TRIGGER_META_INFO.shortKey()];
         if (std::holds_alternative<std::monostate>(metaMapVariant)) {
-            metaMapVariant = property_map{}; // initialize empty property map
+            metaMapVariant = property_map{}; // initialise an empty property map
         } else if (!std::holds_alternative<gr::property_map>(metaMapVariant)) {
-            return; // edgecase where the tag map already contains data of a non-map type on the meta-info key -> just skip adding metadata
+            return; // edge case where the tag map already contains data of a non-map type on the meta-info key -> just skip adding metadata
         }
         bool  isHwTrigger = false;
         auto& metaMap     = std::get<gr::property_map>(metaMapVariant);
@@ -377,9 +354,9 @@ it accordingly using the `saft-io-ctl` utility.
         metaMap.insert_or_assign("HW-TRIGGER", isHwTrigger);
     }
 
-    void addHwTriggerInfo(std::uint64_t id, Tag& tag) { addHwTriggerInfo(id, tag, eventHwTrigger); }
+    void addHwTriggerInfo(const std::uint64_t id, Tag& tag) const { addHwTriggerInfo(id, tag, eventHwTrigger); }
 
-    Tag eventToTag(const Timing::Event& event, std::int64_t currentTime) {
+    Tag eventToTag(const Timing::Event& event, const std::int64_t currentTime) {
         Tag              tag;
         gr::property_map meta;
         std::uint64_t    id = event.id();
@@ -427,18 +404,18 @@ it accordingly using the `saft-io-ctl` utility.
     void updateOutputState(const Timing::Event& event) {
         // check if the event changed the output state and update it accordingly
         // this logic makes sure that a bit is only changed once per published sample -> even short pulses or drops will at least trigger one sample flank
-        std::uint8_t inputNr = static_cast<std::uint8_t>(event.id() & ~Timing::ECA_EVENT_MASK_LATCH) >> 1;
-        std::uint8_t mask    = static_cast<std::uint8_t>(0x1 << (inputNr + 1));
-        _nextOutputState     = (_nextOutputState & ~mask) | static_cast<std::uint8_t>((event.id() & 0x1ull) << (inputNr + 1));
+        const std::uint8_t inputNr = static_cast<std::uint8_t>(event.id() & ~Timing::ECA_EVENT_MASK_LATCH) >> 1;
+        const auto         mask    = static_cast<std::uint8_t>(0x1 << (inputNr + 1));
+        _nextOutputState           = (_nextOutputState & ~mask) | static_cast<std::uint8_t>((event.id() & 0x1ull) << (inputNr + 1));
         if ((_outputState & mask) == (_lastOutputState & mask)) { // if the bit was already changed since the last sample
             _outputState = (_nextOutputState & mask) | (_outputState & ~mask);
         }
     }
 
-    work::Status processBulk(OutputSpanLike auto& outSpan) noexcept {
+    [[nodiscard]] gr::work::Status processBulk(OutputSpanLike auto& outSpan) {
         // update context information
         _timing.saftSigGroup.wait_for_signal(static_cast<int>(max_delay >> 22ul)); // process saftlib events, max_delay >> 22 is ~ 1/4 of max delay in ms
-        auto timingEvents = _event_reader.template get<SpanReleasePolicy::ProcessAll>();
+        const auto timingEvents = _event_reader.get<SpanReleasePolicy::ProcessAll>();
         // publish to output port and message port
         std::size_t  toPublish   = 0;
         std::int64_t currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -448,7 +425,7 @@ it accordingly using the `saft-io-ctl` utility.
             // TODO: make stable against rounding errors by using global time difference instead of just between 2 events
             std::size_t samplesUntilCurrentEvent = 0;
             if (sample_rate != 0.0f) {
-                long publishedNs         = static_cast<long>(std::ceil(static_cast<double>(_publishedSamples) / static_cast<double>(sample_rate) * 1e9));
+                const long publishedNs   = static_cast<long>(std::ceil(static_cast<double>(_publishedSamples) / static_cast<double>(sample_rate) * 1e9));
                 samplesUntilCurrentEvent = static_cast<size_t>(std::floor(static_cast<double>((TimePoint(std::chrono::nanoseconds(event.time)) - _startTime).count() - publishedNs) * static_cast<double>(sample_rate) * 1e-9));
                 if (samplesUntilCurrentEvent > 0) {
                     if (_nextOutputState != _outputState) {
@@ -479,13 +456,13 @@ it accordingly using the `saft-io-ctl` utility.
             }
         }
 
-        // publish more samples if last sample is further in the past than the maximum allowed latency
+        // publish more samples if the last sample is further in the past than the maximum allowed latency
         if (sample_rate != 0.0f) {
-            auto now         = TimePoint(std::chrono::nanoseconds(_timing.currentTimeTAI()));
-            long publishedNs = static_cast<long>(std::ceil(static_cast<double>(_publishedSamples + toPublish) / static_cast<double>(sample_rate) * 1e9));
-            auto catchUpNs   = (now - _startTime).count() - static_cast<long>(max_delay) - publishedNs;
+            const auto now         = TimePoint(std::chrono::nanoseconds(_timing.currentTimeTAI()));
+            const long publishedNs = static_cast<long>(std::ceil(static_cast<double>(_publishedSamples + toPublish) / static_cast<double>(sample_rate) * 1e9));
+            const auto catchUpNs   = (now - _startTime).count() - static_cast<long>(max_delay) - publishedNs;
             if (catchUpNs > 0) {
-                std::size_t samplesUntilCurrentEvent = static_cast<size_t>(std::floor(static_cast<double>(catchUpNs) * static_cast<double>(sample_rate) * 1e-9));
+                auto samplesUntilCurrentEvent = static_cast<size_t>(std::floor(static_cast<double>(catchUpNs) * static_cast<double>(sample_rate) * 1e-9));
                 if (samplesUntilCurrentEvent > 0) {
                     if (_nextOutputState != _outputState) {
                         _lastOutputState = _nextOutputState;
@@ -502,21 +479,22 @@ it accordingly using the `saft-io-ctl` utility.
         return work::Status::OK;
     }
 
-    void processMessages(gr::MsgPortIn& portIn, std::span<const gr::Message> messages) {
-        if (portIn.name == ctxInfo.name) { // TODO: check why portIn cannot be directly compared
-            for (auto& msg : messages) {
-                if (msg.data.has_value()) {
-                    // these messages may contain context information and should be used to update some lookup table inside the block and possibly update timing filters
-                    // the exact format and content of messages and cache has yet to be determined
-                }
-            }
-        }
-    }
+    // void processMessages(const gr::MsgPortIn& portIn, const std::span<const gr::Message> messages) const {
+    //     if (portIn.name == ctxInfo.name) { // TODO: check why portIn cannot be directly compared
+    //         for (auto& msg : messages) {
+    //             if (msg.data.has_value()) {
+    //                 // these messages may contain context information and should be used to update some lookup table inside the block and possibly update timing filters
+    //                 // the exact format and content of messages and cache has yet to be determined
+    //             }
+    //         }
+    //     }
+    // }
 };
 
 } // namespace gr::timing
 
-auto registerTimingSource = gr::registerBlock<gr::timing::TimingSource>(gr::globalBlockRegistry());
+inline auto registerTimingSource = gr::registerBlock<gr::timing::TimingSource>(gr::globalBlockRegistry());
+static_assert(gr::BlockLike<gr::timing::TimingSource>);
 static_assert(gr::HasProcessBulkFunction<gr::timing::TimingSource>);
 
 #endif // GR_DIGITIZERS_TIMINGSOURCE_HPP

@@ -1,8 +1,11 @@
 #ifndef GR_DIGITIZERS_FAIRPLOT_HPP
 #define GR_DIGITIZERS_FAIRPLOT_HPP
-#include "event_definitions.hpp"
+
 #include <implot.h>
 #include <implot_internal.h>
+
+#include <fair/timing/event_definitions.hpp>
+
 /*
  * ImPlot Extension to display data with different discrete (or continuous) values as a color coded horizontal bar
  * - for discrete values, show the discrete values either inline or show a legend
