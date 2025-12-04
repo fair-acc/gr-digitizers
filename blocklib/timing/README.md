@@ -7,8 +7,14 @@ This directory contains the timing realated gnuradio blocks along with some test
 For actually using the blocks and utilities built by this you will also need actual timing receiver hardware, the
 [wishbone kernel module](https://ohwr.org/project/fpga-config-space/tree/realtime_fixes/pcie-wb) has to be loaded and the saftlibd daemon has to be running and configured properly.
 
+`etherbone` and `saftlib` require a few additional packages. On Ubuntu you can install them with:
+
 ```shell
-git clone --branch v2.1.3 --depth=1 https://ohwr.org/project/etherbone-core.git
+sudo apt-get update && sudo apt-get -y install build-essential autoconf automake libtool libsigc++-2.0-dev libxslt1-dev libboost-all-dev
+```
+
+```shell
+git clone --branch v2.1.4 --depth=1 https://gitlab.com/ohwr/project/etherbone-core.git
 cd etherbone-core/api
 ./autogen.sh
 ./configure
@@ -17,7 +23,7 @@ sudo make install
 ```
 
 ```shell
-git clone --branch v3.0.3 --depth=1 https://github.com/GSI-CS-CO/saftlib.git
+git clone --branch v3.2.2 --depth=1 https://github.com/GSI-CS-CO/saftlib.git
 cd saftlib
 ./autogen.sh
 ./configure
