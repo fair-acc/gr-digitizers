@@ -1,6 +1,7 @@
 FROM ghcr.io/fair-acc/gr4-build-container:latest
 LABEL authors="akrimm+rstein"
 
+# Trigger Update 2025-12-11
 # Install pkg-config
 RUN sudo apt-get update && sudo apt-get -y install build-essential pkg-config && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
 
