@@ -30,7 +30,7 @@ include(FetchContent)
 FetchContent_Declare(
   gnuradio4
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-  GIT_TAG 677e09f77bd757adce311a8c1d3de0253b860c86 # main as of 2025-11-06
+  GIT_TAG fd6ce5a3edb7b6d65cade7f63181a9bc0ccc4b17 # main as of 2025-12-11
   EXCLUDE_FROM_ALL)
 
 # Workaround: Add Python dependency which is missing for the single header
