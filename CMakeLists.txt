@@ -33,14 +33,6 @@ FetchContent_Declare(
   GIT_TAG fd6ce5a3edb7b6d65cade7f63181a9bc0ccc4b17 # main as of 2025-12-11
   EXCLUDE_FROM_ALL)
 
-# Workaround: Add Python dependency which is missing for the single header
-# target in gr4
-if(NOT EMSCRIPTEN)
-  find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-  link_libraries(Python3::Python) # should be added to gr-basic in gr4 (if it is
-                                  # built with python support)
-endif()
-
 FetchContent_Declare(
   ut
   GIT_REPOSITORY https://github.com/boost-ext/ut.git
