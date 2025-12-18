@@ -341,8 +341,10 @@ class PicoscopeWrapper {
                 if (activeChannels == 0) { // early return if no channels are active
                     return std::unexpected{Error{"No channels configured"}};
                 }
-                scope.data.resize(65536);                                           // todo: figure out better buffer size strategy
-                const std::size_t segmentSize = scope.data.size() / activeChannels; // TODO: maybe resize this according to sample rate and number of channels
+                const std::size_t kBaseBuf = 16384;
+                const std::size_t mult     = std::max<std::size_t>(1, static_cast<std::size_t>(std::ceil(freq / 1e6)));
+                scope.data.resize(activeChannels * mult * kBaseBuf);
+                const std::size_t segmentSize = scope.data.size() / activeChannels;
                 std::size_t       j           = 0;
                 for (const auto& [output, chan] : std::views::zip(TPSImpl::outputs, scope.channel_config | std::views::values)) {
                     if (chan.enable) {
@@ -397,6 +399,9 @@ class PicoscopeWrapper {
                 }
                 actualFreq = detail::convertTimeIntervalToSampleRate(timeInterval);
                 started    = true;
+                if (scope.verbose) {
+                    std::println("actualFreq:{}, timeInterval:{}, units:{}", actualFreq, timeInterval.interval, magic_enum::enum_name(timeInterval.unit));
+                }
             }
             return {};
         }
