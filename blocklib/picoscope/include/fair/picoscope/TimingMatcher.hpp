@@ -85,7 +85,7 @@ struct TimingMatcher {
         auto [lastIdx, lastTime]    = *_lastMatchedTag;
         auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
         auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
-        auto deltaIdx               = static_cast<long>(delta);
+        auto deltaIdx               = static_cast<long>(std::floor(delta));
         auto deltaOffset            = (delta - static_cast<float>(deltaIdx)) / sampleRate;
         auto idx                    = lastIdx + deltaIdx;
         if (idx < 0) { // tag was before the current chunk of data
@@ -110,17 +110,18 @@ struct TimingMatcher {
     }
 
     MatcherResult match(const std::span<const gr::property_map> tags, const std::span<const std::size_t>& triggerSampleIndices, const std::size_t nSamples, const std::chrono::nanoseconds localAcqTime) {
-        MatcherResult result;
-        std::size_t   triggerIndex    = 0;
-        std::size_t   unmatchedEvents = 0; // number of events that have to be adjusted based on the next trigger that is found
-        float         Ts              = 1e9f / sampleRate;
-        auto          maxDelaySamples = static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(timeout).count()) * 1e-9f * sampleRate);
-        result.processedSamples       = nSamples > maxDelaySamples ? nSamples - maxDelaySamples : 0;                 // consume at least all samples up to the deadline
+        MatcherResult     result;
+        std::size_t       triggerIndex    = 0;
+        std::size_t       unmatchedEvents = 0; // number of events that have to be adjusted based on the next trigger that is found
+        float             Ts              = 1e9f / sampleRate;
+        const auto        maxDelaySamples = static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(timeout).count()) * 1e-9f * sampleRate);
+        const std::size_t safeSamples     = nSamples > maxDelaySamples ? nSamples - maxDelaySamples : 0;
+        result.processedSamples           = safeSamples;                                                             // consume at least all samples up to the deadline
         while (result.processedTags + unmatchedEvents < tags.size() || triggerIndex < triggerSampleIndices.size()) { // keep processing as long as there is either unprocessed pulses or hw edges
             if (result.processedTags + unmatchedEvents >= tags.size()) {                                             // all event tags processed, checking for potential hw edges
                 const auto currentFlankIndex = triggerSampleIndices[triggerIndex];
                 const auto currentFlankTime  = localAcqTime + std::chrono::nanoseconds(static_cast<unsigned long>(Ts * static_cast<float>(currentFlankIndex)));
-                if (currentFlankIndex < nSamples - static_cast<std::size_t>(static_cast<float>(std::chrono::nanoseconds(timeout).count()) * 1e-9f * sampleRate)) {
+                if (currentFlankIndex < safeSamples) {
                     // unmatched hw edge found and deadline for tag to arrive has passed -> publish UNKNOWN_EVENT // evtX
                     if (!result.tags.empty() && result.tags.back().index > currentFlankIndex) {
                         // this should normally not happen, but there are some cases where a hardware event is published based on realigning it instead of the hardware edge and so the hardware edge is not consumed

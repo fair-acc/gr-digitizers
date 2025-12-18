@@ -273,15 +273,14 @@ public:
             }
             output.publish(matchedTags.processedSamples);
         }
-        if (samplesDropped > 0UZ) {
-            for (auto& [index, map] : matchedTags.tags) {
-                digitalOutSpan.publishTag(map, index);
-            }
-            digitalOutSpan.publishTag(gr::property_map{{"droppedSamples", samplesDropped}}, unpublishedSamples + nSamples); // todo: correct tag
-        }
+
         for (auto& [index, map] : matchedTags.tags) {
             digitalOutSpan.publishTag(map, index);
         }
+        if (samplesDropped > 0UZ) {
+            digitalOutSpan.publishTag(gr::property_map{{"droppedSamples", samplesDropped}}, unpublishedSamples + nSamples); // todo: correct tag
+        }
+
         digitalOutSpan.publish(matchedTags.processedSamples);
         _nSamplesPublished += matchedTags.processedSamples;
         assert(unpublishedSamples + nSamples >= matchedTags.processedSamples);
