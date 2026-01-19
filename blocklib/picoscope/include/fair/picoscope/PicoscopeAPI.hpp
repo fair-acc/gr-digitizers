@@ -225,7 +225,10 @@ class PicoscopeWrapper {
             }
             if (status == 1 && complete != 1) { // Check AsyncOpen progress
                 if (const PICO_STATUS ret = scope.instance.openUnitProgress(&progress, &complete); ret != PICO_OK && ret != PICO_OPEN_OPERATION_IN_PROGRESS) {
-                    if (ret == PICO_POWER_SUPPLY_NOT_CONNECTED) {
+                    if (ret == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
+                        std::println("PicoscopeAPI - Warning! Picoscope is connected to non-USB3.0 port. Switch picoscope into non-USB 3.0-power mode. Status code: PICO_USB3_0_DEVICE_NON_USB3_0_PORT");
+                    }
+                    if (ret == PICO_POWER_SUPPLY_NOT_CONNECTED || ret == PICO_USB3_0_DEVICE_NON_USB3_0_PORT) {
                         if (const PICO_STATUS ret2 = scope.instance.changePowerSource(ret); ret2 != PICO_OK) {
                             return std::unexpected(Error{ret2});
                         }
