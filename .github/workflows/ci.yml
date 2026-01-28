@@ -72,9 +72,9 @@ jobs:
         compiler:
           - cc: gcc-14
             cxx: g++-14
-          - cc: clang-18
-            cxx: clang++-18
-            cmake_flags: "-DCMAKE_LINKER=/usr/bin/clang-18"
+          - cc: clang-20
+            cxx: clang++-20
+            cmake_flags: "-DCMAKE_LINKER=/usr/bin/clang-20"
           - cmake_wrapper: emcmake
             cc: emcc
             cmake_flags: " -DENABLE_PICOSCOPE=FALSE -DENABLE_TIMING=FALSE -DENABLE_COVERAGE=OFF -DCMAKE_CROSSCOMPILING_EMULATOR=${SYSTEM_NODE} -DGNURADIO_PARSE_REGISTRATIONS_TOOL_CXX_COMPLILER=g++-14"
