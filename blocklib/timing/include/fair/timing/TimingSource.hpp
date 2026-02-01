@@ -64,12 +64,12 @@ tags: [
     // TODO: PortIn< std::uint8_t, Async> DIO1..3 // Follow-up-PR
     // MsgPortIn ctxInfo;
 
-    A<std::vector<std::string>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
-    A<bool, "io event tags", Doc<"Whether to publish event tags for rising/falling edges of IO ports">>                                                                                                                         io_events       = false;
-    A<float, "avg. sample rate", Doc<"Controls the sample rate at which to publish the digital output state. A value of 0.0f means samples are published only when there's an event.">, Visible>                                sample_rate     = 1000.f;
-    A<std::string, "timing device name", Doc<"Specifies the timing device to use. In case it is left empty, the first timing device that is found is used.">>                                                                   timing_device   = "";
-    A<std::uint64_t, "max delay", Doc<"Maximum delay for messages from the timing hardware. Only used for sample_rate != 0.0f">, Unit<"ns">>                                                                                    max_delay       = 10'000'000; // 10 ms // todo: uint64t ns
-    A<bool, "verbose console", Doc<"For debugging">>                                                                                                                                                                            verbose_console = false;
+    A<gr::Tensor<pmt::Value>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
+    A<bool, "io event tags", Doc<"Whether to publish event tags for rising/falling edges of IO ports">>                                                                                                                       io_events       = false;
+    A<float, "avg. sample rate", Doc<"Controls the sample rate at which to publish the digital output state. A value of 0.0f means samples are published only when there's an event.">, Visible>                              sample_rate     = 1000.f;
+    A<std::string, "timing device name", Doc<"Specifies the timing device to use. In case it is left empty, the first timing device that is found is used.">>                                                                 timing_device   = "";
+    A<std::uint64_t, "max delay", Doc<"Maximum delay for messages from the timing hardware. Only used for sample_rate != 0.0f">, Unit<"ns">>                                                                                  max_delay       = 10'000'000; // 10 ms // todo: uint64t ns
+    A<bool, "verbose console", Doc<"For debugging">>                                                                                                                                                                          verbose_console = false;
     // TODO: enable/disable publishing on input port changes -> For now everything is published, add in follow-up PR
 
     GR_MAKE_REFLECTABLE(TimingSource, out, /*ctxInfo,*/ event_actions, io_events, sample_rate, timing_device, max_delay, verbose_console);
@@ -231,14 +231,14 @@ tags: [
         return parsedActions;
     }
 
-    static auto splitTriggerActions(const std::string& newTrigger) {
+    static auto splitTriggerActions(std::string_view newTrigger) {
         const std::size_t pos = newTrigger.find("->");
         if (pos == std::string::npos) {
             throw gr::exception(std::format("Invalid trigger definition (must contain '->' separator): {}", newTrigger));
         }
         auto trigger = newTrigger.substr(0, pos);
         auto actions = newTrigger.substr(pos + 2);
-        return std::pair{trigger, actions};
+        return std::pair{std::string{trigger}, std::string{actions}};
     }
 
     void updateEventTriggers() {
@@ -254,7 +254,7 @@ tags: [
             if (verbose_console) {
                 std::print("adding new trigger: {}\n", trigger);
             }
-            auto [triggerMatcher, triggerActions] = splitTriggerActions(trigger);
+            auto [triggerMatcher, triggerActions] = splitTriggerActions(trigger.value_or(std::string_view()));
             keepMatcher.insert(triggerMatcher);
             if (!_conditionProxies.contains(triggerMatcher)) {
                 std::set<std::string> keepAction;
@@ -322,14 +322,24 @@ tags: [
     void settingsChanged(const property_map& oldSettings, const property_map& newSettings) {
         using std::operator""sv;
         // configure io ports based on settings
-        if (newSettings.contains("timing_device") && timing_device != std::get<std::string>(oldSettings.at("timing_device"))) {
+        const auto oldSettingsTimingDevice = [&]() -> std::optional<std::string> {
+            if (!newSettings.contains("timing_device")) {
+                return std::nullopt;
+            }
+            auto value = oldSettings.at("timing_device");
+            if (!value.is_string()) {
+                return std::nullopt;
+            }
+            return value.value_or(std::string{});
+        }();
+        if (oldSettingsTimingDevice && timing_device != oldSettingsTimingDevice) {
             if (_timing.receiver) {
-                timing_device = std::get<std::string>(oldSettings.at("timing_device"));
+                timing_device = *oldSettingsTimingDevice;
                 throw gr::exception(std::format("Changing the timing receiver device name while the timing source is running is not supported."));
             }
             _timing.deviceName = timing_device;
         } // end io triggers
-        if (newSettings.contains("event_actions") && event_actions != std::get<std::vector<std::string>>(oldSettings.at("event_actions"))) {
+        if (newSettings.contains("event_actions") && event_actions != oldSettings.at("event_actions").value_or(gr::Tensor<pmt::Value>{})) {
             if (_timing.receiver) {
                 updateEventTriggers();
             }
@@ -338,13 +348,14 @@ tags: [
 
     static void addHwTriggerInfo(const std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
         auto& metaMapVariant = tag.map[gr::tag::TRIGGER_META_INFO.shortKey()];
-        if (std::holds_alternative<std::monostate>(metaMapVariant)) {
+        if (metaMapVariant.is_monostate()) {
             metaMapVariant = property_map{}; // initialise an empty property map
-        } else if (!std::holds_alternative<gr::property_map>(metaMapVariant)) {
+        } else if (!metaMapVariant.is_map()) {
             return; // edge case where the tag map already contains data of a non-map type on the meta-info key -> just skip adding metadata
         }
-        bool  isHwTrigger = false;
-        auto& metaMap     = std::get<gr::property_map>(metaMapVariant);
+        bool isHwTrigger = false;
+        assert(metaMapVariant.is_map());
+        auto& metaMap = *metaMapVariant.get_if<gr::property_map>();
         for (const auto& [filter, mask] : eventMeta) {
             if ((id & mask) == (filter & mask)) {
                 isHwTrigger = true;

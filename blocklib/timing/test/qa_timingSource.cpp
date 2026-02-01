@@ -128,6 +128,30 @@ std::thread dispatchSimulatedTiming(std::size_t n = 30, std::size_t schedule_dt 
 }
 
 const suite TimingBlock = [] {
+    constexpr static auto getBPID = [](gr::Tag& tag) -> std::optional<uint16_t> {
+        auto BPIDValue = tag.map[gr::tag::TRIGGER_META_INFO.shortKey()].value_or(gr::property_map{})["BPID"];
+        assert(BPIDValue.template holds<uint16_t>());
+        return BPIDValue.value_or(uint16_t{});
+    };
+
+    constexpr static auto verboseUpdateMessages = [](auto& sink) {
+        std::print("received{} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
+        if (!sink._tags.empty()) {
+            const auto firstTimestampValue = sink._tags[0].map[gr::tag::TRIGGER_TIME.shortKey()];
+            if (!firstTimestampValue.template holds<uint64_t>()) {
+                std::println("WARNING: bad type ({}, {}) for timestamp at index 0, expected {}", firstTimestampValue.value_type(), firstTimestampValue.container_type(), gr::meta::type_name<std::uint64_t>());
+            }
+            const auto firstTimestamp = firstTimestampValue.value_or(std::uint64_t{});
+            for (auto& tag : sink._tags) {
+                const auto triggerTimeValue = tag.map[gr::tag::TRIGGER_TIME.shortKey()];
+                if (!triggerTimeValue.template holds<std::uint64_t>()) {
+                    std::println("WARNING: bad type ({}, {}) for timestamp, expected {}", firstTimestampValue.value_type(), firstTimestampValue.container_type(), gr::meta::type_name<std::uint64_t>());
+                }
+                std::print("  {} - {}s: {}\n", tag.index, (static_cast<double>(triggerTimeValue.value_or(std::uint64_t{}) - firstTimestamp)) * 1e-9, tag.map);
+            }
+        }
+    };
+
     tag("timing-hardware") / "test_events_and_samples"_test = [] {
         using namespace gr;
         using namespace gr::testing;
@@ -137,11 +161,11 @@ const suite TimingBlock = [] {
         constexpr float sample_rate = 250.f;
         Graph           testGraph;
         auto&           timingSrc = testGraph.emplaceBlock<gr::timing::TimingSource>({
-            {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
-                                            "301:256->IO1(100,on,110,off,140,on,150,off)",                                                  //
-                                            "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                       //
-            {"sample_rate", sample_rate},                                                                                         //
-            {"verbose_console", verbose}                                                                                          //
+            {"event_actions", gr::Tensor<pmt::Value>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
+                                            "301:256->IO1(100,on,110,off,140,on,150,off)",                                                //
+                                            "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                     //
+            {"sample_rate", sample_rate},                                                                                       //
+            {"verbose_console", verbose}                                                                                        //
         });
         auto&           sink      = testGraph.emplaceBlock<TagSink<uint8_t, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink"}, {"verbose_console", verbose}});
 
@@ -166,7 +190,7 @@ const suite TimingBlock = [] {
 
         expect(approx(sink._samples.size(), 1500UZ, 100UZ)) << "samples do not approximately correspond to the configured sample rate";
         expect(approx(sink._tags.size(), 50UZ, 10UZ)) << "expected approximately 50 tags";
-        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())).contains("BPID"); }) | std::views::transform([](auto& tag) { return std::get<uint16_t>(std::get<gr::property_map>(tag.map[gr::tag::TRIGGER_META_INFO.shortKey()])["BPID"]); }), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
+        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}).contains("BPID"); }) | std::views::transform(getBPID), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
 
         expect(std::ranges::equal(sink._samples | std::views::transform([](auto v) { return v >> 2; })                                    // drop irrelevant bits (LSB: tagPresent, LSB+1:output which toggles on timing events)
                                       | std::views::chunk_by(std::equal_to{})                                                             // merge and count identical samples
@@ -177,13 +201,7 @@ const suite TimingBlock = [] {
             << "expected almost 4 iterations of the pattern. the first sample is dropped, because it has less than 100 samples";
 
         if (verbose) {
-            std::print("received{} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
-            if (!sink._tags.empty()) {
-                const auto firstTimestamp = std::get<std::uint64_t>(sink._tags[0].map[gr::tag::TRIGGER_TIME.shortKey()]);
-                for (auto& tag : sink._tags) {
-                    std::print("  {} - {}s: {}\n", tag.index, (static_cast<double>(std::get<std::uint64_t>(tag.map[gr::tag::TRIGGER_TIME.shortKey()]) - firstTimestamp)) * 1e-9, tag.map);
-                }
-            }
+            verboseUpdateMessages(sink);
         }
     };
 
@@ -195,11 +213,11 @@ const suite TimingBlock = [] {
         const bool verbose = true;
         Graph      testGraph;
         auto&      timingSrc = testGraph.emplaceBlock<gr::timing::TimingSource>({
-            {"sample_rate", 0.0f},                                                                                                //
-            {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
-                                       "301:256->IO1(100,on,110,off,140,on,150,off)",                                                  //
-                                       "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                       //
-            {"verbose_console", verbose}                                                                                          //
+            {"sample_rate", 0.0f},                                                                                              //
+            {"event_actions", gr::Tensor<pmt::Value>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
+                                       "301:256->IO1(100,on,110,off,140,on,150,off)",                                                //
+                                       "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                     //
+            {"verbose_console", verbose}                                                                                        //
         });
         auto&      sink      = testGraph.emplaceBlock<TagSink<uint8_t, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink"}, {"verbose_console", verbose}});
 
@@ -225,26 +243,20 @@ const suite TimingBlock = [] {
 
         expect(eq(sink._samples.size(), sink._tags.size())) << "For sample_rate=0.0f the number of samples and tags should be identical";
         expect(approx(sink._tags.size(), 60UZ, 10UZ)) << "Expected approximately 60 tags";
-        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())).contains("BPID"); }) | std::views::transform([](auto& tag) { return std::get<uint16_t>(std::get<gr::property_map>(tag.map[gr::tag::TRIGGER_META_INFO.shortKey()])["BPID"]); }), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
-        expect(approx(                                                                                                                                                                                              //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())); }))        //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && (std::get<1>(pair).at("IO-NAME") == "IO2" || std::get<1>(pair).at("IO-NAME") == "IO3"); })), //
+        expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}).contains("BPID"); }) | std::views::transform(getBPID), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
+        expect(approx(                                                                                                                                                                                                                                                        //
+            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}); }))                                                                 //
+                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && (std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO2" || std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO3"); })), //
             24, 2))
             << "Wrong number of IO tags";
-        expect(approx(                                                                                                                                                                                       //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return std::get<gr::property_map>(tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey())); })) //                                                                                                  //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && std::get<1>(pair).at("IO-NAME") == "IO1"; })),                                        //
+        expect(approx(                                                                                                                                                                                        //
+            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}); })) //                                                                                                  //
+                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO1"; })),            //
             30, 2))
             << "Wrong number of event triggered IO tags";
 
         if (verbose) {
-            std::print("received {} timing tags and {} samples!\noutput: {}\n", sink._tags.size(), sink._samples.size(), sink._samples);
-            if (!sink._tags.empty()) {
-                const auto firstTimestamp = std::get<std::uint64_t>(sink._tags[0].map[gr::tag::TRIGGER_TIME.shortKey()]);
-                for (auto& tag : sink._tags) {
-                    std::print("  {} - {}s: {}\n", tag.index, (static_cast<double>(std::get<std::uint64_t>(tag.map[gr::tag::TRIGGER_TIME.shortKey()]) - firstTimestamp)) * 1e-9, tag.map);
-                }
-            }
+            verboseUpdateMessages(sink);
         }
     };
 };

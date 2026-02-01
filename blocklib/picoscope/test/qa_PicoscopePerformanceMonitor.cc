@@ -65,15 +65,19 @@ int main(int argc, char* argv[]) {
 
     Graph graph;
 
-    std::vector<std::string> channelIds    = {"A", "B", "C", "D"};
-    std::vector<float>       channelRanges = {5.f, 5.f, 5.f, 5.f};
+    gr::Tensor<pmt::Value> channelIds    = {"A", "B", "C", "D"};
+    gr::Tensor<float>      channelRanges = {5.f, 5.f, 5.f, 5.f};
     if constexpr (PicoscopeT::N_ANALOG_CHANNELS == 8) {
-        channelIds.insert(channelIds.end(), {"E", "F", "G", "H"});
-        channelRanges.insert(channelRanges.end(), {5.f, 5.f, 5.f, 5.f});
+        std::ranges::copy(std::array{"E", "F", "G", "H"}, std::back_inserter(channelIds));
+        std::ranges::copy(std::array{5.f, 5.f, 5.f, 5.f}, std::back_inserter(channelRanges));
     }
 
-    auto& ps = graph.emplaceBlock<Picoscope<SampleType, PicoscopeT>>({{{"sample_rate", kSampleRate}, {"auto_arm", true}, //
-        {"channel_ids", channelIds}, {"channel_ranges", channelRanges}}});
+    auto& ps = graph.emplaceBlock<Picoscope<SampleType, PicoscopeT>>({{
+        {"sample_rate", kSampleRate},
+        {"auto_arm", true}, //
+        {"channel_ids", channelIds},
+        {"channel_ranges", channelRanges},
+    }});
 
     auto& perfMonitorA = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf A"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
     auto& perfMonitorB = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf B"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});

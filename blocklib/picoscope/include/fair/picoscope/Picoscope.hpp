@@ -56,13 +56,22 @@ struct TriggerNameAndCtx {
 [[nodiscard, maybe_unused]] static bool tagContainsTrigger(const gr::property_map& map, const TriggerNameAndCtx& triggerNameAndCtx) { // unused if only streaming acq is used
     if (triggerNameAndCtx.ctx) {                                                                                                      // trigger_name and ctx
         if (map.contains(gr::tag::TRIGGER_NAME.shortKey()) && map.contains(gr::tag::CONTEXT.shortKey())) {
-            const std::string tagTriggerName = std::get<std::string>(map.at(gr::tag::TRIGGER_NAME.shortKey()));
-            return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName && std::get<std::string>(map.at(gr::tag::CONTEXT.shortKey())) == *triggerNameAndCtx.ctx;
+            auto triggerNameValue = map.at(gr::tag::TRIGGER_NAME.shortKey());
+            auto contextValue     = map.at(gr::tag::CONTEXT.shortKey());
+            if (triggerNameValue.is_string() && contextValue.is_string()) {
+                std::string_view tagTriggerName = triggerNameValue.value_or(std::string_view{});
+                return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName && contextValue.value_or(std::string_view{}) == *triggerNameAndCtx.ctx;
+            } else {
+                assert(false && "Invalid triggername or context type, expected string for both");
+            }
         }
     } else { // only trigger_name
         if (map.contains(gr::tag::TRIGGER_NAME.shortKey())) {
-            const std::string tagTriggerName = std::get<std::string>(map.at(gr::tag::TRIGGER_NAME.shortKey()));
-            return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName;
+            auto triggerNameValue = map.at(gr::tag::TRIGGER_NAME.shortKey());
+            if (triggerNameValue.is_string()) {
+                std::string_view tagTriggerName = triggerNameValue.value_or(std::string_view{});
+                return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName;
+            }
         }
     }
     return false;
@@ -109,14 +118,14 @@ struct Picoscope : gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTy
     A<bool, "trigger once (rapid block mode)">                                       trigger_once = false; // RapidBlock mode only
     A<bool, "do arm at start?">                                                      auto_arm     = true;
     A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">       channel_ids;
-    A<std::vector<float>, "Voltage range of enabled channels">                       channel_ranges;         // PS channel setting
-    A<std::vector<float>, "Voltage offset of enabled channels">                      channel_analog_offsets; // PS channel setting
+    A<gr::Tensor<float>, "Voltage range of enabled channels">                        channel_ranges;         // PS channel setting
+    A<gr::Tensor<float>, "Voltage offset of enabled channels">                       channel_analog_offsets; // PS channel setting
     A<std::vector<std::string>, "Coupling modes of enabled channels">                channel_couplings;
     A<std::vector<std::string>, "Signal names of enabled channels">                  signal_names;
     A<std::vector<std::string>, "Signal units of enabled channels">                  signal_units;
     A<std::vector<std::string>, "Signal quantity of enabled channels">               signal_quantities;
-    A<std::vector<float>, "Signal scales of the enabled channels">                   signal_scales;  // only for floats and UncertainValues
-    A<std::vector<float>, "Analog offsets of the channels">                          signal_offsets; // only for floats and UncertainValues
+    A<gr::Tensor<float>, "Signal scales of the enabled channels">                    signal_scales;  // only for floats and UncertainValues
+    A<gr::Tensor<float>, "Analog offsets of the channels">                           signal_offsets; // only for floats and UncertainValues
     A<std::string, "trigger channel (A, B, C, ... or DI1, DI2, DI3, ... EXTERNAL)">  trigger_source;
     A<float, "trigger threshold, analog only">                                       trigger_threshold          = 0.f;
     A<TriggerDirection, "trigger direction">                                         trigger_direction          = TriggerDirection::Rising;
@@ -230,7 +239,7 @@ public:
                 return {};
             } else if (detail::isAnalogTrigger(trigger_source)) {
                 for (const auto& channelIdx : std::views::iota(0UZ, channel_ids->size())) {
-                    if (channel_ids[channelIdx] == trigger_source) {
+                    if (channel_ids[channelIdx] == std::string_view{trigger_source}) {
                         assert(outputs[channelIdx].size() >= unpublishedSamples + nSamples);
                         auto result = findAnalogTriggers(channelIdx, std::span(outputs[channelIdx]).subspan(0UZ, unpublishedSamples + nSamples));
                         return result;
@@ -260,13 +269,13 @@ public:
             bool chunkStartPublished = false;
             for (auto& [index, map] : matchedTags.tags) {
                 if (verbose_console && !chunkStartPublished && index > unpublishedSamples && nSamples > 0 && matchedTags.processedSamples > unpublishedSamples) {
-                    output.publishTag(gr::property_map{{"chunk-start-time", (std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}, unpublishedSamples);
+                    output.publishTag(gr::property_map{{"chunk-start-time", static_cast<gr::Size_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}, unpublishedSamples);
                     chunkStartPublished = true;
                 }
                 output.publishTag(map, index);
             }
             if (verbose_console && !chunkStartPublished && nSamples > 0 && matchedTags.processedSamples > unpublishedSamples) {
-                output.publishTag(gr::property_map{{"chunk-start-time", (std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}, unpublishedSamples);
+                output.publishTag(gr::property_map{{"chunk-start-time", static_cast<gr::Size_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}, unpublishedSamples);
             }
             if (samplesDropped > 0UZ) {
                 output.publishTag(gr::property_map{{"droppedSamples", samplesDropped}}, unpublishedSamples + nSamples); // todo: correct tag
@@ -377,7 +386,7 @@ public:
                 }
             } else {
                 for (const auto& [i, channel] : std::views::zip(std::views::iota(0U), channel_ids.value)) {
-                    if (channel == trigger_source) {
+                    if (channel == std::string_view{trigger_source}) {
                         triggerOffsets = findAnalogTriggers(static_cast<std::size_t>(i), outputs[static_cast<std::size_t>(i)][nCaptures].signalValues(0UZ));
                     }
                 }
@@ -482,12 +491,12 @@ public:
         const float offset = getChannelSetting(std::span(signal_offsets.value), channelIdx, 0.0f);
         const float range  = getChannelSetting(std::span(channel_ranges.value), channelIdx, 0.0f);
         return {
-            {std::string(gr::tag::SIGNAL_NAME.shortKey()), getChannelSetting(std::span(signal_names.value), channelIdx, ""s)},
-            {std::string(gr::tag::SAMPLE_RATE.shortKey()), sampleRate},
-            {std::string(gr::tag::SIGNAL_QUANTITY.shortKey()), getChannelSetting(std::span(signal_quantities.value), channelIdx, ""s)},
-            {std::string(gr::tag::SIGNAL_UNIT.shortKey()), getChannelSetting(std::span(signal_units.value), channelIdx, ""s)},
-            {std::string(gr::tag::SIGNAL_MIN.shortKey()), offset - range},
-            {std::string(gr::tag::SIGNAL_MAX.shortKey()), offset + range},
+            {gr::tag::SIGNAL_NAME.shortKey(), getChannelSetting(std::span(signal_names.value), channelIdx, {})},
+            {gr::tag::SAMPLE_RATE.shortKey(), sampleRate},
+            {gr::tag::SIGNAL_QUANTITY.shortKey(), getChannelSetting(std::span(signal_quantities.value), channelIdx, {})},
+            {gr::tag::SIGNAL_UNIT.shortKey(), getChannelSetting(std::span(signal_units.value), channelIdx, {})},
+            {gr::tag::SIGNAL_MIN.shortKey(), offset - range},
+            {gr::tag::SIGNAL_MAX.shortKey(), offset + range},
         };
     }
 
@@ -505,7 +514,20 @@ public:
     void settingsChanged(const gr::property_map& oldSettings, const gr::property_map& newSettings) {
         tagMatcher.sampleRate = sample_rate;
         tagMatcher.timeout    = std::chrono::nanoseconds(matcher_timeout);
-        if (!_picoscope || (oldSettings.contains("serial_number") && serial_number != std::get<std::string>(oldSettings.at("serial_number")))) {
+
+        const auto getOldSettingsSerialNumber = [&]() -> std::optional<std::string> {
+            if (!oldSettings.contains("serial_number")) {
+                return std::nullopt;
+            }
+            auto serialNumberValue = oldSettings.at("serial_number");
+            assert(serialNumberValue.is_string() && "Unexpected type for serial_number, expected string");
+            if (!serialNumberValue.is_string()) {
+                return {};
+            }
+            return serialNumberValue.value_or(std::string{});
+        };
+
+        if (!_picoscope || serial_number != getOldSettingsSerialNumber()) {
             _picoscope.emplace(serial_number, verbose_console);
         }
         std::set<std::size_t> configuredSuccessfully{};
@@ -516,7 +538,7 @@ public:
                 channelConfig.enable   = true;
                 channelConfig.range    = toAnalogChannelRange(getChannelSetting(std::span(channel_ranges.value), *j, 5.0f)).value_or(AnalogChannelRange::ps5V);
                 channelConfig.offset   = getChannelSetting(std::span(channel_analog_offsets.value), *j, 0.0f);
-                channelConfig.coupling = detail::convertToEnum<Coupling>(getChannelSetting(std::span(channel_couplings.value), *j, "DC"s));
+                channelConfig.coupling = detail::convertToEnum<Coupling>(getChannelSetting(std::span(channel_couplings.value), *j, std::string{"DC"}));
             } else {
                 channelConfig.enable = false;
             }
@@ -626,14 +648,14 @@ public:
         T ds{};
         ds.timestamp = 0;
 
-        ds.axis_names = {getChannelSetting(std::span(signal_names.value), channelIdx, ""s)};
-        ds.axis_units = {getChannelSetting(std::span(signal_units.value), channelIdx, ""s)};
+        ds.axis_names = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_names.value), channelIdx, {}))};
+        ds.axis_units = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_units.value), channelIdx, {}))};
 
         ds.extents           = {static_cast<int32_t>(nSamples)};
         ds.layout            = gr::LayoutRight{};
-        ds.signal_names      = {getChannelSetting(std::span(signal_names.value), channelIdx, ""s)};
-        ds.signal_units      = {getChannelSetting(std::span(signal_units.value), channelIdx, ""s)};
-        ds.signal_quantities = {getChannelSetting(std::span(signal_quantities.value), channelIdx, ""s)};
+        ds.signal_names      = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_names.value), channelIdx, {}))};
+        ds.signal_units      = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_units.value), channelIdx, {}))};
+        ds.signal_quantities = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_quantities.value), channelIdx, {}))};
 
         ds.signal_values.resize(nSamples);
         ds.signal_ranges.resize(1);
