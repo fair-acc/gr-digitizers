@@ -88,7 +88,7 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
 
     gr::Graph flowGraph;
     auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
-        {"event_actions", std::vector<std::string>({std::format("SIS100_RING:CMD_CUSTOM_DIAG_1->IO3({},on,{},off),PUBLISH()", pulseOnTime, pulseOffTime)})},
+        {"event_actions", gr::Tensor<pmt::Value>({std::pmr::string{std::format("SIS100_RING:CMD_CUSTOM_DIAG_1->IO3({},on,{},off),PUBLISH()", pulseOnTime, pulseOffTime)}})},
         {"io_events", true},
         {"sample_rate", 0.0f},
         {"verbose_console", true},
@@ -100,12 +100,12 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     auto& ps = flowGraph.emplaceBlock<Picoscope<float, TPSImpl>>({{
         {"sample_rate", kSampleRate},
         {"auto_arm", true},
-        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
-        {"signal_names", std::vector<std::string>{"IO1", "IO2", "Trigger"}},
-        {"signal_units", std::vector<std::string>{"V", "V", "V"}},
-        {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
-        {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},
-        {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},
+        {"channel_ids", gr::Tensor<pmt::Value>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
+        {"signal_names", gr::Tensor<pmt::Value>{"IO1", "IO2", "Trigger"}},
+        {"signal_units", gr::Tensor<pmt::Value>{"V", "V", "V"}},
+        {"channel_ranges", gr::Tensor<float>{5.f, 5.f, 5.f}},
+        {"signal_offsets", gr::Tensor<float>{0.f, 0.f, 0.f}},
+        {"channel_couplings", gr::Tensor<pmt::Value>{"DC", "DC", "DC"}},
         {"trigger_source", triggerName},
         {"trigger_threshold", 1.7f},
         {"trigger_direction", "Rising"},
@@ -177,19 +177,19 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     if (!sinkA._tags.empty()) {
         const auto& tag = sinkA._tags[0];
         expect(eq(tag.index, 0UZ));
-        expect(eq(std::get<float>(tag.at(std::string(tag::SAMPLE_RATE.shortKey()))), kSampleRate));
-        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_NAME.shortKey()))), "IO1"s));
-        expect(eq(std::get<std::string>(tag.at(std::string(tag::SIGNAL_UNIT.shortKey()))), "V"s));
-        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MIN.shortKey()))), -5.f));
-        expect(eq(std::get<float>(tag.at(std::string(tag::SIGNAL_MAX.shortKey()))), 5.f));
+        expect(eq(tag.at(std::string(tag::SAMPLE_RATE.shortKey())).value_or(INFINITY), kSampleRate));
+        expect(eq(tag.at(std::string(tag::SIGNAL_NAME.shortKey())).value_or(std::string{}), "IO1"s));
+        expect(eq(tag.at(std::string(tag::SIGNAL_UNIT.shortKey())).value_or(std::string{}), "V"s));
+        expect(eq(tag.at(std::string(tag::SIGNAL_MIN.shortKey())).value_or(INFINITY), -5.f));
+        expect(eq(tag.at(std::string(tag::SIGNAL_MAX.shortKey())).value_or(INFINITY), 5.f));
     }
-    expect(std::ranges::equal(sinkA._tags | std::views::filter([](auto& t) { return t.map.contains(gr::tag::CONTEXT.shortKey()); })                                                      // only consider timing events
-                                  | std::views::transform([](auto& t) { return std::get<uint16_t>(std::get<gr::property_map>(t.map[gr::tag::TRIGGER_META_INFO.shortKey()])["BPID"]); }), // get bpid (which is unique in this test)
+    expect(std::ranges::equal(sinkA._tags | std::views::filter([](auto& t) { return t.map.contains(gr::tag::CONTEXT.shortKey()); })                                                                                       // only consider timing events
+                                  | std::views::transform([](auto& t) { return t.map[gr::tag::TRIGGER_META_INFO.shortKey()].value_or(gr::property_map{})["BPID"].value_or(std::numeric_limits<std::uint16_t>::max()); }), // get bpid (which is unique in this test)
         std::vector<std::uint16_t>{1, 2, 3}))
         << "expected to get timing events with bpid 1, 2 and 3";
 
     auto chunks = sinkA._tags | std::views::filter([](auto& t) { return t.map.contains("chunk-start-time"); })                                                                                                                                                                                                          //
-                  | std::views::transform([kSampleRate](const auto& t) { return std::tuple(t.index, static_cast<float>(t.index) * 1e9f / kSampleRate, std::get<long>(t.map.at("chunk-start-time"))); })                                                                                                                 //
+                  | std::views::transform([kSampleRate](const auto& t) { return std::tuple(t.index, static_cast<float>(t.index) * 1e9f / kSampleRate, t.map.at("chunk-start-time").value_or(std::numeric_limits<long>::max())); })                                                                                      //
                   | std::views::pairwise_transform([](const auto& a, const auto& b) { return std::tuple(std::get<0>(b), std::get<0>(b) - std::get<0>(a), std::get<1>(b) - std::get<1>(a), std::get<2>(b) - std::get<2>(a), static_cast<float>(std::get<2>(b) - std::get<2>(a)) - (std::get<1>(b) - std::get<1>(a))); }) // compute chunk durations [index, indexdiff, delta t samples ns, delta t acq ns]
                   | std::ranges::to<std::vector>();
     std::println("Chunks:");
@@ -236,9 +236,9 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
 
     gr::Graph flowGraph;
     auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
-        {"event_actions", std::vector<std::string>({
-                              "SIS100_RING->PUBLISH()", // monitor all events for the sis100 timing group
-                              std::format("SIS100_RING:CMD_BP_START->IO3({},on,{},off)", pulseOnTime, pulseOffTime),
+        {"event_actions", gr::Tensor<pmt::Value>({
+                              std::pmr::string{"SIS100_RING->PUBLISH()"}, // monitor all events for the sis100 timing group
+                              std::pmr::string{std::format("SIS100_RING:CMD_BP_START->IO3({},on,{},off)", pulseOnTime, pulseOffTime)},
                           })},
         {"io_events", true},
         {"sample_rate", 0.0f}, // produce one sample per tag
@@ -251,12 +251,12 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
     auto& ps = flowGraph.emplaceBlock<Picoscope<gr::DataSet<float>, TPSImpl>>({{
         {"sample_rate", kSampleRate},
         {"auto_arm", true},
-        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
-        {"signal_names", std::vector<std::string>{"IO1", "IO2", "Trigger"}},
-        {"signal_units", std::vector<std::string>{"V", "V", "V"}},
-        {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
-        {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},
-        {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},
+        {"channel_ids", gr::Tensor<pmt::Value>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
+        {"signal_names", gr::Tensor<pmt::Value>{"IO1", "IO2", "Trigger"}},
+        {"signal_units", gr::Tensor<pmt::Value>{"V", "V", "V"}},
+        {"channel_ranges", gr::Tensor<float>{5.f, 5.f, 5.f}},
+        {"signal_offsets", gr::Tensor<float>{0.f, 0.f, 0.f}},
+        {"channel_couplings", gr::Tensor<pmt::Value>{"DC", "DC", "DC"}},
         {"trigger_source", triggerName},
         {"trigger_threshold", 1.7f},
         {"trigger_direction", "Rising"},

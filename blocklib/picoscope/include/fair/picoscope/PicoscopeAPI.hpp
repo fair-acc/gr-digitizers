@@ -345,7 +345,7 @@ class PicoscopeWrapper {
                     return std::unexpected{Error{"No channels configured"}};
                 }
                 const std::size_t kBaseBuf = 16384;
-                const std::size_t mult     = std::max<std::size_t>(1, static_cast<std::size_t>(std::ceil(freq / 1e6)));
+                const std::size_t mult     = std::max<std::size_t>(1, static_cast<std::size_t>(std::ceil(static_cast<double>(freq) / 1e6)));
                 scope.data.resize(activeChannels * mult * kBaseBuf);
                 const std::size_t segmentSize = scope.data.size() / activeChannels;
                 std::size_t       j           = 0;
