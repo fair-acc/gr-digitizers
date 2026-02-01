@@ -188,7 +188,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4UZ, result.processedTags));
         expect(eq(240UZ, result.processedSamples));
-        expect(approx(std::get<float>(result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey())), 0.0f, 1e-10f));
+        expect(approx(result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.0f, 1e-10f));
         result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
 
         expectRangesEquals(
@@ -378,11 +378,11 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         expect(eq(240UZ, result.processedSamples));
 
         // check and fix inexact offsets
-        expect(approx(std::get<float>(result.tags[0].map.at(gr::tag::TRIGGER_OFFSET.shortKey())), 0.0f, 1e-10f));
+        expect(approx(result.tags[0].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.0f, 1e-10f));
         result.tags[0].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
-        expect(approx(std::get<float>(result.tags[1].map.at(gr::tag::TRIGGER_OFFSET.shortKey())), 0.0f, 1e-10f));
+        expect(approx(result.tags[1].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.0f, 1e-10f));
         result.tags[1].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
-        expect(approx(std::get<float>(result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey())), 0.7f, 1e-10f));
+        expect(approx(result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.7f, 1e-10f));
         result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
 
         expectRangesEquals(
