@@ -101,32 +101,33 @@ struct Picoscope : gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTy
     using SuperT                                     = gr::Block<Picoscope, gr::SupportedTypes<int16_t, float, gr::UncertainValue<float>, gr::DataSet<int16_t>, gr::DataSet<float>, gr::DataSet<gr::UncertainValue<float>>>>;
     static constexpr AcquisitionMode acquisitionMode = gr::DataSetLike<T> ? AcquisitionMode::RapidBlock : AcquisitionMode::Streaming;
 
-    A<std::string, "serial number, empty selects first available device">            serial_number;
-    A<float, "sample rate", gr::Visible>                                             sample_rate  = 10000.f;
-    A<gr::Size_t, "pre-samples">                                                     pre_samples  = 1000;  // RapidBlock mode only
-    A<gr::Size_t, "post-samples">                                                    post_samples = 1000;  // RapidBlock mode only
-    A<gr::Size_t, "no. captures (rapid block mode)">                                 n_captures   = 1;     // RapidBlock mode only
-    A<bool, "trigger once (rapid block mode)">                                       trigger_once = false; // RapidBlock mode only
-    A<bool, "do arm at start?">                                                      auto_arm     = true;
-    A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">       channel_ids;
-    A<std::vector<float>, "Voltage range of enabled channels">                       channel_ranges;         // PS channel setting
-    A<std::vector<float>, "Voltage offset of enabled channels">                      channel_analog_offsets; // PS channel setting
-    A<std::vector<std::string>, "Coupling modes of enabled channels">                channel_couplings;
-    A<std::vector<std::string>, "Signal names of enabled channels">                  signal_names;
-    A<std::vector<std::string>, "Signal units of enabled channels">                  signal_units;
-    A<std::vector<std::string>, "Signal quantity of enabled channels">               signal_quantities;
-    A<std::vector<float>, "Signal scales of the enabled channels">                   signal_scales;  // only for floats and UncertainValues
-    A<std::vector<float>, "Analog offsets of the channels">                          signal_offsets; // only for floats and UncertainValues
-    A<std::string, "trigger channel (A, B, C, ... or DI1, DI2, DI3, ... EXTERNAL)">  trigger_source;
-    A<float, "trigger threshold, analog only">                                       trigger_threshold          = 0.f;
-    A<TriggerDirection, "trigger direction">                                         trigger_direction          = TriggerDirection::Rising;
-    A<std::string, "trigger filter: `<trigger_name>[/<ctx>]`">                       trigger_filter             = "";
-    A<std::string, "arm trigger: `<trigger_name>[/<ctx>]`, if empty not used">       trigger_arm                = "";    // RapidBlock mode only
-    A<std::string, "disarm trigger: `<trigger_name>[/<ctx>]`, if empty not used">    trigger_disarm             = "";    // RapidBlock mode only
-    A<bool, "Enable digital inputs">                                                 digital_port_enable        = false; // only used if digital ports are available: 3000a, 5000a series
-    A<bool, "invert digital port output">                                            digital_port_invert_output = false; // only used if digital ports are available: 3000a, 5000a series
-    A<gr::Size_t, "Timeout after which to not match trigger pulses", gr::Unit<"ns">> matcher_timeout            = 10'000'000z;
-    A<bool, "verbose console">                                                       verbose_console            = false;
+    A<std::string, "serial number, empty selects first available device">               serial_number;
+    A<float, "sample rate", gr::Visible>                                                sample_rate  = 10000.f;
+    A<gr::Size_t, "pre-samples">                                                        pre_samples  = 1000;  // RapidBlock mode only
+    A<gr::Size_t, "post-samples">                                                       post_samples = 1000;  // RapidBlock mode only
+    A<gr::Size_t, "no. captures (rapid block mode)">                                    n_captures   = 1;     // RapidBlock mode only
+    A<bool, "trigger once (rapid block mode)">                                          trigger_once = false; // RapidBlock mode only
+    A<bool, "do arm at start?">                                                         auto_arm     = true;
+    A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">          channel_ids;
+    A<std::vector<float>, "Voltage range of enabled channels">                          channel_ranges;         // PS channel setting
+    A<std::vector<float>, "Voltage offset of enabled channels">                         channel_analog_offsets; // PS channel setting
+    A<std::vector<std::string>, "Coupling modes of enabled channels">                   channel_couplings;
+    A<std::vector<std::string>, "Signal names of enabled channels">                     signal_names;
+    A<std::vector<std::string>, "Signal units of enabled channels">                     signal_units;
+    A<std::vector<std::string>, "Signal quantity of enabled channels">                  signal_quantities;
+    A<std::vector<float>, "Signal scales of the enabled channels">                      signal_scales;  // only for floats and UncertainValues
+    A<std::vector<float>, "Analog offsets of the channels">                             signal_offsets; // only for floats and UncertainValues
+    A<std::string, "trigger channel (A, B, C, ... or DI1, DI2, DI3, ... EXTERNAL)">     trigger_source;
+    A<float, "trigger threshold, analog only">                                          trigger_threshold          = 0.f;
+    A<TriggerDirection, "trigger direction">                                            trigger_direction          = TriggerDirection::Rising;
+    A<std::string, "trigger filter: `<trigger_name>[/<ctx>]`">                          trigger_filter             = "";
+    A<std::string, "arm trigger: `<trigger_name>[/<ctx>]`, if empty not used">          trigger_arm                = "";    // RapidBlock mode only
+    A<std::string, "disarm trigger: `<trigger_name>[/<ctx>]`, if empty not used">       trigger_disarm             = "";    // RapidBlock mode only
+    A<bool, "Enable digital inputs">                                                    digital_port_enable        = false; // only used if digital ports are available: 3000a, 5000a series
+    A<bool, "invert digital port output">                                               digital_port_invert_output = false; // only used if digital ports are available: 3000a, 5000a series
+    A<std::uint64_t, "Timeout after which to not match trigger pulses", gr::Unit<"ns">> matcher_timeout            = 10'000'000ULL;
+    A<std::uint64_t, "Polling interval for streaming mode", gr::Unit<"ns">>             polling_interval           = 0ULL;
+    A<bool, "verbose console">                                                          verbose_console            = false;
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
 
@@ -142,8 +143,11 @@ struct Picoscope : gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTy
     detail::TriggerNameAndCtx _armTriggerNameAndCtx; // store parsed information to optimise performance
     detail::TriggerNameAndCtx _disarmTriggerNameAndCtx;
 
-    GR_MAKE_REFLECTABLE(Picoscope, timingIn, out, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, //
-        channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, digital_port_enable, digital_port_invert_output, trigger_arm, trigger_disarm, matcher_timeout, verbose_console);
+    std::chrono::steady_clock::time_point _lastTry; // saves the timestamp of the last polling
+
+    GR_MAKE_REFLECTABLE(Picoscope, timingIn, out, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities,  //
+        channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, digital_port_enable, digital_port_invert_output, trigger_arm, //
+        trigger_disarm, matcher_timeout, verbose_console, polling_interval);
 
 private:
     std::optional<PicoscopeWrapper<TPSImpl>> _picoscope;
@@ -165,6 +169,14 @@ public:
     template<gr::OutputSpanLike TOutSpan>
     requires(acquisitionMode == AcquisitionMode::Streaming)
     gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, std::span<TOutSpan>& outputs, gr::OutputSpanLike auto& digitalOutSpan) {
+        if (polling_interval != 0ULL) {
+            const auto intervalNs = std::chrono::nanoseconds{polling_interval.value};
+            if (_lastTry + intervalNs > std::chrono::steady_clock::now()) {
+                return gr::work::Status::OK;
+            }
+            _lastTry = std::chrono::steady_clock::now();
+        }
+
         std::size_t       nSamples        = 0UZ;
         std::size_t       samplesDropped  = 0UZ;
         const std::size_t availableBuffer = std::min(std::ranges::min(outputs | std::views::transform(&TOutSpan::size)), digitalOutSpan.size());

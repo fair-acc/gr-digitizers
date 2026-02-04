@@ -154,7 +154,7 @@ struct TimingMatcher {
                             break; // tag will be moved outside the current data chunk and has to be handled in the next iteration
                         }
                         if (realignedTag) {
-                            result.processedSamples = std::max(result.processedSamples, realignedTag->index);
+                            result.processedSamples = std::max(result.processedSamples, realignedTag->index + 1);
                             result.tags.push_back(std::move(*realignedTag));
                         } else {
                             result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
@@ -182,7 +182,7 @@ struct TimingMatcher {
                 // event either explicitly has no hardware trigger or the next hw edge is too far away
                 if (_lastMatchedTag) { // publish tags based on the last-matched trigger // evtB or evt5 in the diagram
                     if (std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag)) {
-                        result.processedSamples = std::max(result.processedSamples, realignedTag->index);
+                        result.processedSamples = std::max(result.processedSamples, realignedTag->index + 1);
                         result.tags.push_back(std::move(*realignedTag));
                     } else {
                         result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
@@ -196,7 +196,7 @@ struct TimingMatcher {
 
             if ((currentFlankTime + timeout) < currentTagLocalTime) { // hw edge without corresponding event
                 result.tags.push_back(createUnknownEventTag(currentFlankIndex, currentFlankTime));
-                result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
+                result.processedSamples = std::max(result.processedSamples, currentFlankIndex + 1);
                 triggerIndex++; // skip outdated timing message(s)
                 continue;
             }
@@ -221,7 +221,7 @@ struct TimingMatcher {
                 result.processedTags++;
             }
             result.tags.emplace_back(getOffsetAdjustedTag(currentFlankIndex, currentTagOffset, currentTag));
-            result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
+            result.processedSamples = std::max(result.processedSamples, currentFlankIndex + 1);
             result.processedTags++;
             triggerIndex++;
         } // (result.processedTags < tags.size() || triggerIndex < triggerSampleIndices.size())
