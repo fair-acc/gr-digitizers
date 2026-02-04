@@ -448,7 +448,7 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             auto          result = matcher.match(tags, triggerSampleIndices, 8UZ, std::chrono::nanoseconds(acqTimestamp));
 
             expect(eq(2UZ, result.processedTags));
-            expect(eq(4UZ, result.processedSamples)); // processed up to the last matching tag
+            expect(eq(5UZ, result.processedSamples)); // processed up to the last matching tag
             expectRangesEquals(
                 std::vector<gr::Tag>{
                     {1, generateTimingTag("EVT_CMD1"s, acqTimestamp + 1'000, 0.0f, true)},
@@ -603,6 +603,32 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         expect(eq(70UZ, result.tags[2].index));
         expect(eq(110UZ, result.tags[3].index));
         expect(std::ranges::any_of(result.messages, [](const auto& m) { return m.contains("Dropping unordered tag"); }));
+    };
+
+    "processedSamples test"_test = [&] {
+        using namespace boost::ut;
+
+        unsigned long acqTimestamp = 123456789;
+
+        // timeout=10us, sampleRate=1e6 -> maxDelaySamples = 10, nSamples=250 -> safeSamples = 240
+        constexpr std::size_t   nSamples  = 250UZ;
+        constexpr std::size_t   safeIndex = 240UZ;
+        constexpr std::uint64_t tagTimeNs = 240'000; // 240 samples * 1000ns @ 1MHz
+
+        std::vector<gr::property_map> tags{
+            generateTimingTag("EVT_BOUNDARY"s, acqTimestamp + tagTimeNs, 0.0f, true),
+        };
+        std::vector<std::size_t> triggerSampleIndices{safeIndex};
+
+        TimingMatcher matcher{.timeout = 10us, .sampleRate = 1e6f};
+        auto          result = matcher.match(tags, triggerSampleIndices, nSamples, std::chrono::nanoseconds(acqTimestamp));
+
+        expect(eq(1UZ, result.processedTags));
+        expect(eq(1UZ, result.tags.size()));
+        expect(eq(safeIndex, result.tags[0].index));
+
+        expect(eq(safeIndex + 1UZ, result.processedSamples));
+        expect(result.tags[0].index < result.processedSamples);
     };
 };
 } // namespace fair::picoscope::test
