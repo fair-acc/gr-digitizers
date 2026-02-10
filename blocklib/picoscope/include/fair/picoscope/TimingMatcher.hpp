@@ -151,6 +151,7 @@ struct TimingMatcher {
             }
             auto* maybeMetaMap = currentTag.at(gr::tag::TRIGGER_META_INFO.shortKey()).get_if<gr::property_map>();
             if (!maybeMetaMap) {
+                result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for TRIGGER_META_INFO value, expected property map, at index {}: {}", tagIndex, currentTag));
                 continue;
             }
@@ -159,6 +160,7 @@ struct TimingMatcher {
             auto* maybeTriggerTime   = currentTag.at(gr::tag::TRIGGER_TIME.shortKey()).get_if<unsigned long>();
             auto* maybeTriggerOffset = currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()).get_if<float>();
             if (!maybeTagLocalTime || !maybeTriggerTime || !maybeTriggerOffset) {
+                result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for LOCAL-TIME/TRIGGER_TIME/TRIGGER_OFFSET, expected {}, at index {}: {}", gr::meta::type_name<unsigned long>(), tagIndex, currentTag));
                 continue;
             }
@@ -200,6 +202,7 @@ struct TimingMatcher {
             auto* maybeHWTrigger = metaMap.at("HW-TRIGGER").get_if<bool>();
             assert(maybeHWTrigger && "HW-TRIGGER should be bool");
             if (!maybeHWTrigger) {
+                result.processedTags++;
                 continue;
             }
             if (!(*maybeHWTrigger) || (currentTagLocalTime + timeout) < currentFlankTime) {
@@ -257,12 +260,14 @@ struct TimingMatcher {
             auto& unconsumedTag = tags[result.processedTags];
             auto* maybeMetaMap  = unconsumedTag.at(gr::tag::TRIGGER_META_INFO.shortKey()).get_if<gr::property_map>();
             if (!maybeMetaMap) {
+                result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for trigger tag, expected property map"));
                 continue;
             }
             auto& metaMap             = *maybeMetaMap;
             auto* maybeLocalTimeValue = metaMap.at("LOCAL-TIME").get_if<unsigned long>();
             if (!maybeLocalTimeValue) {
+                result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for local time, expected unsigned long"));
                 continue;
             }
