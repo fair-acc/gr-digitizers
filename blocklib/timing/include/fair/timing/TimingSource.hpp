@@ -1,6 +1,7 @@
 #ifndef GR_DIGITIZERS_TIMINGSOURCE_HPP
 #define GR_DIGITIZERS_TIMINGSOURCE_HPP
 
+#include <atomic>
 #include <chrono>
 #include <random>
 
@@ -10,6 +11,7 @@
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Tag.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
+#include <gnuradio-4.0/thread/thread_pool.hpp>
 
 #include "gnuradio-4.0/TriggerMatcher.hpp"
 
@@ -22,8 +24,8 @@ namespace gr::timing {
 //  should use some library function after validating the correct timestamp
 static std::uint64_t taiNsToUtcNs(const uint64_t input) { return input - std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::seconds(37u)).count(); }
 
-struct TimingSource : gr::Block<TimingSource, BlockingIO<true>> {
-    using base = gr::Block<TimingSource, BlockingIO<true>>;
+struct TimingSource : gr::Block<TimingSource> {
+    using base = gr::Block<TimingSource>;
     using base::Block;
     template<typename T, gr::meta::fixed_string description = "", typename... Arguments>
     using A               = gr::Annotated<T, description, Arguments...>;
@@ -76,14 +78,17 @@ tags: [
 
     using ConditionsType = std::map<std::string, std::map<std::string, std::variant<std::shared_ptr<saftlib::OutputCondition_Proxy>, std::shared_ptr<saftlib::SoftwareCondition_Proxy>>>>;
     Timing _timing;
-    using EventReaderType         = decltype(_timing.snooped.new_reader());
-    EventReaderType _event_reader = _timing.snooped.new_reader();
-    ConditionsType  _conditionProxies{};
-    TimePoint       _startTime{};
-    std::size_t     _publishedSamples = 0;
-    std::uint8_t    _lastOutputState  = 0;
-    std::uint8_t    _outputState      = 0;
-    std::uint8_t    _nextOutputState  = 0;
+    using EventReaderType          = decltype(_timing.snooped.new_reader());
+    EventReaderType  _event_reader = _timing.snooped.new_reader();
+    ConditionsType   _conditionProxies{};
+    TimePoint        _startTime{};
+    std::size_t      _publishedSamples = 0;
+    std::uint8_t     _lastOutputState  = 0;
+    std::uint8_t     _outputState      = 0;
+    std::uint8_t     _nextOutputState  = 0;
+    std::atomic_bool _periodicWake{false};
+    std::atomic_bool _pollerStop{false};
+    std::atomic_bool _pollerRunning{false};
 
     std::vector<std::tuple<std::uint64_t, std::uint64_t>> eventHwTrigger{};
 
@@ -91,6 +96,8 @@ tags: [
         if (verbose_console) {
             std::println("starting {}", this->name);
         }
+        _periodicWake.store(sample_rate != 0.0f, std::memory_order_release);
+        _pollerStop.store(false, std::memory_order_release);
         _timing.saftAppName = std::format("{}_{}", this->unique_name | std::views::filter([](auto c) { return std::isalnum(c); }) | std::ranges::to<std::string>(), getpid());
         _timing.snoopIO     = io_events;
         _timing.snoopID     = 0xffffffffffffffffull; // Workaround: make the default condition of _timing not listen to anything
@@ -98,11 +105,31 @@ tags: [
         _timing.initialize();
         updateEventTriggers();
         _startTime = TimePoint(std::chrono::nanoseconds(_timing.currentTimeTAI()));
+
+        _pollerRunning.store(true, std::memory_order_release);
+        gr::thread_pool::Manager::defaultIoPool()->execute([this]() {
+            while (!_pollerStop.load(std::memory_order_acquire)) {
+                // >0 if a signal was received, 0 if timeout was hit, < 0 in case of failure
+                const int waitResult = _timing.saftSigGroup.wait_for_signal(static_cast<int>(max_delay >> 22ul));
+                if (_pollerStop.load(std::memory_order_acquire)) {
+                    break;
+                }
+                if (waitResult > 0 || _periodicWake.load(std::memory_order_acquire)) {
+                    this->progress->incrementAndGet();
+                    this->progress->notify_all();
+                }
+            }
+            _pollerRunning.store(false, std::memory_order_release);
+        });
     }
 
     void stop() {
         if (verbose_console) {
             std::println("stop {}", this->name);
+        }
+        _pollerStop.store(true, std::memory_order_release);
+        while (_pollerRunning.load(std::memory_order_acquire)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         std::ranges::for_each(_conditionProxies, [](auto& pair) {
             auto& [conditionString, proxyMap] = pair;
@@ -113,7 +140,6 @@ tags: [
         });
         _conditionProxies.clear();
         _timing.stop();
-        this->requestStop();
     }
 
     static std::pair<std::uint64_t, std::uint64_t> parseFilter(const std::string& newFilter) {
@@ -344,6 +370,9 @@ tags: [
                 updateEventTriggers();
             }
         } // end io triggers
+        if (newSettings.contains("sample_rate")) {
+            _periodicWake.store(sample_rate != 0.0f, std::memory_order_release);
+        }
     }
 
     static void addHwTriggerInfo(const std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
@@ -424,8 +453,6 @@ tags: [
     }
 
     [[nodiscard]] gr::work::Status processBulk(OutputSpanLike auto& outSpan) {
-        // update context information
-        _timing.saftSigGroup.wait_for_signal(static_cast<int>(max_delay >> 22ul)); // process saftlib events, max_delay >> 22 is ~ 1/4 of max delay in ms
         const auto timingEvents = _event_reader.get<SpanReleasePolicy::ProcessAll>();
         // publish to output port and message port
         std::size_t  toPublish   = 0;
@@ -484,6 +511,7 @@ tags: [
                 }
             }
         }
+
         outSpan.publish(toPublish);
         _publishedSamples += toPublish;
 
