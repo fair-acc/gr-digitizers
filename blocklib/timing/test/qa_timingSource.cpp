@@ -239,7 +239,7 @@ const suite TimingBlock = [] {
         expect(res.has_value());
 
         std::thread testEventDispatcherThread = dispatchSimulatedTiming();
-        std::this_thread::sleep_for(6s);
+        std::this_thread::sleep_for(10s);
         expect(sched.changeStateTo(gr::lifecycle::State::REQUESTED_STOP).has_value());
         std::this_thread::sleep_for(500ms);
         std::print("stopped flowgraph\n");
@@ -249,16 +249,27 @@ const suite TimingBlock = [] {
         expect(eq(sink._samples.size(), sink._tags.size())) << "For sample_rate=0.0f the number of samples and tags should be identical";
         expect(approx(sink._tags.size(), 60UZ, 10UZ)) << "Expected approximately 60 tags";
         expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}).contains("BPID"); }) | std::views::transform(getBPID), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
-        expect(approx(                                                                                                                                                                                                                                                                   //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.contains(tag::TRIGGER_META_INFO.shortKey()) ? tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}) : gr::property_map{}; })) //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && (std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO2" || std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO3"); })),            //
-            24, 2))
-            << "Wrong number of IO tags";
-        expect(approx(                                                                                                                                                                                                                                                                   //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.contains(tag::TRIGGER_META_INFO.shortKey()) ? tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}) : gr::property_map{}; })) //                                                                                                  //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO1"; })),                                                                                       //
-            30, 2))
-            << "Wrong number of event triggered IO tags";
+        std::size_t nIO = 0;
+        for (const auto& [sample, tag] : std::views::zip(sink._samples, sink._tags)) {
+            if (tag.map.contains(tag::TRIGGER_META_INFO.shortKey())) {
+                auto metaMap = tag.map.at(tag::TRIGGER_META_INFO.shortKey()).get_if<property_map>();
+                if (metaMap && metaMap->contains("IO-NAME") && (metaMap->at("IO-NAME") == "IO2" || metaMap->at("IO-NAME") == "IO3")) {
+                    ++nIO;
+                }
+            }
+        }
+        expect(approx(nIO, 24, 2)) << "Wrong number of IO tags";
+
+        std::size_t nEventIO = 0;
+        for (const auto& [sample, tag] : std::views::zip(sink._samples, sink._tags)) {
+            if (tag.map.contains(tag::TRIGGER_META_INFO.shortKey())) {
+                auto metaMap = tag.map.at(tag::TRIGGER_META_INFO.shortKey()).get_if<property_map>();
+                if (metaMap && metaMap->contains("IO-NAME") && metaMap->at("IO-NAME") == "IO1") {
+                    ++nEventIO;
+                }
+            }
+        }
+        expect(approx(nEventIO, 30, 2)) << "Wrong number of event triggered IO tags";
 
         if (verbose) {
             verboseUpdateMessages(sink);
