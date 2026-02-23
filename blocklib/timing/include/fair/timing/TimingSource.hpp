@@ -463,8 +463,10 @@ tags: [
             // TODO: make stable against rounding errors by using global time difference instead of just between 2 events
             std::size_t samplesUntilCurrentEvent = 0;
             if (sample_rate != 0.0f) {
-                const long publishedNs   = static_cast<long>(std::ceil(static_cast<double>(_publishedSamples) / static_cast<double>(sample_rate) * 1e9));
-                samplesUntilCurrentEvent = static_cast<size_t>(std::floor(static_cast<double>((TimePoint(std::chrono::nanoseconds(event.time)) - _startTime).count() - publishedNs) * static_cast<double>(sample_rate) * 1e-9));
+                const auto eventDeltaNs = (TimePoint(std::chrono::nanoseconds(event.time)) - _startTime).count();
+                const long publishedNs = static_cast<long>(std::ceil(static_cast<double>(_publishedSamples + toPublish) / static_cast<double>(sample_rate) * 1e9));
+                const long missingNs   = std::max<long>(0, eventDeltaNs - publishedNs);
+                samplesUntilCurrentEvent = static_cast<size_t>(std::floor(static_cast<double>(missingNs) * static_cast<double>(sample_rate) * 1e-9));
                 if (samplesUntilCurrentEvent > 0) {
                     if (_nextOutputState != _outputState) {
                         _lastOutputState = _nextOutputState;
@@ -473,8 +475,16 @@ tags: [
                     std::ranges::fill(std::span(outSpan).subspan(toPublish, samplesUntilCurrentEvent), _outputState);
                     toPublish += samplesUntilCurrentEvent;
                 }
-                std::uint64_t offset                              = event.time - static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(_startTime.time_since_epoch()).count()) - static_cast<uint64_t>(static_cast<double>(_publishedSamples + samplesUntilCurrentEvent) / static_cast<double>(sample_rate) * 1e9);
-                timingTag.map[gr::tag::TRIGGER_OFFSET.shortKey()] = offset;
+                // If an event lands within the same sample slot, ensure one sample exists to attach the tag.
+                if (toPublish == 0) {
+                    outSpan[toPublish] = _outputState;
+                    toPublish++;
+                }
+
+                const std::size_t taggedSampleAbs = _publishedSamples + toPublish - 1;
+                const auto        taggedSampleNs  = static_cast<std::int64_t>(static_cast<double>(taggedSampleAbs) / static_cast<double>(sample_rate) * 1e9);
+                const auto        offsetNs        = std::max<std::int64_t>(0, eventDeltaNs - taggedSampleNs);
+                timingTag.map[gr::tag::TRIGGER_OFFSET.shortKey()] = static_cast<std::uint64_t>(offsetNs);
             } else { // sample_rate == 0.0f -> publish one sample per timing tag
                 samplesUntilCurrentEvent = 1;
                 if (_nextOutputState != _outputState) {
