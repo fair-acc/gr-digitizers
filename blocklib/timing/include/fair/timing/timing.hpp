@@ -304,14 +304,20 @@ public:
     }
 
     void stop() {
-        if (!simulate & initialized) {
+        if (!simulate && initialized) {
             outputs.clear();
-            ioCondition->Destroy();
-            ioCondition.reset();
-            condition->Destroy();
-            condition.reset();
-            sink->Destroy();
-            sink.reset();
+            if (ioCondition) {
+                ioCondition->Destroy();
+                ioCondition.reset();
+            }
+            if (condition) {
+                condition->Destroy();
+                condition.reset();
+            }
+            if (sink) {
+                sink->Destroy();
+                sink.reset();
+            }
             receiver.reset();
             saftd.reset();
         }
