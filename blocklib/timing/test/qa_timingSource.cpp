@@ -128,6 +128,8 @@ std::thread dispatchSimulatedTiming(std::size_t n = 30, std::size_t schedule_dt 
 }
 
 const suite TimingBlock = [] {
+    // boost::ext::ut::cfg<override> = {.tag = {"timing-hardware"}};
+
     constexpr static auto getBPID = [](gr::Tag& tag) -> std::optional<uint16_t> {
         auto BPIDValue = tag.map[gr::tag::TRIGGER_META_INFO.shortKey()].value_or(gr::property_map{})["BPID"];
         assert(BPIDValue.template holds<uint16_t>());
@@ -157,13 +159,14 @@ const suite TimingBlock = [] {
         using namespace gr::testing;
 
         // publish timing events from a separate forked process because saftlib does not like us to spawn multiple threads
-        const bool      verbose     = true;
-        constexpr float sample_rate = 250.f;
+        const bool      verbose     = false;
+        constexpr float sample_rate = 10000.f;
         Graph           testGraph;
         auto&           timingSrc = testGraph.emplaceBlock<gr::timing::TimingSource>({
             {"event_actions", gr::Tensor<pmt::Value>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
                                             "301:256->IO1(100,on,110,off,140,on,150,off)",                                                //
                                             "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                     //
+            {"io_events", true},                                                                                                //
             {"sample_rate", sample_rate},                                                                                       //
             {"verbose_console", verbose}                                                                                        //
         });
@@ -184,21 +187,22 @@ const suite TimingBlock = [] {
         std::thread testEventDispatcherThread = dispatchSimulatedTiming();
         std::this_thread::sleep_for(6s);
         expect(sched.changeStateTo(gr::lifecycle::State::REQUESTED_STOP).has_value());
+        std::this_thread::sleep_for(500ms);
         std::print("stopped flowgraph\n");
 
         testEventDispatcherThread.join();
 
-        expect(approx(sink._samples.size(), 1500UZ, 100UZ)) << "samples do not approximately correspond to the configured sample rate";
+        expect(approx(sink._samples.size(), 60000UZ, 1000UZ)) << "samples do not approximately correspond to the configured sample rate";
         expect(approx(sink._tags.size(), 50UZ, 10UZ)) << "expected approximately 50 tags";
         expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}).contains("BPID"); }) | std::views::transform(getBPID), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
 
         expect(std::ranges::equal(sink._samples | std::views::transform([](auto v) { return v >> 2; })                                    // drop irrelevant bits (LSB: tagPresent, LSB+1:output which toggles on timing events)
                                       | std::views::chunk_by(std::equal_to{})                                                             // merge and count identical samples
                                       | std::views::transform([](auto subrange) { return std::make_pair(subrange[0], subrange.size()); }) // get sample value and count as a pair
-                                      | std::views::filter([](auto pair) { return pair.second > 95UL && pair.second < 105UL; })           // output changes are 200ms * 2 * 250S/s = 100 Samples
+                                      | std::views::filter([](auto pair) { return pair.second > 3900UL && pair.second < 4100UL; })        // output changes are 200ms * 2 * 10000S/s = 4000 Samples
                                       | std::views::transform([](auto pair) { return pair.first; }),                                      // get sample values
             std::vector<int>{1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2}))
-            << "expected almost 4 iterations of the pattern. the first sample is dropped, because it has less than 100 samples";
+            << "expected almost 4 iterations of the pattern. the first sample is dropped, because it has less than 4000 samples";
 
         if (verbose) {
             verboseUpdateMessages(sink);
@@ -210,13 +214,14 @@ const suite TimingBlock = [] {
         using namespace gr::testing;
 
         // publish timing events from a separate forked process because saftlib does not like us to spawn multiple threads
-        const bool verbose = true;
+        const bool verbose = false;
         Graph      testGraph;
         auto&      timingSrc = testGraph.emplaceBlock<gr::timing::TimingSource>({
             {"sample_rate", 0.0f},                                                                                              //
             {"event_actions", gr::Tensor<pmt::Value>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
                                        "301:256->IO1(100,on,110,off,140,on,150,off)",                                                //
                                        "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                     //
+            {"io_events", true},                                                                                                //
             {"verbose_console", verbose}                                                                                        //
         });
         auto&      sink      = testGraph.emplaceBlock<TagSink<uint8_t, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink"}, {"verbose_console", verbose}});
@@ -235,8 +240,8 @@ const suite TimingBlock = [] {
 
         std::thread testEventDispatcherThread = dispatchSimulatedTiming();
         std::this_thread::sleep_for(6s);
-
         expect(sched.changeStateTo(gr::lifecycle::State::REQUESTED_STOP).has_value());
+        std::this_thread::sleep_for(500ms);
         std::print("stopped flowgraph\n");
 
         testEventDispatcherThread.join();
@@ -244,14 +249,14 @@ const suite TimingBlock = [] {
         expect(eq(sink._samples.size(), sink._tags.size())) << "For sample_rate=0.0f the number of samples and tags should be identical";
         expect(approx(sink._tags.size(), 60UZ, 10UZ)) << "Expected approximately 60 tags";
         expect(std::ranges::equal(sink._tags | std::views::filter([](auto& tag) { return tag.map.contains(gr::tag::TRIGGER_META_INFO.shortKey()) && tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}).contains("BPID"); }) | std::views::transform(getBPID), std::array{0, 6, 12, 18, 24})) << "Did not receive the correct timing tags with the correct BP indices";
-        expect(approx(                                                                                                                                                                                                                                                        //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}); }))                                                                 //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && (std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO2" || std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO3"); })), //
+        expect(approx(                                                                                                                                                                                                                                                                   //
+            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.contains(tag::TRIGGER_META_INFO.shortKey()) ? tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}) : gr::property_map{}; })) //
+                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && (std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO2" || std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO3"); })),            //
             24, 2))
             << "Wrong number of IO tags";
-        expect(approx(                                                                                                                                                                                        //
-            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}); })) //                                                                                                  //
-                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO1"; })),            //
+        expect(approx(                                                                                                                                                                                                                                                                   //
+            std::ranges::distance(std::views::zip(sink._samples, sink._tags | std::views::transform([](auto tag) { return tag.map.contains(tag::TRIGGER_META_INFO.shortKey()) ? tag.map.at(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}) : gr::property_map{}; })) //                                                                                                  //
+                                  | std::views::filter([](auto pair) { return std::get<1>(pair).contains("IO-NAME") && std::get<1>(pair).at("IO-NAME").value_or(std::string_view{}) == "IO1"; })),                                                                                       //
             30, 2))
             << "Wrong number of event triggered IO tags";
 
