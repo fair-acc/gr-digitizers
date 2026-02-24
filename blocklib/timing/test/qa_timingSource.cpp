@@ -163,12 +163,12 @@ const suite TimingBlock = [] {
         constexpr float sample_rate = 10000.f;
         Graph           testGraph;
         auto&           timingSrc = testGraph.emplaceBlock<gr::timing::TimingSource>({
-            {"event_actions", gr::Tensor<pmt::Value>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
-                                            "301:256->IO1(100,on,110,off,140,on,150,off)",                                                //
-                                            "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                     //
-            {"io_events", true},                                                                                                //
-            {"sample_rate", sample_rate},                                                                                       //
-            {"verbose_console", verbose}                                                                                        //
+            {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
+                                            "301:256->IO1(100,on,110,off,140,on,150,off)",                                                  //
+                                            "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                       //
+            {"io_events", true},                                                                                                  //
+            {"sample_rate", sample_rate},                                                                                         //
+            {"verbose_console", verbose}                                                                                          //
         });
         auto&           sink      = testGraph.emplaceBlock<TagSink<uint8_t, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink"}, {"verbose_console", verbose}});
 
@@ -217,12 +217,12 @@ const suite TimingBlock = [] {
         const bool verbose = false;
         Graph      testGraph;
         auto&      timingSrc = testGraph.emplaceBlock<gr::timing::TimingSource>({
-            {"sample_rate", 0.0f},                                                                                              //
-            {"event_actions", gr::Tensor<pmt::Value>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
-                                       "301:256->IO1(100,on,110,off,140,on,150,off)",                                                //
-                                       "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                     //
-            {"io_events", true},                                                                                                //
-            {"verbose_console", verbose}                                                                                        //
+            {"sample_rate", 0.0f},                                                                                                //
+            {"event_actions", std::vector<std::string>({"SIS100_RING:CMD_BP_START:BEAM-IN=1:BPC-START=0:0->IO1(400,on,8000,off)", //
+                                       "301:256->IO1(100,on,110,off,140,on,150,off)",                                                  //
+                                       "SIS100_RING:CMD_BP_START->PUBLISH()"})},                                                       //
+            {"io_events", true},                                                                                                  //
+            {"verbose_console", verbose}                                                                                          //
         });
         auto&      sink      = testGraph.emplaceBlock<TagSink<uint8_t, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink"}, {"verbose_console", verbose}});
 

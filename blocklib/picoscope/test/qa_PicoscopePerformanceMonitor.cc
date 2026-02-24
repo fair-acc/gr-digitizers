@@ -65,8 +65,8 @@ int main(int argc, char* argv[]) {
 
     Graph graph;
 
-    gr::Tensor<pmt::Value> channelIds    = {"A", "B", "C", "D"};
-    gr::Tensor<float>      channelRanges = {5.f, 5.f, 5.f, 5.f};
+    std::vector<std::string> channelIds    = {"A", "B", "C", "D"};
+    std::vector<float>       channelRanges = {5.f, 5.f, 5.f, 5.f};
     if constexpr (PicoscopeT::N_ANALOG_CHANNELS == 8) {
         std::ranges::copy(std::array{"E", "F", "G", "H"}, std::back_inserter(channelIds));
         std::ranges::copy(std::array{5.f, 5.f, 5.f, 5.f}, std::back_inserter(channelRanges));
