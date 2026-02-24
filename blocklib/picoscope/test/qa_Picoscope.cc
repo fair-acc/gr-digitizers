@@ -88,10 +88,10 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, st
         {"n_captures", nCaptures},
         {"auto_arm", true},
         {"trigger_once", true},
-        {"channel_ids", gr::Tensor<pmt::Value>{"A"}},
-        {"channel_ranges", gr::Tensor<float>{5.f}},
+        {"channel_ids", std::vector<std::string>{"A"}},
+        {"channel_ranges", std::vector<float>{5.f}},
         {"trigger_threshold", 0.0f},
-        {"channel_couplings", gr::Tensor<pmt::Value>{"AC"}},
+        {"channel_couplings", std::vector<std::string>{"AC"}},
         {"digital_port_invert_output", digitalPortInvertOutput},
     };
     if (!triggerSource.empty()) {
@@ -206,11 +206,11 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     auto& ps = flowGraph.emplaceBlock<Picoscope<T, PicoscopeT>>({
         {"sample_rate", sampleRate},
         {"auto_arm", true},
-        {"channel_ids", gr::Tensor<pmt::Value>{"A"}},
-        {"signal_names", gr::Tensor<pmt::Value>{"Test signal"}},
-        {"signal_units", gr::Tensor<pmt::Value>{"Test unit"}},
-        {"channel_ranges", gr::Tensor<float>{5.f}},
-        {"channel_couplings", gr::Tensor<pmt::Value>{"AC"}},
+        {"channel_ids", std::vector<std::string>{"A"}},
+        {"signal_names", std::vector<std::string>{"Test signal"}},
+        {"signal_units", std::vector<std::string>{"Test unit"}},
+        {"channel_ranges", std::vector<float>{5.f}},
+        {"channel_couplings", std::vector<std::string>{"AC"}},
         {"digital_port_invert_output", digitalPortInvertOutput},
     });
 
@@ -358,9 +358,9 @@ const boost::ut::suite PicoscopeTests = [] {
             {"n_captures", nCaptures},
             {"auto_arm", true},
             {"trigger_once", true},
-            {"channel_ids", gr::Tensor<pmt::Value>{"A", "B", "C"}},
-            {"channel_ranges", gr::Tensor<float>{{5.f, 5.f, 5.f}}},
-            {"channel_couplings", gr::Tensor<pmt::Value>{"AC", "AC", "AC"}},
+            {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
+            {"channel_ranges", std::vector<float>{{5.f, 5.f, 5.f}}},
+            {"channel_couplings", std::vector<std::string>{"AC", "AC", "AC"}},
         });
 
         auto& sinkA = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", true}, {"log_tags", false}});
@@ -435,9 +435,9 @@ const boost::ut::suite PicoscopeTests = [] {
             {"post_samples", postSamples},
             {"n_captures", gr::Size_t{1}},
             {"auto_arm", true},
-            {"channel_ids", gr::Tensor<pmt::Value>{"A"}},
-            {"channel_ranges", gr::Tensor<float>{5.f}},
-            {"channel_couplings", gr::Tensor<pmt::Value>{"AC"}},
+            {"channel_ids", std::vector<std::string>{"A"}},
+            {"channel_ranges", std::vector<float>{5.f}},
+            {"channel_couplings", std::vector<std::string>{"AC"}},
         });
 
         auto& sinkA = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", true}, {"log_tags", false}});
@@ -559,9 +559,9 @@ const boost::ut::suite PicoscopeTests = [] {
             {"trigger_disarm", "CMD_BP_STOP/FAIR.SELECTOR.C=1:S=1:P=1"},
             {"n_captures", gr::Size_t{1}},
             {"auto_arm", false},
-            {"channel_ids", gr::Tensor<pmt::Value>{"A"}},
-            {"channel_ranges", gr::Tensor<float>{5.f}},
-            {"channel_couplings", gr::Tensor<pmt::Value>{"AC"}},
+            {"channel_ids", std::vector<std::string>{"A"}},
+            {"channel_ranges", std::vector<float>{5.f}},
+            {"channel_couplings", std::vector<std::string>{"AC"}},
         });
 
         auto& sinkA = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", true}, {"log_tags", false}});
@@ -656,9 +656,9 @@ const boost::ut::suite PicoscopeTests = [] {
             {"trigger_disarm", "CMD_BP_STOP/FAIR.SELECTOR.C=1:S=1:P=1"},
             {"n_captures", nCaptures},
             {"auto_arm", false},
-            {"channel_ids", gr::Tensor<pmt::Value>{"A"}},
-            {"channel_ranges", gr::Tensor<float>{5.f}},
-            {"channel_couplings", gr::Tensor<pmt::Value>{"AC"}},
+            {"channel_ids", std::vector<std::string>{"A"}},
+            {"channel_ranges", std::vector<float>{5.f}},
+            {"channel_couplings", std::vector<std::string>{"AC"}},
         });
 
         auto& sinkA = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", true}, {"log_tags", false}});

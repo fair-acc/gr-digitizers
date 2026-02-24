@@ -10,6 +10,7 @@
 #include <gnuradio-4.0/Block.hpp>
 #include <gnuradio-4.0/BlockRegistry.hpp>
 #include <gnuradio-4.0/Tag.hpp>
+#include <gnuradio-4.0/ValueHelper.hpp>
 #include <gnuradio-4.0/meta/reflection.hpp>
 #include <gnuradio-4.0/thread/thread_pool.hpp>
 
@@ -66,12 +67,12 @@ tags: [
     // TODO: PortIn< std::uint8_t, Async> DIO1..3 // Follow-up-PR
     // MsgPortIn ctxInfo;
 
-    A<gr::Tensor<pmt::Value>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
-    A<bool, "io event tags", Doc<"Whether to publish event tags for rising/falling edges of IO ports">>                                                                                                                       io_events       = false;
-    A<float, "avg. sample rate", Doc<"Controls the sample rate at which to publish the digital output state. A value of 0.0f means samples are published only when there's an event.">, Visible>                              sample_rate     = 1000.f;
-    A<std::string, "timing device name", Doc<"Specifies the timing device to use. In case it is left empty, the first timing device that is found is used.">>                                                                 timing_device   = "";
-    A<std::uint64_t, "max delay", Doc<"Maximum delay for messages from the timing hardware. Only used for sample_rate != 0.0f">, Unit<"ns">>                                                                                  max_delay       = 10'000'000; // 10 ms // todo: uint64t ns
-    A<bool, "verbose console", Doc<"For debugging">>                                                                                                                                                                          verbose_console = false;
+    A<std::vector<std::string>, "event actions", Doc<"Configure which timing events should trigger IO port changes and/or get forwarded as timing tags. Syntax description and examples in the block documentation.">, Visible> event_actions;
+    A<bool, "io event tags", Doc<"Whether to publish event tags for rising/falling edges of IO ports">>                                                                                                                         io_events       = false;
+    A<float, "avg. sample rate", Doc<"Controls the sample rate at which to publish the digital output state. A value of 0.0f means samples are published only when there's an event.">, Visible>                                sample_rate     = 1000.f;
+    A<std::string, "timing device name", Doc<"Specifies the timing device to use. In case it is left empty, the first timing device that is found is used.">>                                                                   timing_device   = "";
+    A<std::uint64_t, "max delay", Doc<"Maximum delay for messages from the timing hardware. Only used for sample_rate != 0.0f">, Unit<"ns">>                                                                                    max_delay       = 10'000'000; // 10 ms // todo: uint64t ns
+    A<bool, "verbose console", Doc<"For debugging">>                                                                                                                                                                            verbose_console = false;
     // TODO: enable/disable publishing on input port changes -> For now everything is published, add in follow-up PR
 
     GR_MAKE_REFLECTABLE(TimingSource, out, /*ctxInfo,*/ event_actions, io_events, sample_rate, timing_device, max_delay, verbose_console);
@@ -280,7 +281,7 @@ tags: [
             if (verbose_console) {
                 std::print("adding new trigger: {}\n", trigger);
             }
-            auto [triggerMatcher, triggerActions] = splitTriggerActions(trigger.value_or(std::string_view()));
+            auto [triggerMatcher, triggerActions] = splitTriggerActions(trigger);
             keepMatcher.insert(triggerMatcher);
             if (!_conditionProxies.contains(triggerMatcher)) {
                 std::set<std::string> keepAction;
@@ -365,7 +366,20 @@ tags: [
             }
             _timing.deviceName = timing_device;
         } // end io triggers
-        if (newSettings.contains("event_actions") && event_actions != oldSettings.at("event_actions").value_or(gr::Tensor<pmt::Value>{})) {
+        const auto oldSettingsEventActions = [&]() -> std::vector<std::string> {
+            if (!oldSettings.contains("event_actions")) {
+                return {};
+            }
+            const auto& eventActionsValue = oldSettings.at("event_actions");
+            if (!eventActionsValue.is_tensor() || eventActionsValue.value_type() != pmt::Value::ValueType::String) {
+                return {};
+            }
+            if (auto converted = pmt::convertTo<std::vector<std::string>>(eventActionsValue); converted) {
+                return std::move(*converted);
+            }
+            return {};
+        }();
+        if (newSettings.contains("event_actions") && event_actions != oldSettingsEventActions) {
             if (_timing.receiver) {
                 updateEventTriggers();
             }

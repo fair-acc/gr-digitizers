@@ -88,7 +88,7 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
 
     gr::Graph flowGraph;
     auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
-        {"event_actions", gr::Tensor<pmt::Value>({std::pmr::string{std::format("SIS100_RING:CMD_CUSTOM_DIAG_1->IO3({},on,{},off),PUBLISH()", pulseOnTime, pulseOffTime)}})},
+        {"event_actions", std::vector<std::string>({std::format("SIS100_RING:CMD_CUSTOM_DIAG_1->IO3({},on,{},off),PUBLISH()", pulseOnTime, pulseOffTime)})},
         {"io_events", true},
         {"sample_rate", 0.0f},
         {"verbose_console", true},
@@ -100,12 +100,12 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     auto& ps = flowGraph.emplaceBlock<Picoscope<float, TPSImpl>>({{
         {"sample_rate", kSampleRate},
         {"auto_arm", true},
-        {"channel_ids", gr::Tensor<pmt::Value>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
-        {"signal_names", gr::Tensor<pmt::Value>{"IO1", "IO2", "Trigger"}},
-        {"signal_units", gr::Tensor<pmt::Value>{"V", "V", "V"}},
-        {"channel_ranges", gr::Tensor<float>{5.f, 5.f, 5.f}},
-        {"signal_offsets", gr::Tensor<float>{0.f, 0.f, 0.f}},
-        {"channel_couplings", gr::Tensor<pmt::Value>{"DC", "DC", "DC"}},
+        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
+        {"signal_names", std::vector<std::string>{"IO1", "IO2", "Trigger"}},
+        {"signal_units", std::vector<std::string>{"V", "V", "V"}},
+        {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
+        {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},
+        {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},
         {"trigger_source", triggerName},
         {"trigger_threshold", 1.7f},
         {"trigger_direction", "Rising"},
@@ -236,9 +236,9 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
 
     gr::Graph flowGraph;
     auto&     timingSrc = flowGraph.emplaceBlock<gr::timing::TimingSource>({
-        {"event_actions", gr::Tensor<pmt::Value>({
-                              std::pmr::string{"SIS100_RING->PUBLISH()"}, // monitor all events for the sis100 timing group
-                              std::pmr::string{std::format("SIS100_RING:CMD_BP_START->IO3({},on,{},off)", pulseOnTime, pulseOffTime)},
+        {"event_actions", std::vector<std::string>({
+                              "SIS100_RING->PUBLISH()", // monitor all events for the sis100 timing group
+                              std::format("SIS100_RING:CMD_BP_START->IO3({},on,{},off)", pulseOnTime, pulseOffTime),
                           })},
         {"io_events", true},
         {"sample_rate", 0.0f}, // produce one sample per tag
@@ -251,12 +251,12 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
     auto& ps = flowGraph.emplaceBlock<Picoscope<gr::DataSet<float>, TPSImpl>>({{
         {"sample_rate", kSampleRate},
         {"auto_arm", true},
-        {"channel_ids", gr::Tensor<pmt::Value>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
-        {"signal_names", gr::Tensor<pmt::Value>{"IO1", "IO2", "Trigger"}},
-        {"signal_units", gr::Tensor<pmt::Value>{"V", "V", "V"}},
-        {"channel_ranges", gr::Tensor<float>{5.f, 5.f, 5.f}},
-        {"signal_offsets", gr::Tensor<float>{0.f, 0.f, 0.f}},
-        {"channel_couplings", gr::Tensor<pmt::Value>{"DC", "DC", "DC"}},
+        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
+        {"signal_names", std::vector<std::string>{"IO1", "IO2", "Trigger"}},
+        {"signal_units", std::vector<std::string>{"V", "V", "V"}},
+        {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
+        {"signal_offsets", std::vector<float>{0.f, 0.f, 0.f}},
+        {"channel_couplings", std::vector<std::string>{"DC", "DC", "DC"}},
         {"trigger_source", triggerName},
         {"trigger_threshold", 1.7f},
         {"trigger_direction", "Rising"},

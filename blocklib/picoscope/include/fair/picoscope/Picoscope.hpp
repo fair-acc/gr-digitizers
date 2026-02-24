@@ -118,14 +118,14 @@ struct Picoscope : gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTy
     A<bool, "trigger once (rapid block mode)">                                       trigger_once = false; // RapidBlock mode only
     A<bool, "do arm at start?">                                                      auto_arm     = true;
     A<std::vector<std::string>, "IDs of enabled channels: `A`, `B`, `C` etc.">       channel_ids;
-    A<gr::Tensor<float>, "Voltage range of enabled channels">                        channel_ranges;         // PS channel setting
-    A<gr::Tensor<float>, "Voltage offset of enabled channels">                       channel_analog_offsets; // PS channel setting
+    A<std::vector<float>, "Voltage range of enabled channels">                       channel_ranges;         // PS channel setting
+    A<std::vector<float>, "Voltage offset of enabled channels">                      channel_analog_offsets; // PS channel setting
     A<std::vector<std::string>, "Coupling modes of enabled channels">                channel_couplings;
     A<std::vector<std::string>, "Signal names of enabled channels">                  signal_names;
     A<std::vector<std::string>, "Signal units of enabled channels">                  signal_units;
     A<std::vector<std::string>, "Signal quantity of enabled channels">               signal_quantities;
-    A<gr::Tensor<float>, "Signal scales of the enabled channels">                    signal_scales;  // only for floats and UncertainValues
-    A<gr::Tensor<float>, "Analog offsets of the channels">                           signal_offsets; // only for floats and UncertainValues
+    A<std::vector<float>, "Signal scales of the enabled channels">                   signal_scales;  // only for floats and UncertainValues
+    A<std::vector<float>, "Analog offsets of the channels">                          signal_offsets; // only for floats and UncertainValues
     A<std::string, "trigger channel (A, B, C, ... or DI1, DI2, DI3, ... EXTERNAL)">  trigger_source;
     A<float, "trigger threshold, analog only">                                       trigger_threshold          = 0.f;
     A<TriggerDirection, "trigger direction">                                         trigger_direction          = TriggerDirection::Rising;
