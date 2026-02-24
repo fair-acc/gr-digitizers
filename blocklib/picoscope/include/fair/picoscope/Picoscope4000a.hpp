@@ -211,6 +211,7 @@ struct Picoscope4000a {
 
     PICO_STATUS getDeviceResolution(DeviceResolutionType* deviceResolution) const { return ps4000aGetDeviceResolution(_handle, deviceResolution); }
 
+#ifdef ps4000aCheckForUpdate
     std::vector<std::pair<std::string, PICO_FIRMWARE_INFO>> checkFirmwareUpdates(uint16_t& updatesRequired) const {
         std::vector<PICO_FIRMWARE_INFO> firmwareInfo{};
         int16_t                         nFirmwareInfo = 32;
@@ -247,6 +248,7 @@ struct Picoscope4000a {
         };
         return firmwareInfo | std::views::transform([&](auto& info) { return std::pair{firmwareType(info), info}; }) | std::ranges::to<std::vector>();
     }
+#endif
 
     static PICO_STATUS enumerateUnits(int16_t* count, int8_t* serials, int16_t* serialsSize) { return ps4000aEnumerateUnits(count, serials, serialsSize); };
 };
