@@ -541,6 +541,69 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
             },
             result3.tags);
     };
+
+    "unorderedIndices1"_test = [&] {
+        using namespace std::chrono_literals;
+
+        const unsigned long acq0 = 1'000'000'000UL;
+        TimingMatcher       matcher{.timeout = 10ms, .sampleRate = 1000.}; // 1 sample = 1 ms
+
+        {
+            std::vector<gr::property_map> primeTags{
+                generateTimingTag("EVT_PRIME"s, acq0 + 10'000'000, 0.0f, true, acq0 + 10'000'000),
+            };
+            std::vector<std::size_t> primeFlanks{10};
+            auto                     prime = matcher.match(primeTags, primeFlanks, 20UZ, std::chrono::nanoseconds(acq0));
+            expect(eq(1UZ, prime.processedTags));
+        }
+
+        const unsigned long acq1         = acq0 + 10'000'000;
+        const unsigned long localAcqTime = acq1 + 40'000'000;
+
+        std::vector<gr::property_map> tags{
+            generateTimingTag("CMD_BP_START"s, acq1 + 20'000'000, 0.0f, true, acq1 + 20'000'000), // becomes outdated vs localAcqTime (20+10 < 40)
+            generateTimingTag("EVT_MB_TRIGGER"s, acq1 + 30'000'000, 0.0f, false, acq1 + 40'000'000),
+            generateTimingTag("CMD_BP_START"s, acq1 + 50'000'000, 0.0f, true, acq1 + 60'000'000),
+        };
+        std::vector<std::size_t> triggerSampleIndices{20, 40, 50};
+
+        auto result = matcher.match(tags, triggerSampleIndices, 100UZ, std::chrono::nanoseconds(localAcqTime));
+
+        // out-of-order index 20 is dropped.
+        expect(eq(3UZ, result.processedTags));
+        expect(eq(90UZ, result.processedSamples));
+        expect(eq(3UZ, result.tags.size()));
+        expect(eq(30UZ, result.tags[0].index));
+        expect(eq(40UZ, result.tags[1].index));
+        expect(eq(50UZ, result.tags[2].index));
+        expect(std::ranges::any_of(result.messages, [](const auto& m) { return m.contains("Dropping unordered tag"); }));
+    };
+
+    "unorderedIndices2"_test = [&] {
+        using namespace std::chrono_literals;
+
+        TimingMatcher       matcher{.timeout = 10ms, .sampleRate = 1e3f}; // 1 sample = 1 ms
+        const unsigned long acq = 1'000'000'000UL;
+
+        // WR times differ by 70 ms so first tag realigns to index 40 when second matches at 110.
+        std::vector<gr::property_map> tags{
+            generateTimingTag("EVT_MB_TRIGGER"s, acq + 130'000'000ULL, 0.0f, false, acq + 80'000'000ULL), // non-HW
+            generateTimingTag("CMD_BP_START"s, acq + 200'000'000ULL, 0.0f, true, acq + 100'000'000ULL),   // HW
+        };
+
+        std::vector<std::size_t> triggerSampleIndices{40, 60, 70, 110};
+        auto                     result = matcher.match(tags, triggerSampleIndices, 150UZ, std::chrono::nanoseconds(acq));
+
+        // realigned out-of-order index 40 is dropped.
+        expect(eq(2UZ, result.processedTags));
+        expect(eq(140UZ, result.processedSamples));
+        expect(eq(4UZ, result.tags.size()));
+        expect(eq(40UZ, result.tags[0].index));
+        expect(eq(60UZ, result.tags[1].index));
+        expect(eq(70UZ, result.tags[2].index));
+        expect(eq(110UZ, result.tags[3].index));
+        expect(std::ranges::any_of(result.messages, [](const auto& m) { return m.contains("Dropping unordered tag"); }));
+    };
 };
 } // namespace fair::picoscope::test
 
