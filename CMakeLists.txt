@@ -13,6 +13,12 @@ if(NOT DEFINED GR_DIGITIZERS_TOPLEVEL_PROJECT)
   endif()
 endif()
 
+if(NOT EMSCRIPTEN)
+  option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
+  option(ENABLE_TIMING "Enable TimingReceiver support" ON)
+  option(ENABLE_OPENCMW "Enable OpenCmw support" ON)
+endif()
+
 if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang") # set default C++ STL to Clang's
                                             # libc++ when using Clang
   add_compile_options(-stdlib=libc++ -fcolor-diagnostics)
@@ -32,12 +38,25 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
   GIT_TAG d14bb560909aaa151b13a535ad4c7f98ad3e9959 # main as of 2026-02-24
   EXCLUDE_FROM_ALL)
+list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST gnuradio4)
 
-FetchContent_Declare(
-  ut
-  GIT_REPOSITORY https://github.com/boost-ext/ut.git
-  GIT_TAG v2.3.1 # latest tag as of 2025-04-02
-  EXCLUDE_FROM_ALL)
+if(ENABLE_GR_DIGITIZERS_TESTING)
+  FetchContent_Declare(
+    ut
+    GIT_REPOSITORY https://github.com/boost-ext/ut.git
+    GIT_TAG v2.3.1 # latest tag as of 2025-04-02
+    EXCLUDE_FROM_ALL)
+  list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST ut)
+endif()
+
+if(ENABLE_OPENCMW)
+  FetchContent_Declare(
+    opencmw-cpp
+    GIT_REPOSITORY https://github.com/fair-acc/opencmw-cpp.git
+    GIT_TAG e30b78193052bf2ea39160a8ec913044552fe103 # latest as of 2026-03-19
+    EXCLUDE_FROM_ALL)
+  list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST "opencmw-cpp")
+endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "(Clang|GNU)")
   if(ADDRESS_SANITIZER)
@@ -68,7 +87,7 @@ include(cmake/CompilerWarnings.cmake)
 set_project_warnings(gr-digitizers-options)
 
 if(EMSCRIPTEN)
-  FetchContent_MakeAvailable(gnuradio4 ut)
+  FetchContent_MakeAvailable(${GR_DIGITIZER_FETCH_CONTENT_LIST})
   set(CMAKE_EXECUTABLE_SUFFIX ".js")
   target_compile_options(gr-digitizers-options INTERFACE -fwasm-exceptions
                                                          -pthread)
@@ -87,6 +106,7 @@ else()
       imgui
       GIT_REPOSITORY https://github.com/ocornut/imgui.git
       GIT_TAG v1.91.9b-docking)
+    list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST imgui)
 
     # Enables 32 bit vertex indices for ImGui
     add_compile_definitions("ImDrawIdx=unsigned int")
@@ -94,7 +114,8 @@ else()
       implot
       GIT_REPOSITORY https://github.com/epezent/implot.git
       GIT_TAG v0.16)
-    FetchContent_MakeAvailable(imgui implot gnuradio4 ut)
+    list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST implot)
+    FetchContent_MakeAvailable(${GR_DIGITIZER_FETCH_CONTENT_LIST})
 
     find_package(SDL3 REQUIRED)
     find_package(OpenGL REQUIRED COMPONENTS OpenGL)
@@ -135,11 +156,6 @@ if(CMAKE_CXX_COMPILER MATCHES "/em\\+\\+(-[a-zA-Z0-9.])?$") # if this hasn't
                                                             # via e.g. emcmake
   message(" Transpiling to WASM: using: Emscripten (${CMAKE_CXX_COMPILER})")
   set(EMSCRIPTEN true)
-endif()
-
-if(NOT EMSCRIPTEN)
-  option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
-  option(ENABLE_TIMING "Enable TimingReceiver support" ON)
 endif()
 
 find_package(PkgConfig REQUIRED)
