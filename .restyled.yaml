@@ -19,6 +19,9 @@ ignore_labels:
 
 restylers_version: stable
 
+also_exclude:
+  - "**/*.jar"
+
 restylers:
   - clang-format:
       image:
