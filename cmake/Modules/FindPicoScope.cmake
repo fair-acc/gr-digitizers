@@ -42,7 +42,9 @@
   #)
 
   # Legacy ad-hoc discovery from fixed path
-  set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
+  if (NOT PICOSCOPE_PREFIX)
+    set(PICOSCOPE_PREFIX "/opt/picoscope" CACHE PATH "Picoscope drivers prefix") # TODO use proper find_package
+  endif ()
 
   MESSAGE(INFO "using picoscope library from ${PICOSCOPE_PREFIX}")
   # Add 3000a library
