@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+title: "gr-digitizers"
+message: "If you use this software, please cite it using the metadata from this file."
+type: software
+license: GPL-3.0-only
+repository-code: "https://github.com/fair-acc/gr-digitizers"
+keywords:
+  - digitiser
+  - GNU Radio
+  - data acquisition
+  - accelerator controls
+authors:
+  - family-names: Schwinn
+    given-names: Alexander
+    affiliation: "GSI Helmholtzzentrum für Schwerionenforschung"
+  - family-names: Krimm
+    given-names: Alexander
+    affiliation: "GSI Helmholtzzentrum für Schwerionenforschung"
+    orcid: "https://orcid.org/0000-0003-0804-756X"
+  - family-names: Lebedev
+    given-names: Simon
+    affiliation: "GSI Helmholtzzentrum für Schwerionenforschung"
+    orcid: "https://orcid.org/0009-0006-8329-990X"
+  - family-names: Osterfeld
+    given-names: Frank
+    affiliation: "KDAB"
+  - family-names: Steinhagen
+    given-names: Ralph J.
+    affiliation: "GSI Helmholtzzentrum für Schwerionenforschung / FAIR"
+    orcid: "https://orcid.org/0009-0009-8537-7029"
+  - family-names: Čukić
+    given-names: Ivan
+    affiliation: "KDAB"
+    orcid: "https://orcid.org/0000-0001-5358-0828"
+  - family-names: Groß
+    given-names: Magnus
+    affiliation: "KDAB"
+  - family-names: McFarlane
+    given-names: Ian
