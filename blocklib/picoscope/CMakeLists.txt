@@ -7,8 +7,8 @@ target_include_directories(
 target_link_libraries(
   fair-picoscope
   INTERFACE gr-digitizers-options
-            gnuradio-core
-            gnuradio-algorithm
+            gnuradio4::gnuradio-core
+            gnuradio4::gnuradio-algorithm
             PicoScope::ps3000a
             PicoScope::ps4000a
             PicoScope::ps5000a
@@ -21,8 +21,9 @@ set_target_properties(
 )
 
 add_executable(picoscope-cli src/picoscope-cli.cpp)
-target_link_libraries(picoscope-cli PRIVATE fair-picoscope gnuradio-algorithm
-                                            gnuradio-core)
+target_link_libraries(
+  picoscope-cli PRIVATE fair-picoscope gnuradio4::gnuradio-algorithm
+                        gnuradio4::gnuradio-core)
 
 if(ENABLE_GR_DIGITIZERS_TESTING)
   add_subdirectory(test)

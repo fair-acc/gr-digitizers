@@ -3,7 +3,7 @@ function(add_ut_test TEST_NAME)
   target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR}/include
                                                   ${CMAKE_CURRENT_BINARY_DIR})
   target_link_libraries(${TEST_NAME} PRIVATE fair-picoscope ut
-                                             gnuradio-blocklib-core)
+                                             gnuradio4::gnuradio-blocklib-core)
   add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR}
                                      ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()
@@ -16,6 +16,8 @@ if(NOT EMSCRIPTEN AND NOT CLANG)
 
   add_ut_test(qa_timingSource)
   target_link_libraries(
-    qa_timingSource PRIVATE gnuradio-algorithm gnuradio-core gr-basic
-                            gr-testing timing gnuradio-blocklib-core)
+    qa_timingSource
+    PRIVATE gnuradio4::gnuradio-algorithm gnuradio4::gnuradio-core
+            gnuradio4::gr-basic gnuradio4::gr-testing timing
+            gnuradio4::gnuradio-blocklib-core)
 endif()

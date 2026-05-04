@@ -18,8 +18,8 @@ if(NOT EMSCRIPTEN AND NOT CLANG)
               timing
               imgui
               implot
-              gnuradio-algorithm
-              gnuradio-core
+              gnuradio4::gnuradio-algorithm
+              gnuradio4::gnuradio-core
               ui_assets)
   endif()
 endif()

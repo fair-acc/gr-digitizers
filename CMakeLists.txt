@@ -33,12 +33,18 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules")
 include(cmake/CMakeRC.cmake)
 include(FetchContent)
 
-FetchContent_Declare(
-  gnuradio4
-  GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-  GIT_TAG d14bb560909aaa151b13a535ad4c7f98ad3e9959 # main as of 2026-02-24
-  EXCLUDE_FROM_ALL)
-list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST gnuradio4)
+find_package(gnuradio4 4.0.0 QUIET)
+if(NOT gnuradio4_FOUND)
+  message(
+    STATUS "Pre-built gnuradio4 not found, fetching and building from source..."
+  )
+  FetchContent_Declare(
+    gnuradio4
+    GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
+    GIT_TAG c946b140996efae16486f2118e0faca6f8e52c14 # main as of 2026-04-05
+    EXCLUDE_FROM_ALL)
+  list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST gnuradio4)
+endif()
 
 if(ENABLE_GR_DIGITIZERS_TESTING)
   FetchContent_Declare(
@@ -189,8 +195,9 @@ if(ENABLE_GR_DIGITIZERS_TESTING
                                                            # without
                                                            # optimization
     target_link_libraries(gr-digitizers-options INTERFACE --coverage)
-    set(GCOVR_ADDITIONAL_ARGS --print-summary --gcov-ignore-errors=all
-                              --verbose)
+    set(GCOVR_ADDITIONAL_ARGS
+        --print-summary --gcov-ignore-errors=all
+        --gcov-ignore-errors=no_working_dir_found --verbose)
     append_coverage_compiler_flags()
     setup_target_for_coverage_gcovr_xml(
       NAME

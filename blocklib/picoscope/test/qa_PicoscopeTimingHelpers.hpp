@@ -119,24 +119,24 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
     auto& sinkD = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
 
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(timingSrc).template to<"timingIn">(ps)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkD)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkC)));
+    expect(flowGraph.connect<"out", "timingIn">(timingSrc, ps).has_value());
+    expect(flowGraph.connect<"out#0", "in">(ps, sinkA).has_value());
+    expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
+    expect(flowGraph.connect<"out#2", "in">(ps, sinkD).has_value());
+    expect(flowGraph.connect<"out#3", "in">(ps, sinkC).has_value());
     if constexpr (TPSImpl::N_ANALOG_CHANNELS > 4) {
         auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkF = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkG = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkH = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+        expect(flowGraph.connect<"out#4", "in">(ps, sinkE).has_value());
+        expect(flowGraph.connect<"out#5", "in">(ps, sinkF).has_value());
+        expect(flowGraph.connect<"out#6", "in">(ps, sinkG).has_value());
+        expect(flowGraph.connect<"out#7", "in">(ps, sinkH).has_value());
     }
 
     auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<uint16_t, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", false}});
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+    expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
     std::jthread                                                 publishEvents = createTimingEventThread({
                                                              //   A    B   D/DI4            t                event
@@ -155,7 +155,7 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
     expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
     gr::MsgPortOut _toScheduler;
-    expect(_toScheduler.connect(sched.msgIn) == gr::ConnectionResult::SUCCESS) << fatal;
+    expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
     std::this_thread::sleep_for(kDuration);
     gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, "test");
     std::this_thread::sleep_for(10ms); // wait for the scheduler to actually stop processing -> otherwise process work will be called when the scheduler and graph have already been destroyed
@@ -275,24 +275,24 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
     auto& sinkC = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", true}, {"log_tags", true}});
     auto& sinkD = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
 
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(timingSrc).template to<"timingIn">(ps)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+    expect(flowGraph.connect<"out", "timingIn">(timingSrc, ps).has_value());
+    expect(flowGraph.connect<"out#0", "in">(ps, sinkA).has_value());
+    expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
+    expect(flowGraph.connect<"out#2", "in">(ps, sinkC).has_value());
+    expect(flowGraph.connect<"out#3", "in">(ps, sinkD).has_value());
     if constexpr (TPSImpl::N_ANALOG_CHANNELS > 4) {
         auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkF = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkG = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkH = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+        expect(flowGraph.connect<"out#4", "in">(ps, sinkE).has_value());
+        expect(flowGraph.connect<"out#5", "in">(ps, sinkF).has_value());
+        expect(flowGraph.connect<"out#6", "in">(ps, sinkG).has_value());
+        expect(flowGraph.connect<"out#7", "in">(ps, sinkH).has_value());
     }
 
     auto& sinkDigital = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<uint16_t>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+    expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
     std::this_thread::sleep_for(1s);
 
@@ -319,7 +319,7 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
     expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
     expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
     gr::MsgPortOut _toScheduler;
-    expect(_toScheduler.connect(sched.msgIn) == gr::ConnectionResult::SUCCESS) << fatal;
+    expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
     std::this_thread::sleep_for(kDuration);
     std::print("stopping scheduler");
     gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, "test");
