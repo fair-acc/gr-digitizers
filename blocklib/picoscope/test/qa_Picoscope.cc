@@ -103,13 +103,13 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, st
     auto& sinkC = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
     auto& sinkD = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+    expect(flowGraph.connect<"out#0", "in">(ps, sinkA).has_value());
+    expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
+    expect(flowGraph.connect<"out#2", "in">(ps, sinkC).has_value());
+    expect(flowGraph.connect<"out#3", "in">(ps, sinkD).has_value());
 
     auto& sinkDigital = flowGraph.emplaceBlock<BulkTagSink<gr::DataSet<uint16_t>>>({{"log_samples", true}, {"log_tags", false}});
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+    expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
     if constexpr (std::is_same_v<Picoscope4000a, PicoscopeT>) {
         auto& sinkE = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
@@ -117,10 +117,10 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, st
         auto& sinkG = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkH = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+        expect(flowGraph.connect<"out#4", "in">(ps, sinkE).has_value());
+        expect(flowGraph.connect<"out#5", "in">(ps, sinkF).has_value());
+        expect(flowGraph.connect<"out#6", "in">(ps, sinkG).has_value());
+        expect(flowGraph.connect<"out#7", "in">(ps, sinkH).has_value());
     }
 
     scheduler::Simple sched{};
@@ -220,14 +220,14 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     auto& sinkC      = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
     auto& sinkD      = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps, minPicoBufferSize).template to<"in">(tagMonitor)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(tagMonitor, minPicoBufferSize).template to<"in">(sinkA)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps, minPicoBufferSize).template to<"in">(sinkB)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps, minPicoBufferSize).template to<"in">(sinkC)));
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps, minPicoBufferSize).template to<"in">(sinkD)));
+    expect(flowGraph.connect<"out#0", "in">(ps, tagMonitor, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out", "in">(tagMonitor, sinkA, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out#1", "in">(ps, sinkB, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out#2", "in">(ps, sinkC, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out#3", "in">(ps, sinkD, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
 
     auto& sinkDigital = flowGraph.emplaceBlock<BulkTagSink<uint16_t>>({{"log_samples", testDigitalOutput}, {"log_tags", false}});
-    expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps, minPicoBufferSize).template to<"in">(sinkDigital)));
+    expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
 
     if constexpr (std::is_same_v<Picoscope4000a, PicoscopeT>) {
         auto& sinkE = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
@@ -235,10 +235,10 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
         auto& sinkG = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkH = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps, minPicoBufferSize).template to<"in">(sinkE)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps, minPicoBufferSize).template to<"in">(sinkF)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps, minPicoBufferSize).template to<"in">(sinkG)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps, minPicoBufferSize).template to<"in">(sinkH)));
+        expect(flowGraph.connect<"out#4", "in">(ps, sinkE, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+        expect(flowGraph.connect<"out#5", "in">(ps, sinkF, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+        expect(flowGraph.connect<"out#6", "in">(ps, sinkG, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+        expect(flowGraph.connect<"out#7", "in">(ps, sinkH, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
     }
 
     // Explicitly start the picoscope because it takes quite some time
@@ -368,13 +368,13 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& sinkC = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", true}, {"log_tags", false}});
         auto& sinkD = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", true}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+        expect(flowGraph.connect<"out#0", "in">(ps, sinkA).has_value());
+        expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
+        expect(flowGraph.connect<"out#2", "in">(ps, sinkC).has_value());
+        expect(flowGraph.connect<"out#3", "in">(ps, sinkD).has_value());
 
         auto& sinkDigital = flowGraph.emplaceBlock<BulkTagSink<gr::DataSet<uint16_t>>>({{"log_samples", false}, {"log_tags", false}});
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+        expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
         if constexpr (std::is_same_v<Picoscope4000a, PicoscopeT>) {
             auto& sinkE = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
@@ -382,10 +382,10 @@ const boost::ut::suite PicoscopeTests = [] {
             auto& sinkG = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
             auto& sinkH = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+            expect(flowGraph.connect<"out#4", "in">(ps, sinkE).has_value());
+            expect(flowGraph.connect<"out#5", "in">(ps, sinkF).has_value());
+            expect(flowGraph.connect<"out#6", "in">(ps, sinkG).has_value());
+            expect(flowGraph.connect<"out#7", "in">(ps, sinkH).has_value());
         }
 
         scheduler::Simple sched{};
@@ -445,13 +445,13 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& sinkC = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkD = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+        expect(flowGraph.connect<"out#0", "in">(ps, sinkA).has_value());
+        expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
+        expect(flowGraph.connect<"out#2", "in">(ps, sinkC).has_value());
+        expect(flowGraph.connect<"out#3", "in">(ps, sinkD).has_value());
 
         auto& sinkDigital = flowGraph.emplaceBlock<BulkTagSink<gr::DataSet<uint16_t>>>({{"log_samples", false}, {"log_tags", false}});
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+        expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
         if constexpr (std::is_same_v<Picoscope4000a, PicoscopeT>) {
             auto& sinkE = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
@@ -459,10 +459,10 @@ const boost::ut::suite PicoscopeTests = [] {
             auto& sinkG = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
             auto& sinkH = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+            expect(flowGraph.connect<"out#4", "in">(ps, sinkE).has_value());
+            expect(flowGraph.connect<"out#5", "in">(ps, sinkF).has_value());
+            expect(flowGraph.connect<"out#6", "in">(ps, sinkG).has_value());
+            expect(flowGraph.connect<"out#7", "in">(ps, sinkH).has_value());
         }
 
         // Explicitly start the picoscope block because it takes quite some time
@@ -569,14 +569,14 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& sinkC = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkD = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(clockSrc).to<"timingIn">(ps)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+        expect(flowGraph.connect<"out", "timingIn">(clockSrc, ps).has_value());
+        expect(flowGraph.connect<"out#0", "in">(ps, sinkA).has_value());
+        expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
+        expect(flowGraph.connect<"out#2", "in">(ps, sinkC).has_value());
+        expect(flowGraph.connect<"out#3", "in">(ps, sinkD).has_value());
 
         auto& sinkDigital = flowGraph.emplaceBlock<BulkTagSink<gr::DataSet<uint16_t>>>({{"log_samples", false}, {"log_tags", false}});
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+        expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
         if constexpr (std::is_same_v<Picoscope4000a, PicoscopeT>) {
             auto& sinkE = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
@@ -584,10 +584,10 @@ const boost::ut::suite PicoscopeTests = [] {
             auto& sinkG = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
             auto& sinkH = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+            expect(flowGraph.connect<"out#4", "in">(ps, sinkE).has_value());
+            expect(flowGraph.connect<"out#5", "in">(ps, sinkF).has_value());
+            expect(flowGraph.connect<"out#6", "in">(ps, sinkG).has_value());
+            expect(flowGraph.connect<"out#7", "in">(ps, sinkH).has_value());
         }
 
         // Explicitly start the picoscope block because it takes quite some time
@@ -666,14 +666,14 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& sinkC = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkD = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out">(clockSrc).to<"timingIn">(ps)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 0>(ps).template to<"in">(sinkA)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 1>(ps).template to<"in">(sinkB)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 2>(ps).template to<"in">(sinkC)));
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 3>(ps).template to<"in">(sinkD)));
+        expect(flowGraph.connect<"out", "timingIn">(clockSrc, ps).has_value());
+        expect(flowGraph.connect<"out#0", "in">(ps, sinkA).has_value());
+        expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
+        expect(flowGraph.connect<"out#2", "in">(ps, sinkC).has_value());
+        expect(flowGraph.connect<"out#3", "in">(ps, sinkD).has_value());
 
         auto& sinkDigital = flowGraph.emplaceBlock<BulkTagSink<gr::DataSet<uint16_t>>>({{"log_samples", false}, {"log_tags", false}});
-        expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+        expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
         if constexpr (std::is_same_v<Picoscope4000a, PicoscopeT>) {
             auto& sinkE = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
@@ -681,10 +681,10 @@ const boost::ut::suite PicoscopeTests = [] {
             auto& sinkG = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
             auto& sinkH = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 4>(ps).template to<"in">(sinkE)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 5>(ps).template to<"in">(sinkF)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-            expect(eq(ConnectionResult::SUCCESS, flowGraph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+            expect(flowGraph.connect<"out#4", "in">(ps, sinkE).has_value());
+            expect(flowGraph.connect<"out#5", "in">(ps, sinkF).has_value());
+            expect(flowGraph.connect<"out#6", "in">(ps, sinkG).has_value());
+            expect(flowGraph.connect<"out#7", "in">(ps, sinkH).has_value());
         }
 
         // Explicitly start the picoscope block because it takes quite some time
@@ -692,7 +692,7 @@ const boost::ut::suite PicoscopeTests = [] {
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(flowGraph));
         gr::MsgPortOut _toScheduler;
-        expect(_toScheduler.connect(sched.msgIn) == gr::ConnectionResult::SUCCESS) << fatal;
+        expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         // gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::INITIALISED))}}, "test");

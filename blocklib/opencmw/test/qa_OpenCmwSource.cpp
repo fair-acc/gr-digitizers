@@ -42,13 +42,13 @@ const boost::ut::suite OpenCmwSourceTests = [] {
         });
         auto& extractFromMapBlock = testGraph.emplaceBlock<fair::opencmw::ExtractFromMap<double>>({{"fieldname", "voltage"}});
         auto& sink                = testGraph.emplaceBlock<TagSink<double, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink1"}});
-        expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(src).template to<"in">(extractFromMapBlock)));
-        expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(extractFromMapBlock).template to<"in">(sink)));
+        expect(testGraph.connect<"out", "in">(src, extractFromMapBlock).has_value());
+        expect(testGraph.connect<"out", "in">(extractFromMapBlock, sink).has_value());
 
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(testGraph));
         MsgPortOut _toScheduler;
-        expect(_toScheduler.connect(sched.msgIn) == ConnectionResult::SUCCESS) << fatal;
+        expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(5s);
@@ -77,13 +77,13 @@ const boost::ut::suite OpenCmwSourceTests = [] {
         });
         auto& extractFromMapBlock = testGraph.emplaceBlock<fair::opencmw::ExtractFromMap<double>>({{"fieldname", "voltage"}});
         auto& sink                = testGraph.emplaceBlock<TagSink<double, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink1"}});
-        expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(src).template to<"in">(extractFromMapBlock)));
-        expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(extractFromMapBlock).template to<"in">(sink)));
+        expect(testGraph.connect<"out", "in">(src, extractFromMapBlock).has_value());
+        expect(testGraph.connect<"out", "in">(extractFromMapBlock, sink).has_value());
 
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(testGraph));
         MsgPortOut _toScheduler;
-        expect(_toScheduler.connect(sched.msgIn) == ConnectionResult::SUCCESS) << fatal;
+        expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(5s);

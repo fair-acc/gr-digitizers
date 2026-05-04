@@ -18,14 +18,14 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         if: github.event_name == 'push'
         with:
           fetch-depth: 0
 
       - name: Check if dockerfile was modified
         id: changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
              docker:
@@ -53,7 +53,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         if: steps.changes.outputs.docker == 'true'
         with:
           context: "{{defaultContext}}:docker"
@@ -72,21 +72,49 @@ jobs:
         compiler:
           - cc: gcc-14
             cxx: g++-14
+            gr4_prefix: /opt/gnuradio4-gcc
           - cc: clang-20
             cxx: clang++-20
             cmake_flags: "-DCMAKE_LINKER=/usr/bin/clang-20"
+            gr4_prefix: /opt/gnuradio4-clang
           - cmake_wrapper: emcmake
             cc: emcc
             cmake_flags: " -DENABLE_PICOSCOPE=FALSE -DENABLE_TIMING=FALSE -DENABLE_COVERAGE=OFF -DCMAKE_CROSSCOMPILING_EMULATOR=${SYSTEM_NODE} -DGNURADIO_PARSE_REGISTRATIONS_TOOL_CXX_COMPLILER=g++-14"
+            gr4_prefix: /opt/gnuradio4-gcc
         cmake-build-type: [ Release, Debug ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
+      - name: Ensure Git LFS assets are present
+        shell: bash
+        run: |
+          if ! command -v git-lfs >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y git-lfs || true
+          fi
+          git lfs install --local
+          git lfs pull
+          if grep -q "git-lfs.github.com/spec/v1" blocklib/opencmw/test/DemoRda3Server.jar; then
+            echo "DemoRda3Server.jar is still a Git LFS pointer"
+            exit 1
+          fi
+
+      - name: Install gnuradio4 packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+            gh release download latest \
+            --repo fair-acc/gnuradio4 \
+            --pattern "gnuradio4-gcc_*_amd64.deb" \
+            --pattern "gnuradio4-clang_*_amd64.deb" \
+            --dir /tmp/gr4-pkgs
+            sudo apt install /tmp/gr4-pkgs/*.deb -y || true
+
       - name: Cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         env:
           cache-name: cache-fetchContent-cache
         with:
@@ -101,7 +129,7 @@ jobs:
           CXX: "${{ matrix.compiler.cxx }}"
           CMAKE_EXPORT_COMPILE_COMMANDS: "ON"
         run: |
-          cmake -S . -B ../build -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} -DENABLE_COVERAGE=${{ matrix.compiler.cc == 'gcc-14' && matrix.cmake-build-type == 'Debug'}} ${{ matrix.compiler.cmake_flags }}
+          cmake -S . -B ../build -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DENABLE_GR_DIGITIZERS_TESTING=TRUE -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} -DENABLE_COVERAGE=${{ matrix.compiler.cc == 'gcc-14' && matrix.cmake-build-type == 'Debug'}} ${{ matrix.compiler.cmake_flags }} -DCMAKE_PREFIX_PATH="${{ matrix.compiler.gr4_prefix }}"
 
       - name: Configure CMake Emscripten
         if: matrix.compiler.cmake_wrapper == 'emcmake'

@@ -84,13 +84,13 @@ int main(int argc, char* argv[]) {
     auto& perfMonitorC = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf C"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
     auto& perfMonitorD = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf D"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
 
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 0>(ps).template to<"in">(perfMonitorA)));
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 1>(ps).template to<"in">(perfMonitorB)));
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 2>(ps).template to<"in">(perfMonitorC)));
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 3>(ps).template to<"in">(perfMonitorD)));
+    expect(graph.connect<"out#0", "in">(ps, perfMonitorA).has_value());
+    expect(graph.connect<"out#1", "in">(ps, perfMonitorB).has_value());
+    expect(graph.connect<"out#2", "in">(ps, perfMonitorC).has_value());
+    expect(graph.connect<"out#3", "in">(ps, perfMonitorD).has_value());
 
     auto& sinkDigital = graph.emplaceBlock<testing::TagSink<uint16_t, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
-    expect(eq(ConnectionResult::SUCCESS, graph.connect<"digitalOut">(ps).template to<"in">(sinkDigital)));
+    expect(graph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
     if constexpr (PicoscopeT::N_ANALOG_CHANNELS == 8) {
         auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
@@ -98,10 +98,10 @@ int main(int argc, char* argv[]) {
         auto& sinkG        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
         auto& sinkH        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
 
-        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 4>(ps).template to<"in">(perfMonitorE)));
-        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 5>(ps).template to<"in">(perfMonitorF)));
-        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 6>(ps).template to<"in">(sinkG)));
-        expect(eq(ConnectionResult::SUCCESS, graph.connect<"out", 7>(ps).template to<"in">(sinkH)));
+        expect(graph.connect<"out#4", "in">(ps, perfMonitorE).has_value());
+        expect(graph.connect<"out#5", "in">(ps, perfMonitorF).has_value());
+        expect(graph.connect<"out#6", "in">(ps, sinkG).has_value());
+        expect(graph.connect<"out#7", "in">(ps, sinkH).has_value());
     }
 
     auto sched                                        = scheduler::Simple{};

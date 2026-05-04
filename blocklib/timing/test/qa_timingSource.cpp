@@ -172,7 +172,7 @@ const suite TimingBlock = [] {
         });
         auto&           sink      = testGraph.emplaceBlock<TagSink<uint8_t, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink"}, {"verbose_console", verbose}});
 
-        expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(timingSrc).to<"in">(sink)));
+        expect(testGraph.connect<"out", "in">(timingSrc, sink).has_value());
 
         scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(testGraph));
@@ -226,7 +226,7 @@ const suite TimingBlock = [] {
         });
         auto&      sink      = testGraph.emplaceBlock<TagSink<uint8_t, ProcessFunction::USE_PROCESS_ONE>>({{"name", "TagSink"}, {"verbose_console", verbose}});
 
-        expect(eq(ConnectionResult::SUCCESS, testGraph.connect<"out">(timingSrc).to<"in">(sink)));
+        expect(testGraph.connect<"out", "in">(timingSrc, sink).has_value());
 
         scheduler::Simple<gr::scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(testGraph));

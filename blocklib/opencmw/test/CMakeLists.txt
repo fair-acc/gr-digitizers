@@ -6,13 +6,13 @@ function(add_ut_test_tool TEST_NAME) # for manual usage, not run by ctest
             ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(
     ${TEST_NAME}
-    PRIVATE gnuradio-core
-            gr-testing
-            gr-basic
+    PRIVATE gnuradio4::gnuradio-core
+            gnuradio4::gr-testing
+            gnuradio4::gr-basic
             fair-opencmw
             ut
-            gnuradio-blocklib-core
-            GrBasicBlocksShared)
+            gnuradio4::gnuradio-blocklib-core
+            gnuradio4::GrBasicBlocksShared)
 endfunction()
 
 function(add_ut_test TEST_NAME)
