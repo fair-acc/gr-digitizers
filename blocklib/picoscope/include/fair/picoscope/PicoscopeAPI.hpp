@@ -899,15 +899,14 @@ public:
     [[nodiscard]] const ChannelConfig& getChannelConfig(std::size_t id) const { return channel_config[id].second; };
 
     void configureChannel(std::size_t id, ChannelConfig chan) {
-        bool modified      = channel_config[id].second != chan;
-        channel_config[id] = {modified, chan};
+        const bool modified = channel_config[id].first || channel_config[id].second != chan;
+        channel_config[id]  = {modified, chan};
     }
 
     [[nodiscard]] const TriggerConfig& getTriggerConfig() const { return trigger_config; };
 
     void configureTrigger(TriggerConfig config) {
-        config.modified = trigger_config.modified;
-        config.modified = trigger_config != config;
+        config.modified = trigger_config.modified || trigger_config != config;
         trigger_config  = config;
     }
 
