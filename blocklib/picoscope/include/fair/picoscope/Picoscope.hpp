@@ -135,6 +135,7 @@ struct Picoscope : gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTy
     A<bool, "Enable digital inputs">                                                 digital_port_enable        = false; // only used if digital ports are available: 3000a, 5000a series
     A<bool, "invert digital port output">                                            digital_port_invert_output = false; // only used if digital ports are available: 3000a, 5000a series
     A<gr::Size_t, "Timeout after which to not match trigger pulses", gr::Unit<"ns">> matcher_timeout            = 10'000'000z;
+    A<std::uint64_t, "Polling interval for streaming mode", gr::Unit<"ns">>          polling_interval           = 0ULL;
     A<bool, "verbose console">                                                       verbose_console            = false;
 
     gr::PortIn<std::uint8_t, gr::Async> timingIn;
@@ -151,8 +152,11 @@ struct Picoscope : gr::Block<Picoscope<T, TPSImpl, TTagMatcher>, gr::SupportedTy
     detail::TriggerNameAndCtx _armTriggerNameAndCtx; // store parsed information to optimise performance
     detail::TriggerNameAndCtx _disarmTriggerNameAndCtx;
 
-    GR_MAKE_REFLECTABLE(Picoscope, timingIn, out, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities, //
-        channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, digital_port_enable, digital_port_invert_output, trigger_arm, trigger_disarm, matcher_timeout, verbose_console);
+    std::chrono::steady_clock::time_point _lastTry; // saves the timestamp of the last polling
+
+    GR_MAKE_REFLECTABLE(Picoscope, timingIn, out, digitalOut, serial_number, sample_rate, pre_samples, post_samples, n_captures, auto_arm, trigger_once, channel_ids, signal_names, signal_units, signal_quantities,  //
+        channel_ranges, channel_analog_offsets, signal_scales, signal_offsets, channel_couplings, trigger_source, trigger_threshold, trigger_direction, digital_port_enable, digital_port_invert_output, trigger_arm, //
+        trigger_disarm, matcher_timeout, verbose_console, polling_interval);
 
 private:
     std::optional<PicoscopeWrapper<TPSImpl>> _picoscope;
@@ -174,6 +178,14 @@ public:
     template<gr::OutputSpanLike TOutSpan>
     requires(acquisitionMode == AcquisitionMode::Streaming)
     gr::work::Status processBulk(gr::InputSpanLike auto& timingInSpan, std::span<TOutSpan>& outputs, gr::OutputSpanLike auto& digitalOutSpan) {
+        if (polling_interval != 0ULL) {
+            const auto intervalNs = std::chrono::nanoseconds{polling_interval.value};
+            if (_lastTry + intervalNs > std::chrono::steady_clock::now()) {
+                return gr::work::Status::OK;
+            }
+            _lastTry = std::chrono::steady_clock::now();
+        }
+
         std::size_t       nSamples        = 0UZ;
         std::size_t       samplesDropped  = 0UZ;
         const std::size_t availableBuffer = std::min(std::ranges::min(outputs | std::views::transform(&TOutSpan::size)), digitalOutSpan.size());
