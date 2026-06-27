@@ -353,7 +353,7 @@ tags: [
             if (!newSettings.contains("timing_device")) {
                 return std::nullopt;
             }
-            auto value = oldSettings.at("timing_device");
+            auto value = oldSettings.find_value("timing_device").value_or(gr::pmt::Value{});
             if (!value.is_string()) {
                 return std::nullopt;
             }
@@ -370,7 +370,7 @@ tags: [
             if (!oldSettings.contains("event_actions")) {
                 return {};
             }
-            const auto& eventActionsValue = oldSettings.at("event_actions");
+            const auto& eventActionsValue = oldSettings.find_value("event_actions").value_or(gr::pmt::Value{});
             if (!eventActionsValue.is_tensor() || eventActionsValue.value_type() != pmt::Value::ValueType::String) {
                 return {};
             }
@@ -390,22 +390,23 @@ tags: [
     }
 
     static void addHwTriggerInfo(const std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
-        auto& metaMapVariant = tag.map[gr::tag::TRIGGER_META_INFO.shortKey()];
-        if (metaMapVariant.is_monostate()) {
-            metaMapVariant = property_map{}; // initialise an empty property map
-        } else if (!metaMapVariant.is_map()) {
+        auto metaMapIterator = tag.map.find(gr::tag::TRIGGER_META_INFO.shortKey());
+        if (metaMapIterator == std::end(tag.map) || metaMapIterator->second.is_monostate()) {
+            metaMapIterator = tag.map.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{}).first;
+        } else if (!metaMapIterator->second.is_map()) {
             return; // edge case where the tag map already contains data of a non-map type on the meta-info key -> just skip adding metadata
         }
         bool isHwTrigger = false;
-        assert(metaMapVariant.is_map());
-        auto& metaMap = *metaMapVariant.get_if<gr::property_map>();
+        assert(metaMapIterator->second.is_map());
+        gr::ValueMap metaMapCopy = metaMapIterator->second.get_if<gr::property_map>()->owned();
         for (const auto& [filter, mask] : eventMeta) {
             if ((id & mask) == (filter & mask)) {
                 isHwTrigger = true;
                 break;
             }
         }
-        metaMap.insert_or_assign("HW-TRIGGER", isHwTrigger);
+        metaMapCopy.insert_or_assign("HW-TRIGGER", isHwTrigger);
+        tag.map.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), std::move(metaMapCopy));
     }
 
     void addHwTriggerInfo(const std::uint64_t id, Tag& tag) const { addHwTriggerInfo(id, tag, eventHwTrigger); }

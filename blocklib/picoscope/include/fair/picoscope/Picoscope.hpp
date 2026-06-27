@@ -56,10 +56,10 @@ struct TriggerNameAndCtx {
 [[nodiscard, maybe_unused]] static bool tagContainsTrigger(const gr::property_map& map, const TriggerNameAndCtx& triggerNameAndCtx) { // unused if only streaming acq is used
     if (triggerNameAndCtx.ctx) {                                                                                                      // trigger_name and ctx
         if (map.contains(gr::tag::TRIGGER_NAME.shortKey()) && map.contains(gr::tag::CONTEXT.shortKey())) {
-            auto triggerNameValue = map.at(gr::tag::TRIGGER_NAME.shortKey());
-            auto contextValue     = map.at(gr::tag::CONTEXT.shortKey());
-            if (triggerNameValue.is_string() && contextValue.is_string()) {
-                std::string_view tagTriggerName = triggerNameValue.value_or(std::string_view{});
+            auto triggerNameValue = map.find_value(gr::tag::TRIGGER_NAME.shortKey());
+            auto contextValue     = map.find_value(gr::tag::CONTEXT.shortKey());
+            if (triggerNameValue && contextValue && triggerNameValue->is_string() && contextValue->is_string()) {
+                std::string_view tagTriggerName = triggerNameValue->value_or(std::string_view{});
                 return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName && contextValue.value_or(std::string_view{}) == *triggerNameAndCtx.ctx;
             } else {
                 assert(false && "Invalid triggername or context type, expected string for both");
@@ -67,9 +67,9 @@ struct TriggerNameAndCtx {
         }
     } else { // only trigger_name
         if (map.contains(gr::tag::TRIGGER_NAME.shortKey())) {
-            auto triggerNameValue = map.at(gr::tag::TRIGGER_NAME.shortKey());
-            if (triggerNameValue.is_string()) {
-                std::string_view tagTriggerName = triggerNameValue.value_or(std::string_view{});
+            auto triggerNameValue = map.find_value(gr::tag::TRIGGER_NAME.shortKey());
+            if (triggerNameValue && triggerNameValue->is_string()) {
+                std::string_view tagTriggerName = triggerNameValue->value_or(std::string_view{});
                 return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName;
             }
         }
@@ -233,7 +233,7 @@ public:
             return gr::work::Status::INSUFFICIENT_INPUT_ITEMS; // no new data to be processed
         }
         // find triggers and match
-        auto tagsDriver         = timingInSpan.rawTags | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
+        auto tagsDriver         = timingInSpan.rawTags() | std::views::transform([](const auto& t) { return t.map; }) | std::ranges::to<std::vector<gr::property_map>>();
         auto triggerEdgesDriver = [&]() -> std::vector<std::size_t> {
             if (trigger_source == "") { // no trigger configured
                 return {};
@@ -297,7 +297,7 @@ public:
 
         // consume timing tags
         if (matchedTags.processedTags > 0) {
-            auto lastTimingSampleIndex = timingInSpan.rawTags[matchedTags.processedTags - 1].index - timingInSpan.streamIndex + 1;
+            auto lastTimingSampleIndex = timingInSpan.rawTags()[matchedTags.processedTags - 1].index - timingInSpan.streamIndex + 1;
             timingInSpan.consumeTags(lastTimingSampleIndex);
             std::ignore = timingInSpan.consume(lastTimingSampleIndex);
         } else {
@@ -456,26 +456,27 @@ public:
         bool armed = _isArmed;
         for (const auto& [i, tag_map] : tagData.tags()) {
             if (!trigger_arm.value.empty() || !trigger_disarm.value.empty()) {
-                if (detail::tagContainsTrigger(tag_map, _armTriggerNameAndCtx)) {
+                auto tagMapOwned = tag_map.get().owned();
+                if (detail::tagContainsTrigger(tagMapOwned, _armTriggerNameAndCtx)) {
                     result.arm = true;
                     armed      = true;
                     _nextTimingTags.clear();
                 }
-                if (detail::tagContainsTrigger(tag_map, _disarmTriggerNameAndCtx)) {
+                if (detail::tagContainsTrigger(tagMapOwned, _disarmTriggerNameAndCtx)) {
                     result.disarm = true;
                     armed         = false;
                 }
             }
             if (armed) {
                 if (!result.disarm) {
-                    _currentTimingTags.push_back(tag_map);
+                    _currentTimingTags.emplace_back(tag_map.get());
                 } else {
-                    _nextTimingTags.push_back(tag_map);
+                    _nextTimingTags.emplace_back(tag_map.get());
                 }
             }
         }
         std::ignore = tagData.consume(tagData.size());
-        std::ignore = tagData.rawTags.consume(tagData.rawTags.size()); // this should be the default, but there seem to be some cases where not all tags are consumed
+        tagData.consumeRawTags(tagData.rawTags().size());
         return result;
     }
 
@@ -519,12 +520,12 @@ public:
             if (!oldSettings.contains("serial_number")) {
                 return std::nullopt;
             }
-            auto serialNumberValue = oldSettings.at("serial_number");
-            assert(serialNumberValue.is_string() && "Unexpected type for serial_number, expected string");
-            if (!serialNumberValue.is_string()) {
+            auto serialNumberValue = oldSettings.find_value("serial_number");
+            assert(serialNumberValue && serialNumberValue->is_string() && "Unexpected type for serial_number, expected string");
+            if (!serialNumberValue || !serialNumberValue->is_string()) {
                 return {};
             }
-            return serialNumberValue.value_or(std::string{});
+            return serialNumberValue->value_or(std::string{});
         };
 
         if (!_picoscope || serial_number != getOldSettingsSerialNumber()) {

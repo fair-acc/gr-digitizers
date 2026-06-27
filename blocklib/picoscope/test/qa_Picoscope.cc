@@ -268,11 +268,11 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     if (tagMonitor._tags.size() == 1UZ) {
         const auto& tag = tagMonitor._tags[0];
         expect(eq(tag.index, 0UZ));
-        expect(eq(tag.at(std::string(tag::SAMPLE_RATE.shortKey())).value_or(INFINITY), sampleRate));
-        expect(eq(tag.at(std::string(tag::SIGNAL_NAME.shortKey())).value_or(std::string_view{}), "Test signal"s));
-        expect(eq(tag.at(std::string(tag::SIGNAL_UNIT.shortKey())).value_or(std::string_view{}), "Test unit"s));
-        expect(eq(tag.at(std::string(tag::SIGNAL_MIN.shortKey())).value_or(INFINITY), -5.f));
-        expect(eq(tag.at(std::string(tag::SIGNAL_MAX.shortKey())).value_or(INFINITY), 5.f));
+        expect(eq(tag.map.template value_or<float>(tag::SAMPLE_RATE.shortKey(), INFINITY), sampleRate));
+        expect(eq(tag.map.template value_or<std::string>(tag::SIGNAL_NAME.shortKey(), std::string{}), "Test signal"s));
+        expect(eq(tag.map.template value_or<std::string>(tag::SIGNAL_UNIT.shortKey(), std::string{}), "Test unit"s));
+        expect(eq(tag.map.template value_or<float>(tag::SIGNAL_MIN.shortKey(), INFINITY), -5.f));
+        expect(eq(tag.map.template value_or<float>(tag::SIGNAL_MAX.shortKey(), INFINITY), 5.f));
     }
 
     // Digital output testing relies on the actual test setup.

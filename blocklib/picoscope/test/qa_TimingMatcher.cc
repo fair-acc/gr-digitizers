@@ -188,8 +188,8 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4UZ, result.processedTags));
         expect(eq(240UZ, result.processedSamples));
-        expect(approx(result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.0f, 1e-10f));
-        result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
+        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.0f, 1e-10f));
+        result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f);
 
         expectRangesEquals(
             std::vector<gr::Tag>{
@@ -378,12 +378,12 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         expect(eq(240UZ, result.processedSamples));
 
         // check and fix inexact offsets
-        expect(approx(result.tags[0].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.0f, 1e-10f));
-        result.tags[0].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
-        expect(approx(result.tags[1].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.0f, 1e-10f));
-        result.tags[1].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
-        expect(approx(result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()).value_or(INFINITY), 0.7f, 1e-10f));
-        result.tags[2].map.at(gr::tag::TRIGGER_OFFSET.shortKey()) = 0.0f;
+        expect(approx(result.tags[0].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.0f, 1e-10f));
+        result.tags[0].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f);
+        expect(approx(result.tags[1].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.0f, 1e-10f));
+        result.tags[1].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f);
+        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.7f, 1e-10f));
+        result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f);
 
         expectRangesEquals(
             std::vector<gr::Tag>{
