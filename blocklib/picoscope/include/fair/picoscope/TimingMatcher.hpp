@@ -49,8 +49,7 @@ struct TimingMatcher {
         if (!std::ranges::all_of(requiredKeys, [&tag](auto& k) { return tag.contains(k); })) {
             return false;
         }
-        auto& metaVariant = tag.at(gr::tag::TRIGGER_META_INFO.shortKey());
-        auto* metaMapPtr  = metaVariant.get_if<gr::property_map>();
+        auto metaMapPtr = tag.get_if<gr::property_map>(gr::tag::TRIGGER_META_INFO.shortKey());
         if (!metaMapPtr) {
             return false;
         }
@@ -81,8 +80,8 @@ struct TimingMatcher {
             return std::nullopt;
         }
         float      Ts               = 1e9f / sampleRate;
-        const auto maybeTriggerTime = currentTag.at(gr::tag::TRIGGER_TIME.shortKey()).get_if<unsigned long>();
-        const auto maybeTagOffset   = currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()).get_if<float>();
+        const auto maybeTriggerTime = currentTag.get_if<unsigned long>(gr::tag::TRIGGER_TIME.shortKey());
+        const auto maybeTagOffset   = currentTag.get_if<float>(gr::tag::TRIGGER_OFFSET.shortKey());
         assert(maybeTriggerTime && maybeTagOffset);
         if (!maybeTriggerTime || !maybeTagOffset) {
             return std::nullopt;
@@ -98,8 +97,8 @@ struct TimingMatcher {
         if (idx < 0) { // tag was before the current chunk of data
             return std::nullopt;
         };
-        gr::property_map matchedTag                       = currentTag;
-        matchedTag.at(gr::tag::TRIGGER_OFFSET.shortKey()) = deltaOffset;
+        gr::property_map matchedTag = currentTag;
+        matchedTag.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), deltaOffset);
         return gr::Tag{static_cast<std::size_t>(idx), matchedTag};
     }
 
@@ -112,7 +111,7 @@ struct TimingMatcher {
             --offsetIdx;
             offset += 1.0f;
         }
-        matchedTagMap.at(gr::tag::TRIGGER_OFFSET.shortKey()) = offset;
+        matchedTagMap.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), offset);
         return {static_cast<std::size_t>(static_cast<long>(currentFlankIndex) + offsetIdx), matchedTagMap};
     }
 
@@ -157,16 +156,15 @@ struct TimingMatcher {
                 result.processedTags++;
                 continue;
             }
-            auto* maybeMetaMap = currentTag.at(gr::tag::TRIGGER_META_INFO.shortKey()).get_if<gr::property_map>();
-            if (!maybeMetaMap) {
+            auto metaMap = currentTag.get_if<gr::property_map>(gr::tag::TRIGGER_META_INFO.shortKey());
+            if (!metaMap) {
                 result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for TRIGGER_META_INFO value, expected property map, at index {}: {}", tagIndex, currentTag));
                 continue;
             }
-            auto& metaMap            = *maybeMetaMap;
-            auto* maybeTagLocalTime  = metaMap.at("LOCAL-TIME").get_if<unsigned long>();
-            auto* maybeTriggerTime   = currentTag.at(gr::tag::TRIGGER_TIME.shortKey()).get_if<unsigned long>();
-            auto* maybeTriggerOffset = currentTag.at(gr::tag::TRIGGER_OFFSET.shortKey()).get_if<float>();
+            auto* maybeTagLocalTime  = metaMap->get_if<unsigned long>("LOCAL-TIME");
+            auto* maybeTriggerTime   = currentTag.get_if<unsigned long>(gr::tag::TRIGGER_TIME.shortKey());
+            auto* maybeTriggerOffset = currentTag.get_if<float>(gr::tag::TRIGGER_OFFSET.shortKey());
             if (!maybeTagLocalTime || !maybeTriggerTime || !maybeTriggerOffset) {
                 result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for LOCAL-TIME/TRIGGER_TIME/TRIGGER_OFFSET, expected {}, at index {}: {}", gr::meta::type_name<unsigned long>(), tagIndex, currentTag));
@@ -175,9 +173,9 @@ struct TimingMatcher {
             const auto currentTagLocalTime = std::chrono::nanoseconds(*maybeTagLocalTime);
             const auto currentTagWRTime    = std::chrono::nanoseconds(*maybeTriggerTime);
             const auto currentTagOffset    = std::chrono::nanoseconds(static_cast<unsigned long>(*maybeTriggerOffset));
-            if (triggerIndex >= triggerSampleIndices.size()) {                                                                                                                                      // there are remaining events, but no more hw edges to match
-                if (!metaMap.at("HW-TRIGGER").holds<bool>() || (currentTagLocalTime + timeout) < (localAcqTime + std::chrono::nanoseconds(static_cast<long>(static_cast<float>(nSamples) * Ts)))) { // we are sure the hw edge cannot still arrive
-                    if (_lastMatchedTag) {                                                                                                                                                          // publish tags based on last matched trigger
+            if (triggerIndex >= triggerSampleIndices.size()) {                                                                                                                                                                          // there are remaining events, but no more hw edges to match
+                if (!metaMap->find_value("HW-TRIGGER").value_or(gr::pmt::Value{}).holds<bool>() || (currentTagLocalTime + timeout) < (localAcqTime + std::chrono::nanoseconds(static_cast<long>(static_cast<float>(nSamples) * Ts)))) { // we are sure the hw edge cannot still arrive
+                    if (_lastMatchedTag) {                                                                                                                                                                                              // publish tags based on last matched trigger
                         std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag);
                         if (realignedTag && realignedTag->index >= nSamples) {
                             break; // tag will be moved outside the current data chunk and has to be handled in the next iteration
@@ -207,7 +205,7 @@ struct TimingMatcher {
                 continue;
             }
 
-            auto* maybeHWTrigger = metaMap.at("HW-TRIGGER").get_if<bool>();
+            const auto maybeHWTrigger = metaMap->get_if<bool>("HW-TRIGGER");
             assert(maybeHWTrigger && "HW-TRIGGER should be bool");
             if (!maybeHWTrigger) {
                 result.processedTags++;
@@ -269,14 +267,13 @@ struct TimingMatcher {
         }
         while (unmatchedEvents > 0) { // drop outdated unmatched tags
             auto& unconsumedTag = tags[result.processedTags];
-            auto* maybeMetaMap  = unconsumedTag.at(gr::tag::TRIGGER_META_INFO.shortKey()).get_if<gr::property_map>();
-            if (!maybeMetaMap) {
+            auto  metaMap       = unconsumedTag.get_if<gr::property_map>(gr::tag::TRIGGER_META_INFO.shortKey());
+            if (!metaMap) {
                 result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for trigger tag, expected property map"));
                 continue;
             }
-            auto& metaMap             = *maybeMetaMap;
-            auto* maybeLocalTimeValue = metaMap.at("LOCAL-TIME").get_if<unsigned long>();
+            auto* maybeLocalTimeValue = metaMap->get_if<unsigned long>("LOCAL-TIME");
             if (!maybeLocalTimeValue) {
                 result.processedTags++;
                 result.messages.emplace_back(std::format("Invalid type for local time, expected unsigned long"));

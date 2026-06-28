@@ -129,23 +129,23 @@ struct ExtractFromMap : gr::Block<ExtractFromMap<T>> {
     [[nodiscard]] constexpr gr::work::Status processBulk(gr::InputSpanLike auto& input, gr::OutputSpanLike auto& output) noexcept {
         std::size_t nIn  = 0;
         std::size_t nOut = 0;
-        for (const auto& map : input) {
-            if (const gr::pmt::Value::Map* dataPtr = map.template get_if<gr::pmt::Value::Map>(); dataPtr != nullptr && dataPtr->contains("data")) {
-                if (const auto* mapPtr = dataPtr->at("data").get_if<gr::pmt::Value::Map>(); mapPtr != nullptr && mapPtr->contains(fieldname)) {
-                    if (const T* valuePtr = mapPtr->at(std::pmr::string{fieldname.value}).get_if<T>(); valuePtr != nullptr) {
+        for (const auto& maybeMap : input) {
+            if (std::optional<gr::property_map> map = maybeMap.template get_if<gr::property_map>(); map && map->contains("data")) {
+                if (const std::optional maybeData = map->get_if<gr::property_map>("data"); maybeData && maybeData->contains(fieldname)) {
+                    if (auto maybeValue = maybeData->get_if<T>(fieldname.value)) {
                         if (nOut >= output.size()) {
                             break;
                         }
-                        output[nOut] = *valuePtr;
+                        output[nOut] = *maybeValue;
                         ++nOut;
-                    } else if (const gr::Tensor<T>* tensorPtr = mapPtr->at(std::pmr::string{fieldname.value}).get_if<gr::Tensor<T>>(); tensorPtr != nullptr) {
-                        if (nOut + tensorPtr->size() >= output.size()) {
+                    } else if (auto maybeTensor = maybeData->get_if<gr::TensorView<T>>(fieldname.value)) {
+                        if (nOut + maybeTensor->size() >= output.size()) {
                             break;
                         }
-                        std::copy(tensorPtr->begin(), tensorPtr->end(), output.begin() + nOut);
-                        nOut += tensorPtr->size();
+                        std::copy(maybeTensor->begin(), maybeTensor->end(), output.begin() + nOut);
+                        nOut += maybeTensor->size();
                     } else {
-                        std::println("field {1} exists, but has unsupported field type: {2}, supported: {0} or Tensor<{0}>", gr::meta::type_name<T>(), fieldname.value, magic_enum::enum_name<>(magic_enum::enum_cast<gr::pmt::Value::ValueType>(mapPtr->at(std::pmr::string{fieldname.value})._value_type).value_or(gr::pmt::Value::ValueType::Monostate)));
+                        std::println("field {1} exists, but has unsupported field type: {2}, supported: {0} or Tensor<{0}>", gr::meta::type_name<T>(), fieldname.value, magic_enum::enum_name<gr::pmt::ValueType>(maybeData->find_value(fieldname.value).value_or(gr::pmt::Value{}).value_type()));
                     }
                 }
             }
