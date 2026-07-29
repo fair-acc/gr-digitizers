@@ -297,7 +297,7 @@ public:
 
         // consume timing tags
         if (matchedTags.processedTags > 0) {
-            auto lastTimingSampleIndex = timingInSpan.rawTags()[matchedTags.processedTags - 1].index - timingInSpan.streamIndex + 1;
+            auto lastTimingSampleIndex = timingInSpan.rawTags()[static_cast<std::int64_t>(matchedTags.processedTags - 1U)].index - timingInSpan.streamIndex + 1;
             timingInSpan.consumeTags(lastTimingSampleIndex);
             std::ignore = timingInSpan.consume(lastTimingSampleIndex);
         } else {

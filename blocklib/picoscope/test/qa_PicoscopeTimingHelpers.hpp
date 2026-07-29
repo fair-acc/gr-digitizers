@@ -183,13 +183,13 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
         expect(eq(tag.map.value_or<float>(tag::SIGNAL_MIN.shortKey(), INFINITY), -5.f));
         expect(eq(tag.map.value_or<float>(tag::SIGNAL_MAX.shortKey(), INFINITY), 5.f));
     }
-    expect(std::ranges::equal(sinkA._tags | std::views::filter([](const gr::Tag& t) { return t.map.contains(gr::tag::CONTEXT.shortKey()); })                                                                                                                               // only consider timing events
-                                  | std::views::transform([](const gr::Tag& t) { return t.map.get_if<gr::property_map>(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}).value_or<std::uint16_t>("BPID", std::numeric_limits<std::uint16_t>::max()); }), // get bpid (which is unique in this test)
+    expect(std::ranges::equal(sinkA._tags | std::views::filter([](const auto& t) { return t.map.contains(gr::tag::CONTEXT.shortKey()); })                                                                                                                                          // only consider timing events
+                                  | std::views::transform([](const auto& t) { return t.map.template get_if<gr::property_map>(gr::tag::TRIGGER_META_INFO.shortKey()).value_or(gr::property_map{}).template value_or<std::uint16_t>("BPID", std::numeric_limits<std::uint16_t>::max()); }), // get bpid (which is unique in this test)
         std::vector<std::uint16_t>{1, 2, 3}))
         << "expected to get timing events with bpid 1, 2 and 3";
 
     auto chunks = sinkA._tags | std::views::filter([](auto& t) { return t.map.contains("chunk-start-time"); })                                                                                                                                                                                                          //
-                  | std::views::transform([kSampleRate](const gr::Tag& t) { return std::tuple(t.index, static_cast<float>(t.index) * 1e9f / kSampleRate, t.map.value_or<long>("chunk-start-time", std::numeric_limits<long>::max())); })                                                                                //
+                  | std::views::transform([kSampleRate](const auto& t) { return std::tuple(t.index, static_cast<float>(t.index) * 1e9f / kSampleRate, t.map.template value_or<long>("chunk-start-time", std::numeric_limits<long>::max())); })                                                                          //
                   | std::views::pairwise_transform([](const auto& a, const auto& b) { return std::tuple(std::get<0>(b), std::get<0>(b) - std::get<0>(a), std::get<1>(b) - std::get<1>(a), std::get<2>(b) - std::get<2>(a), static_cast<float>(std::get<2>(b) - std::get<2>(a)) - (std::get<1>(b) - std::get<1>(a))); }) // compute chunk durations [index, indexdiff, delta t samples ns, delta t acq ns]
                   | std::ranges::to<std::vector>();
     std::println("Chunks:");
@@ -197,8 +197,8 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
         std::println("  - {}: {} samples, {} ns based on sample rate, {} ns between updates", std::get<0>(chunk), std::get<1>(chunk), std::get<2>(chunk), std::get<3>(chunk));
     }
 
-    const std::vector<std::size_t> timingEventSamplesFromTags = std::views::filter(sinkA._tags, [](const gr::Tag& t) { return t.map.contains(gr::tag::CONTEXT.shortKey()); }) // only consider timing events
-                                                                | std::views::transform([](const gr::Tag& t) { return t.index; })                                             // get tag index
+    const std::vector<std::size_t> timingEventSamplesFromTags = std::views::filter(sinkA._tags, [](const auto& t) { return t.map.contains(gr::tag::CONTEXT.shortKey()); }) // only consider timing events
+                                                                | std::views::transform([](const auto& t) { return t.index; })                                             // get tag index
                                                                 | std::ranges::to<std::vector>();
     const std::vector detectedEdges        = std::views::zip(std::views::iota(0U), sinkD._samples) | std::views::filter([](const auto& p) { return std::get<1>(p) > 1.7f; }) | std::views::transform([](const auto& p) { return std::get<0>(p); }) | std::ranges::to<std::vector>();
     const std::vector detectedEdgesDigital = std::views::zip(std::views::iota(0U), sinkDigital._samples) | std::views::filter([](const auto& p) { return (std::get<1>(p) & (1u << 4)); }) | std::views::transform([](const auto& p) { return std::get<0>(p); }) | std::ranges::to<std::vector>();

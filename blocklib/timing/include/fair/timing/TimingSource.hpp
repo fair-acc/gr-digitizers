@@ -389,10 +389,10 @@ tags: [
         }
     }
 
-    static void addHwTriggerInfo(const std::uint64_t id, Tag& tag, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
-        auto metaMapIterator = tag.map.find(gr::tag::TRIGGER_META_INFO.shortKey());
-        if (metaMapIterator == std::end(tag.map) || metaMapIterator->second.is_monostate()) {
-            metaMapIterator = tag.map.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{}).first;
+    static void addHwTriggerInfo(const std::uint64_t id, gr::property_map& tagMap, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
+        auto metaMapIterator = tagMap.find(gr::tag::TRIGGER_META_INFO.shortKey());
+        if (metaMapIterator == std::end(tagMap) || metaMapIterator->second.is_monostate()) {
+            metaMapIterator = tagMap.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{}).first;
         } else if (!metaMapIterator->second.is_map()) {
             return; // edge case where the tag map already contains data of a non-map type on the meta-info key -> just skip adding metadata
         }
@@ -406,16 +406,16 @@ tags: [
             }
         }
         metaMapCopy.insert_or_assign("HW-TRIGGER", isHwTrigger);
-        tag.map.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), std::move(metaMapCopy));
+        tagMap.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), std::move(metaMapCopy));
     }
 
-    void addHwTriggerInfo(const std::uint64_t id, Tag& tag) const { addHwTriggerInfo(id, tag, eventHwTrigger); }
+    void addHwTriggerInfo(const std::uint64_t id, gr::property_map& tagMap) const { addHwTriggerInfo(id, tagMap, eventHwTrigger); }
 
-    Tag eventToTag(const Timing::Event& event, const std::int64_t currentTime) {
-        Tag              tag;
+    gr::property_map eventToTagMap(const Timing::Event& event, const std::int64_t currentTime) {
+        gr::property_map tagMap;
         gr::property_map meta;
         std::uint64_t    id = event.id();
-        tag.map.emplace(tag::TRIGGER_TIME.shortKey(), taiNsToUtcNs(event.time));
+        tagMap.emplace(tag::TRIGGER_TIME.shortKey(), taiNsToUtcNs(event.time));
         meta.emplace("LOCAL-TIME", static_cast<std::uint64_t>(currentTime));
         meta.emplace("TIMING-ID", id);
         meta.emplace("TIMING-PARAM", event.param());
@@ -424,8 +424,8 @@ tags: [
             std::string ioName = _timing.idToIoName(id);
             meta.emplace("IO-NAME", ioName);
             meta.emplace("IO-LEVEL", level);
-            tag.map.emplace(tag::TRIGGER_NAME.shortKey(), std::format("{}_{}", ioName, level ? "RISING" : "FALLING"));
-            tag.map.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f);
+            tagMap.emplace(tag::TRIGGER_NAME.shortKey(), std::format("{}_{}", ioName, level ? "RISING" : "FALLING"));
+            tagMap.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f);
         } else {
             meta.emplace("GID", event.gid);
             if (timingGroupTable.contains(event.gid)) {
@@ -442,18 +442,18 @@ tags: [
                 }
             }();
             meta.emplace("EVENT-NAME", eventName);
-            tag.map.emplace(tag::TRIGGER_NAME.shortKey(), eventName);
-            tag.map.emplace(tag::CONTEXT.shortKey(), std::format("FAIR-TIMING:C={}.S={}.P={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
+            tagMap.emplace(tag::TRIGGER_NAME.shortKey(), eventName);
+            tagMap.emplace(tag::CONTEXT.shortKey(), std::format("FAIR-TIMING:C={}.S={}.P={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
             meta.emplace("BPCTS", event.bpcts); // chain execution time-stamp (i.e. unique chain identifier)
             meta.emplace("BPCID", event.bpcid); // chain ID (can contain multiple sequences)
             meta.emplace("SID", event.sid);     // chain ID -> sequence ID (can contain multiple beam-processes)
             meta.emplace("BPID", event.bpid);   // beam process ID (PID)
             meta.emplace("BEAM-IN", event.flagBeamin);
             meta.emplace("BPC-START", event.flagBpcStart);
-            tag.map.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
+            tagMap.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
         }
-        tag.map.emplace(tag::TRIGGER_META_INFO.shortKey(), meta);
-        return tag;
+        tagMap.emplace(tag::TRIGGER_META_INFO.shortKey(), meta);
+        return tagMap;
     }
 
     void updateOutputState(const Timing::Event& event) {
@@ -473,8 +473,8 @@ tags: [
         std::size_t  toPublish   = 0;
         std::int64_t currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         for (const Timing::Event& event : timingEvents) {
-            gr::Tag timingTag = eventToTag(event, currentTime);
-            addHwTriggerInfo(event.id(), timingTag);
+            gr::property_map timingTagMap = eventToTagMap(event, currentTime);
+            addHwTriggerInfo(event.id(), timingTagMap);
             // TODO: make stable against rounding errors by using global time difference instead of just between 2 events
             std::size_t samplesUntilCurrentEvent = 0;
             if (sample_rate != 0.0f) {
@@ -499,7 +499,7 @@ tags: [
                 const std::size_t taggedSampleAbs                 = _publishedSamples + toPublish - 1;
                 const auto        taggedSampleNs                  = static_cast<std::int64_t>(static_cast<double>(taggedSampleAbs) / static_cast<double>(sample_rate) * 1e9);
                 const auto        offsetNs                        = std::max<std::int64_t>(0, eventDeltaNs - taggedSampleNs);
-                timingTag.map[gr::tag::TRIGGER_OFFSET.shortKey()] = static_cast<std::uint64_t>(offsetNs);
+                timingTagMap[gr::tag::TRIGGER_OFFSET.shortKey()] = static_cast<std::uint64_t>(offsetNs);
             } else { // sample_rate == 0.0f -> publish one sample per timing tag
                 samplesUntilCurrentEvent = 1;
                 if (_nextOutputState != _outputState) {
@@ -513,9 +513,9 @@ tags: [
                 updateOutputState(event);
                 outSpan[toPublish - 1] = _outputState + 1;
             }
-            outSpan.publishTag(timingTag.map, toPublish - 1);
+            outSpan.publishTag(timingTagMap, toPublish - 1);
             if (verbose_console) {
-                std::print("publishing tag, localtime: {}, {} samples before, then sample with tag {}\n", currentTime, samplesUntilCurrentEvent, timingTag.map);
+                std::print("publishing tag, localtime: {}, {} samples before, then sample with tag {}\n", currentTime, samplesUntilCurrentEvent, timingTagMap);
             }
         }
 
