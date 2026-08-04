@@ -41,7 +41,7 @@ if(NOT gnuradio4_FOUND)
   FetchContent_Declare(
     gnuradio4
     GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-    GIT_TAG f60d1a69afd266ddd2095a3139d2bc51dc7b1bef # main as of 2026-07-06
+    GIT_TAG 92278b628c05f01a440cf775fb6cd465c63bab4d # main as of 2026-08-04
     EXCLUDE_FROM_ALL)
   list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST gnuradio4)
 endif()

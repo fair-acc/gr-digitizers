@@ -1,5 +1,6 @@
 #ifndef GR_DIGITIZERS_TIMINGMATCHER_HPP
 #define GR_DIGITIZERS_TIMINGMATCHER_HPP
+#include <deque>
 #include <gnuradio-4.0/Buffer.hpp>
 #include <gnuradio-4.0/Tag.hpp>
 
@@ -7,10 +8,11 @@ namespace fair::picoscope::timingmatcher {
 using namespace std::chrono_literals;
 
 struct MatcherResult {
-    std::size_t              processedTags    = 0;
-    std::size_t              processedSamples = 0;
-    std::vector<gr::Tag>     tags{};
-    std::vector<std::string> messages{}; // diagnostic or error messages
+    std::size_t                  processedTags    = 0;
+    std::size_t                  processedSamples = 0;
+    std::deque<gr::property_map> tagMaps{};  // owns property_map data; tags reference these (deque doesn't reallocate)
+    std::vector<gr::Tag>         tags{};     // Tags reference maps in tagMaps
+    std::vector<std::string>     messages{}; // diagnostic or error messages
 };
 
 /**
@@ -61,6 +63,63 @@ struct TimingMatcher {
         return true;
     }
 
+    // Creates a property_map, stores it in result.tagMaps, and returns a Tag referencing it
+    static std::pair<std::size_t, std::size_t> addUnknownEventTag(MatcherResult& result, std::size_t index, std::chrono::nanoseconds currentFlankTime) {
+        result.tagMaps.emplace_back(gr::property_map{
+            {gr::tag::TRIGGER_NAME.shortKey(), "UNKNOWN_EVENT"},
+            {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f},
+            {gr::tag::TRIGGER_META_INFO.shortKey(),
+                gr::property_map{
+                    {"LOCAL-TIME", static_cast<std::size_t>(currentFlankTime.count())},
+                    {"HW-TRIGGER", false},
+                }},
+        });
+        return {index, result.tagMaps.size() - 1};
+    }
+
+    std::optional<std::pair<std::size_t, std::size_t>> alignTagRelativeToLastMatchedAndStore(MatcherResult& result, const gr::property_map& currentTag) {
+        if (!_lastMatchedTag.has_value()) {
+            return std::nullopt;
+        }
+        float      Ts               = 1e9f / sampleRate;
+        const auto maybeTriggerTime = currentTag.get_if<unsigned long>(gr::tag::TRIGGER_TIME.shortKey());
+        const auto maybeTagOffset   = currentTag.get_if<float>(gr::tag::TRIGGER_OFFSET.shortKey());
+        assert(maybeTriggerTime && maybeTagOffset);
+        if (!maybeTriggerTime || !maybeTagOffset) {
+            return std::nullopt;
+        }
+        const auto currentTagWRTime = std::chrono::nanoseconds(*maybeTriggerTime);
+        const auto currentTagOffset = std::chrono::nanoseconds(static_cast<long>(*maybeTagOffset));
+        auto [lastIdx, lastTime]    = *_lastMatchedTag;
+        auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
+        auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
+        auto deltaIdx               = static_cast<long>(std::floor(delta));
+        auto deltaOffset            = (delta - static_cast<float>(deltaIdx)) / sampleRate;
+        long idx                    = lastIdx + deltaIdx;
+        if (idx < 0) { // tag was before the current chunk of data
+            return std::nullopt;
+        };
+        std::size_t mapIdx = result.tagMaps.size();
+        result.tagMaps.push_back(currentTag);
+        result.tagMaps.back().insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), deltaOffset);
+        return std::make_pair(static_cast<std::size_t>(idx), mapIdx);
+    }
+
+    std::pair<std::size_t, std::size_t> getOffsetAdjustedTagAndStore(MatcherResult& result, std::size_t currentFlankIndex, std::chrono::nanoseconds currentTagOffset, const gr::property_map& tagMap) {
+        std::size_t mapIdx = result.tagMaps.size();
+        result.tagMaps.push_back(tagMap);
+        const float deltaT    = static_cast<float>(currentTagOffset.count()) * (sampleRate / 1e9f);
+        auto        offsetIdx = static_cast<long>(deltaT);
+        float       offset    = deltaT - static_cast<float>(offsetIdx);
+        if (offset < 0.0f) {
+            --offsetIdx;
+            offset += 1.0f;
+        }
+        long idx = static_cast<long>(currentFlankIndex) + offsetIdx; // Compute in signed domain first
+        result.tagMaps.back().insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), offset);
+        return std::make_pair(static_cast<std::size_t>(idx), mapIdx);
+    }
+
     static gr::Tag createUnknownEventTag(unsigned long index, std::chrono::nanoseconds currentFlankTime) {
         return {index, gr::property_map{
                            {gr::tag::TRIGGER_NAME.shortKey(), "UNKNOWN_EVENT"},
@@ -87,13 +146,13 @@ struct TimingMatcher {
             return std::nullopt;
         }
         const auto currentTagWRTime = std::chrono::nanoseconds(*maybeTriggerTime);
-        const auto currentTagOffset = std::chrono::nanoseconds(static_cast<unsigned long>(*maybeTagOffset));
+        const auto currentTagOffset = std::chrono::nanoseconds(static_cast<long>(*maybeTagOffset));
         auto [lastIdx, lastTime]    = *_lastMatchedTag;
         auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
         auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
         auto deltaIdx               = static_cast<long>(std::floor(delta));
         auto deltaOffset            = (delta - static_cast<float>(deltaIdx)) / sampleRate;
-        auto idx                    = lastIdx + deltaIdx;
+        long idx                    = lastIdx + deltaIdx;
         if (idx < 0) { // tag was before the current chunk of data
             return std::nullopt;
         };
@@ -111,8 +170,9 @@ struct TimingMatcher {
             --offsetIdx;
             offset += 1.0f;
         }
+        long idx = static_cast<long>(currentFlankIndex) + offsetIdx; // Compute in signed domain first
         matchedTagMap.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), offset);
-        return {static_cast<std::size_t>(static_cast<long>(currentFlankIndex) + offsetIdx), matchedTagMap};
+        return {static_cast<std::size_t>(idx), matchedTagMap};
     }
 
     MatcherResult match(const std::span<const gr::property_map> tags, const std::span<const std::size_t>& triggerSampleIndices, const std::size_t nSamples, const std::chrono::nanoseconds localAcqTime) {
@@ -141,7 +201,8 @@ struct TimingMatcher {
                         // this should normally not happen, but there are some cases where a hardware event is published based on realigning it instead of the hardware edge and so the hardware edge is not consumed
                         result.messages.emplace_back(std::format("Cannot publish UNKNOWN_EVENT at {}, there have already been tags published before at {}", currentFlankIndex, result.tags.back().index));
                     } else {
-                        pushTagOrdered(createUnknownEventTag(currentFlankIndex, currentFlankTime), "unknown-event/no-tags-left");
+                        auto [streamIdx, mapIdx] = addUnknownEventTag(result, currentFlankIndex, currentFlankTime);
+                        pushTagOrdered({streamIdx, result.tagMaps[mapIdx]}, "UNKNOWN_EVENT");
                     }
                     triggerIndex++;
                     continue;
@@ -172,17 +233,17 @@ struct TimingMatcher {
             }
             const auto currentTagLocalTime = std::chrono::nanoseconds(*maybeTagLocalTime);
             const auto currentTagWRTime    = std::chrono::nanoseconds(*maybeTriggerTime);
-            const auto currentTagOffset    = std::chrono::nanoseconds(static_cast<unsigned long>(*maybeTriggerOffset));
+            const auto currentTagOffset    = std::chrono::nanoseconds(static_cast<long>(*maybeTriggerOffset));
             if (triggerIndex >= triggerSampleIndices.size()) {                                                                                                                                                                          // there are remaining events, but no more hw edges to match
                 if (!metaMap->find_value("HW-TRIGGER").value_or(gr::pmt::Value{}).holds<bool>() || (currentTagLocalTime + timeout) < (localAcqTime + std::chrono::nanoseconds(static_cast<long>(static_cast<float>(nSamples) * Ts)))) { // we are sure the hw edge cannot still arrive
                     if (_lastMatchedTag) {                                                                                                                                                                                              // publish tags based on last matched trigger
-                        std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag);
-                        if (realignedTag && realignedTag->index >= nSamples) {
-                            break; // tag will be moved outside the current data chunk and has to be handled in the next iteration
-                        }
-                        if (realignedTag) {
-                            result.processedSamples = std::max(result.processedSamples, realignedTag->index);
-                            pushTagOrdered(std::move(*realignedTag), "realign/no-trigger-left");
+                        if (auto opt = alignTagRelativeToLastMatchedAndStore(result, currentTag)) {
+                            auto [streamIdx, mapIdx] = *opt;
+                            if (streamIdx >= nSamples) {
+                                break; // tag will be moved outside the current data chunk and has to be handled in the next iteration
+                            }
+                            result.processedSamples = std::max(result.processedSamples, streamIdx);
+                            pushTagOrdered({streamIdx, result.tagMaps[mapIdx]}, "realigned");
                         } else {
                             result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
                         }
@@ -214,12 +275,13 @@ struct TimingMatcher {
             if (!(*maybeHWTrigger) || (currentTagLocalTime + timeout) < currentFlankTime) {
                 // event either explicitly has no hardware trigger or the next hw edge is too far away
                 if (_lastMatchedTag) { // publish tags based on the last-matched trigger // evtB or evt5 in the diagram
-                    if (std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(currentTag)) {
-                        if (realignedTag->index >= nSamples) {
+                    if (auto opt = alignTagRelativeToLastMatchedAndStore(result, currentTag)) {
+                        auto [streamIdx, mapIdx] = *opt;
+                        if (streamIdx >= nSamples) {
                             break;
                         }
-                        result.processedSamples = std::max(result.processedSamples, realignedTag->index);
-                        pushTagOrdered(std::move(*realignedTag), "realign/no-hw-or-flank-too-far");
+                        result.processedSamples = std::max(result.processedSamples, streamIdx);
+                        pushTagOrdered({streamIdx, result.tagMaps[mapIdx]}, "realigned");
                     } else {
                         result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
                     }
@@ -231,32 +293,43 @@ struct TimingMatcher {
             }
 
             if ((currentFlankTime + timeout) < currentTagLocalTime) { // hw edge without corresponding event
-                pushTagOrdered(createUnknownEventTag(currentFlankIndex, currentFlankTime), "unknown-event/no-matching-tag");
+                if (!result.tags.empty() && result.tags.back().index > currentFlankIndex) {
+                    result.messages.emplace_back(std::format("Cannot publish UNKNOWN_EVENT at {}, there have already been tags published before at {}", currentFlankIndex, result.tags.back().index));
+                } else {
+                    auto [streamIdx, mapIdx] = addUnknownEventTag(result, currentFlankIndex, currentFlankTime);
+                    pushTagOrdered({streamIdx, result.tagMaps[mapIdx]}, "UNKNOWN_EVENT");
+                }
                 result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
                 triggerIndex++; // skip outdated timing message(s)
                 continue;
             }
 
-            if (std::optional<gr::Tag> realignedDiagTag = alignTagRelativeToLastMatched(currentTag)) {
+            if (auto idx = alignTagRelativeToLastMatchedAndStore(result, currentTag)) {
                 constexpr std::size_t indexTolerance = 3;
-                if (std::max(realignedDiagTag->index, currentFlankIndex) - std::min(realignedDiagTag->index, currentFlankIndex) > indexTolerance) {
+                if (std::max(idx->first, currentFlankIndex) - std::min(idx->first, currentFlankIndex) > indexTolerance) {
                     result.messages.emplace_back(std::format("Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
-                        realignedDiagTag->index, currentFlankIndex, indexTolerance));
+                        idx->first, currentFlankIndex, indexTolerance));
                 }
+                // Note: alignTagRelativeToLastMatchedAndStore already added the map to result.tagMaps
+                result.tagMaps.pop_back(); // undo the addition since we're only using it for diagnostics
             }
 
             // regular case, next hw edge belongs to the next tag
             _lastMatchedTag = {currentFlankIndex, std::chrono::nanoseconds(currentTagWRTime).count()};
             while (unmatchedEvents > 0) { // align all previously unaligned tags relative to this one
-                if (std::optional<gr::Tag> realignedTag = alignTagRelativeToLastMatched(tags[tagIndex - unmatchedEvents])) {
-                    pushTagOrdered(std::move(*realignedTag), "realign/unmatched-events");
+                if (auto opt = alignTagRelativeToLastMatchedAndStore(result, tags[tagIndex - unmatchedEvents])) {
+                    auto [streamIdx, mapIdx] = *opt;
+                    pushTagOrdered({streamIdx, result.tagMaps[mapIdx]}, "realigned-unmatchedEvent");
                 } else {
                     result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}", currentTag));
                 }
                 unmatchedEvents--;
                 result.processedTags++;
             }
-            pushTagOrdered(getOffsetAdjustedTag(currentFlankIndex, currentTagOffset, currentTag), "regular-match");
+            {
+                auto [streamIdx, mapIdx] = getOffsetAdjustedTagAndStore(result, currentFlankIndex, currentTagOffset, currentTag);
+                pushTagOrdered({streamIdx, result.tagMaps[mapIdx]}, "matched");
+            }
             result.processedSamples = std::max(result.processedSamples, currentFlankIndex);
             result.processedTags++;
             triggerIndex++;

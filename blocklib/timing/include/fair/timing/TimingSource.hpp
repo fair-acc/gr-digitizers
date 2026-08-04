@@ -496,9 +496,9 @@ tags: [
                     toPublish++;
                 }
 
-                const std::size_t taggedSampleAbs                 = _publishedSamples + toPublish - 1;
-                const auto        taggedSampleNs                  = static_cast<std::int64_t>(static_cast<double>(taggedSampleAbs) / static_cast<double>(sample_rate) * 1e9);
-                const auto        offsetNs                        = std::max<std::int64_t>(0, eventDeltaNs - taggedSampleNs);
+                const std::size_t taggedSampleAbs = _publishedSamples + toPublish - 1;
+                const auto        taggedSampleNs  = static_cast<std::int64_t>(static_cast<double>(taggedSampleAbs) / static_cast<double>(sample_rate) * 1e9);
+                const auto        offsetNs        = std::max<std::int64_t>(0, eventDeltaNs - taggedSampleNs);
                 timingTagMap.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), static_cast<std::uint64_t>(offsetNs));
             } else { // sample_rate == 0.0f -> publish one sample per timing tag
                 samplesUntilCurrentEvent = 1;
