@@ -45,17 +45,19 @@ bool promptForTestCase(std::string_view testcase) {
     }
     std::print("Do you want to run this test? [Y]es, [s]kip, [a]ll, [n]one: ");
     while (true) {
-        int ch;
-        switch (ch = std::getchar()) {
+        int ch = std::getchar();
+
+        switch (ch) {
         case 'a': runAll = true; return true;
         case 'y':
         case 'Y': return true;
         case 'n': runNone = true; return false;
         case 's': return false;
-        case '\n': break; // do not consume an additional newline if we only got the newline
+        case '\n': return true; // if we got only the newline, it uses the default 'Y'
         default: std::ignore = std::getchar();
         }
-        std::print("\ninvalid choice {}, valid choices: [Y]es, [s]kip, [a]ll, [n]one: ", static_cast<char>(ch));
+
+        std::print("\ninvalid choice '{}', valid choices: [Y]es, [s]kip, [a]ll, [n]one: ", static_cast<char>(ch));
         while ((ch = std::getchar()) != '\n') {
         } // remove superfluous characters
     }
@@ -538,17 +540,17 @@ const boost::ut::suite PicoscopeTests = [] {
         auto& clockSrc = flowGraph.emplaceBlock<gr::basic::ClockSource<std::uint8_t>>({{"sample_rate", sampleRate}, {"chunk_size", gr::Size_t{1}}, {"n_samples_max", gr::Size_t{0}}, {"name", "ClockSource"}, {"verbose_console", true}});
 
         clockSrc.tags = {
-            Tag(1000, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(1000))), // OK
-            Tag(3000, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(3000))), // OK
-            Tag(3500, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(3500))), // This trigger will be ignored
-            Tag(3700, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(3700))), // This trigger will be ignored
-            Tag(5000, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(5000))), // This trigger will be disarmed
-            Tag(5500, createTriggerPropertyMap("CMD_BP_STOP", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(5500))),  // disarm trigger
-            Tag(6000, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(6000))), // OK
-            Tag(8000, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8000))), // This trigger will be disarmed
-            Tag(8500, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8500))), // This trigger will be ignored
-            Tag(8700, createTriggerPropertyMap("CMD_BP_STOP", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8700))),  // disarm trigger
-            Tag(8800, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8800))), // OK
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 1000, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(1000))}, // OK
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 3000, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(3000))}, // OK
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 3500, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(3500))}, // This trigger will be ignored
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 3700, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(3700))}, // This trigger will be ignored
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 5000, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(5000))}, // This trigger will be disarmed
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 5500, .map = createTriggerPropertyMap("CMD_BP_STOP", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(5500))},  // disarm trigger
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 6000, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(6000))}, // OK
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 8000, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8000))}, // This trigger will be disarmed
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 8500, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8500))}, // This trigger will be ignored
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 8700, .map = createTriggerPropertyMap("CMD_BP_STOP", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8700))},  // disarm trigger
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 8800, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(8800))}, // OK
         }; // disarm trigger
 
         auto& ps = flowGraph.emplaceBlock<Picoscope<T, PicoscopeT>>({
@@ -644,8 +646,8 @@ const boost::ut::suite PicoscopeTests = [] {
         });
 
         clockSrc.tags = {
-            Tag(1000, createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(1000))), //
-            Tag(6000, createTriggerPropertyMap("CMD_BP_STOP", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(6000))),  // disarm trigger
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 1000, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(1000))}, //
+            gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 6000, .map = createTriggerPropertyMap("CMD_BP_STOP", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(6000))},  // disarm trigger
         };
 
         auto& ps = flowGraph.emplaceBlock<Picoscope<T, PicoscopeT>>({
