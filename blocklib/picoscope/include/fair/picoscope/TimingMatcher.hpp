@@ -13,6 +13,12 @@ struct MatcherResult {
     std::deque<gr::property_map> tagMaps{};  // owns property_map data; tags reference these (deque doesn't reallocate)
     std::vector<gr::Tag>         tags{};     // Tags reference maps in tagMaps
     std::vector<std::string>     messages{}; // diagnostic or error messages
+
+    MatcherResult()                                = default;
+    MatcherResult(const MatcherResult&)            = delete;
+    MatcherResult& operator=(const MatcherResult&) = delete;
+    MatcherResult(MatcherResult&&)                 = default;
+    MatcherResult& operator=(MatcherResult&&)      = default;
 };
 
 /**
