@@ -126,61 +126,6 @@ struct TimingMatcher {
         return std::make_pair(static_cast<std::size_t>(idx), mapIdx);
     }
 
-    static gr::Tag createUnknownEventTag(unsigned long index, std::chrono::nanoseconds currentFlankTime) {
-        return {index, gr::property_map{
-                           {gr::tag::TRIGGER_NAME.shortKey(), "UNKNOWN_EVENT"},
-                           // TODO: As for the unmatched trigger only the local time is known, the WR time would have to be realigned based on last_matched_tag
-                           // {gr::tag::TRIGGER_TIME.shortKey(), static_cast<std::size_t>(currentFlankTime.count())},
-                           {gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f},
-                           {gr::tag::TRIGGER_META_INFO.shortKey(),
-                               gr::property_map{
-                                   {"LOCAL-TIME", static_cast<std::size_t>(currentFlankTime.count())},
-                                   {"HW-TRIGGER", false},
-                               }},
-                       }};
-    }
-
-    std::optional<gr::Tag> alignTagRelativeToLastMatched(const gr::property_map& currentTag) {
-        if (!_lastMatchedTag.has_value()) {
-            return std::nullopt;
-        }
-        float      Ts               = 1e9f / sampleRate;
-        const auto maybeTriggerTime = currentTag.get_if<unsigned long>(gr::tag::TRIGGER_TIME.shortKey());
-        const auto maybeTagOffset   = currentTag.get_if<float>(gr::tag::TRIGGER_OFFSET.shortKey());
-        assert(maybeTriggerTime && maybeTagOffset);
-        if (!maybeTriggerTime || !maybeTagOffset) {
-            return std::nullopt;
-        }
-        const auto currentTagWRTime = std::chrono::nanoseconds(*maybeTriggerTime);
-        const auto currentTagOffset = std::chrono::nanoseconds(static_cast<long>(*maybeTagOffset));
-        auto [lastIdx, lastTime]    = *_lastMatchedTag;
-        auto deltaTime              = currentTagWRTime + currentTagOffset - std::chrono::nanoseconds(lastTime);
-        auto delta                  = static_cast<float>(deltaTime.count()) / Ts;
-        auto deltaIdx               = static_cast<long>(std::floor(delta));
-        auto deltaOffset            = (delta - static_cast<float>(deltaIdx)) / sampleRate;
-        long idx                    = lastIdx + deltaIdx;
-        if (idx < 0) { // tag was before the current chunk of data
-            return std::nullopt;
-        };
-        gr::property_map matchedTag = currentTag;
-        matchedTag.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), deltaOffset);
-        return gr::Tag{static_cast<std::size_t>(idx), matchedTag};
-    }
-
-    gr::Tag getOffsetAdjustedTag(auto currentFlankIndex, auto currentTagOffset, const gr::property_map& tagMap) {
-        gr::property_map matchedTagMap = tagMap;
-        const float      deltaT        = static_cast<float>(currentTagOffset.count()) * (sampleRate / 1e9f);
-        auto             offsetIdx     = static_cast<long>(deltaT);
-        float            offset        = deltaT - static_cast<float>(offsetIdx);
-        if (offset < 0.0f) {
-            --offsetIdx;
-            offset += 1.0f;
-        }
-        long idx = static_cast<long>(currentFlankIndex) + offsetIdx; // Compute in signed domain first
-        matchedTagMap.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), offset);
-        return {static_cast<std::size_t>(idx), matchedTagMap};
-    }
-
     MatcherResult match(const std::span<const gr::property_map> tags, const std::span<const std::size_t>& triggerSampleIndices, const std::size_t nSamples, const std::chrono::nanoseconds localAcqTime) {
         MatcherResult     result;
         std::size_t       triggerIndex    = 0;
