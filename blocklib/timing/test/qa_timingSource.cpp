@@ -66,13 +66,13 @@ const suite TimingBlockHelpers = [] {
         { // id does not match any filters -> HW-TRIGGER: false
             gr::property_map tagMap{{"existingKey", "test"}};
             gr::timing::TimingSource::addHwTriggerInfo(0x1136200000000000ul, tagMap, actionTrigger);
-            gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{{"HW-TRIGGER", false}}}};
+            gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO, gr::property_map{{"HW-TRIGGER", false}}}};
             expect(std::ranges::equal(expected, tagMap)) << [&tagMap, &expected]() { return std::format("got: {} exp: {}", tagMap, expected); };
         }
         { // id matches first filter in the filter list -> HW-TRIGGER: true
             gr::property_map tagMap{{"existingKey", "test"}};
             gr::timing::TimingSource::addHwTriggerInfo(0x1136100000000000ul, tagMap, actionTrigger);
-            gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{{"HW-TRIGGER", true}}}};
+            gr::property_map expected{{"existingKey", "test"}, {gr::tag::TRIGGER_META_INFO, gr::property_map{{"HW-TRIGGER", true}}}};
             expect(std::ranges::equal(expected, tagMap)) << [&tagMap, &expected]() { return std::format("got: {} exp: {}", tagMap, expected); };
         }
     };

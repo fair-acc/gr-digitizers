@@ -55,9 +55,9 @@ struct TriggerNameAndCtx {
 
 [[nodiscard, maybe_unused]] static bool tagContainsTrigger(const gr::property_map& map, const TriggerNameAndCtx& triggerNameAndCtx) { // unused if only streaming acq is used
     if (triggerNameAndCtx.ctx) {                                                                                                      // trigger_name and ctx
-        if (map.contains(gr::tag::TRIGGER_NAME.shortKey()) && map.contains(gr::tag::CONTEXT.shortKey())) {
-            auto triggerNameValue = map.find_value(gr::tag::TRIGGER_NAME.shortKey());
-            auto contextValue     = map.find_value(gr::tag::CONTEXT.shortKey());
+        if (map.contains(gr::tag::TRIGGER_NAME) && map.contains(gr::tag::CONTEXT)) {
+            auto triggerNameValue = map.find_value(gr::tag::TRIGGER_NAME);
+            auto contextValue     = map.find_value(gr::tag::CONTEXT);
             if (triggerNameValue && contextValue && triggerNameValue->is_string() && contextValue->is_string()) {
                 std::string_view tagTriggerName = triggerNameValue->value_or(std::string_view{});
                 return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName && contextValue.value_or(std::string_view{}) == *triggerNameAndCtx.ctx;
@@ -66,8 +66,8 @@ struct TriggerNameAndCtx {
             }
         }
     } else { // only trigger_name
-        if (map.contains(gr::tag::TRIGGER_NAME.shortKey())) {
-            auto triggerNameValue = map.find_value(gr::tag::TRIGGER_NAME.shortKey());
+        if (map.contains(gr::tag::TRIGGER_NAME)) {
+            auto triggerNameValue = map.find_value(gr::tag::TRIGGER_NAME);
             if (triggerNameValue && triggerNameValue->is_string()) {
                 std::string_view tagTriggerName = triggerNameValue->value_or(std::string_view{});
                 return !tagTriggerName.empty() && tagTriggerName == triggerNameAndCtx.triggerName;
@@ -206,8 +206,8 @@ public:
                         output[i + unpublishedSamples] = data[channelIdx][i]; // std::ranges::copy(driverData, output.begin() + static_cast<std::ptrdiff_t>(channel.unpublished.size()));
                     }
                 }
-                if (overflow & (1 << channelIdx)) {                               // picoscope overrange
-                    output.publishTag(gr::property_map{{"over-range", true}}, 0); // todo: correct tag
+                if (overflow & (1 << channelIdx)) {
+                    output.publishTag(gr::property_map{{gr::tag::RX_OVERFLOW, true}}, 0);
                 }
             }
             if constexpr (TPSImpl::N_DIGITAL_CHANNELS > 0) {
@@ -269,16 +269,16 @@ public:
             bool chunkStartPublished = false;
             for (auto& [index, map] : matchedTags.tags) {
                 if (verbose_console && !chunkStartPublished && index > unpublishedSamples && nSamples > 0 && matchedTags.processedSamples > unpublishedSamples) {
-                    output.publishTag(gr::property_map{{"chunk-start-time", static_cast<gr::Size_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}, unpublishedSamples);
+                    output.publishTag(gr::property_map{{gr::tag::USER_DATA, gr::property_map{{"chunk_start_time", static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}}}, unpublishedSamples);
                     chunkStartPublished = true;
                 }
                 output.publishTag(map, index);
             }
             if (verbose_console && !chunkStartPublished && nSamples > 0 && matchedTags.processedSamples > unpublishedSamples) {
-                output.publishTag(gr::property_map{{"chunk-start-time", static_cast<gr::Size_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}, unpublishedSamples);
+                output.publishTag(gr::property_map{{gr::tag::USER_DATA, gr::property_map{{"chunk_start_time", static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(acqStartTime.time_since_epoch()).count())}}}}, unpublishedSamples);
             }
             if (samplesDropped > 0UZ) {
-                output.publishTag(gr::property_map{{"droppedSamples", samplesDropped}}, unpublishedSamples + nSamples); // todo: correct tag
+                output.publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES, static_cast<gr::Size_t>(samplesDropped)}}, unpublishedSamples + nSamples);
             }
             output.publish(matchedTags.processedSamples);
         }
@@ -287,7 +287,7 @@ public:
             digitalOutSpan.publishTag(map, index);
         }
         if (samplesDropped > 0UZ) {
-            digitalOutSpan.publishTag(gr::property_map{{"droppedSamples", samplesDropped}}, unpublishedSamples + nSamples); // todo: correct tag
+            digitalOutSpan.publishTag(gr::property_map{{gr::tag::N_DROPPED_SAMPLES, static_cast<gr::Size_t>(samplesDropped)}}, unpublishedSamples + nSamples);
         }
 
         digitalOutSpan.publish(matchedTags.processedSamples);
@@ -354,8 +354,8 @@ public:
                     }
                 }
                 // add Tags
-                if (overflow | (1 << channelIdx)) {                                                  // picoscope overrange
-                    outputs[channelIdx][nCaptures].metaInformation(0UZ).insert({"Overrange", true}); // todo: use correct tag string
+                if (overflow | (1 << channelIdx)) {
+                    gr::tag::put(outputs[channelIdx][nCaptures].metaInformation(0UZ), gr::tag::RX_OVERFLOW, true);
                 }
                 if constexpr (std::is_same_v<TSample, float> || std::is_same_v<TSample, std::int16_t>) {
                     gr::dataset::updateMinMax(outputs[channelIdx][nCaptures]);
@@ -492,12 +492,12 @@ public:
         const float offset = getChannelSetting(std::span(signal_offsets.value), channelIdx, 0.0f);
         const float range  = getChannelSetting(std::span(channel_ranges.value), channelIdx, 0.0f);
         return {
-            {gr::tag::SIGNAL_NAME.shortKey(), getChannelSetting(std::span(signal_names.value), channelIdx, {})},
-            {gr::tag::SAMPLE_RATE.shortKey(), sampleRate},
-            {gr::tag::SIGNAL_QUANTITY.shortKey(), getChannelSetting(std::span(signal_quantities.value), channelIdx, {})},
-            {gr::tag::SIGNAL_UNIT.shortKey(), getChannelSetting(std::span(signal_units.value), channelIdx, {})},
-            {gr::tag::SIGNAL_MIN.shortKey(), offset - range},
-            {gr::tag::SIGNAL_MAX.shortKey(), offset + range},
+            {gr::tag::SIGNAL_NAME, getChannelSetting(std::span(signal_names.value), channelIdx, {})},
+            {gr::tag::SAMPLE_RATE, sampleRate},
+            {gr::tag::SIGNAL_QUANTITY, getChannelSetting(std::span(signal_quantities.value), channelIdx, {})},
+            {gr::tag::SIGNAL_UNIT, getChannelSetting(std::span(signal_units.value), channelIdx, {})},
+            {gr::tag::SIGNAL_MIN, offset - range},
+            {gr::tag::SIGNAL_MAX, offset + range},
         };
     }
 

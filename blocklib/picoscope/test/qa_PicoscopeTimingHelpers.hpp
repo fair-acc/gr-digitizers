@@ -208,13 +208,13 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     const auto bpidValues = extractBpidValues(sinkA._tags);
     expect(std::ranges::equal(bpidValues, std::vector<std::uint16_t>{1, 2, 3})) << "expected to get timing events with bpid 1, 2 and 3";
 
-    // Extract chunk information (filter tags with chunk-start-time, transform to tuples, then compute deltas)
     auto chunks = [&]() {
         std::vector<std::tuple<std::size_t, std::size_t, long, long, float>> result;
         std::vector<std::tuple<std::size_t, float, long>>                    transformed;
         for (const auto& t : sinkA._tags) {
-            if (t.map.contains("chunk-start-time")) {
-                transformed.push_back(std::tuple(t.index, static_cast<float>(t.index) * 1e9f / kSampleRate, t.map.value_or<long>("chunk-start-time", std::numeric_limits<long>::max())));
+            const auto userData = t.map.get_if<gr::property_map>(gr::tag::USER_DATA);
+            if (userData && userData->contains("chunk_start_time")) {
+                transformed.push_back(std::tuple(t.index, static_cast<float>(t.index) * 1e9f / kSampleRate, static_cast<long>(userData->value_or<std::uint64_t>("chunk_start_time", std::numeric_limits<std::uint64_t>::max()))));
             }
         }
         for (std::size_t i = 1; i < transformed.size(); ++i) {

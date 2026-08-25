@@ -47,17 +47,17 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
     auto generateTimingTag = [](std::string&& event, std::uint64_t time, float offset, bool hwTrigger = true, std::optional<std::uint64_t> localTime = std::nullopt) {
         return gr::property_map{
-            {gr::tag::TRIGGER_NAME.shortKey(), std::move(event)},                                                                           //
-            {gr::tag::TRIGGER_TIME.shortKey(), time},                                                                                       //
-            {gr::tag::TRIGGER_OFFSET.shortKey(), offset},                                                                                   //
-            {gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{{"LOCAL-TIME", localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
+            {gr::tag::TRIGGER_NAME, std::move(event)},                                                                                  //
+            {gr::tag::TRIGGER_TIME, time},                                                                                              //
+            {gr::tag::TRIGGER_OFFSET, offset},                                                                                          //
+            {gr::tag::TRIGGER_META_INFO, gr::property_map{{gr::tag::LOCAL_TIME, localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
         };
     };
     auto generateUnknownTag = [](std::string&& event, std::uint64_t time, float offset, bool hwTrigger = true, std::optional<std::uint64_t> localTime = std::nullopt) {
         return gr::property_map{
-            {gr::tag::TRIGGER_NAME.shortKey(), std::move(event)},                                                                           //
-            {gr::tag::TRIGGER_OFFSET.shortKey(), offset},                                                                                   //
-            {gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{{"LOCAL-TIME", localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
+            {gr::tag::TRIGGER_NAME, std::move(event)},                                                                                  //
+            {gr::tag::TRIGGER_OFFSET, offset},                                                                                          //
+            {gr::tag::TRIGGER_META_INFO, gr::property_map{{gr::tag::LOCAL_TIME, localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
         };
     };
 
@@ -232,8 +232,8 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4UZ, result.processedTags));
         expect(eq(240UZ, result.processedSamples));
-        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.0f, 1e-10f));
-        expect(result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f));
+        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), 0.0f, 1e-10f));
+        expect(result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
 
         std::vector<gr::property_map> expectedMaps{
             generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true),
@@ -435,34 +435,32 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
     };
 
     "compensateOffset"_test = [&] {
-        // since the generated trigger pulses are generated with a small offset compared to the actual event, they have to be shifted accordingly
-        // to this end in the raw tags, `TRIGGER_TIME` contains the time in ns that the event has to be shifted compared to the pulse.
-        // The matching algorithm has to account for this shift when determining the correct sample and has to correct the `TRIGGER_OFFSET` field according to the sampling rate and sample-relative calculated position
-        unsigned long                 acqTimestamp = 123456789;
+        constexpr float               kSampleRate            = 1e6f;
+        constexpr float               kSamplePeriod          = 1.0f / kSampleRate;
+        constexpr float               kFractionalSampleShift = 0.3f;
+        unsigned long                 acqTimestamp           = 123456789;
         std::vector<gr::property_map> tags{
-            generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, -1e3f, true, acqTimestamp + 101'000),
-            generateTimingTag("EVT_CMD2", acqTimestamp + 150'000, -2e4f, true, acqTimestamp + 170'000),
-            generateTimingTag("EVT_CMD3", acqTimestamp + 200'000, -3e2f, true, acqTimestamp + 200'000),
+            generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, -1.0f * kSamplePeriod, true, acqTimestamp + 101'000),
+            generateTimingTag("EVT_CMD2", acqTimestamp + 150'000, -20.0f * kSamplePeriod, true, acqTimestamp + 170'000),
+            generateTimingTag("EVT_CMD3", acqTimestamp + 200'000, -kFractionalSampleShift * kSamplePeriod, true, acqTimestamp + 200'000),
         };
         std::vector<std::size_t> triggerSampleIndices{101, 170, 200};
 
-        TimingMatcher matcher{.timeout = 10us, .sampleRate = 1e6f};
+        TimingMatcher matcher{.timeout = 10us, .sampleRate = kSampleRate};
         auto          result = matcher.match(tags, triggerSampleIndices, 250UZ, std::chrono::nanoseconds(acqTimestamp));
 
         expect(eq(triggerSampleIndices.size(), result.processedTags));
         expect(eq(240UZ, result.processedSamples));
 
-        // check and fix inexact offsets
+        expect(approx(result.tags[0].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), 0.0f, 1e-9f) || //
+               approx(result.tags[0].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), kSamplePeriod, 1e-9f));
 
-        // If timing is slightly less than 1, then the fractional part will be 0.99, not 0
-        expect(approx(result.tags[0].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.0f, 0.001f) || //
-               approx(result.tags[0].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 1.0f, 0.001f));
-
-        expect(result.tags[0].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f));
-        expect(approx(result.tags[1].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.0f, 1e-10f));
-        expect(result.tags[1].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f));
-        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET.shortKey(), INFINITY), 0.7f, 1e-10f));
-        expect(result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), 0.0f));
+        expect(result.tags[0].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
+        expect(approx(result.tags[1].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), 0.0f, 1e-10f));
+        expect(result.tags[1].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
+        constexpr float kExpectedOffsetSeconds = (1.0f - kFractionalSampleShift) * kSamplePeriod;
+        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), kExpectedOffsetSeconds, 1e-10f));
+        expect(result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
 
         std::vector<gr::property_map> expectedMaps{
             generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.f, true, acqTimestamp + 101'000),

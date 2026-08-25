@@ -270,11 +270,11 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     if (tagMonitor._tags.size() == 1UZ) {
         const auto& tag = tagMonitor._tags[0];
         expect(eq(tag.index, 0UZ));
-        expect(eq(tag.map.template value_or<float>(tag::SAMPLE_RATE.shortKey(), INFINITY), sampleRate));
-        expect(eq(tag.map.template value_or<std::string>(tag::SIGNAL_NAME.shortKey(), std::string{}), "Test signal"s));
-        expect(eq(tag.map.template value_or<std::string>(tag::SIGNAL_UNIT.shortKey(), std::string{}), "Test unit"s));
-        expect(eq(tag.map.template value_or<float>(tag::SIGNAL_MIN.shortKey(), INFINITY), -5.f));
-        expect(eq(tag.map.template value_or<float>(tag::SIGNAL_MAX.shortKey(), INFINITY), 5.f));
+        expect(eq(tag.map.template value_or<float>(tag::SAMPLE_RATE, INFINITY), sampleRate));
+        expect(eq(tag.map.template value_or<std::string>(tag::SIGNAL_NAME, std::string{}), "Test signal"s));
+        expect(eq(tag.map.template value_or<std::string>(tag::SIGNAL_UNIT, std::string{}), "Test unit"s));
+        expect(eq(tag.map.template value_or<float>(tag::SIGNAL_MIN, INFINITY), -5.f));
+        expect(eq(tag.map.template value_or<float>(tag::SIGNAL_MAX, INFINITY), 5.f));
     }
 
     // Digital output testing relies on the actual test setup.
@@ -491,8 +491,8 @@ const boost::ut::suite PicoscopeTests = [] {
         using namespace gr::tag;
 
         const auto testCase = [](bool expectedResult, const std::string& triggerNameAndCtx, const std::string& tagTriggerName, const std::string& tagCtx, bool includeCtx) { //
-            const auto tag = Tag(0, includeCtx ? property_map{{TRIGGER_NAME.shortKey(), tagTriggerName}, {CONTEXT.shortKey(), tagCtx}}                                       //
-                                               : property_map{{TRIGGER_NAME.shortKey(), tagTriggerName}});
+            const auto tag = Tag(0, includeCtx ? property_map{{TRIGGER_NAME, tagTriggerName}, {CONTEXT, tagCtx}}                                                             //
+                                               : property_map{{TRIGGER_NAME, tagTriggerName}});
             const bool res = detail::tagContainsTrigger(tag.map, detail::createTriggerNameAndCtx(triggerNameAndCtx));
             expect(eq(expectedResult, res)) << std::format("triggerNameAndCtx:{}, tag.map:{}", triggerNameAndCtx, tag.map);
         };
@@ -533,7 +533,7 @@ const boost::ut::suite PicoscopeTests = [] {
         constexpr auto       testDuration = 12s;
 
         const auto createTriggerPropertyMap = [](const std::string& triggerName, const std::string& context, std::uint64_t time, float offset = 0.f) { //
-            return property_map{{TRIGGER_NAME.shortKey(), triggerName}, {TRIGGER_TIME.shortKey(), std::uint64_t{time}}, {TRIGGER_OFFSET.shortKey(), offset}, {CONTEXT.shortKey(), context}};
+            return property_map{{TRIGGER_NAME, triggerName}, {TRIGGER_TIME, std::uint64_t{time}}, {TRIGGER_OFFSET, offset}, {CONTEXT, context}};
         };
 
         Graph flowGraph;
@@ -629,10 +629,10 @@ const boost::ut::suite PicoscopeTests = [] {
 
         const auto createTriggerPropertyMap = [](const std::string& triggerName, const std::string& context, std::uint64_t time, float offset = 0.f) { //
             return property_map{
-                {TRIGGER_NAME.shortKey(), triggerName},
-                {TRIGGER_TIME.shortKey(), std::uint64_t{time}},
-                {TRIGGER_OFFSET.shortKey(), offset},
-                {CONTEXT.shortKey(), context},
+                {TRIGGER_NAME, triggerName},
+                {TRIGGER_TIME, std::uint64_t{time}},
+                {TRIGGER_OFFSET, offset},
+                {CONTEXT, context},
             };
         };
 
