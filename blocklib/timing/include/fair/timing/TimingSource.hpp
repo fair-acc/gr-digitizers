@@ -54,8 +54,8 @@ will lead to output in the following form:
 ```
 samples:  [1, 3, ....]
 tags: [
-  0 -> { BEAM-IN: true, BPC-START: false, BPCID: 0, BPCTS: 0, BPID: 0, EVENT-NAME: CMD_BP_START, EVENT-NO: 256, GID: 310, SID: 0, TIMING-GROUP: UNKNOWN-TIMING-GROUP, TIMING-ID: 1240196373932933120, TIMING-PARAM: 0, gr:trigger_offset: 0, trigger_name: CMD_BP_START/FAIR-TIMING:B=0.P=0.C=0.T=310, trigger_time: 633103525799216 }
-  1 -> { IO-LEVEL: true, IO-NAME: IO1, TIMING-ID: 18446181123756130306, TIMING-PARAM: 0, gr:trigger_offset: 0, trigger_name: IO2_FALLING, trigger_time: 633103024372976 }
+  0 -> { BEAM-IN: true, BPC-START: false, BPCID: 0, BPCTS: 0, BPID: 0, EVENT-NAME: CMD_BP_START, EVENT-NO: 256, GID: 310, SID: 0, TIMING-GROUP: UNKNOWN-TIMING-GROUP, TIMING-ID: 1240196373932933120, TIMING-PARAM: 0, gr:trigger_offset: 0, gr:trigger_name: CMD_BP_START/FAIR-TIMING:B=0.P=0.C=0.T=310, gr:trigger_time: 633103525799216 }
+  1 -> { IO-LEVEL: true, IO-NAME: IO1, TIMING-ID: 18446181123756130306, TIMING-PARAM: 0, gr:trigger_offset: 0, gr:trigger_name: IO2_FALLING, gr:trigger_time: 633103024372976 }
   ...
 ]
 ```
@@ -390,9 +390,9 @@ tags: [
     }
 
     static void addHwTriggerInfo(const std::uint64_t id, gr::property_map& tagMap, const std::vector<std::tuple<std::uint64_t, std::uint64_t>>& eventMeta) {
-        auto metaMapIterator = tagMap.find(gr::tag::TRIGGER_META_INFO.shortKey());
+        auto metaMapIterator = tagMap.find(gr::tag::TRIGGER_META_INFO);
         if (metaMapIterator == std::end(tagMap) || metaMapIterator->second.is_monostate()) {
-            metaMapIterator = tagMap.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), gr::property_map{}).first;
+            metaMapIterator = tagMap.insert_or_assign(gr::tag::TRIGGER_META_INFO, gr::property_map{}).first;
         } else if (!metaMapIterator->second.is_map()) {
             return; // edge case where the tag map already contains data of a non-map type on the meta-info key -> just skip adding metadata
         }
@@ -406,7 +406,7 @@ tags: [
             }
         }
         metaMapCopy.insert_or_assign("HW-TRIGGER", isHwTrigger);
-        tagMap.insert_or_assign(gr::tag::TRIGGER_META_INFO.shortKey(), std::move(metaMapCopy));
+        tagMap.insert_or_assign(gr::tag::TRIGGER_META_INFO, std::move(metaMapCopy));
     }
 
     void addHwTriggerInfo(const std::uint64_t id, gr::property_map& tagMap) const { addHwTriggerInfo(id, tagMap, eventHwTrigger); }
@@ -415,8 +415,8 @@ tags: [
         gr::property_map tagMap;
         gr::property_map meta;
         std::uint64_t    id = event.id();
-        tagMap.emplace(tag::TRIGGER_TIME.shortKey(), taiNsToUtcNs(event.time));
-        meta.emplace("LOCAL-TIME", static_cast<std::uint64_t>(currentTime));
+        tagMap.emplace(tag::TRIGGER_TIME, taiNsToUtcNs(event.time));
+        meta.emplace(tag::LOCAL_TIME, static_cast<std::uint64_t>(currentTime));
         meta.emplace("TIMING-ID", id);
         meta.emplace("TIMING-PARAM", event.param());
         if (event.isIo) {
@@ -424,8 +424,8 @@ tags: [
             std::string ioName = _timing.idToIoName(id);
             meta.emplace("IO-NAME", ioName);
             meta.emplace("IO-LEVEL", level);
-            tagMap.emplace(tag::TRIGGER_NAME.shortKey(), std::format("{}_{}", ioName, level ? "RISING" : "FALLING"));
-            tagMap.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f);
+            tagMap.emplace(tag::TRIGGER_NAME, std::format("{}_{}", ioName, level ? "RISING" : "FALLING"));
+            tagMap.emplace(tag::TRIGGER_OFFSET, 0.0f);
         } else {
             meta.emplace("GID", event.gid);
             if (timingGroupTable.contains(event.gid)) {
@@ -442,17 +442,17 @@ tags: [
                 }
             }();
             meta.emplace("EVENT-NAME", eventName);
-            tagMap.emplace(tag::TRIGGER_NAME.shortKey(), eventName);
-            tagMap.emplace(tag::CONTEXT.shortKey(), std::format("FAIR-TIMING:C={}.S={}.P={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
+            tagMap.emplace(tag::TRIGGER_NAME, eventName);
+            tagMap.emplace(tag::CONTEXT, std::format("FAIR-TIMING:C={}.S={}.P={}.T={}", event.bpcid, event.sid, event.bpid, event.gid));
             meta.emplace("BPCTS", event.bpcts); // chain execution time-stamp (i.e. unique chain identifier)
             meta.emplace("BPCID", event.bpcid); // chain ID (can contain multiple sequences)
             meta.emplace("SID", event.sid);     // chain ID -> sequence ID (can contain multiple beam-processes)
             meta.emplace("BPID", event.bpid);   // beam process ID (PID)
             meta.emplace("BEAM-IN", event.flagBeamin);
             meta.emplace("BPC-START", event.flagBpcStart);
-            tagMap.emplace(tag::TRIGGER_OFFSET.shortKey(), 0.0f); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
+            tagMap.emplace(tag::TRIGGER_OFFSET, 0.0f); // The trigger offset has to be set either when publishing at fixed sample rate or when adding the tag to a sample e.g. in the picoscope block
         }
-        tagMap.emplace(tag::TRIGGER_META_INFO.shortKey(), meta);
+        tagMap.emplace(tag::TRIGGER_META_INFO, meta);
         return tagMap;
     }
 
@@ -499,7 +499,7 @@ tags: [
                 const std::size_t taggedSampleAbs = _publishedSamples + toPublish - 1;
                 const auto        taggedSampleNs  = static_cast<std::int64_t>(static_cast<double>(taggedSampleAbs) / static_cast<double>(sample_rate) * 1e9);
                 const auto        offsetNs        = std::max<std::int64_t>(0, eventDeltaNs - taggedSampleNs);
-                timingTagMap.insert_or_assign(gr::tag::TRIGGER_OFFSET.shortKey(), static_cast<std::uint64_t>(offsetNs));
+                timingTagMap.insert_or_assign(gr::tag::TRIGGER_OFFSET, static_cast<float>(offsetNs) * 1e-9f);
             } else { // sample_rate == 0.0f -> publish one sample per timing tag
                 samplesUntilCurrentEvent = 1;
                 if (_nextOutputState != _outputState) {
