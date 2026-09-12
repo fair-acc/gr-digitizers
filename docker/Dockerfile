@@ -2,8 +2,8 @@ FROM ghcr.io/fair-acc/gr4-build-container:latest
 LABEL authors="akrimm+rstein"
 
 # Trigger Update 2026-09-12
-# Install pkg-config
-RUN sudo apt-get update && sudo apt-get -y install build-essential pkg-config && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
+# Install pkg-config and git-lfs; git-lfs in the image keeps CI from running apt at all
+RUN sudo apt-get update && sudo apt-get -y install build-essential pkg-config git-lfs && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
 
 # Install timing system dependencies: etherbone"
 RUN sudo apt-get update \
