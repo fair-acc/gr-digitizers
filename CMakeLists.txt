@@ -13,6 +13,9 @@ if(NOT DEFINED GR_DIGITIZERS_TOPLEVEL_PROJECT)
   endif()
 endif()
 
+option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds"
+       ${GR_DIGITIZERS_TOPLEVEL_PROJECT})
+
 if(NOT EMSCRIPTEN)
   option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
   option(ENABLE_TIMING "Enable TimingReceiver support" ON)
@@ -41,7 +44,7 @@ if(NOT gnuradio4_FOUND)
   FetchContent_Declare(
     gnuradio4
     GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
-    GIT_TAG 92278b628c05f01a440cf775fb6cd465c63bab4d # main as of 2026-08-04
+    GIT_TAG 5a38e0605af4cb6ea86a494e1cb5a71987e995c6 # main as of 2026-09-24
     EXCLUDE_FROM_ALL)
   list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST gnuradio4)
 endif()
@@ -59,7 +62,7 @@ if(ENABLE_OPENCMW)
   FetchContent_Declare(
     opencmw-cpp
     GIT_REPOSITORY https://github.com/fair-acc/opencmw-cpp.git
-    GIT_TAG e30b78193052bf2ea39160a8ec913044552fe103 # latest as of 2026-03-19
+    GIT_TAG 2487c6faa0b61ba9e56fdb432b41d3075f435c0a # latest as of 2026-09-24
     EXCLUDE_FROM_ALL)
   list(APPEND GR_DIGITIZER_FETCH_CONTENT_LIST "opencmw-cpp")
 endif()
@@ -175,8 +178,6 @@ if(ENABLE_TIMING AND NOT EMSCRIPTEN)
   pkg_check_modules(etherbone REQUIRED IMPORTED_TARGET etherbone)
 endif()
 
-option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds"
-       ${GR_DIGITIZERS_TOPLEVEL_PROJECT})
 if(ENABLE_GR_DIGITIZERS_TESTING
    AND UNIX
    AND NOT APPLE)
