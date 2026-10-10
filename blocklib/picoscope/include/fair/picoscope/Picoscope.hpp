@@ -649,14 +649,14 @@ public:
         T ds{};
         ds.timestamp = 0;
 
-        ds.axis_names = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_names.value), channelIdx, {}))};
-        ds.axis_units = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_units.value), channelIdx, {}))};
+        ds.axis_names.emplace_back(getChannelSetting(std::span(signal_names.value), channelIdx, {}));
+        ds.axis_units.emplace_back(getChannelSetting(std::span(signal_units.value), channelIdx, {}));
 
-        ds.extents           = {static_cast<int32_t>(nSamples)};
-        ds.layout            = gr::LayoutRight{};
-        ds.signal_names      = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_names.value), channelIdx, {}))};
-        ds.signal_units      = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_units.value), channelIdx, {}))};
-        ds.signal_quantities = std::vector<std::string>{std::string(getChannelSetting(std::span(signal_quantities.value), channelIdx, {}))};
+        ds.extents = {static_cast<int32_t>(nSamples)};
+        ds.layout  = gr::LayoutRight{};
+        ds.signal_names.emplace_back(getChannelSetting(std::span(signal_names.value), channelIdx, {}));
+        ds.signal_units.emplace_back(getChannelSetting(std::span(signal_units.value), channelIdx, {}));
+        ds.signal_quantities.emplace_back(getChannelSetting(std::span(signal_quantities.value), channelIdx, {}));
 
         ds.signal_values.resize(nSamples);
         ds.signal_ranges.resize(1);
