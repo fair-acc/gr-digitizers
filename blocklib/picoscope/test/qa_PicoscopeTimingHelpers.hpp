@@ -179,7 +179,7 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     gr::MsgPortOut _toScheduler;
     expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
     std::this_thread::sleep_for(kDuration);
-    gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, "test");
+    gr::emit<gr::message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, {.endpoint = gr::block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
     std::this_thread::sleep_for(10ms); // wait for the scheduler to actually stop processing -> otherwise process work will be called when the scheduler and graph have already been destroyed
 
     const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(kDuration).count();
@@ -367,7 +367,7 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
     expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
     std::this_thread::sleep_for(kDuration);
     std::print("stopping scheduler");
-    gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, "test");
+    gr::emit<gr::message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, {.endpoint = gr::block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
     std::this_thread::sleep_for(10ms); // wait for the scheduler to actually stop processing -> otherwise process work will be called when the scheduler and graph have already been destroyed
     std::println(" and assume it is finished after 10ms");
 

@@ -33,15 +33,15 @@ struct OpenCmwSource : gr::Block<OpenCmwSource> {
     using FloatLimits = gr::Limits<std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max()>;
     gr::PortOut<gr::pmt::Value> out;
 
-    gr::Annotated<std::string, "url", gr::Visible, gr::Doc<"URL of the resource to subscribe to">>                     url;
-    gr::Annotated<std::string, "signal name", gr::Visible, gr::Doc<"Identifier for the signal">>                       signal_name;
-    gr::Annotated<std::string, "signal quantity", gr::Visible, gr::Doc<"Physical quantity represented by the signal">> signal_quantity;
-    gr::Annotated<std::string, "signal unit", gr::Visible, gr::Doc<"Unit of measurement for the signal values">>       signal_unit;
-    gr::Annotated<float, "signal min", gr::Doc<"Minimum expected value for the signal">, FloatLimits>                  signal_min        = std::numeric_limits<float>::lowest();
-    gr::Annotated<float, "signal max", gr::Doc<"Maximum expected value for the signal">, FloatLimits>                  signal_max        = std::numeric_limits<float>::max();
-    gr::Annotated<bool, "verbose console", gr::Doc<"For debugging">>                                                   verbose_console   = false;
-    gr::Annotated<float, "reconnect timeout", gr::Doc<"reconnect timeout in sec">>                                     reconnect_timeout = 5.f;
-    gr::Annotated<std::string, "nameserver", gr::Doc<"Nameserver to use for device lookup">>                           nameserver        = "http://localhost:7500";
+    gr::Annotated<std::string, "url", gr::Visible, gr::Doc<"URL of the resource to subscribe to">>                          url;
+    gr::Annotated<std::pmr::string, "signal name", gr::Visible, gr::Doc<"Identifier for the signal">>                       signal_name;
+    gr::Annotated<std::pmr::string, "signal quantity", gr::Visible, gr::Doc<"Physical quantity represented by the signal">> signal_quantity;
+    gr::Annotated<std::pmr::string, "signal unit", gr::Visible, gr::Doc<"Unit of measurement for the signal values">>       signal_unit;
+    gr::Annotated<float, "signal min", gr::Doc<"Minimum expected value for the signal">, FloatLimits>                       signal_min        = std::numeric_limits<float>::lowest();
+    gr::Annotated<float, "signal max", gr::Doc<"Maximum expected value for the signal">, FloatLimits>                       signal_max        = std::numeric_limits<float>::max();
+    gr::Annotated<bool, "verbose console", gr::Doc<"For debugging">>                                                        verbose_console   = false;
+    gr::Annotated<float, "reconnect timeout", gr::Doc<"reconnect timeout in sec">>                                          reconnect_timeout = 5.f;
+    gr::Annotated<std::string, "nameserver", gr::Doc<"Nameserver to use for device lookup">>                                nameserver        = "http://localhost:7500";
 
     GR_MAKE_REFLECTABLE(OpenCmwSource, out, url, signal_name, signal_unit, signal_quantity, signal_min, signal_max, verbose_console, reconnect_timeout);
 
