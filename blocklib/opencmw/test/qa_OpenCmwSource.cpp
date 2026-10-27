@@ -53,7 +53,7 @@ const boost::ut::suite OpenCmwSourceTests = [] {
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(5s);
         std::println("stopping scheduler");
-        gr::sendMessage<message::Command::Set>(_toScheduler, sched.unique_name, block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, "test");
+        gr::emit<message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, {.endpoint = block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
 
         expect(sink._nSamplesProduced == 4_i);
         std::println("sink received samples: {}", sink._samples);
@@ -88,7 +88,7 @@ const boost::ut::suite OpenCmwSourceTests = [] {
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(5s);
         std::println("stopping scheduler");
-        gr::sendMessage<message::Command::Set>(_toScheduler, sched.unique_name, block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, "test");
+        gr::emit<message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, {.endpoint = block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
 
         expect(sink._nSamplesProduced == 4_i);
         std::println("sink received samples: {}", sink._samples);

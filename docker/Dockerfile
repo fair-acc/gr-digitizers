@@ -1,14 +1,14 @@
 FROM ghcr.io/fair-acc/gr4-build-container:latest
 LABEL authors="akrimm+rstein"
 
-# Trigger Update 2026-10-10
+# Trigger Update 2026-10-26
 # Install pkg-config and git-lfs; git-lfs in the image keeps CI from running apt at all
 RUN sudo apt-get update && sudo apt-get -y install build-essential pkg-config git-lfs && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
 
 # Install timing system dependencies: etherbone"
 RUN sudo apt-get update \
     && sudo apt-get -y install build-essential autoconf automake libtool \
-    && cd $(mktmp -d) \
+    && cd $(mktemp -d) \
     && git clone --branch v2.1.4 --depth=1 https://gitlab.com/ohwr/project/etherbone-core.git \
     && cd etherbone-core/api \
     && touch ChangeLog \
@@ -24,7 +24,7 @@ RUN sudo apt-get update \
 # Install timing system dependencies: saftlib"
 RUN sudo apt-get update \
     && sudo apt-get -y install libsigc++-2.0-dev libxslt1-dev libboost-all-dev \
-    && cd $(mktmp -d) \
+    && cd $(mktemp -d) \
     && git clone --branch v3.2.2 --depth=1 https://github.com/GSI-CS-CO/saftlib.git \
     && cd saftlib \
     && ./autogen.sh \
