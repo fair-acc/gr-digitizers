@@ -701,7 +701,7 @@ const boost::ut::suite PicoscopeTests = [] {
         // gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::RUNNING))}}, "test");
         std::this_thread::sleep_for(testDuration);
         std::println("stopping scheduler");
-        gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, "test");
+        gr::emit<gr::message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, {.endpoint = gr::block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
         std::println("stopped scheduler");
 
         expect(ge(sinkA._nSamplesProduced, 1UZ));

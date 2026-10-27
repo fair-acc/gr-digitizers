@@ -2,9 +2,9 @@ name: CMake
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   buildAndPublishDocker:
@@ -28,8 +28,8 @@ jobs:
         uses: dorny/paths-filter@v4
         with:
           filters: |
-             docker:
-               - 'docker/Dockerfile'
+            docker:
+              - 'docker/Dockerfile'
 
       #TODO: check if the underlying docker container is newer than the current one
 
@@ -73,18 +73,18 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - cc: gcc-14
-            cxx: g++-14
+          - cc: gcc-15
+            cxx: g++-15
             gr4_prefix: /opt/gnuradio4-gcc
-          - cc: clang-20
-            cxx: clang++-20
-            cmake_flags: "-DCMAKE_LINKER=/usr/bin/clang-20"
+          - cc: clang-21
+            cxx: clang++-21
+            cmake_flags: "-DCMAKE_LINKER=/usr/bin/clang-21"
             gr4_prefix: /opt/gnuradio4-clang
           - cmake_wrapper: emcmake
             cc: emcc
-            cmake_flags: " -DENABLE_PICOSCOPE=FALSE -DENABLE_TIMING=FALSE -DENABLE_COVERAGE=OFF -DCMAKE_CROSSCOMPILING_EMULATOR=${SYSTEM_NODE} -DGNURADIO_PARSE_REGISTRATIONS_TOOL_CXX_COMPLILER=g++-14"
+            cmake_flags: " -DENABLE_PICOSCOPE=FALSE -DENABLE_TIMING=FALSE -DENABLE_COVERAGE=OFF -DCMAKE_CROSSCOMPILING_EMULATOR=${SYSTEM_NODE} -DGNURADIO_PARSE_REGISTRATIONS_TOOL_CXX_COMPLILER=g++-15"
             gr4_prefix: /opt/gnuradio4-gcc
-        cmake-build-type: [ Release, Debug ]
+        cmake-build-type: [Release, Debug]
 
     steps:
       - uses: actions/checkout@v6
@@ -109,12 +109,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-            gh release download latest \
-            --repo fair-acc/gnuradio4 \
-            --pattern "gnuradio4-gcc_*_amd64.deb" \
-            --pattern "gnuradio4-clang_*_amd64.deb" \
-            --dir /tmp/gr4-pkgs
-            sudo apt install /tmp/gr4-pkgs/*.deb -y || true
+          gh release download latest \
+          --repo fair-acc/gnuradio4 \
+          --pattern "gnuradio4-gcc_*_amd64.deb" \
+          --pattern "gnuradio4-clang_*_amd64.deb" \
+          --dir /tmp/gr4-pkgs
+          sudo apt install /tmp/gr4-pkgs/*.deb -y || true
 
       - name: Cache
         uses: actions/cache@v5
@@ -151,7 +151,7 @@ jobs:
           CXX: "${{ matrix.compiler.cxx }}"
           CMAKE_EXPORT_COMPILE_COMMANDS: "ON"
         run: |
-          cmake -S . -B ../build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DENABLE_GR_DIGITIZERS_TESTING=TRUE -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} -DENABLE_COVERAGE=${{ matrix.compiler.cc == 'gcc-14' && matrix.cmake-build-type == 'Debug'}} ${{ matrix.compiler.cmake_flags }} -DCMAKE_PREFIX_PATH="${{ matrix.compiler.gr4_prefix }}"
+          cmake -S . -B ../build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DENABLE_GR_DIGITIZERS_TESTING=TRUE -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} -DENABLE_COVERAGE=${{ matrix.compiler.cc == 'gcc-15' && matrix.cmake-build-type == 'Debug'}} ${{ matrix.compiler.cmake_flags }} -DCMAKE_PREFIX_PATH="${{ matrix.compiler.gr4_prefix }}"
 
       - name: Configure CMake Emscripten
         if: matrix.compiler.cmake_wrapper == 'emcmake'
@@ -187,14 +187,14 @@ jobs:
         run: ccache --show-stats
 
       - name: execute tests
-        if: matrix.compiler.cc != 'gcc-14' || matrix.cmake-build-type != 'Debug'
+        if: matrix.compiler.cc != 'gcc-15' || matrix.cmake-build-type != 'Debug'
         shell: bash
         run: |
           cd ../build
           ctest --output-on-failure
 
       - name: execute tests with coverage
-        if: matrix.compiler.cc == 'gcc-14' && matrix.cmake-build-type == 'Debug'
+        if: matrix.compiler.cc == 'gcc-15' && matrix.cmake-build-type == 'Debug'
         env:
           DISABLE_SENSITIVE_TESTS: 1 # disables tests which are sensitive to execution speed and will not run with instrumented code
         shell: bash
@@ -203,10 +203,9 @@ jobs:
           cmake --build . --target coverage
 
       - name: Run sonar-scanner
-        if: matrix.compiler.cc == 'gcc-14' && matrix.cmake-build-type == 'Debug'
+        if: matrix.compiler.cc == 'gcc-15' && matrix.cmake-build-type == 'Debug'
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_HOST_URL: https://sonarcloud.io
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
