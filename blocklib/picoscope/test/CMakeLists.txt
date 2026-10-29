@@ -1,10 +1,8 @@
 # for manual usage, not run by ctest
 function(add_ut_test_tool TEST_NAME)
   add_executable(${TEST_NAME} ${TEST_NAME}.cc)
-  target_include_directories(
-    ${TEST_NAME}
-    PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR})
+  target_include_directories(${TEST_NAME} PRIVATE ${CMAKE_BINARY_DIR}/include ${CMAKE_CURRENT_BINARY_DIR}
+                                                  ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(
     ${TEST_NAME}
     PRIVATE gnuradio4::gnuradio-core
@@ -18,8 +16,7 @@ endfunction()
 
 function(add_ut_test TEST_NAME)
   add_ut_test_tool(${TEST_NAME})
-  add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR}
-                                     ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
+  add_test(NAME ${TEST_NAME} COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} ${CMAKE_CURRENT_BINARY_DIR}/${TEST_NAME})
 endfunction()
 
 add_ut_test_tool(qa_Picoscope)

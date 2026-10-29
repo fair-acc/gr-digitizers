@@ -1,8 +1,6 @@
 add_library(fair-picoscope INTERFACE)
-target_include_directories(
-  fair-picoscope
-  INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:include/>)
+target_include_directories(fair-picoscope INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                    $<INSTALL_INTERFACE:include/>)
 
 target_link_libraries(
   fair-picoscope
@@ -21,9 +19,7 @@ set_target_properties(
 )
 
 add_executable(picoscope-cli src/picoscope-cli.cpp)
-target_link_libraries(
-  picoscope-cli PRIVATE fair-picoscope gnuradio4::gnuradio-algorithm
-                        gnuradio4::gnuradio-core)
+target_link_libraries(picoscope-cli PRIVATE fair-picoscope gnuradio4::gnuradio-algorithm gnuradio4::gnuradio-core)
 
 if(ENABLE_GR_DIGITIZERS_TESTING)
   add_subdirectory(test)

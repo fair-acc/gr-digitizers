@@ -1,7 +1,6 @@
 add_library(fair-opencmw INTERFACE)
-target_include_directories(
-  fair-opencmw INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                         $<INSTALL_INTERFACE:include/>)
+target_include_directories(fair-opencmw INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                                                  $<INSTALL_INTERFACE:include/>)
 
 target_link_libraries(fair-opencmw INTERFACE gr-digitizers-options client)
 set_target_properties(

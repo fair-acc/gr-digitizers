@@ -10,11 +10,11 @@
 
 In a nutshell, we have three main dependencies:
 
- - [GNU Radio](https://www.gnuradio.org/) (dev-4.0 branch)
- - [ROOT](https://root.cern/)
- - [PicoScope Drivers](https://www.picotech.com/downloads/linux) (optional)
- - [LimeSuite](https://github.com/myriadrf/LimeSuite) (optional)
- - [etherbone](https://ohwr.org/project/etherbone-core/tree/master/api) and [saftlib](https://github.com/GSI-CS-CO/saftlib) (optional for the timing receiver blocks)
+- [GNU Radio](https://www.gnuradio.org/) (dev-4.0 branch)
+- [ROOT](https://root.cern/)
+- [PicoScope Drivers](https://www.picotech.com/downloads/linux) (optional)
+- [LimeSuite](https://github.com/myriadrf/LimeSuite) (optional)
+- [etherbone](https://ohwr.org/project/etherbone-core/tree/master/api) and [saftlib](https://github.com/GSI-CS-CO/saftlib) (optional for the timing receiver blocks)
 
 In the following it is assumed that ROOT is installed to `/opt/root`, and the picoscope drivers
 to `/opt/picoscope` (which is e.g. done when using the Ubuntu packages).
@@ -36,6 +36,7 @@ sudo ninja install
 ```
 
 ### Build etherbone and saftlib
+
 To build and test the timing related dependencies, see the [readme for the timing block](blocklib/timing/README.md)
 
 ### Build gr-digitizers
