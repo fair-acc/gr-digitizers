@@ -28,8 +28,8 @@ namespace fair::picoscope::test {
 inline std::vector<std::uint16_t> extractBpidValues(std::vector<gr::testing::OwningTag>& tags) {
     std::vector<std::uint16_t> result;
     for (const auto& t : tags) {
-        if (t.map.contains(gr::tag::CONTEXT.key())) {
-            result.push_back(t.map.get_if<gr::property_map>(gr::tag::TRIGGER_META_INFO.key()).value_or(gr::property_map{}).value_or<std::uint16_t>("BPID", std::numeric_limits<std::uint16_t>::max()));
+        if (t.map.contains(gr::tag::kContext.key())) {
+            result.push_back(t.map.get_if<gr::property_map>(gr::tag::kTriggerMetaInfo.key()).value_or(gr::property_map{}).value_or<std::uint16_t>("BPID", std::numeric_limits<std::uint16_t>::max()));
         }
     }
     return result;
@@ -39,7 +39,7 @@ inline std::vector<std::uint16_t> extractBpidValues(std::vector<gr::testing::Own
 inline std::vector<std::size_t> extractTimingEventSamples(std::vector<gr::testing::OwningTag>& tags) {
     std::vector<std::size_t> result;
     for (const auto& t : tags) {
-        if (t.map.contains(gr::tag::CONTEXT.key())) {
+        if (t.map.contains(gr::tag::kContext.key())) {
             result.push_back(t.index);
         }
     }
@@ -199,11 +199,11 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     if (!sinkA._tags.empty()) {
         const auto& tag = sinkA._tags[0];
         expect(eq(tag.index, 0UZ));
-        expect(eq(tag.map.value_or<float>(tag::SAMPLE_RATE.key(), INFINITY), kSampleRate));
-        expect(eq(tag.map.value_or<std::string>(tag::SIGNAL_NAME.key(), {}), "IO1"s));
-        expect(eq(tag.map.value_or<std::string>(tag::SIGNAL_UNIT.key(), {}), "V"s));
-        expect(eq(tag.map.value_or<float>(tag::SIGNAL_MIN.key(), INFINITY), -5.f));
-        expect(eq(tag.map.value_or<float>(tag::SIGNAL_MAX.key(), INFINITY), 5.f));
+        expect(eq(tag.map.value_or<float>(tag::kSampleRate.key(), INFINITY), kSampleRate));
+        expect(eq(tag.map.value_or<std::string>(tag::kSignalName.key(), {}), "IO1"s));
+        expect(eq(tag.map.value_or<std::string>(tag::kSignalUnit.key(), {}), "V"s));
+        expect(eq(tag.map.value_or<float>(tag::kSignalMin.key(), INFINITY), -5.f));
+        expect(eq(tag.map.value_or<float>(tag::kSignalMax.key(), INFINITY), 5.f));
     }
     const auto bpidValues = extractBpidValues(sinkA._tags);
     expect(std::ranges::equal(bpidValues, std::vector<std::uint16_t>{1, 2, 3})) << "expected to get timing events with bpid 1, 2 and 3";
@@ -212,7 +212,7 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
         std::vector<std::tuple<std::size_t, std::size_t, long, long, float>> result;
         std::vector<std::tuple<std::size_t, float, long>>                    transformed;
         for (const auto& t : sinkA._tags) {
-            const auto userData = t.map.get_if<gr::property_map>(gr::tag::USER_DATA);
+            const auto userData = t.map.get_if<gr::property_map>(gr::tag::kUserData);
             if (userData && userData->contains("chunk_start_time")) {
                 transformed.push_back(std::tuple(t.index, static_cast<float>(t.index) * 1e9f / kSampleRate, static_cast<long>(userData->value_or<std::uint64_t>("chunk_start_time", std::numeric_limits<std::uint64_t>::max()))));
             }

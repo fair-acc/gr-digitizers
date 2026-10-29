@@ -26,10 +26,10 @@ struct TagBuilder {
     std::vector<gr::Tag>          tags;
 
     TagBuilder& add(std::size_t index, std::string_view name, std::uint64_t time, float offset, bool hwTrigger = true, std::optional<std::uint64_t> localTime = std::nullopt) {
-        maps.push_back({{gr::tag::TRIGGER_NAME.shortKey(), std::string(name)}, //
-            {gr::tag::TRIGGER_TIME.shortKey(), time},                          //
-            {gr::tag::TRIGGER_OFFSET.shortKey(), offset},                      //
-            {gr::tag::TRIGGER_META_INFO.shortKey(),                            //
+        maps.push_back({{gr::tag::kTriggerName.shortKey(), std::string(name)}, //
+            {gr::tag::kTriggerTime.shortKey(), time},                          //
+            {gr::tag::kTriggerOffset.shortKey(), offset},                      //
+            {gr::tag::kTriggerMetaInfo.shortKey(),                             //
                 gr::property_map{{"LOCAL-TIME", localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}});
         tags.push_back({index, maps.back()});
         return *this;
@@ -47,17 +47,17 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
     auto generateTimingTag = [](std::string&& event, std::uint64_t time, float offset, bool hwTrigger = true, std::optional<std::uint64_t> localTime = std::nullopt) {
         return gr::property_map{
-            {gr::tag::TRIGGER_NAME, std::move(event)},                                                                                  //
-            {gr::tag::TRIGGER_TIME, time},                                                                                              //
-            {gr::tag::TRIGGER_OFFSET, offset},                                                                                          //
-            {gr::tag::TRIGGER_META_INFO, gr::property_map{{gr::tag::LOCAL_TIME, localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
+            {gr::tag::kTriggerName, std::move(event)},                                                                                 //
+            {gr::tag::kTriggerTime, time},                                                                                             //
+            {gr::tag::kTriggerOffset, offset},                                                                                         //
+            {gr::tag::kTriggerMetaInfo, gr::property_map{{gr::tag::kLocalTime, localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
         };
     };
     auto generateUnknownTag = [](std::string&& event, std::uint64_t time, float offset, bool hwTrigger = true, std::optional<std::uint64_t> localTime = std::nullopt) {
         return gr::property_map{
-            {gr::tag::TRIGGER_NAME, std::move(event)},                                                                                  //
-            {gr::tag::TRIGGER_OFFSET, offset},                                                                                          //
-            {gr::tag::TRIGGER_META_INFO, gr::property_map{{gr::tag::LOCAL_TIME, localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
+            {gr::tag::kTriggerName, std::move(event)},                                                                                 //
+            {gr::tag::kTriggerOffset, offset},                                                                                         //
+            {gr::tag::kTriggerMetaInfo, gr::property_map{{gr::tag::kLocalTime, localTime.value_or(time)}, {"HW-TRIGGER", hwTrigger}}}, //
         };
     };
 
@@ -232,8 +232,8 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
 
         expect(eq(4UZ, result.processedTags));
         expect(eq(240UZ, result.processedSamples));
-        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), 0.0f, 1e-10f));
-        expect(result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
+        expect(approx(result.tags[2].map.value_or<float>(gr::tag::kTriggerOffset, INFINITY), 0.0f, 1e-10f));
+        expect(result.tags[2].map.insert_or_assign(gr::tag::kTriggerOffset, 0.0f));
 
         std::vector<gr::property_map> expectedMaps{
             generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.0f, true),
@@ -452,15 +452,15 @@ const boost::ut::suite<"TimingMatchers"> TimingMatcherTests = [] {
         expect(eq(triggerSampleIndices.size(), result.processedTags));
         expect(eq(240UZ, result.processedSamples));
 
-        expect(approx(result.tags[0].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), 0.0f, 1e-9f) || //
-               approx(result.tags[0].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), kSamplePeriod, 1e-9f));
+        expect(approx(result.tags[0].map.value_or<float>(gr::tag::kTriggerOffset, INFINITY), 0.0f, 1e-9f) || //
+               approx(result.tags[0].map.value_or<float>(gr::tag::kTriggerOffset, INFINITY), kSamplePeriod, 1e-9f));
 
-        expect(result.tags[0].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
-        expect(approx(result.tags[1].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), 0.0f, 1e-10f));
-        expect(result.tags[1].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
+        expect(result.tags[0].map.insert_or_assign(gr::tag::kTriggerOffset, 0.0f));
+        expect(approx(result.tags[1].map.value_or<float>(gr::tag::kTriggerOffset, INFINITY), 0.0f, 1e-10f));
+        expect(result.tags[1].map.insert_or_assign(gr::tag::kTriggerOffset, 0.0f));
         constexpr float kExpectedOffsetSeconds = (1.0f - kFractionalSampleShift) * kSamplePeriod;
-        expect(approx(result.tags[2].map.value_or<float>(gr::tag::TRIGGER_OFFSET, INFINITY), kExpectedOffsetSeconds, 1e-10f));
-        expect(result.tags[2].map.insert_or_assign(gr::tag::TRIGGER_OFFSET, 0.0f));
+        expect(approx(result.tags[2].map.value_or<float>(gr::tag::kTriggerOffset, INFINITY), kExpectedOffsetSeconds, 1e-10f));
+        expect(result.tags[2].map.insert_or_assign(gr::tag::kTriggerOffset, 0.0f));
 
         std::vector<gr::property_map> expectedMaps{
             generateTimingTag("EVT_CMD1", acqTimestamp + 100'000, 0.f, true, acqTimestamp + 101'000),
