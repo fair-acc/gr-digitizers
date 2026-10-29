@@ -187,46 +187,6 @@ if(ENABLE_GR_DIGITIZERS_TESTING
    AND NOT APPLE)
   list(APPEND CMAKE_CTEST_ARGUMENTS "--output-on-failure")
   enable_testing()
-  if(ENABLE_COVERAGE)
-    message("Coverage reporting enabled")
-    set(CODE_COVERAGE_VERBOSE ON)
-    include(cmake/CodeCoverage.cmake) # https://github.com/bilke/cmake-modules/blob/master/CodeCoverage.cmake #
-                                      # (License: BSL-1.0)
-    target_compile_options(
-      gr-digitizers-options
-      INTERFACE --coverage
-                -O0
-                -g
-                -U_FORTIFY_SOURCE
-                -D_FORTIFY_SOURCE=0) # fortify_source is not possible without optimization
-    target_link_libraries(gr-digitizers-options INTERFACE --coverage)
-    set(GCOVR_ADDITIONAL_ARGS
-        --print-summary
-        --gcov-ignore-errors=all
-        --gcov-ignore-errors=no_working_dir_found
-        --verbose)
-    append_coverage_compiler_flags()
-    setup_target_for_coverage_gcovr_xml(
-      NAME
-      coverage
-      EXECUTABLE
-      ctest
-      DEPENDENCIES
-      EXCLUDE
-      "$CMAKE_BUILD_DIR/*"
-      "concepts/.*"
-      ".*/test/.*")
-    setup_target_for_coverage_gcovr_html(
-      NAME
-      coverage_html
-      EXECUTABLE
-      ctest
-      DEPENDENCIES
-      EXCLUDE
-      "$CMAKE_BUILD_DIR/*"
-      "concepts/.*"
-      ".*/test/.*")
-  endif()
 endif()
 
 add_subdirectory(blocklib)

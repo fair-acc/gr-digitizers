@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
 
+# GR4's quality bots run from GR4's devtools at the pinned GR4 revision (.github/actions/gr4-devtools), scoped by
+# .github/qualitybot.conf; they post a sticky comment and a status but never gate a merge
 jobs:
   buildAndPublishDocker:
     name: "Update the docker container if it is modified"
@@ -66,6 +68,10 @@ jobs:
     runs-on: "ubuntu-latest"
     container:
       image: "${{ needs.buildAndPublishDocker.outputs.container }}"
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_BASEDIR: /__w/gr-digitizers
@@ -82,7 +88,7 @@ jobs:
             gr4_prefix: /opt/gnuradio4-clang
           - cmake_wrapper: emcmake
             cc: emcc
-            cmake_flags: " -DENABLE_PICOSCOPE=FALSE -DENABLE_TIMING=FALSE -DENABLE_COVERAGE=OFF -DCMAKE_CROSSCOMPILING_EMULATOR=${SYSTEM_NODE} -DGNURADIO_PARSE_REGISTRATIONS_TOOL_CXX_COMPLILER=g++-15"
+            cmake_flags: " -DENABLE_PICOSCOPE=FALSE -DENABLE_TIMING=FALSE -DCMAKE_CROSSCOMPILING_EMULATOR=${SYSTEM_NODE} -DGNURADIO_PARSE_REGISTRATIONS_TOOL_CXX_COMPLILER=g++-15"
             gr4_prefix: /opt/gnuradio4-gcc
         cmake-build-type: [Release, Debug]
 
@@ -151,7 +157,7 @@ jobs:
           CXX: "${{ matrix.compiler.cxx }}"
           CMAKE_EXPORT_COMPILE_COMMANDS: "ON"
         run: |
-          cmake -S . -B ../build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DENABLE_GR_DIGITIZERS_TESTING=TRUE -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} -DENABLE_COVERAGE=${{ matrix.compiler.cc == 'gcc-15' && matrix.cmake-build-type == 'Debug'}} ${{ matrix.compiler.cmake_flags }} -DCMAKE_PREFIX_PATH="${{ matrix.compiler.gr4_prefix }}"
+          cmake -S . -B ../build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DENABLE_GR_DIGITIZERS_TESTING=TRUE -DCMAKE_BUILD_TYPE=${{ matrix.cmake-build-type }} ${{ matrix.compiler.cmake_flags }} -DCMAKE_PREFIX_PATH="${{ matrix.compiler.gr4_prefix }}"
 
       - name: Configure CMake Emscripten
         if: matrix.compiler.cmake_wrapper == 'emcmake'
@@ -187,25 +193,281 @@ jobs:
         run: ccache --show-stats
 
       - name: execute tests
-        if: matrix.compiler.cc != 'gcc-15' || matrix.cmake-build-type != 'Debug'
         shell: bash
         run: |
           cd ../build
           ctest --output-on-failure
 
-      - name: execute tests with coverage
-        if: matrix.compiler.cc == 'gcc-15' && matrix.cmake-build-type == 'Debug'
-        env:
-          DISABLE_SENSITIVE_TESTS: 1 # disables tests which are sensitive to execution speed and will not run with instrumented code
-        shell: bash
+      # recorded on main only: nothing is listed to measure yet (.github/qualitybot.conf)
+      - name: GR4 devtools
+        if: ${{ !cancelled() && github.event_name == 'push' && matrix.cmake-build-type == 'Release' && (matrix.compiler.cc == 'gcc-15' || matrix.compiler.cc == 'emcc') }}
+        uses: ./.github/actions/gr4-devtools
+
+      - name: Hot Paths
+        id: hot-paths
+        if: ${{ !cancelled() && github.event_name == 'push' && matrix.cmake-build-type == 'Release' && matrix.compiler.cc == 'gcc-15' }}
+        continue-on-error: true
         run: |
-          cd ../build
-          cmake --build . --target coverage
+          "$RUNNER_TEMP/qualitybot" hot-paths --build ../build --out hot-paths-report
+
+      - name: Report Hot Paths
+        if: steps.hot-paths.outcome == 'success'
+        continue-on-error: true
+        uses: ./.gr4-devtools/.github/actions/report
+        with:
+          directory: hot-paths-report
+          fail-on-no-go: false
+
+      - name: WASM size
+        id: wasm-size
+        if: ${{ !cancelled() && github.event_name == 'push' && matrix.cmake-build-type == 'Release' && matrix.compiler.cc == 'emcc' }}
+        continue-on-error: true
+        run: |
+          "$RUNNER_TEMP/qualitybot" wasm-size --build ../build --out wasm-size-report
+
+      - name: Report WASM size
+        if: steps.wasm-size.outcome == 'success'
+        continue-on-error: true
+        uses: ./.gr4-devtools/.github/actions/report
+        with:
+          directory: wasm-size-report
+          fail-on-no-go: false
+
+  formatting:
+    name: Formatting
+    needs: buildAndPublishDocker
+    runs-on: "ubuntu-latest"
+    container:
+      image: "${{ needs.buildAndPublishDocker.outputs.container }}"
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/gr4-devtools
+
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/gr4-formatters
+          key: formatters-${{ hashFiles('formatFiles.sh') }}
+
+      - name: Formatting
+        id: formatting
+        run: |
+          ./formatFiles.sh --install
+          "$RUNNER_TEMP/qualitybot" formatting --out formatting-report
+
+      - name: Keep the formatting patch
+        if: ${{ !cancelled() && steps.formatting.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: formatting-patch
+          path: |
+            formatting-report/formatting.patch
+            formatting-report/formatFiles.log
+          if-no-files-found: ignore
+
+      - name: Report Formatting
+        if: ${{ !cancelled() && steps.formatting.outcome == 'success' }}
+        uses: ./.gr4-devtools/.github/actions/report
+        with:
+          directory: formatting-report
+          fail-on-no-go: false
+
+  metrics:
+    name: Metrics
+    needs: buildAndPublishDocker
+    runs-on: "ubuntu-latest"
+    container:
+      image: "${{ needs.buildAndPublishDocker.outputs.container }}"
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install gnuradio4 packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download latest --repo fair-acc/gnuradio4 --pattern "gnuradio4-clang_*_amd64.deb" --dir /tmp/gr4-pkgs
+          sudo apt install /tmp/gr4-pkgs/*.deb -y || true
+
+      - uses: ./.github/actions/gr4-devtools
+        with:
+          tools: "true"
+
+      # the Clang lane's compile database; only opencmw-cpp's external headers are built
+      - name: Configure
+        env:
+          CC: clang-21
+          CXX: clang++-21
+        run: >-
+          cmake -S . -B ../build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON
+          -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DENABLE_GR_DIGITIZERS_TESTING=TRUE -DCMAKE_LINKER=/usr/bin/clang-21
+          -DCMAKE_PREFIX_PATH=/opt/gnuradio4-clang
+
+      # libclang 22 finds libc++ only under its own prefix, the image carries clang-21's: name it explicitly
+      - name: Compile database for libclang
+        run: |
+          libcxx=$(clang++-21 -stdlib=libc++ -E -x c++ -v /dev/null 2>&1 | grep -m1 -o '/[^ ]*/c++/v1')
+          echo "libc++ headers: $libcxx"
+          sed -i "s#-stdlib=libc++#-stdlib=libc++ -nostdinc++ -isystem $libcxx#g" ../build/compile_commands.json
+          grep -c -- '-nostdinc++' ../build/compile_commands.json
+          # opencmw-cpp installs the ngtcp2 and nghttp3 headers at build time; without them its units do not parse
+          cmake --build ../build --target NgTcp2Project Nghttp3Project
+
+      - name: Naming
+        id: naming
+        run: |
+          "$RUNNER_TEMP/qualitybot" naming --build ../build --tools "$RUNNER_TEMP/gr4-devtools" --out naming-report
+
+      - name: Report Naming
+        if: ${{ !cancelled() && steps.naming.outcome == 'success' }}
+        uses: ./.gr4-devtools/.github/actions/report
+        with:
+          directory: naming-report
+          fail-on-no-go: false
+
+      - name: Code Style
+        id: code-style
+        if: ${{ !cancelled() }}
+        run: |
+          "$RUNNER_TEMP/qualitybot" code-style --build ../build --tools "$RUNNER_TEMP/gr4-devtools" --out code-style-report
+
+      - name: Report Code Style
+        if: ${{ !cancelled() && steps.code-style.outcome == 'success' }}
+        uses: ./.gr4-devtools/.github/actions/report
+        with:
+          directory: code-style-report
+          fail-on-no-go: false
+
+  coverage:
+    name: Coverage
+    needs: buildAndPublishDocker
+    runs-on: "ubuntu-latest"
+    container:
+      image: "${{ needs.buildAndPublishDocker.outputs.container }}"
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: /__w/gr-digitizers
+      # a change of these flags is a change of method: bump coverageMethod in .github/qualitybot.conf
+      INSTRUMENT: -fprofile-instr-generate -fcoverage-mapping -mllvm -runtime-counter-relocation -Wno-unused-command-line-argument
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Install gnuradio4 packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download latest --repo fair-acc/gnuradio4 --pattern "gnuradio4-clang_*_amd64.deb" --dir /tmp/gr4-pkgs
+          sudo apt install /tmp/gr4-pkgs/*.deb -y || true
+
+      - uses: ./.github/actions/gr4-devtools
+
+      - name: Restore ccache
+        uses: actions/cache/restore@v5
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ runner.os }}-coverage-clang-21-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-coverage-clang-21
+
+      - name: Configure
+        env:
+          CC: clang-21
+          CXX: clang++-21
+        run: >-
+          cmake -S . -B ../build -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Debug -DDISABLE_EXTERNAL_DEPS_WARNINGS=ON
+          -DENABLE_PICOSCOPE=TRUE -DENABLE_TIMING=TRUE -DENABLE_GR_DIGITIZERS_TESTING=TRUE -DCMAKE_LINKER=/usr/bin/clang-21
+          -DCMAKE_PREFIX_PATH=/opt/gnuradio4-clang -DCMAKE_C_FLAGS="$INSTRUMENT" -DCMAKE_CXX_FLAGS="$INSTRUMENT"
+
+      - name: Build
+        run: cmake --build ../build
+
+      - name: Save ccache
+        if: ${{ !cancelled() && github.event_name == 'push' }}
+        uses: actions/cache/save@v5
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ runner.os }}-coverage-clang-21-${{ github.sha }}
+
+      # the build lanes gate on the tests; coverage is reported regardless
+      - name: Test
+        working-directory: ../build
+        env:
+          DISABLE_SENSITIVE_TESTS: 1
+        # set here, not under env: there the workspace expression names the runner host's path, not the container's
+        run: |
+          mkdir -p profiles
+          export LLVM_PROFILE_FILE="$PWD/profiles/%c%m-%p.profraw"
+          ctest --output-on-failure || echo "::warning::tests fail; coverage is reported regardless, the build lanes gate on tests"
+
+      - name: Coverage
+        id: coverage
+        if: ${{ !cancelled() }}
+        run: |
+          "$RUNNER_TEMP/qualitybot" coverage --build ../build --profiles ../build/profiles --out coverage-report
+
+      - name: Keep the coverage report
+        if: ${{ !cancelled() && steps.coverage.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: coverage-report/html
+
+      - name: Report Coverage
+        if: ${{ !cancelled() && steps.coverage.outcome == 'success' }}
+        uses: ./.gr4-devtools/.github/actions/report
+        with:
+          directory: coverage-report
+          fail-on-no-go: false
 
       - name: Run sonar-scanner
-        if: matrix.compiler.cc == 'gcc-15' && matrix.cmake-build-type == 'Debug'
+        if: ${{ !cancelled() && steps.coverage.outcome == 'success' }}
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_HOST_URL: https://sonarcloud.io
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # the only job that writes the repository: one commit replacing the ci-metrics branch
+  record:
+    name: record the figures
+    needs: [buildAndPublishDocker, build, formatting, metrics, coverage]
+    if: ${{ !cancelled() && github.event_name == 'push' }}
+    runs-on: "ubuntu-latest"
+    container:
+      image: "${{ needs.buildAndPublishDocker.outputs.container }}"
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/gr4-devtools
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: "*-report"
+          path: reports
+
+      - name: Record
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          "$RUNNER_TEMP/qualitybot" record --out "$RUNNER_TEMP/record" reports/*
