@@ -23,3 +23,6 @@ virtualenv/
 # cmake build directories
 cmake-build-*/
 build/
+
+# GR4 devtools checked out by CI (ci.yml)
+/.gr4-devtools/
