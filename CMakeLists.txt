@@ -3,8 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(gr-digitizers CXX)
 set(CMAKE_CXX_STANDARD 23)
 
-# Determine if gr-digitizers is built as a subproject (using add_subdirectory)
-# or if it is the top-level project.
+# Determine if gr-digitizers is built as a subproject (using add_subdirectory) or if it is the top-level project.
 if(NOT DEFINED GR_DIGITIZERS_TOPLEVEL_PROJECT)
   set(GR_DIGITIZERS_TOPLEVEL_PROJECT OFF)
   if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -13,8 +12,7 @@ if(NOT DEFINED GR_DIGITIZERS_TOPLEVEL_PROJECT)
   endif()
 endif()
 
-option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds"
-       ${GR_DIGITIZERS_TOPLEVEL_PROJECT})
+option(ENABLE_GR_DIGITIZERS_TESTING "Enable gr-digitizers Test Builds" ${GR_DIGITIZERS_TOPLEVEL_PROJECT})
 
 if(NOT EMSCRIPTEN)
   option(ENABLE_PICOSCOPE "Enable PicoScope support" ON)
@@ -22,8 +20,7 @@ if(NOT EMSCRIPTEN)
   option(ENABLE_OPENCMW "Enable OpenCmw support" ON)
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang") # set default C++ STL to Clang's
-                                            # libc++ when using Clang
+if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang") # set default C++ STL to Clang's libc++ when using Clang
   add_compile_options(-stdlib=libc++ -fcolor-diagnostics)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++")
   set(CLANG true)
@@ -38,9 +35,7 @@ include(FetchContent)
 
 find_package(gnuradio4 4.0.0 QUIET)
 if(NOT gnuradio4_FOUND)
-  message(
-    STATUS "Pre-built gnuradio4 not found, fetching and building from source..."
-  )
+  message(STATUS "Pre-built gnuradio4 not found, fetching and building from source...")
   FetchContent_Declare(
     gnuradio4
     GIT_REPOSITORY https://github.com/fair-acc/gnuradio4.git
@@ -70,19 +65,24 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "(Clang|GNU)")
   if(ADDRESS_SANITIZER)
     set(SANITIZER_FLAGS
-        -fsanitize=address -fsanitize-address-use-after-scope -fsanitize=leak
-        -fno-omit-frame-pointer -fstack-protector-strong)
+        -fsanitize=address
+        -fsanitize-address-use-after-scope
+        -fsanitize=leak
+        -fno-omit-frame-pointer
+        -fstack-protector-strong)
   elseif(UB_SANITIZER)
     set(SANITIZER_FLAGS
-        -fsanitize=undefined -fsanitize-address-use-after-scope -fsanitize=leak
-        -fno-omit-frame-pointer -fstack-protector-strong)
+        -fsanitize=undefined
+        -fsanitize-address-use-after-scope
+        -fsanitize=leak
+        -fno-omit-frame-pointer
+        -fstack-protector-strong)
   elseif(THREAD_SANITIZER)
     set(SANITIZER_FLAGS -fsanitize=thread -fsanitize=thread)
   endif()
 
   if(DEFINED SANITIZER_FLAGS)
-    add_compile_options(${SANITIZER_FLAGS} -fno-omit-frame-pointer
-                        -fstack-protector-strong)
+    add_compile_options(${SANITIZER_FLAGS} -fno-omit-frame-pointer -fstack-protector-strong)
     if(NOT EMSCRIPTEN)
       add_compile_options(${SANITIZER_FLAGS} -fstack-clash-protection)
     endif()
@@ -98,8 +98,7 @@ set_project_warnings(gr-digitizers-options)
 if(EMSCRIPTEN)
   FetchContent_MakeAvailable(${GR_DIGITIZER_FETCH_CONTENT_LIST})
   set(CMAKE_EXECUTABLE_SUFFIX ".js")
-  target_compile_options(gr-digitizers-options INTERFACE -fwasm-exceptions
-                                                         -pthread)
+  target_compile_options(gr-digitizers-options INTERFACE -fwasm-exceptions -pthread)
   target_link_options(
     gr-digitizers-options
     INTERFACE
@@ -129,8 +128,7 @@ else()
     find_package(SDL3 REQUIRED)
     find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
-    # imgui and implot are not CMake Projects, so we have to define their
-    # targets manually here
+    # imgui and implot are not CMake Projects, so we have to define their targets manually here
     add_library(
       imgui OBJECT
       ${imgui_SOURCE_DIR}/imgui_demo.cpp
@@ -142,27 +140,20 @@ else()
       ${imgui_SOURCE_DIR}/imgui.cpp
       ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp)
     target_link_libraries(imgui PUBLIC SDL3::SDL3 OpenGL::GL)
-    target_compile_options(
-      imgui PRIVATE -w) # imgui does lots of oldstyle casts and pointer
-                        # arithmethic leading to many warnings
-    target_include_directories(imgui BEFORE PUBLIC SYSTEM ${imgui_SOURCE_DIR}
-                                                   ${imgui_SOURCE_DIR}/backends)
+    target_compile_options(imgui PRIVATE -w) # imgui does lots of oldstyle casts and pointer arithmethic leading to many
+                                             # warnings
+    target_include_directories(imgui BEFORE PUBLIC SYSTEM ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
 
-    add_library(
-      implot OBJECT
-      ${implot_SOURCE_DIR}/implot_demo.cpp
-      ${implot_SOURCE_DIR}/implot_items.cpp ${implot_SOURCE_DIR}/implot.cpp)
-    target_compile_options(
-      implot PRIVATE -w) # implot does lots of oldstyle casts and pointer
-                         # arithmethic leading to many warnings
+    add_library(implot OBJECT ${implot_SOURCE_DIR}/implot_demo.cpp ${implot_SOURCE_DIR}/implot_items.cpp
+                              ${implot_SOURCE_DIR}/implot.cpp)
+    target_compile_options(implot PRIVATE -w) # implot does lots of oldstyle casts and pointer arithmethic leading to
+                                              # many warnings
     target_include_directories(implot BEFORE PUBLIC SYSTEM ${implot_SOURCE_DIR})
     target_link_libraries(implot PUBLIC imgui)
   endif()
 endif()
 
-if(CMAKE_CXX_COMPILER MATCHES "/em\\+\\+(-[a-zA-Z0-9.])?$") # if this hasn't
-                                                            # been set before
-                                                            # via e.g. emcmake
+if(CMAKE_CXX_COMPILER MATCHES "/em\\+\\+(-[a-zA-Z0-9.])?$") # if this hasn't been set before via e.g. emcmake
   message(" Transpiling to WASM: using: Emscripten (${CMAKE_CXX_COMPILER})")
   set(EMSCRIPTEN true)
 endif()
@@ -170,12 +161,25 @@ endif()
 find_package(PkgConfig REQUIRED)
 
 if(ENABLE_PICOSCOPE)
-  find_package(PicoScope REQUIRED COMPONENTS ps3000a ps4000a ps5000a ps6000)
+  find_package(
+    PicoScope REQUIRED
+    COMPONENTS ps3000a
+               ps4000a
+               ps5000a
+               ps6000)
 endif()
 
 if(ENABLE_TIMING AND NOT EMSCRIPTEN)
-  pkg_check_modules(saftlib REQUIRED IMPORTED_TARGET saftlib)
-  pkg_check_modules(etherbone REQUIRED IMPORTED_TARGET etherbone)
+  pkg_check_modules(
+    saftlib
+    REQUIRED
+    IMPORTED_TARGET
+    saftlib)
+  pkg_check_modules(
+    etherbone
+    REQUIRED
+    IMPORTED_TARGET
+    etherbone)
 endif()
 
 if(ENABLE_GR_DIGITIZERS_TESTING
@@ -186,19 +190,21 @@ if(ENABLE_GR_DIGITIZERS_TESTING
   if(ENABLE_COVERAGE)
     message("Coverage reporting enabled")
     set(CODE_COVERAGE_VERBOSE ON)
-    include(cmake/CodeCoverage.cmake
-    )# https://github.com/bilke/cmake-modules/blob/master/CodeCoverage.cmake #
-     # (License: BSL-1.0)
+    include(cmake/CodeCoverage.cmake) # https://github.com/bilke/cmake-modules/blob/master/CodeCoverage.cmake #
+                                      # (License: BSL-1.0)
     target_compile_options(
-      gr-digitizers-options INTERFACE --coverage -O0 -g -U_FORTIFY_SOURCE
-                                      -D_FORTIFY_SOURCE=0) # fortify_source is
-                                                           # not possible
-                                                           # without
-                                                           # optimization
+      gr-digitizers-options
+      INTERFACE --coverage
+                -O0
+                -g
+                -U_FORTIFY_SOURCE
+                -D_FORTIFY_SOURCE=0) # fortify_source is not possible without optimization
     target_link_libraries(gr-digitizers-options INTERFACE --coverage)
     set(GCOVR_ADDITIONAL_ARGS
-        --print-summary --gcov-ignore-errors=all
-        --gcov-ignore-errors=no_working_dir_found --verbose)
+        --print-summary
+        --gcov-ignore-errors=all
+        --gcov-ignore-errors=no_working_dir_found
+        --verbose)
     append_coverage_compiler_flags()
     setup_target_for_coverage_gcovr_xml(
       NAME

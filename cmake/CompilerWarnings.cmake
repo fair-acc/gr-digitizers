@@ -3,7 +3,9 @@
 # https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md
 
 function(set_project_warnings project_name)
-  option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE) #TODO: re-enable as soon as the refl-cpp macro issue is fixed https://github.com/veselink1/refl-cpp/issues/63
+  option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE) # TODO: re-enable as soon as the refl-cpp macro
+                                                                       # issue is fixed
+                                                                       # https://github.com/veselink1/refl-cpp/issues/63
 
   set(MSVC_WARNINGS
       /W4 # Baseline reasonable warnings
@@ -32,7 +34,8 @@ function(set_project_warnings project_name)
   )
 
   set(CLANG_WARNINGS
-      # -Werror # avoid warnings since they are often indicative of immature API and/or potential sources of bugs # TODO: enable
+      # -Werror # avoid warnings since they are often indicative of immature API and/or potential sources of bugs #
+      # TODO: enable
       -Wall
       -Wextra # reasonable and standard
       -Wshadow # warn the user if a variable declaration shadows one from a parent context
@@ -58,16 +61,16 @@ function(set_project_warnings project_name)
   endif()
 
   set(GCC_WARNINGS
-          ${CLANG_WARNINGS}
-          -Wmisleading-indentation # warn if indentation implies blocks where blocks do not exist
-          -Wduplicated-cond # warn if if / else chain has duplicated conditions
-          -Wduplicated-branches # warn if if / else branches have duplicated code
-          -Wlogical-op # warn about logical operations being used where bitwise were probably wanted
-          -Wuseless-cast # warn if you perform a cast to the same type
-          -Wno-interference-size # suppress ABI compatibility warnings for hardware inferred size
-          -Wno-maybe-uninitialized # false positives if asan is enabled: https://gcc.gnu.org/bugzilla//show_bug.cgi?id=1056h6
-          -fconcepts-diagnostics-depth=3
-          )
+      ${CLANG_WARNINGS}
+      -Wmisleading-indentation # warn if indentation implies blocks where blocks do not exist
+      -Wduplicated-cond # warn if if / else chain has duplicated conditions
+      -Wduplicated-branches # warn if if / else branches have duplicated code
+      -Wlogical-op # warn about logical operations being used where bitwise were probably wanted
+      -Wuseless-cast # warn if you perform a cast to the same type
+      -Wno-interference-size # suppress ABI compatibility warnings for hardware inferred size
+      -Wno-maybe-uninitialized # false positives if asan is enabled:
+                               # https://gcc.gnu.org/bugzilla//show_bug.cgi?id=1056h6
+      -fconcepts-diagnostics-depth=3)
 
   if(MSVC)
     set(PROJECT_WARNINGS ${MSVC_WARNINGS})
@@ -80,9 +83,17 @@ function(set_project_warnings project_name)
   endif()
 
   # Replace semicolons with spaces in PROJECT_WARNINGS
-  string(REPLACE ";" " " PROJECT_WARNINGS_MOD "${PROJECT_WARNINGS}")
-  set(${output_var} "${PROJECT_WARNINGS}" PARENT_SCOPE)
-  set(ALL_COMPILER_FLAGS "${ALL_COMPILER_FLAGS}${PROJECT_WARNINGS_MOD}" PARENT_SCOPE)
+  string(
+    REPLACE ";"
+            " "
+            PROJECT_WARNINGS_MOD
+            "${PROJECT_WARNINGS}")
+  set(${output_var}
+      "${PROJECT_WARNINGS}"
+      PARENT_SCOPE)
+  set(ALL_COMPILER_FLAGS
+      "${ALL_COMPILER_FLAGS}${PROJECT_WARNINGS_MOD}"
+      PARENT_SCOPE)
 
   target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})
 
