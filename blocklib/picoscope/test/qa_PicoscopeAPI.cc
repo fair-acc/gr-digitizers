@@ -7,6 +7,7 @@
 
 #include <fair/picoscope/StatusMessages.hpp>
 
+#include <atomic>
 #include <thread>
 
 using namespace std::string_literals;
