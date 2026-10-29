@@ -8,8 +8,8 @@
 namespace fair::picoscope {
 
 struct Picoscope4000a {
-    static constexpr std::size_t N_DIGITAL_CHANNELS = 0UZ;
-    static constexpr std::size_t N_ANALOG_CHANNELS  = PS4000A_MAX_CHANNELS;
+    static constexpr std::size_t kNDigitalChannels = 0UZ;
+    static constexpr std::size_t kNAnalogChannels  = PS4000A_MAX_CHANNELS;
 
     using ChannelType              = PS4000A_CHANNEL;
     using ConditionType            = PS4000A_CONDITION;
@@ -28,7 +28,7 @@ struct Picoscope4000a {
 
     int16_t _handle;
 
-    static constexpr std::array<std::pair<ChannelName, ChannelType>, 10> outputs{{
+    static constexpr std::array<std::pair<ChannelName, ChannelType>, 10> kOutputs{{
         {ChannelName::A, PS4000A_CHANNEL_A},
         {ChannelName::B, PS4000A_CHANNEL_B},
         {ChannelName::C, PS4000A_CHANNEL_C},
@@ -41,7 +41,7 @@ struct Picoscope4000a {
         {ChannelName::AUX, PS4000A_TRIGGER_AUX},
     }};
 
-    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 14> ranges = {{
+    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 14> kRanges = {{
         /* this picoscope supports "smart probes", that's why we have to use special enum values here */
         {AnalogChannelRange::ps10mV, PICO_X1_PROBE_10MV /* PS4000A_10MV */},
         {AnalogChannelRange::ps20mV, PICO_X1_PROBE_20MV /* PS4000A_20MV */},
@@ -71,7 +71,7 @@ struct Picoscope4000a {
         return PS4000A_MAX_TIME_UNITS;
     }
 
-    static constexpr RatioModeType ratioNone{PS4000A_RATIO_MODE_NONE};
+    static constexpr RatioModeType kRatioNone{PS4000A_RATIO_MODE_NONE};
 
     [[nodiscard]] static constexpr std::expected<TimebaseResult, Error> convertSampleRateToTimebase(float desiredFreq) {
         // https://www.picotech.com/download/manuals/picoscope-4000-series-a-api-programmers-guide.pdf, page 24
@@ -130,19 +130,19 @@ struct Picoscope4000a {
 
     PICO_STATUS getTimebase2(uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) const { return ps4000aGetTimebase2(_handle, timebase, noSamples, timeIntervalNanoseconds, maxSamples, segmentIndex); }
 
-    PICO_STATUS openUnit(const std::string& serial_number) {
-        if (serial_number.empty()) { // take any if no serial number is provided (useful for testing purposes)
+    PICO_STATUS openUnit(const std::string& serialNumber) {
+        if (serialNumber.empty()) { // take any if no serial number is provided (useful for testing purposes)
             return ps4000aOpenUnit(&_handle, nullptr);
         } else {
-            return ps4000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps4000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())));
         }
     }
 
-    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serial_number) {
-        if (serial_number.empty()) {
+    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serialNumber) {
+        if (serialNumber.empty()) {
             return ps4000aOpenUnitAsync(status, nullptr);
         } else {
-            return ps4000aOpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps4000aOpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())));
         }
     }
 

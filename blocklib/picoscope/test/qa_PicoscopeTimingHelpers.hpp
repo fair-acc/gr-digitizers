@@ -117,12 +117,12 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     });
 
     const std::size_t matcher_timeout     = 30'000'000UZ; // * 10'000 / static_cast<std::size_t>(kSampleRate);
-    const bool        digital_port_enable = TPSImpl::N_DIGITAL_CHANNELS > 0;
+    const bool        digital_port_enable = TPSImpl::kNDigitalChannels > 0;
 
     auto& ps = flowGraph.emplaceBlock<Picoscope<float, TPSImpl>>({{
         {"sample_rate", kSampleRate},
         {"auto_arm", true},
-        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
+        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::kNAnalogChannels > 4 ? "H" : "D"}},
         {"signal_names", std::vector<std::string>{"IO1", "IO2", "Trigger"}},
         {"signal_units", std::vector<std::string>{"V", "V", "V"}},
         {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
@@ -146,7 +146,7 @@ void testStreamingWithTiming(const float kSampleRate = 1000.f, const std::chrono
     expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
     expect(flowGraph.connect<"out#2", "in">(ps, sinkD).has_value());
     expect(flowGraph.connect<"out#3", "in">(ps, sinkC).has_value());
-    if constexpr (TPSImpl::N_ANALOG_CHANNELS > 4) {
+    if constexpr (TPSImpl::kNAnalogChannels > 4) {
         auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkF = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkG = flowGraph.emplaceBlock<testing::TagSink<float, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
@@ -296,7 +296,7 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
     auto& ps = flowGraph.emplaceBlock<Picoscope<gr::DataSet<float>, TPSImpl>>({{
         {"sample_rate", kSampleRate},
         {"auto_arm", true},
-        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::N_ANALOG_CHANNELS > 4 ? "H" : "D"}},
+        {"channel_ids", std::vector<std::string>{"A", "B", TPSImpl::kNAnalogChannels > 4 ? "H" : "D"}},
         {"signal_names", std::vector<std::string>{"IO1", "IO2", "Trigger"}},
         {"signal_units", std::vector<std::string>{"V", "V", "V"}},
         {"channel_ranges", std::vector<float>{5.f, 5.f, 5.f}},
@@ -325,7 +325,7 @@ void testTriggeredAcquisitionWithTiming(const float kSampleRate = 1e5f, const st
     expect(flowGraph.connect<"out#1", "in">(ps, sinkB).has_value());
     expect(flowGraph.connect<"out#2", "in">(ps, sinkC).has_value());
     expect(flowGraph.connect<"out#3", "in">(ps, sinkD).has_value());
-    if constexpr (TPSImpl::N_ANALOG_CHANNELS > 4) {
+    if constexpr (TPSImpl::kNAnalogChannels > 4) {
         auto& sinkE = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkF = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkG = flowGraph.emplaceBlock<testing::TagSink<gr::DataSet<float>, testing::ProcessFunction::USE_PROCESS_BULK>>({{"log_samples", false}, {"log_tags", false}});

@@ -17,8 +17,8 @@ typedef enum enPS6000ConditionsInfo { PS6000_CLEAR = 0x00000001, PS6000_ADD = 0x
 typedef enum enPS6000DeviceResolution { PS6000A_DR_8BIT } PS6000_DEVICE_RESOLUTION;
 
 struct Picoscope6000 {
-    static constexpr std::size_t N_DIGITAL_CHANNELS = 0UZ;
-    static constexpr std::size_t N_ANALOG_CHANNELS  = PS6000_MAX_CHANNELS;
+    static constexpr std::size_t kNDigitalChannels = 0UZ;
+    static constexpr std::size_t kNAnalogChannels  = PS6000_MAX_CHANNELS;
 
     using ChannelType            = PS6000_CHANNEL;
     using ConditionType          = PS6000_CONDITION;
@@ -37,9 +37,9 @@ struct Picoscope6000 {
 
     std::int16_t _handle;
 
-    static constexpr RatioModeType ratioNone{PS6000_RATIO_MODE_NONE};
+    static constexpr RatioModeType kRatioNone{PS6000_RATIO_MODE_NONE};
 
-    static constexpr std::array<std::pair<ChannelName, ChannelType>, 8> outputs{{
+    static constexpr std::array<std::pair<ChannelName, ChannelType>, 8> kOutputs{{
         {ChannelName::A, PS6000_CHANNEL_A},
         {ChannelName::B, PS6000_CHANNEL_B},
         {ChannelName::C, PS6000_CHANNEL_C},
@@ -48,7 +48,7 @@ struct Picoscope6000 {
         {ChannelName::AUX, PS6000_TRIGGER_AUX},
     }};
 
-    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 12> ranges = {{
+    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 12> kRanges = {{
         {AnalogChannelRange::ps10mV, PS6000_10MV},
         {AnalogChannelRange::ps20mV, PS6000_20MV},
         {AnalogChannelRange::ps50mV, PS6000_50MV},
@@ -154,20 +154,20 @@ struct Picoscope6000 {
         return status;
     }
 
-    PICO_STATUS openUnit(const std::string& serial_number) {
+    PICO_STATUS openUnit(const std::string& serialNumber) {
         // take any if no serial number is provided (useful for testing purposes)
-        if (serial_number.empty()) {
+        if (serialNumber.empty()) {
             return ps6000OpenUnit(&_handle, nullptr);
         } else {
-            return ps6000OpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps6000OpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())));
         }
     }
 
-    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serial_number) {
-        if (serial_number.empty()) {
+    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serialNumber) {
+        if (serialNumber.empty()) {
             return ps6000OpenUnitAsync(status, nullptr);
         } else {
-            return ps6000OpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps6000OpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())));
         }
     }
 

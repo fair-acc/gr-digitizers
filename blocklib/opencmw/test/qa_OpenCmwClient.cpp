@@ -70,12 +70,12 @@ const boost::ut::suite OpenCmwTests = [] {
 
     "Query rda3 directory server/nameserver"_test = [] {
         std::println("# query rda3 nameserver - starting");
-        const auto env_nameserver = std::getenv("CMW_NAMESERVER");
-        if (env_nameserver == nullptr) {
+        const auto envNameserver = std::getenv("CMW_NAMESERVER");
+        if (envNameserver == nullptr) {
             std::println("skipping BasicCmwLight example test as it relies on the availability of network infrastructure.");
             return; // skip test
         }
-        const std::string                               nameserver{env_nameserver};
+        const std::string                               nameserver{envNameserver};
         const opencmw::zmq::Context                     zctx{};
         opencmw::client::cmwlight::DirectoryLightClient nameserverClient{nameserver};
         std::optional<std::string>                      result = nameserverClient.lookup("GSITemplateDevice");
@@ -97,11 +97,11 @@ const boost::ut::suite OpenCmwTests = [] {
         Process rda3Server({"java", "-jar", "./DemoRda3Server.jar", "-cfg", "--cmw.rda3.transport.server.port=12345", "-sleep", "1500"});
         using namespace opencmw;
         using namespace std::literals;
-        const std::string DEVICE_NAME          = "GSITemplateDevice";
-        const std::string STATUS_PROPERTY      = "/GSITemplateDevice/Status";
-        const std::string SETTING_PROPERTY     = "/GSITemplateDevice/Setting";
-        const std::string ACQUISITION_PROPERTY = "/GSITemplateDevice/Acquisition";
-        const std::string SELECTOR             = "FAIR.SELECTOR.C=3:S=1:P=1:T=300";
+        const std::string DEVICE_NAME         = "GSITemplateDevice";
+        const std::string statusProperty      = "/GSITemplateDevice/Status";
+        const std::string settingProperty     = "/GSITemplateDevice/Setting";
+        const std::string acquisitionProperty = "/GSITemplateDevice/Acquisition";
+        const std::string selector            = "FAIR.SELECTOR.C=3:S=1:P=1:T=300";
 
         std::string                                      nameserver = "http://localhost:7500"; // this is actually never queried since all requests in this test provide the url authority
         const zmq::Context                               zctx{};
@@ -112,7 +112,7 @@ const boost::ut::suite OpenCmwTests = [] {
         client::ClientContext clientContext{std::move(clients)};
         // send some requests
         { // non-multiplexed get request
-            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(STATUS_PROPERTY).build();
+            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(statusProperty).build();
             std::atomic getReceived{0};
             clientContext.get(endpoint, [&getReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {
@@ -129,7 +129,7 @@ const boost::ut::suite OpenCmwTests = [] {
             expect(waitFor(getReceived, 1)) << "timed-out waiting for get response";
         }
         { // multiplexed get request
-            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(ACQUISITION_PROPERTY).addQueryParameter("ctx", SELECTOR).build();
+            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(acquisitionProperty).addQueryParameter("ctx", selector).build();
             std::atomic getReceived{0};
             clientContext.get(endpoint, [&getReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {
@@ -146,7 +146,7 @@ const boost::ut::suite OpenCmwTests = [] {
             expect(waitFor(getReceived, 1)) << "timed-out waiting for get response";
         }
         { // multiplexed set request
-            auto         endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(SETTING_PROPERTY).addQueryParameter("ctx", SELECTOR).build();
+            auto         endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(settingProperty).addQueryParameter("ctx", selector).build();
             std::atomic  setReceived{0};
             TestSettings testSettings{};
             IoBuffer     data{};
@@ -165,7 +165,7 @@ const boost::ut::suite OpenCmwTests = [] {
             expect(waitFor(setReceived, 1)) << "timed-out waiting for set response";
         }
         { // error-case: multiplexed get request with missing selector
-            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(SETTING_PROPERTY).build();
+            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(settingProperty).build();
             std::atomic getError{0};
             clientContext.get(endpoint, [&getError](const mdp::Message& message) {
                 if (!message.error.empty()) {
@@ -199,10 +199,10 @@ const boost::ut::suite OpenCmwTests = [] {
         Process rda3Server({"java", "-jar", "./DemoRda3Server.jar", "-cfg", "--cmw.rda3.transport.server.port=12345", "-sleep", "1500"});
         using namespace opencmw;
         using namespace std::literals;
-        const std::string DEVICE_NAME          = "GSITemplateDevice";
-        const std::string STATUS_PROPERTY      = "/GSITemplateDevice/Status";
-        const std::string ACQUISITION_PROPERTY = "/GSITemplateDevice/Acquisition";
-        const std::string SELECTOR             = "FAIR.SELECTOR.P=1";
+        const std::string DEVICE_NAME         = "GSITemplateDevice";
+        const std::string statusProperty      = "/GSITemplateDevice/Status";
+        const std::string acquisitionProperty = "/GSITemplateDevice/Acquisition";
+        const std::string selector            = "FAIR.SELECTOR.P=1";
 
         std::string                                      nameserver = "http://localhost:7500";
         const zmq::Context                               zctx{};
@@ -213,7 +213,7 @@ const boost::ut::suite OpenCmwTests = [] {
         client::ClientContext clientContext{std::move(clients)};
         { // Subscribe non-multiplexed
             std::atomic subscriptionUpdatesReceived{0};
-            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(STATUS_PROPERTY).build();
+            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(statusProperty).build();
             clientContext.subscribe(subscriptionEndpoint, [&subscriptionUpdatesReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {
                     expect(false) << "subscription should not notify exceptions";
@@ -236,7 +236,7 @@ const boost::ut::suite OpenCmwTests = [] {
         }
         { // error case: subscribe to multiplexed without selector
             std::atomic subscriptionUpdateError{0};
-            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(ACQUISITION_PROPERTY).build();
+            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(acquisitionProperty).build();
             clientContext.subscribe(subscriptionEndpoint, [&subscriptionUpdateError](const mdp::Message& message) {
                 if (!message.error.empty()) {
                     expect(message.error.contains("Access point 'GSITemplateDevice/Acquisition' needs a selector"));
@@ -249,7 +249,7 @@ const boost::ut::suite OpenCmwTests = [] {
         }
         { // subscribe to multiplexed property
             std::atomic subscriptionUpdatesReceived{0};
-            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(ACQUISITION_PROPERTY).addQueryParameter("ctx", SELECTOR).build();
+            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(acquisitionProperty).addQueryParameter("ctx", selector).build();
             std::println("Subscribing to acquisition property with url {}", subscriptionEndpoint);
             clientContext.subscribe(subscriptionEndpoint, [&subscriptionUpdatesReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {
@@ -278,25 +278,25 @@ const boost::ut::suite OpenCmwTests = [] {
         std::println("# Test rda3 get/set - starting");
         using namespace opencmw;
         using namespace std::literals;
-        const std::string DEVICE_NAME          = "GSITemplateDevice";
-        const std::string STATUS_PROPERTY      = "/GSITemplateDevice/Status";
-        const std::string SETTING_PROPERTY     = "/GSITemplateDevice/Setting";
-        const std::string ACQUISITION_PROPERTY = "/GSITemplateDevice/Acquisition";
-        const std::string SELECTOR             = "FAIR.SELECTOR.C=3:S=1:P=1:T=300";
+        const std::string DEVICE_NAME         = "GSITemplateDevice";
+        const std::string statusProperty      = "/GSITemplateDevice/Status";
+        const std::string settingProperty     = "/GSITemplateDevice/Setting";
+        const std::string acquisitionProperty = "/GSITemplateDevice/Acquisition";
+        const std::string selector            = "FAIR.SELECTOR.C=3:S=1:P=1:T=300";
 
-        const char* env_nameserver = std::getenv("CMW_NAMESERVER");
-        if (env_nameserver == nullptr) {
+        const char* envNameserver = std::getenv("CMW_NAMESERVER");
+        if (envNameserver == nullptr) {
             std::println("skipping BasicCmwLight example test as it relies on the availability of network infrastructure. Define CMW_NAMESERVER environment variable to run this test.");
             return; // skip test
         }
-        std::string                                      nameserver{env_nameserver};
+        std::string                                      nameserver{envNameserver};
         const zmq::Context                               zctx{};
         std::vector<std::unique_ptr<client::ClientBase>> clients;
         auto                                             cmwlightClient = std::make_unique<client::cmwlight::CmwLightClientCtx>(zctx, nameserver, 100ms, "testclient");
         std::string                                      deviceHost{}; // "tcp://vmla017:36725" };
-        if (const char* env_cmw_host = std::getenv("CMW_DEVICE_HOST"); env_cmw_host != nullptr) {
-            deviceHost = std::string{env_cmw_host};
-            cmwlightClient->nameserverClient().addStaticLookup(DEVICE_NAME, std::string{env_cmw_host});
+        if (const char* envCmwHost = std::getenv("CMW_DEVICE_HOST"); envCmwHost != nullptr) {
+            deviceHost = std::string{envCmwHost};
+            cmwlightClient->nameserverClient().addStaticLookup(DEVICE_NAME, std::string{envCmwHost});
         } else {
             while (!deviceHost.empty()) {
                 deviceHost = cmwlightClient->nameserverClient().lookup(DEVICE_NAME).value_or("");
@@ -306,7 +306,7 @@ const boost::ut::suite OpenCmwTests = [] {
         client::ClientContext clientContext{std::move(clients)};
         // send some requests
         { // non-multiplexed get request
-            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(STATUS_PROPERTY).build();
+            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(statusProperty).build();
             std::atomic getReceived{0};
             clientContext.get(endpoint, [&getReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {
@@ -323,7 +323,7 @@ const boost::ut::suite OpenCmwTests = [] {
             expect(waitFor(getReceived, 1)) << "timed-out waiting for get response";
         }
         { // multiplexed get request
-            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(ACQUISITION_PROPERTY).addQueryParameter("ctx", SELECTOR).build();
+            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(acquisitionProperty).addQueryParameter("ctx", selector).build();
             std::atomic getReceived{0};
             clientContext.get(endpoint, [&getReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {
@@ -340,7 +340,7 @@ const boost::ut::suite OpenCmwTests = [] {
             expect(waitFor(getReceived, 1)) << "timed-out waiting for get response";
         }
         { // multiplexed set request
-            auto         endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(SETTING_PROPERTY).addQueryParameter("ctx", SELECTOR).build();
+            auto         endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(settingProperty).addQueryParameter("ctx", selector).build();
             std::atomic  setReceived{0};
             TestSettings testSettings{};
             IoBuffer     data{};
@@ -359,7 +359,7 @@ const boost::ut::suite OpenCmwTests = [] {
             expect(waitFor(setReceived, 1)) << "timed-out waiting for set response";
         }
         { // error-case: multiplexed get request with missing selector
-            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(SETTING_PROPERTY).build();
+            auto        endpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(settingProperty).build();
             std::atomic getError{0};
             clientContext.get(endpoint, [&getError](const mdp::Message& message) {
                 if (!message.error.empty()) {
@@ -392,24 +392,24 @@ const boost::ut::suite OpenCmwTests = [] {
         std::println("# test rda3 subscribe - starting");
         using namespace opencmw;
         using namespace std::literals;
-        const std::string DEVICE_NAME          = "GSITemplateDevice";
-        const std::string STATUS_PROPERTY      = "/GSITemplateDevice/Status";
-        const std::string ACQUISITION_PROPERTY = "/GSITemplateDevice/Acquisition";
-        const std::string SELECTOR             = "FAIR.SELECTOR.P=1";
+        const std::string DEVICE_NAME         = "GSITemplateDevice";
+        const std::string statusProperty      = "/GSITemplateDevice/Status";
+        const std::string acquisitionProperty = "/GSITemplateDevice/Acquisition";
+        const std::string selector            = "FAIR.SELECTOR.P=1";
 
-        const char* env_nameserver = std::getenv("CMW_NAMESERVER");
-        if (env_nameserver == nullptr) {
+        const char* envNameserver = std::getenv("CMW_NAMESERVER");
+        if (envNameserver == nullptr) {
             std::println("skipping BasicCmwLight example test as it relies on the availability of network infrastructure. Define CMW_NAMESERVER environment variable to run this test.");
             return; // skip test
         }
-        std::string                                      nameserver{env_nameserver};
+        std::string                                      nameserver{envNameserver};
         const zmq::Context                               zctx{};
         std::vector<std::unique_ptr<client::ClientBase>> clients;
         auto                                             cmwlightClient = std::make_unique<client::cmwlight::CmwLightClientCtx>(zctx, nameserver, 100ms, "testclient");
         std::string                                      deviceHost{}; // "tcp://vmla017:36725" };
-        if (const char* env_cmw_host = std::getenv("CMW_DEVICE_HOST"); env_cmw_host != nullptr) {
-            deviceHost = std::string{env_cmw_host};
-            cmwlightClient->nameserverClient().addStaticLookup(DEVICE_NAME, std::string{env_cmw_host});
+        if (const char* envCmwHost = std::getenv("CMW_DEVICE_HOST"); envCmwHost != nullptr) {
+            deviceHost = std::string{envCmwHost};
+            cmwlightClient->nameserverClient().addStaticLookup(DEVICE_NAME, std::string{envCmwHost});
         } else {
             while (!deviceHost.empty()) {
                 deviceHost = cmwlightClient->nameserverClient().lookup(DEVICE_NAME).value_or("");
@@ -419,7 +419,7 @@ const boost::ut::suite OpenCmwTests = [] {
         client::ClientContext clientContext{std::move(clients)};
         { // Subscribe non-multiplexed
             std::atomic subscriptionUpdatesReceived{0};
-            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(STATUS_PROPERTY).build();
+            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(statusProperty).build();
             clientContext.subscribe(subscriptionEndpoint, [&subscriptionUpdatesReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {
                     expect(false) << "subscription should not notify exceptions";
@@ -442,7 +442,7 @@ const boost::ut::suite OpenCmwTests = [] {
         }
         { // error case: subscribe to multiplexed without selector
             std::atomic subscriptionUpdateError{0};
-            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(ACQUISITION_PROPERTY).build();
+            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(acquisitionProperty).build();
             clientContext.subscribe(subscriptionEndpoint, [&subscriptionUpdateError](const mdp::Message& message) {
                 if (!message.error.empty()) {
                     expect(message.error.contains("Access point 'GSITemplateDevice/Acquisition' needs a selector"));
@@ -455,7 +455,7 @@ const boost::ut::suite OpenCmwTests = [] {
         }
         { // subscribe to multiplexed property
             std::atomic subscriptionUpdatesReceived{0};
-            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(ACQUISITION_PROPERTY).addQueryParameter("ctx", SELECTOR).build();
+            auto        subscriptionEndpoint = URI<>::factory(URI(deviceHost)).scheme("rda3tcp").path(acquisitionProperty).addQueryParameter("ctx", selector).build();
             std::println("Subscribing to acquisition property with url {}", subscriptionEndpoint);
             clientContext.subscribe(subscriptionEndpoint, [&subscriptionUpdatesReceived](const mdp::Message& message) {
                 if (!message.error.empty()) {

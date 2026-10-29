@@ -8,9 +8,9 @@
 namespace fair::picoscope {
 
 struct Picoscope5000a {
-    static constexpr std::size_t                             N_DIGITAL_CHANNELS = 16UZ;
-    static constexpr std::size_t                             N_ANALOG_CHANNELS  = PS5000A_MAX_CHANNELS;
-    static constexpr std::underlying_type_t<PS5000A_CHANNEL> DIGI_PORT_0        = PS5000A_DIGITAL_PORT0;
+    static constexpr std::size_t                             kNDigitalChannels = 16UZ;
+    static constexpr std::size_t                             kNAnalogChannels  = PS5000A_MAX_CHANNELS;
+    static constexpr std::underlying_type_t<PS5000A_CHANNEL> kDigiPort0        = PS5000A_DIGITAL_PORT0;
 
     using ChannelType            = PS5000A_CHANNEL;
     using ConditionType          = PS5000A_CONDITION;
@@ -31,9 +31,9 @@ struct Picoscope5000a {
 
     int16_t _handle;
 
-    static constexpr RatioModeType ratioNone{PS5000A_RATIO_MODE_NONE};
+    static constexpr RatioModeType kRatioNone{PS5000A_RATIO_MODE_NONE};
 
-    static constexpr std::array<std::pair<ChannelName, ChannelType>, 8> outputs{{
+    static constexpr std::array<std::pair<ChannelName, ChannelType>, 8> kOutputs{{
         {ChannelName::A, PS5000A_CHANNEL_A},
         {ChannelName::B, PS5000A_CHANNEL_B},
         {ChannelName::C, PS5000A_CHANNEL_C},
@@ -42,7 +42,7 @@ struct Picoscope5000a {
         {ChannelName::AUX, PS5000A_TRIGGER_AUX},
     }};
 
-    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 12> ranges = {{
+    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 12> kRanges = {{
         {AnalogChannelRange::ps10mV, PS5000A_10MV},
         {AnalogChannelRange::ps20mV, PS5000A_20MV},
         {AnalogChannelRange::ps50mV, PS5000A_50MV},
@@ -199,19 +199,19 @@ struct Picoscope5000a {
 
     PICO_STATUS getTimebase2(uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) const { return ps5000aGetTimebase2(_handle, timebase, noSamples, timeIntervalNanoseconds, maxSamples, segmentIndex); }
 
-    PICO_STATUS openUnit(const std::string& serial_number) { // TODO: do we need to make `resolution` a setting?
-        if (serial_number.empty()) {                         // take any if no serial number is provided (useful for testing purposes)
+    PICO_STATUS openUnit(const std::string& serialNumber) { // TODO: do we need to make `resolution` a setting?
+        if (serialNumber.empty()) {                         // take any if no serial number is provided (useful for testing purposes)
             return ps5000aOpenUnit(&_handle, nullptr, PS5000A_DR_8BIT);
         } else {
-            return ps5000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())), PS5000A_DR_8BIT);
+            return ps5000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())), PS5000A_DR_8BIT);
         }
     }
 
-    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serial_number) {
-        if (serial_number.empty()) {
+    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serialNumber) {
+        if (serialNumber.empty()) {
             return ps5000aOpenUnitAsync(status, nullptr, PS5000A_DR_8BIT);
         } else {
-            return ps5000aOpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())), PS5000A_DR_8BIT);
+            return ps5000aOpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())), PS5000A_DR_8BIT);
         }
     }
 

@@ -18,15 +18,15 @@ namespace fair::ui_helpers {
  * Settings are laid out in a fixed-width grid and can be navigated with vim-style movement keys
  */
 class SettingsEditor {
-    bool                editing = false;
-    std::pair<int, int> position{0, 0};
-    std::pair<int, int> movement{0, 0};    // direction of requested movement
-    int                 columnWidth  = 10; // size of the columns for editing parameters
-    char                currentInput = 0;  // the currently pressed input
-    std::string         editor;
-    std::string         currentDocstring;
+    bool                _editing = false;
+    std::pair<int, int> _position{0, 0};
+    std::pair<int, int> _movement{0, 0};    // direction of requested movement
+    int                 _columnWidth  = 10; // size of the columns for editing parameters
+    char                _currentInput = 0;  // the currently pressed input
+    std::string         _editor;
+    std::string         _currentDocstring;
     // store old terminal settings to restore on quit
-    termios oldt{};
+    termios _oldt{};
 
 public:
     bool quit = false;
@@ -34,8 +34,8 @@ public:
     SettingsEditor() {
         std::puts("\x1b[?1049h"); // xterm alternate buffer (allows keeping regular scrollback when exiting fullscreen tui)
         termios newt{};
-        tcgetattr(STDIN_FILENO, &oldt);
-        newt = oldt;
+        tcgetattr(STDIN_FILENO, &_oldt);
+        newt = _oldt;
         newt.c_lflag &= static_cast<tcflag_t>(~(ICANON | ECHO));
         newt.c_cc[VERASE] = 0;
         tcsetattr(STDIN_FILENO, TCSANOW, &newt);
@@ -43,7 +43,7 @@ public:
 
     ~SettingsEditor() {
         std::puts("\x1b[?1049l"); // xterm exit alternate buffer mode
-        tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+        tcsetattr(STDIN_FILENO, TCSANOW, &_oldt);
     }
 
     static char getNonBlockingInput() {
@@ -55,105 +55,105 @@ public:
     }
 
     void processInput(const char input = getNonBlockingInput()) {
-        currentInput = 0;
+        _currentInput = 0;
         if (input == 033) {                     // control characters
             if (getNonBlockingInput() == '[') { // arrow keys
                 switch (getNonBlockingInput()) {
-                case 'A': movement = {0, -1}; break;
-                case 'B': movement = {0, 1}; break;
-                case 'C': movement = {1, 0}; break;
-                case 'D': movement = {-1, 0}; break;
-                case 'H': position = {0, 0}; break;
+                case 'A': _movement = {0, -1}; break;
+                case 'B': _movement = {0, 1}; break;
+                case 'C': _movement = {1, 0}; break;
+                case 'D': _movement = {-1, 0}; break;
+                case 'H': _position = {0, 0}; break;
                 }
             }
             return;
         }
-        if (editing) { // in editing mode all inputs are processed by the value editor
-            currentInput = input;
+        if (_editing) { // in editing mode all inputs are processed by the value editor
+            _currentInput = input;
             return;
         }
         switch (input) {
-        case 'h': movement = {-1, 0}; break;
-        case 'j': movement = {0, 1}; break;
-        case 'k': movement = {0, -1}; break;
-        case 'l': movement = {1, 0}; break;
-        case '#': position = {0, 0}; break;
+        case 'h': _movement = {-1, 0}; break;
+        case 'j': _movement = {0, 1}; break;
+        case 'k': _movement = {0, -1}; break;
+        case 'l': _movement = {1, 0}; break;
+        case '#': _position = {0, 0}; break;
         case 'q': quit = true; break;
-        default: currentInput = input;
+        default: _currentInput = input;
         }
     }
 
     template<typename T>
     bool renderSetting(std::pair<int, int> pos, int span, T& value, std::string_view docstring = "") {
-        if (pos.first <= position.first && pos.first + span > position.first && pos.second == position.second) {
-            if (movement != std::pair{0, 0}) {
-                if (movement.first == 1) {
-                    position.first = pos.first + span;
-                    movement       = std::pair{0, 0};
-                } else if (movement.first == -1) {
-                    position.first = std::max(position.first - 1, 0);
-                    movement       = std::pair{0, 0};
-                } else if (movement.second == 1) {
-                    position.second += 1;
-                    movement = std::pair{0, 0};
-                } else if (movement.second == -1) {
-                    position.second = std::max(position.second - 1, 0);
-                    movement        = std::pair{0, 0};
+        if (pos.first <= _position.first && pos.first + span > _position.first && pos.second == _position.second) {
+            if (_movement != std::pair{0, 0}) {
+                if (_movement.first == 1) {
+                    _position.first = pos.first + span;
+                    _movement       = std::pair{0, 0};
+                } else if (_movement.first == -1) {
+                    _position.first = std::max(_position.first - 1, 0);
+                    _movement       = std::pair{0, 0};
+                } else if (_movement.second == 1) {
+                    _position.second += 1;
+                    _movement = std::pair{0, 0};
+                } else if (_movement.second == -1) {
+                    _position.second = std::max(_position.second - 1, 0);
+                    _movement        = std::pair{0, 0};
                 } else {
                     std::println("illegal movement");
                     std::exit(0);
                 }
             } else {
-                currentDocstring = docstring;
-                std::print("*{:^{}}*", value, columnWidth - 2);
+                _currentDocstring = docstring;
+                std::print("*{:^{}}*", value, _columnWidth - 2);
                 if constexpr (magic_enum::is_scoped_enum_v<T>) {
-                    currentDocstring.append(" Select option: ");
+                    _currentDocstring.append(" Select option: ");
                     bool changed = false;
                     magic_enum::enum_for_each<T>([this, &value, &changed](const auto& enumElement) {
-                        currentDocstring.append(std::format("{}: {}, ", magic_enum::enum_index(enumElement()).value_or(0), magic_enum::enum_name(enumElement())));
-                        if (currentInput >= '0' && currentInput <= '9' && magic_enum::enum_index(enumElement()) == currentInput - '0') {
+                        _currentDocstring.append(std::format("{}: {}, ", magic_enum::enum_index(enumElement()).value_or(0), magic_enum::enum_name(enumElement())));
+                        if (_currentInput >= '0' && _currentInput <= '9' && magic_enum::enum_index(enumElement()) == _currentInput - '0') {
                             value   = enumElement;
                             changed = true;
                         }
                     });
                     return changed;
                 } else {
-                    if (currentInput == '\n') {
+                    if (_currentInput == '\n') {
                         if constexpr (std::same_as<T, bool>) { // bool just gets toggled
                             value = !value;
-                        } else {            // all other values get put into the editor field
-                            if (!editing) { // start editing
-                                editing = true;
-                                editor  = std::format("{}", value);
+                        } else {             // all other values get put into the editor field
+                            if (!_editing) { // start editing
+                                _editing = true;
+                                _editor  = std::format("{}", value);
                             } else { // stop editing
-                                editing  = false;
+                                _editing = false;
                                 T oldval = value;
                                 if constexpr (std::same_as<T, unsigned int>) {
-                                    value = static_cast<unsigned int>(std::stoul(editor));
+                                    value = static_cast<unsigned int>(std::stoul(_editor));
                                 } else if constexpr (std::same_as<T, int>) {
-                                    value = std::stoi(editor);
+                                    value = std::stoi(_editor);
                                 } else if constexpr (std::same_as<T, short int>) {
-                                    value = static_cast<short int>(std::stoi(editor));
+                                    value = static_cast<short int>(std::stoi(_editor));
                                 } else if constexpr (std::same_as<T, unsigned short int>) {
-                                    value = static_cast<unsigned short int>(std::stoul(editor));
+                                    value = static_cast<unsigned short int>(std::stoul(_editor));
                                 } else if constexpr (std::same_as<T, long>) {
-                                    value = std::stol(editor);
+                                    value = std::stol(_editor);
                                 } else if constexpr (std::same_as<T, long long>) {
-                                    value = std::stoll(editor);
+                                    value = std::stoll(_editor);
                                 } else if constexpr (std::same_as<T, unsigned long>) {
-                                    value = std::stoul(editor);
+                                    value = std::stoul(_editor);
                                 } else if constexpr (std::same_as<T, unsigned long long>) {
-                                    value = std::stoull(editor);
+                                    value = std::stoull(_editor);
                                 } else if constexpr (std::same_as<T, float>) {
-                                    value = std::stof(editor);
+                                    value = std::stof(_editor);
                                 } else if constexpr (std::same_as<T, double>) {
-                                    value = std::stod(editor);
+                                    value = std::stod(_editor);
                                 } else if constexpr (std::same_as<T, std::string>) {
-                                    value = editor;
+                                    value = _editor;
                                 } else {
                                     static_assert(false && "Editing this value is not implemented" && std::is_trivially_copyable_v<T>);
                                 }
-                                editor = "";
+                                _editor = "";
                                 return oldval != value;
                             }
                         }
@@ -162,20 +162,20 @@ public:
             }
             return false;
         }
-        std::print("{:^{}}", value, columnWidth);
+        std::print("{:^{}}", value, _columnWidth);
         return false;
     }
 
     void renderEditor() {
-        if (editing) {
-            if ((currentInput == '\b' || currentInput == '+') && !editor.empty()) {
-                editor.resize(editor.size() - 1);
-            } else if (currentInput >= 32) { // only allow non-control-code characters
-                editor.push_back(currentInput);
+        if (_editing) {
+            if ((_currentInput == '\b' || _currentInput == '+') && !_editor.empty()) {
+                _editor.resize(_editor.size() - 1);
+            } else if (_currentInput >= 32) { // only allow non-control-code characters
+                _editor.push_back(_currentInput);
             }
-            std::print("{} <enter> to commit): {}", currentDocstring, editor);
+            std::print("{} <enter> to commit): {}", _currentDocstring, _editor);
         } else { // no value selected for editing - print docstring and navigation help
-            std::print("{} - use hjkl/arrows to move selection, <enter> to edit/toggle, # to return to first item, q to quit", currentDocstring);
+            std::print("{} - use hjkl/arrows to move selection, <enter> to edit/toggle, # to return to first item, q to quit", _currentDocstring);
         }
     }
 

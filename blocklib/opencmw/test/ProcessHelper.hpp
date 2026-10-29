@@ -23,14 +23,14 @@ public:
             execvp(argv[0], argv.data()); // replace the forked process with the requested one
             std::exit(EXIT_FAILURE);
         } else { // Parent process: store pid
-            pid_ = pid;
+            _pid = pid;
         }
     }
 
     ~Process() {
-        if (pid_ > 0) {
-            kill(pid_, SIGTERM);
-            waitpid(pid_, nullptr, 0);
+        if (_pid > 0) {
+            kill(_pid, SIGTERM);
+            waitpid(_pid, nullptr, 0);
         }
     }
 
@@ -41,7 +41,7 @@ public:
     Process& operator=(Process&&)      = delete;
 
 private:
-    pid_t pid_ = -1;
+    pid_t _pid = -1;
 };
 
 #endif // GR_DIGITIZERS_PROCESSHELPER_HPP
