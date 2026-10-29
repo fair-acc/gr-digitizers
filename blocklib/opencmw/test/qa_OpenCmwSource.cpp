@@ -23,16 +23,16 @@ const boost::ut::suite OpenCmwSourceTests = [] {
         /* This unit-test depends on the availability of internal infrastructure and will be skipped if the required environment variables are not set up */
         std::println("# CmwSourceBlock DEV - started");
 
-        const char* env_nameserver = std::getenv("CMW_NAMESERVER");
-        if (env_nameserver == nullptr) {
+        const char* envNameserver = std::getenv("CMW_NAMESERVER");
+        if (envNameserver == nullptr) {
             std::println("skipping BasicCmwLight example test as it relies on the availability of network infrastructure. Define CMW_NAMESERVER environment variable to run this test.");
             return; // skip test
         }
 
         std::string DEVICE_NAME = "GSITemplateDevice";
         std::string deviceHost{""}; // by default, perform name lookup on the nameserver, explicitly setting this to localhost might be needed in case ssh tunnels are required
-        if (const char* env_cmw_host = std::getenv("CMW_DEVICE_HOST"); env_cmw_host != nullptr) {
-            deviceHost = std::string{env_cmw_host};
+        if (const char* envCmwHost = std::getenv("CMW_DEVICE_HOST"); envCmwHost != nullptr) {
+            deviceHost = std::string{envCmwHost};
         }
 
         Graph testGraph;
@@ -47,13 +47,13 @@ const boost::ut::suite OpenCmwSourceTests = [] {
 
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(testGraph));
-        MsgPortOut _toScheduler;
-        expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
+        MsgPortOut toScheduler;
+        expect(toScheduler.connect(sched.msgIn).has_value()) << fatal;
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(5s);
         std::println("stopping scheduler");
-        gr::emit<message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, {.endpoint = block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
+        gr::emit<message::Command::Set>(toScheduler, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, {.endpoint = block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
 
         expect(sink._nSamplesProduced == 4_i);
         std::println("sink received samples: {}", sink._samples);
@@ -82,13 +82,13 @@ const boost::ut::suite OpenCmwSourceTests = [] {
 
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(testGraph));
-        MsgPortOut _toScheduler;
-        expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
+        MsgPortOut toScheduler;
+        expect(toScheduler.connect(sched.msgIn).has_value()) << fatal;
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         std::this_thread::sleep_for(5s);
         std::println("stopping scheduler");
-        gr::emit<message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, {.endpoint = block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
+        gr::emit<message::Command::Set>(toScheduler, {{"state", std::string(magic_enum::enum_name(lifecycle::State::REQUESTED_STOP))}}, {.endpoint = block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
 
         expect(sink._nSamplesProduced == 4_i);
         std::println("sink received samples: {}", sink._samples);

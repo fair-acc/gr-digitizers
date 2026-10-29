@@ -79,8 +79,8 @@ int main() {
     using namespace fair::picoscope;
     using namespace fair::picoscope::cli;
     fair::ui_helpers::SettingsEditor editor{};
-    constexpr int                    frameDelayMs = 96; // ~10 FPS
-    constexpr std::size_t            nHistory     = 500;
+    constexpr int                    kFrameDelayMs = 96; // ~10 FPS
+    constexpr std::size_t            kNHistory     = 500;
 
     // Check for available scopes. Note: This takes quite some time
     auto availableScopes = enumeratePicoscopes();
@@ -99,8 +99,8 @@ int main() {
                 // Initial channel configuration. Enable the first channel for each picoscope by default and start streaming acquisition.
                 std::size_t channels = 0;
                 picoscope.data       = std::views::zip(std::views::iota(0UZ), picoscope.scope->getChannelIds()) | std::views::transform([&picoscope, &channels](auto x) -> ChannelData {
-                    auto& [_i, _id] = x;
-                    return {.i{_i}, .id = _id, .channelConfig{channels++ == 0, picoscope.channel_range, 0.0f, Coupling::DC}};
+                    auto& [index, id] = x;
+                    return {.i{index}, .id = id, .channelConfig{channels++ == 0, picoscope.channel_range, 0.0f, Coupling::DC}};
                 }) | std::ranges::to<std::vector>();
                 for (const ChannelData& config : picoscope.data) {
                     picoscope.scope->configureChannel(config.i, config.channelConfig);
@@ -170,7 +170,7 @@ int main() {
         }
         // Cap framerate
         auto end = std::chrono::high_resolution_clock::now();
-        if (auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(); elapsed < frameDelayMs) {
+        if (auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(); elapsed < kFrameDelayMs) {
             continue;
         }
         start = std::chrono::high_resolution_clock::now();
@@ -182,21 +182,21 @@ int main() {
             }
             for (auto& result : picoscope.data | std::views::filter([](const ChannelData& x) { return x.channelConfig.enable; })) {
                 if (picoscope.acquisition_mode == AcquisitionMode::Streaming) {
-                    if (result.values.size() > 10UZ * nHistory) { // trim history size periodically
-                        std::copy(result.values.end() - static_cast<long>(nHistory), result.values.end(), result.values.begin());
-                        result.values.resize(nHistory);
+                    if (result.values.size() > 10UZ * kNHistory) { // trim history size periodically
+                        std::copy(result.values.end() - static_cast<long>(kNHistory), result.values.end(), result.values.begin());
+                        result.values.resize(kNHistory);
                     }
                 }
-                std::size_t n       = result.values.size() > nHistory ? nHistory : result.values.size();
+                std::size_t n       = result.values.size() > kNHistory ? kNHistory : result.values.size();
                 auto        xValues = std::views::iota(0UZ, n) | std::views::transform([](auto x) { return static_cast<double>(x); }) | std::ranges::to<std::vector>();
                 auto        yValues = std::span(result.values).subspan(result.values.size() - n) | std::ranges::to<std::vector>();
                 if (n > 1) {
                     chart.draw(xValues, yValues, std::format("{}({})-{}", picoscope.scope->getDeviceInfo().model, picoscope.scope->getDeviceInfo().serial, result.id));
                 }
             }
-            if (picoscope.digitalData.size() > 10UZ * nHistory) { // trim history size periodically
-                std::copy(picoscope.digitalData.end() - static_cast<long>(nHistory), picoscope.digitalData.end(), picoscope.digitalData.begin());
-                picoscope.digitalData.resize(nHistory);
+            if (picoscope.digitalData.size() > 10UZ * kNHistory) { // trim history size periodically
+                std::copy(picoscope.digitalData.end() - static_cast<long>(kNHistory), picoscope.digitalData.end(), picoscope.digitalData.begin());
+                picoscope.digitalData.resize(kNHistory);
             }
         }
         editor.processInput();
@@ -236,8 +236,8 @@ int main() {
                     picoscope.reinit = true;
                 }
             } else {
-                int ps_col = 0;
-                editor.renderSetting(std::pair{ps_col++, row}, 1, enabled, std::format("Scope {} ({})", picoscope.model, picoscope.serial));
+                int psCol = 0;
+                editor.renderSetting(std::pair{psCol++, row}, 1, enabled, std::format("Scope {} ({})", picoscope.model, picoscope.serial));
                 if (!enabled) {
                     row++;
                     picoscope.scope = nullptr;
@@ -250,18 +250,18 @@ int main() {
                     std::println("no errors encountered");
                 }
                 row++;
-                ps_col = 0;
+                psCol = 0;
                 // acquisitionSettings
-                picoscope.reinit |= editor.renderSetting(std::pair{ps_col++, row}, 1, picoscope.acquisition_mode, "AcquisitionMode");
-                picoscope.reinit |= editor.renderSetting(std::pair{ps_col++, row}, 1, picoscope.sample_rate, "set sample rate");
-                picoscope.reinit |= editor.renderSetting(std::pair{ps_col++, row}, 1, picoscope.enableDigital, "enable digital");
-                picoscope.reinit |= editor.renderSetting(std::pair{ps_col++, row}, 1, picoscope.pre, "samples to capture before trigger");
-                picoscope.reinit |= editor.renderSetting(std::pair{ps_col++, row}, 1, picoscope.post, "samples to capture after trigger");
-                picoscope.reinit |= editor.renderSetting(std::pair{ps_col++, row}, 1, picoscope.nCaptures, "number of captures");
+                picoscope.reinit |= editor.renderSetting(std::pair{psCol++, row}, 1, picoscope.acquisition_mode, "AcquisitionMode");
+                picoscope.reinit |= editor.renderSetting(std::pair{psCol++, row}, 1, picoscope.sample_rate, "set sample rate");
+                picoscope.reinit |= editor.renderSetting(std::pair{psCol++, row}, 1, picoscope.enableDigital, "enable digital");
+                picoscope.reinit |= editor.renderSetting(std::pair{psCol++, row}, 1, picoscope.pre, "samples to capture before trigger");
+                picoscope.reinit |= editor.renderSetting(std::pair{psCol++, row}, 1, picoscope.post, "samples to capture after trigger");
+                picoscope.reinit |= editor.renderSetting(std::pair{psCol++, row}, 1, picoscope.nCaptures, "number of captures");
                 // trigger settings
                 TriggerConfig triggerConfig        = picoscope.scope->getTriggerConfig();
                 bool          triggerConfigChanged = false;
-                if (editor.renderSetting(std::pair{ps_col++, row}, 1, picoscope.trigger_channel, "set channel id for trigger")) {
+                if (editor.renderSetting(std::pair{psCol++, row}, 1, picoscope.trigger_channel, "set channel id for trigger")) {
                     if (picoscope.trigger_channel.starts_with("DI")) {
                         triggerConfig.source      = static_cast<unsigned int>(strtoul(picoscope.trigger_channel.substr(2).data(), nullptr, 10));
                         picoscope.trigger_channel = std::format("DI{}", std::get<unsigned int>(triggerConfig.source));
@@ -274,9 +274,9 @@ int main() {
                     }
                     triggerConfigChanged = true;
                 }
-                triggerConfigChanged |= editor.renderSetting(std::pair{ps_col++, row}, 1, triggerConfig.threshold, "trigger threshold");
-                triggerConfigChanged |= editor.renderSetting(std::pair{ps_col++, row}, 1, triggerConfig.direction, "trigger direction");
-                triggerConfigChanged |= editor.renderSetting(std::pair{ps_col++, row}, 1, triggerConfig.delay, "trigger delay");
+                triggerConfigChanged |= editor.renderSetting(std::pair{psCol++, row}, 1, triggerConfig.threshold, "trigger threshold");
+                triggerConfigChanged |= editor.renderSetting(std::pair{psCol++, row}, 1, triggerConfig.direction, "trigger direction");
+                triggerConfigChanged |= editor.renderSetting(std::pair{psCol++, row}, 1, triggerConfig.delay, "trigger delay");
                 if (triggerConfigChanged) {
                     picoscope.scope->configureTrigger(triggerConfig);
                 }

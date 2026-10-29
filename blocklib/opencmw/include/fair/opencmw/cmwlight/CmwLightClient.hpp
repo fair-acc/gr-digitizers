@@ -139,10 +139,10 @@ inline std::string getHostName() {
 }
 
 inline std::string getIdentity() {
-    std::string hostname                = getHostName();
-    static int  CONNECTION_ID_GENERATOR = 1;
-    static int  channelIdGenerator      = 1;
-    return std::format("{}/{}/{}/{}", hostname, getpid(), ++CONNECTION_ID_GENERATOR, ++channelIdGenerator); // N.B. this scheme is parsed/enforced by CMW
+    std::string hostname              = getHostName();
+    static int  connectionIdGenerator = 1;
+    static int  channelIdGenerator    = 1;
+    return std::format("{}/{}/{}/{}", hostname, getpid(), ++connectionIdGenerator, ++channelIdGenerator); // N.B. this scheme is parsed/enforced by CMW
 }
 
 inline std::string percentEncode(const std::string_view& str) {
@@ -237,7 +237,7 @@ struct Connection {
     int64_t                        _requestIdGenerator      = 1;
     RequestMap                     _pendingRequests;
 
-    Connection(const zmq::Context& context, const std::string_view authority, const int zmq_dealer_type) : _authority{authority}, _socket{context, zmq_dealer_type} { zmq::initializeSocket(_socket).assertSuccess(); }
+    Connection(const zmq::Context& context, const std::string_view authority, const int zmqDealerType) : _authority{authority}, _socket{context, zmqDealerType} { zmq::initializeSocket(_socket).assertSuccess(); }
 };
 
 static void send(const zmq::Socket& socket, const int param, std::string_view errorMsg, auto&& data) {
@@ -288,19 +288,19 @@ public:
 };
 
 class CMWLightClient : public CMWLightClientBase {
-    using timeUnit = std::chrono::milliseconds;
-    const timeUnit                  _clientTimeout;
+    using TimeUnit = std::chrono::milliseconds;
+    const TimeUnit                  _clientTimeout;
     const zmq::Context&             _context;
     DirectoryLightClient&           _directoryClient;
     const std::string               _clientId;
     const std::string               _sourceName;
     std::vector<detail::Connection> _connections;
     std::vector<zmq_pollitem_t>&    _pollItems;
-    constexpr static auto           HEARTBEAT_INTERVAL = 2000ms;
-    constexpr static auto           MAX_BACKOFF        = 600s;
+    constexpr static auto           kHeartbeatInterval = 2000ms;
+    constexpr static auto           kMaxBackoff        = 600s;
 
 public:
-    explicit CMWLightClient(const zmq::Context& context, std::vector<zmq_pollitem_t>& pollItems, DirectoryLightClient& directoryClient, const timeUnit timeout = 1s, std::string clientId = "") : _clientTimeout(timeout), _context(context), _directoryClient(directoryClient), _clientId(std::move(clientId)), _sourceName(std::format("CMWLightClient(clientId: {})", _clientId)), _pollItems(pollItems) {}
+    explicit CMWLightClient(const zmq::Context& context, std::vector<zmq_pollitem_t>& pollItems, DirectoryLightClient& directoryClient, const TimeUnit timeout = 1s, std::string clientId = "") : _clientTimeout(timeout), _context(context), _directoryClient(directoryClient), _clientId(std::move(clientId)), _sourceName(std::format("CMWLightClient(clientId: {})", _clientId)), _pollItems(pollItems) {}
 
     void connect(detail::Connection& con) const {
         using enum detail::Connection::ConnectionState;
@@ -333,53 +333,53 @@ public:
         return *con;
     }
 
-    void get(const URI<>& uri, const std::string_view req_id) override {
+    void get(const URI<>& uri, const std::string_view reqId) override {
         using namespace std::string_view_literals;
         using enum detail::FrameType;
         auto&                  con = findConnection(uri); // send message header
         detail::PendingRequest req{};
-        req.reqId       = req_id;
+        req.reqId       = reqId;
         req.requestType = detail::RequestType::GET;
         req.state       = detail::PendingRequest::RequestState::INITIALIZED;
         req.uri         = uri.str();
-        con._pendingRequests.try_emplace(std::string(req_id), std::move(req));
+        con._pendingRequests.try_emplace(std::string(reqId), std::move(req));
     }
 
-    void set(const URI<>& uri, const std::string_view req_id, const std::span<const char>& request) override {
+    void set(const URI<>& uri, const std::string_view reqId, const std::span<const char>& request) override {
         using namespace std::string_view_literals;
         using enum detail::FrameType;
         auto&                  con = findConnection(uri); // send message header
         detail::PendingRequest req{};
-        req.reqId       = req_id;
+        req.reqId       = reqId;
         req.requestType = detail::RequestType::SET;
         req.data        = IoBuffer{request.data(), request.size()};
         req.state       = detail::PendingRequest::RequestState::INITIALIZED;
         req.uri         = uri.str();
-        con._pendingRequests.try_emplace(std::string(req_id), std::move(req));
+        con._pendingRequests.try_emplace(std::string(reqId), std::move(req));
     }
 
-    void subscribe(const URI<>& uri, const std::string_view req_id) override {
+    void subscribe(const URI<>& uri, const std::string_view reqId) override {
         using namespace std::string_view_literals;
         using enum detail::FrameType;
         auto&                    con = findConnection(uri);
         detail::OpenSubscription sub{};
         sub.state = detail::OpenSubscription::SubscriptionState::INITIALIZED;
         sub.uri   = uri.str();
-        std::string req_id_string{req_id};
-        char*       req_id_end = req_id_string.data() + req_id_string.size();
-        sub.reqId              = strtol(req_id_string.data(), &req_id_end, 10);
-        con._subscriptions.try_emplace(std::string(req_id), std::move(sub));
+        std::string reqIdString{reqId};
+        char*       reqIdEnd = reqIdString.data() + reqIdString.size();
+        sub.reqId            = strtol(reqIdString.data(), &reqIdEnd, 10);
+        con._subscriptions.try_emplace(std::string(reqId), std::move(sub));
     }
 
-    void unsubscribe(const URI<>& uri, const std::string_view req_id) override {
+    void unsubscribe(const URI<>& uri, const std::string_view reqId) override {
         using namespace std::string_view_literals;
-        auto& con                                     = findConnection(uri);
-        con._subscriptions[std::string{req_id}].state = detail::OpenSubscription::SubscriptionState::UNSUBSCRIBING;
+        auto& con                                    = findConnection(uri);
+        con._subscriptions[std::string{reqId}].state = detail::OpenSubscription::SubscriptionState::UNSUBSCRIBING;
         CmwLightHeader header;
         header.requestType() = std::to_underlying(detail::RequestType::UNSUBSCRIBE);
-        std::string reqIdString{req_id};
-        char*       end = reqIdString.data() + req_id.size();
-        header.id()     = std::strtol(req_id.data(), &end, 10);
+        std::string reqIdString{reqId};
+        char*       end = reqIdString.data() + reqId.size();
+        header.id()     = std::strtol(reqId.data(), &end, 10);
         detail::send(con._socket, ZMQ_SNDMORE, "failed to send message header"sv, detail::serialiseCmwLight(header)); // send message header
         CmwLightRequestContext ctx;
         // send requestContext
@@ -738,14 +738,14 @@ public:
                         // TODO resend unsubscribe request on timeout, forcefully remove subscription after retries
                     }
                 }
-                if (con._lastHeartBeatSent < now - HEARTBEAT_INTERVAL) {
+                if (con._lastHeartBeatSent < now - kHeartbeatInterval) {
                     detail::send(con._socket, 0, "error sending heart-beat"sv, std::to_underlying(detail::MessageType::CLIENT_HB));
                     con._lastHeartBeatSent = now;
                 }
-                if (con._lastHeartbeatReceived < now - HEARTBEAT_INTERVAL * 3) {
+                if (con._lastHeartbeatReceived < now - kHeartbeatInterval * 3) {
                     disconnect(con);
                     con._nextReconnectAttemptTimeStamp = now + con._backoff;
-                    con._backoff                       = std::min(2 * con._backoff, std::chrono::duration_cast<std::chrono::milliseconds>(MAX_BACKOFF));
+                    con._backoff                       = std::min(2 * con._backoff, std::chrono::duration_cast<std::chrono::milliseconds>(kMaxBackoff));
                     std::println("Missed 3 heartbeats -> connection seems to be broken");
                 }
                 break; // do nothing
@@ -760,7 +760,7 @@ public:
  * A dispatcher thread reads the requests from the command ring buffer and dispatches them to the zeromq poll loop using an inproc socket pair.
  */
 class CmwLightClientCtx : public ClientBase {
-    using timeUnit = std::chrono::milliseconds;
+    using TimeUnit = std::chrono::milliseconds;
     std::unordered_map<URI<>, std::unique_ptr<CMWLightClientBase>> _clients;
     const zmq::Context&                                            _zctx;
     DirectoryLightClient                                           _nameserver;
@@ -770,12 +770,12 @@ class CmwLightClientCtx : public ClientBase {
     std::vector<zmq_pollitem_t>                                    _pollitems{};
     std::unordered_map<std::size_t, Request>                       _requests;
     std::unordered_map<std::string, Subscription>                  _subscriptions;
-    timeUnit                                                       _timeout;
+    TimeUnit                                                       _timeout;
     std::string                                                    _clientId;
     std::size_t                                                    _request_id = 1;
 
 public:
-    explicit CmwLightClientCtx(const zmq::Context& zeromq_context, std::string nameserver, const timeUnit timeout = 100ms, std::string clientId = "") : _zctx{zeromq_context}, _nameserver{DirectoryLightClient{std::move(nameserver)}}, _control_socket_send(zeromq_context, ZMQ_PAIR), _control_socket_recv(zeromq_context, ZMQ_PAIR), _timeout(timeout), _clientId(std::move(clientId)) {
+    explicit CmwLightClientCtx(const zmq::Context& zeromqContext, std::string nameserver, const TimeUnit timeout = 100ms, std::string clientId = "") : _zctx{zeromqContext}, _nameserver{DirectoryLightClient{std::move(nameserver)}}, _control_socket_send(zeromqContext, ZMQ_PAIR), _control_socket_recv(zeromqContext, ZMQ_PAIR), _timeout(timeout), _clientId(std::move(clientId)) {
         zmq::invoke(zmq_bind, _control_socket_send, "inproc://cmwlightclientControlSocket").onFailure<std::runtime_error>("could not bind control socket");
         _pollitems.push_back({.socket = _control_socket_recv.zmq_ptr, .fd = 0, .events = ZMQ_POLLIN, .revents = 0});
         _poller = std::jthread([this](const std::stop_token& stoken) { this->poll(stoken); });
@@ -805,14 +805,14 @@ public:
     }
 
     void request(Command cmd) override {
-        std::size_t req_id = 0;
+        std::size_t requestId = 0;
         if (cmd.command == mdp::Command::Get || cmd.command == mdp::Command::Set) {
-            req_id = _request_id++;
-            _requests.try_emplace(req_id, Request{.uri = cmd.topic, .callback = std::move(cmd.callback), .timestamp_received = cmd.arrivalTime});
+            requestId = _request_id++;
+            _requests.try_emplace(requestId, Request{.uri = cmd.topic, .callback = std::move(cmd.callback), .timestamp_received = cmd.arrivalTime});
         } else if (cmd.command == mdp::Command::Subscribe) {
-            req_id                      = _request_id++;
-            std::string clientRequestId = std::format("{}", req_id);
-            _subscriptions.try_emplace(clientRequestId, Subscription{.uri = cmd.topic, .callback = std::move(cmd.callback), .timestamp_received = cmd.arrivalTime, .reqId = req_id});
+            requestId                   = _request_id++;
+            std::string clientRequestId = std::format("{}", requestId);
+            _subscriptions.try_emplace(clientRequestId, Subscription{.uri = cmd.topic, .callback = std::move(cmd.callback), .timestamp_received = cmd.arrivalTime, .reqId = requestId});
         } else if (cmd.command == mdp::Command::Unsubscribe) {
             std::string clientRequestId{};
             for (auto& [reqId, sub] : _subscriptions) {
@@ -822,21 +822,21 @@ public:
                 }
             }
             if (const auto subIt = _subscriptions.find(clientRequestId); subIt != _subscriptions.end()) {
-                req_id = subIt->second.reqId;
+                requestId = subIt->second.reqId;
                 _subscriptions.erase(subIt);
             };
         }
-        sendCmd(cmd.topic, cmd.command, req_id, cmd.data);
+        sendCmd(cmd.topic, cmd.command, requestId, cmd.data);
     }
 
     DirectoryLightClient& nameserverClient() { return _nameserver; };
 
 private:
-    void sendCmd(const URI<>& uri, mdp::Command commandType, const std::size_t req_id, IoBuffer data = {}) const {
+    void sendCmd(const URI<>& uri, mdp::Command commandType, const std::size_t requestId, IoBuffer data = {}) const {
         const bool        isSet = commandType == mdp::Command::Set;
         zmq::MessageFrame cmdType{std::string{static_cast<char>(commandType)}};
         cmdType.send(_control_socket_send, ZMQ_SNDMORE).assertSuccess();
-        zmq::MessageFrame reqId{std::to_string(req_id)};
+        zmq::MessageFrame reqId{std::to_string(requestId)};
         reqId.send(_control_socket_send, ZMQ_SNDMORE).assertSuccess();
         zmq::MessageFrame endpoint{std::string(uri.str())};
         endpoint.send(_control_socket_send, isSet ? ZMQ_SNDMORE : 0).assertSuccess();

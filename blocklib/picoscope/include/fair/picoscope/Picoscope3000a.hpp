@@ -18,9 +18,9 @@ typedef enum enPS3000AConditionsInfo { PS3000A_CLEAR = 0x00000001, PS3000A_ADD =
 typedef enum enPS3000ADeviceResolution { PS3000A_DR_8BIT } PS3000A_DEVICE_RESOLUTION;
 
 struct Picoscope3000a {
-    static constexpr std::size_t                                  N_DIGITAL_CHANNELS = 16UZ;
-    static constexpr std::size_t                                  N_ANALOG_CHANNELS  = PS3000A_MAX_CHANNELS;
-    static constexpr std::underlying_type_t<PS3000A_DIGITAL_PORT> DIGI_PORT_0        = PS3000A_DIGITAL_PORT0;
+    static constexpr std::size_t                                  kNDigitalChannels = 16UZ;
+    static constexpr std::size_t                                  kNAnalogChannels  = PS3000A_MAX_CHANNELS;
+    static constexpr std::underlying_type_t<PS3000A_DIGITAL_PORT> kDigiPort0        = PS3000A_DIGITAL_PORT0;
 
     using ChannelType            = PS3000A_CHANNEL;
     using ConditionType          = PS3000A_CONDITION;
@@ -40,7 +40,7 @@ struct Picoscope3000a {
     using DeviceResolutionType   = PS3000A_DEVICE_RESOLUTION;
     using NSamplesType           = int32_t;
 
-    static constexpr std::array<std::pair<ChannelName, ChannelType>, 5> outputs{{
+    static constexpr std::array<std::pair<ChannelName, ChannelType>, 5> kOutputs{{
         {ChannelName::A, PS3000A_CHANNEL_A},
         {ChannelName::B, PS3000A_CHANNEL_B},
         {ChannelName::C, PS3000A_CHANNEL_C},
@@ -48,7 +48,7 @@ struct Picoscope3000a {
         {ChannelName::EXTERNAL, PS3000A_EXTERNAL},
     }};
 
-    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 12> ranges = {{
+    static constexpr std::array<std::pair<AnalogChannelRange, RangeType>, 12> kRanges = {{
         {AnalogChannelRange::ps10mV, PS3000A_10MV},
         {AnalogChannelRange::ps20mV, PS3000A_20MV},
         {AnalogChannelRange::ps50mV, PS3000A_50MV},
@@ -75,7 +75,7 @@ struct Picoscope3000a {
         return PS3000A_MAX_TIME_UNITS;
     }
 
-    static constexpr RatioModeType ratioNone{PS3000A_RATIO_MODE_NONE};
+    static constexpr RatioModeType kRatioNone{PS3000A_RATIO_MODE_NONE};
 
     int16_t _handle;
 
@@ -143,20 +143,20 @@ struct Picoscope3000a {
 
     PICO_STATUS getTimebase2(uint32_t timebase, int32_t noSamples, float* timeIntervalNanoseconds, int32_t* maxSamples, uint32_t segmentIndex) const { return ps3000aGetTimebase2(_handle, timebase, noSamples, timeIntervalNanoseconds, /* oversample */ 0, maxSamples, segmentIndex); }
 
-    PICO_STATUS openUnit(const std::string& serial_number) {
+    PICO_STATUS openUnit(const std::string& serialNumber) {
         // take any if the serial number is not provided (useful for testing purposes)
-        if (serial_number.empty()) {
+        if (serialNumber.empty()) {
             return ps3000aOpenUnit(&_handle, nullptr);
         } else {
-            return ps3000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps3000aOpenUnit(&_handle, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())));
         }
     }
 
-    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serial_number) {
-        if (serial_number.empty()) {
+    static PICO_STATUS openUnitAsync(std::int16_t* status, const std::string& serialNumber) {
+        if (serialNumber.empty()) {
             return ps3000aOpenUnitAsync(status, nullptr);
         } else {
-            return ps3000aOpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serial_number.data())));
+            return ps3000aOpenUnitAsync(status, const_cast<int8_t*>(reinterpret_cast<const int8_t*>(serialNumber.data())));
         }
     }
 

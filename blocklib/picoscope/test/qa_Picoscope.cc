@@ -26,12 +26,12 @@ constexpr size_t struct_size<gr::DataSet<gr::UncertainValue<float>>, 0, sizeof(g
 namespace fair::picoscope::test {
 
 // enumerate the picoscope types to be tested
-using picoscopeTypes = std::tuple<Picoscope3000a, Picoscope4000a, Picoscope5000a, Picoscope6000>;
+using PicoscopeTypes = std::tuple<Picoscope3000a, Picoscope4000a, Picoscope5000a, Picoscope6000>;
 
 template<typename T>
 using BulkTagSink = gr::testing::TagSink<T, gr::testing::ProcessFunction::USE_PROCESS_BULK>;
 
-constexpr std::size_t minPicoBufferSize = 65536UZ; // this is needed because otherwise even streaming buffers for UncertainValue will only get 4k buffer entries
+constexpr std::size_t kMinPicoBufferSize = 65536UZ; // this is needed because otherwise even streaming buffers for UncertainValue will only get 4k buffer entries
 
 bool promptForTestCase(std::string_view testcase) {
     std::println("{}", testcase);
@@ -74,9 +74,9 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, st
         return;
     }
 
-    constexpr gr::Size_t preSamples   = 33;
-    constexpr gr::Size_t postSamples  = 1000;
-    constexpr gr::Size_t totalSamples = preSamples + postSamples;
+    constexpr gr::Size_t kPreSamples   = 33;
+    constexpr gr::Size_t kPostSamples  = 1000;
+    constexpr gr::Size_t kTotalSamples = kPreSamples + kPostSamples;
 
     bool           digitalPortInvertOutput  = false;
     const bool     digitalPortUseExactValue = true;
@@ -85,8 +85,8 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, st
     Graph        flowGraph;
     property_map params = {
         {"sample_rate", sampleRate},
-        {"pre_samples", preSamples},
-        {"post_samples", postSamples},
+        {"pre_samples", kPreSamples},
+        {"post_samples", kPostSamples},
         {"n_captures", nCaptures},
         {"auto_arm", true},
         {"trigger_once", true},
@@ -134,22 +134,22 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, st
     if (sinkA._samples.size() >= nCaptures) {
         for (std::size_t iC = 0; iC < sinkA._samples.size(); iC++) {
             const T& ds = sinkA._samples[iC];
-            expect(eq(ds.signal_values.size(), totalSamples));
+            expect(eq(ds.signal_values.size(), kTotalSamples));
 
             // check axis_values (time axis)
             expect(eq(ds.axis_values.size(), 1UZ));
             if (ds.axis_values.size() >= 1) {
-                expect(eq(ds.axis_values[0].size(), totalSamples));
-                if (ds.axis_values[0].size() == totalSamples) {
+                expect(eq(ds.axis_values[0].size(), kTotalSamples));
+                if (ds.axis_values[0].size() == kTotalSamples) {
                     expect(std::ranges::is_sorted(ds.axis_values[0]));
                     const float tolerance = 0.0005f;
                     if constexpr (std::is_same_v<typename T::value_type, float> || std::is_same_v<typename T::value_type, gr::UncertainValue<float>>) {
-                        expect(approx(ds.axis_values[0][0], -static_cast<float>(preSamples) / sampleRate, tolerance));
-                        expect(approx(ds.axis_values[0][preSamples], 0.f, tolerance));
-                        expect(approx(ds.axis_values[0].back(), static_cast<float>(postSamples) / sampleRate, tolerance));
+                        expect(approx(ds.axis_values[0][0], -static_cast<float>(kPreSamples) / sampleRate, tolerance));
+                        expect(approx(ds.axis_values[0][kPreSamples], 0.f, tolerance));
+                        expect(approx(ds.axis_values[0].back(), static_cast<float>(kPostSamples) / sampleRate, tolerance));
                     } else if constexpr (std::is_same_v<typename T::value_type, std::int16_t>) {
-                        expect(eq(ds.axis_values[0][0], static_cast<std::int16_t>(-preSamples)));
-                        expect(eq(ds.axis_values[0].back(), static_cast<std::int16_t>(postSamples - 1)));
+                        expect(eq(ds.axis_values[0][0], static_cast<std::int16_t>(-kPreSamples)));
+                        expect(eq(ds.axis_values[0].back(), static_cast<std::int16_t>(kPostSamples - 1)));
                     }
                 }
             }
@@ -164,19 +164,19 @@ void testRapidBlockBasic(std::size_t nCaptures, float sampleRate = 1234567.f, st
         }
     }
 
-    if constexpr (PicoscopeT::N_DIGITAL_CHANNELS > 0) {
+    if constexpr (PicoscopeT::kNDigitalChannels > 0) {
         expect(eq(sinkDigital._nSamplesProduced, nCaptures)); // number of DataSets
         expect(eq(sinkDigital._samples.size(), nCaptures));   // number of DataSets
         if (sinkDigital._samples.size() >= nCaptures) {
-            for (auto& _sample : sinkDigital._samples) {
-                expect(eq(_sample.signal_values.size(), totalSamples));
+            for (auto& sample : sinkDigital._samples) {
+                expect(eq(sample.signal_values.size(), kTotalSamples));
 
                 // Digital output testing relies on the actual test setup.
                 // We assume that we have only one input and the input signal is a `square wave` (Ampl = 1 V, offset = 1 V) at 1 kHz, generated using picoscope's function generator.
                 // With a sample rate near 10 kHz, the occurrence of zeros and non-zeros should be roughly equal.
                 if (testDigitalOutput) {
-                    const auto countZeros    = std::ranges::count(_sample.signal_values, 0);
-                    const auto countNonZeros = (digitalPortUseExactValue) ? std::ranges::count(_sample.signal_values, digitalPortExactValue) : std::ranges::count_if(_sample.signal_values, [](int x) { return x != 0; });
+                    const auto countZeros    = std::ranges::count(sample.signal_values, 0);
+                    const auto countNonZeros = (digitalPortUseExactValue) ? std::ranges::count(sample.signal_values, digitalPortExactValue) : std::ranges::count_if(sample.signal_values, [](int x) { return x != 0; });
                     const bool isEqual       = static_cast<double>(std::abs(countZeros - countNonZeros)) / static_cast<double>(countNonZeros) < 0.05;
                     std::println("Digital output rapid block testing countZeros:{}, countNonZeros:{}, isEqual:{}", countZeros, countNonZeros, isEqual);
                     expect(isEqual);
@@ -199,7 +199,7 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
         return;
     }
 
-    constexpr auto testDuration = 15s;
+    constexpr auto kTestDuration = 15s;
 
     bool           digitalPortInvertOutput  = false;
     const bool     digitalPortUseExactValue = true;
@@ -222,14 +222,14 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     auto& sinkC      = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
     auto& sinkD      = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-    expect(flowGraph.connect<"out#0", "in">(ps, tagMonitor, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
-    expect(flowGraph.connect<"out", "in">(tagMonitor, sinkA, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
-    expect(flowGraph.connect<"out#1", "in">(ps, sinkB, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
-    expect(flowGraph.connect<"out#2", "in">(ps, sinkC, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
-    expect(flowGraph.connect<"out#3", "in">(ps, sinkD, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out#0", "in">(ps, tagMonitor, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out", "in">(tagMonitor, sinkA, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out#1", "in">(ps, sinkB, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out#2", "in">(ps, sinkC, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"out#3", "in">(ps, sinkD, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
 
     auto& sinkDigital = flowGraph.emplaceBlock<BulkTagSink<uint16_t>>({{"log_samples", testDigitalOutput}, {"log_tags", false}});
-    expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+    expect(flowGraph.connect<"digitalOut", "in">(ps, sinkDigital, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
 
     if constexpr (std::is_same_v<Picoscope4000a, PicoscopeT>) {
         auto& sinkE = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
@@ -237,10 +237,10 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
         auto& sinkG = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
         auto& sinkH = flowGraph.emplaceBlock<BulkTagSink<T>>({{"log_samples", false}, {"log_tags", false}});
 
-        expect(flowGraph.connect<"out#4", "in">(ps, sinkE, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
-        expect(flowGraph.connect<"out#5", "in">(ps, sinkF, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
-        expect(flowGraph.connect<"out#6", "in">(ps, sinkG, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
-        expect(flowGraph.connect<"out#7", "in">(ps, sinkH, gr::EdgeParameters{.minBufferSize = minPicoBufferSize}).has_value());
+        expect(flowGraph.connect<"out#4", "in">(ps, sinkE, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
+        expect(flowGraph.connect<"out#5", "in">(ps, sinkF, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
+        expect(flowGraph.connect<"out#6", "in">(ps, sinkG, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
+        expect(flowGraph.connect<"out#7", "in">(ps, sinkH, gr::EdgeParameters{.minBufferSize = kMinPicoBufferSize}).has_value());
     }
 
     // Explicitly start the picoscope because it takes quite some time
@@ -250,13 +250,13 @@ void testStreamingBasics(float sampleRate = 83000.f, bool testDigitalOutput = fa
     std::ignore = sched.exchange(std::move(flowGraph));
     expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
     expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
-    std::this_thread::sleep_for(testDuration);
+    std::this_thread::sleep_for(kTestDuration);
     const auto lifestateChangeResult = sched.changeStateTo(lifecycle::State::REQUESTED_STOP);
     expect(lifestateChangeResult.has_value()) << [&lifestateChangeResult]() { return std::format("failed to set REQUESTED_STOP: {} at {}", lifestateChangeResult.error().message, lifestateChangeResult.error().sourceLocation); };
 
-    const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(testDuration).count();
+    const auto measuredRate = static_cast<double>(sinkA._nSamplesProduced) / duration<double>(kTestDuration).count();
     std::println("Produced in worker: {}", ps._nSamplesPublished);
-    std::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", sampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(sampleRate) * 100., duration_cast<milliseconds>(testDuration).count());
+    std::println("Configured rate: {}, Measured rate: {} ({:.2f}%), Duration: {} ms", sampleRate, static_cast<std::size_t>(measuredRate), measuredRate / static_cast<double>(sampleRate) * 100., duration_cast<milliseconds>(kTestDuration).count());
     std::println("Total samples: {}", sinkA._nSamplesProduced);
     std::println("Total tags: {}", tagMonitor._tags.size());
     for (auto& [i, map] : tagMonitor._tags) {
@@ -306,13 +306,13 @@ const boost::ut::suite PicoscopeTests = [] {
     //        // expect(neq(ps.hardwareVersion(), std::string()));
     //        expect(nothrow([&ps] { ps.stop(); })) << "doesn't throw";
     //    }
-    //} | picoscopeTypes{};
+    //} | PicoscopeTypes{};
 
     "streaming basics"_test = []<PicoscopeImplementationLike PicoscopeT> {
         testStreamingBasics<int16_t, PicoscopeT>();
         testStreamingBasics<float, PicoscopeT>();
         testStreamingBasics<gr::UncertainValue<float>, PicoscopeT>();
-    } | picoscopeTypes{};
+    } | PicoscopeTypes{};
 
     "rapid block basics"_test = []<PicoscopeImplementationLike PicoscopeT> {
         testRapidBlockBasic<gr::DataSet<int16_t>, PicoscopeT>(1);
@@ -320,10 +320,10 @@ const boost::ut::suite PicoscopeTests = [] {
         testRapidBlockBasic<gr::DataSet<gr::UncertainValue<float>>, PicoscopeT>(1);
 
         // static_assert(vir::detail::struct_size<gr::DataSet<gr::UncertainValue<float>>> == 0);
-    } | picoscopeTypes{};
+    } | PicoscopeTypes{};
 
     "rapid block digital port trigger"_test = []<PicoscopeImplementationLike PicoscopeT> {
-        if constexpr (PicoscopeT::N_DIGITAL_CHANNELS == 0UZ) {
+        if constexpr (PicoscopeT::kNDigitalChannels == 0UZ) {
             return;
         }
         // TODO: Skipped because it requires proper configuration and Timing card. Skipping does not work for parameterized tests: https://github.com/boost-ext/ut/issues/555
@@ -332,7 +332,7 @@ const boost::ut::suite PicoscopeTests = [] {
         // and connecting it to a digital input defined in `trigger_source`.
         // Implementing timing event generation directly in the test, similar to `qa_PicoscopeTiming`.
         testRapidBlockBasic<gr::DataSet<int16_t>, PicoscopeT>(1, 1234567.f, "DI4", false);
-    } | picoscopeTypes{};
+    } | PicoscopeTypes{};
 
     // todo: needs testing with hardware setup
     //    "streaming digital output"_test = []<PicoscopeImplementationLike PicoscopeT> { testStreamingBasics<float, PicoscopeT>(4000, true); } | picoscopeTypes{};
@@ -340,24 +340,24 @@ const boost::ut::suite PicoscopeTests = [] {
     // todo: needs testing with hardware setup
     //    "rapid block digital output"_test = []<PicoscopeImplementationLike PicoscopeT> { testRapidBlockBasic<gr::DataSet<float>, PicoscopeT>(1, 4000, "", true); } | picoscopeTypes{};
 
-    "rapid block multiple captures"_test = []<PicoscopeImplementationLike PicoscopeT> { testRapidBlockBasic<DataSet<float>, PicoscopeT>(3); } | picoscopeTypes{};
+    "rapid block multiple captures"_test = []<PicoscopeImplementationLike PicoscopeT> { testRapidBlockBasic<DataSet<float>, PicoscopeT>(3); } | PicoscopeTypes{};
 
     "rapid block 3 channels"_test = []<PicoscopeImplementationLike PicoscopeT> {
         if (!promptForTestCase(std::format("rapid block 3 channels: {}", gr::meta::type_name<PicoscopeT>()))) {
             return;
         }
-        constexpr gr::Size_t preSamples   = 33;
-        constexpr gr::Size_t postSamples  = 1000;
-        constexpr gr::Size_t nCaptures    = 5;
-        constexpr gr::Size_t totalSamples = preSamples + postSamples;
-        using T                           = DataSet<float>;
+        constexpr gr::Size_t kPreSamples   = 33;
+        constexpr gr::Size_t kPostSamples  = 1000;
+        constexpr gr::Size_t kNCaptures    = 5;
+        constexpr gr::Size_t kTotalSamples = kPreSamples + kPostSamples;
+        using T                            = DataSet<float>;
 
         Graph flowGraph;
         auto& ps = flowGraph.emplaceBlock<Picoscope<T, PicoscopeT>>({
             {"sample_rate", 10000.f},
-            {"pre_samples", preSamples},
-            {"post_samples", postSamples},
-            {"n_captures", nCaptures},
+            {"pre_samples", kPreSamples},
+            {"post_samples", kPostSamples},
+            {"n_captures", kNCaptures},
             {"auto_arm", true},
             {"trigger_once", true},
             {"channel_ids", std::vector<std::string>{"A", "B", "C"}},
@@ -394,23 +394,23 @@ const boost::ut::suite PicoscopeTests = [] {
         std::ignore = sched.exchange(std::move(flowGraph));
         expect(sched.runAndWait().has_value());
 
-        expect(eq(sinkA._nSamplesProduced, nCaptures));
-        expect(eq(sinkB._nSamplesProduced, nCaptures));
-        expect(eq(sinkC._nSamplesProduced, nCaptures));
-        expect(eq(sinkD._nSamplesProduced, nCaptures)); // empty DataSets
+        expect(eq(sinkA._nSamplesProduced, kNCaptures));
+        expect(eq(sinkB._nSamplesProduced, kNCaptures));
+        expect(eq(sinkC._nSamplesProduced, kNCaptures));
+        expect(eq(sinkD._nSamplesProduced, kNCaptures)); // empty DataSets
 
         const bool allSameSize = sinkA._samples.size() == sinkB._samples.size() && sinkB._samples.size() == sinkC._samples.size() && sinkC._samples.size() == sinkD._samples.size();
         expect(allSameSize);
 
-        if (sinkA._samples.size() >= nCaptures) {
+        if (sinkA._samples.size() >= kNCaptures) {
             for (std::size_t iC = 0; iC < sinkA._samples.size(); iC++) {
-                expect(eq(sinkA._samples[iC].signal_values.size(), totalSamples));
-                expect(eq(sinkB._samples[iC].signal_values.size(), totalSamples));
-                expect(eq(sinkC._samples[iC].signal_values.size(), totalSamples));
+                expect(eq(sinkA._samples[iC].signal_values.size(), kTotalSamples));
+                expect(eq(sinkB._samples[iC].signal_values.size(), kTotalSamples));
+                expect(eq(sinkC._samples[iC].signal_values.size(), kTotalSamples));
                 expect(eq(sinkD._samples[iC].signal_values.size(), 0UZ));
             }
         }
-    } | picoscopeTypes{};
+    } | PicoscopeTypes{};
 
     "rapid block continuous"_test = []<PicoscopeImplementationLike PicoscopeT> {
         if (!promptForTestCase(std::format("rapid block continuous: {}", gr::meta::type_name<PicoscopeT>()))) {
@@ -420,21 +420,21 @@ const boost::ut::suite PicoscopeTests = [] {
 
         using T = DataSet<float>;
 
-        constexpr float      sampleRate   = 1000.f;
-        constexpr gr::Size_t postSamples  = 100;
-        constexpr gr::Size_t preSamples   = 15;
-        constexpr gr::Size_t totalSamples = postSamples + preSamples;
-        constexpr auto       testDuration = 13s;
+        constexpr float      kSampleRate   = 1000.f;
+        constexpr gr::Size_t kPostSamples  = 100;
+        constexpr gr::Size_t kPreSamples   = 15;
+        constexpr gr::Size_t kTotalSamples = kPostSamples + kPreSamples;
+        constexpr auto       kTestDuration = 13s;
 
-        constexpr float timePerDataset   = static_cast<float>(totalSamples) / sampleRate;
-        constexpr float testDurationSecs = std::chrono::duration<float>(testDuration).count();
-        const auto      expectedDatasets = static_cast<size_t>(std::floor(testDurationSecs / timePerDataset));
+        constexpr float kTimePerDataset   = static_cast<float>(kTotalSamples) / kSampleRate;
+        constexpr float kTestDurationSecs = std::chrono::duration<float>(kTestDuration).count();
+        const auto      expectedDatasets  = static_cast<size_t>(std::floor(kTestDurationSecs / kTimePerDataset));
 
         Graph flowGraph;
         auto& ps = flowGraph.emplaceBlock<Picoscope<T, PicoscopeT>>({
-            {"sample_rate", sampleRate},
-            {"pre_samples", preSamples},
-            {"post_samples", postSamples},
+            {"sample_rate", kSampleRate},
+            {"pre_samples", kPreSamples},
+            {"post_samples", kPostSamples},
             {"n_captures", gr::Size_t{1}},
             {"auto_arm", true},
             {"channel_ids", std::vector<std::string>{"A"}},
@@ -473,17 +473,17 @@ const boost::ut::suite PicoscopeTests = [] {
         std::ignore = sched.exchange(std::move(flowGraph));
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
-        std::this_thread::sleep_for(testDuration);
+        std::this_thread::sleep_for(kTestDuration);
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
         std::println("rapid block continuous: producedDatasets:{}, expectedDatasets: {}", sinkA._nSamplesProduced, expectedDatasets);
         expect(le(sinkA._nSamplesProduced, expectedDatasets)); // we can never get more datasets than if re-arming was instantaneous
         expect(ge(sinkA._nSamplesProduced, 2UZ));              // the time for rearming differs wildly between different models, make sure we get at least 2 captures
 
-        for (auto& _sample : sinkA._samples) {
-            expect(eq(_sample.signal_values.size(), totalSamples));
+        for (auto& sample : sinkA._samples) {
+            expect(eq(sample.signal_values.size(), kTotalSamples));
         }
-    } | picoscopeTypes{};
+    } | PicoscopeTypes{};
 
     "tagContainsTrigger"_test = [] {
         std::println("tagContainsTrigger");
@@ -491,7 +491,7 @@ const boost::ut::suite PicoscopeTests = [] {
         using namespace gr::tag;
 
         const auto testCase = [](bool expectedResult, const std::string& triggerNameAndCtx, const std::string& tagTriggerName, const std::string& tagCtx, bool includeCtx) { //
-            const auto tag = Tag(0, includeCtx ? property_map{{kTriggerName, tagTriggerName}, {kContext, tagCtx}}                                                             //
+            const auto tag = Tag(0, includeCtx ? property_map{{kTriggerName, tagTriggerName}, {kContext, tagCtx}}                                                            //
                                                : property_map{{kTriggerName, tagTriggerName}});
             const bool res = detail::tagContainsTrigger(tag.map, detail::createTriggerNameAndCtx(triggerNameAndCtx));
             expect(eq(expectedResult, res)) << std::format("triggerNameAndCtx:{}, tag.map:{}", triggerNameAndCtx, tag.map);
@@ -526,18 +526,18 @@ const boost::ut::suite PicoscopeTests = [] {
 
         using T = DataSet<float>;
 
-        constexpr float      sampleRate   = 1000.f;
-        constexpr gr::Size_t postSamples  = 1000;
-        constexpr gr::Size_t preSamples   = 5;
-        constexpr gr::Size_t totalSamples = postSamples + preSamples;
-        constexpr auto       testDuration = 12s;
+        constexpr float      kSampleRate   = 1000.f;
+        constexpr gr::Size_t kPostSamples  = 1000;
+        constexpr gr::Size_t kPreSamples   = 5;
+        constexpr gr::Size_t kTotalSamples = kPostSamples + kPreSamples;
+        constexpr auto       kTestDuration = 12s;
 
         const auto createTriggerPropertyMap = [](const std::string& triggerName, const std::string& context, std::uint64_t time, float offset = 0.f) { //
             return property_map{{kTriggerName, triggerName}, {kTriggerTime, std::uint64_t{time}}, {kTriggerOffset, offset}, {kContext, context}};
         };
 
         Graph flowGraph;
-        auto& clockSrc = flowGraph.emplaceBlock<gr::basic::ClockSource<std::uint8_t>>({{"sample_rate", sampleRate}, {"chunk_size", gr::Size_t{1}}, {"n_samples_max", gr::Size_t{0}}, {"name", "ClockSource"}, {"verbose_console", true}});
+        auto& clockSrc = flowGraph.emplaceBlock<gr::basic::ClockSource<std::uint8_t>>({{"sample_rate", kSampleRate}, {"chunk_size", gr::Size_t{1}}, {"n_samples_max", gr::Size_t{0}}, {"name", "ClockSource"}, {"verbose_console", true}});
 
         clockSrc.tags = {
             gr::basic::ClockSource<std::uint8_t>::ClockTag{.index = 1000, .map = createTriggerPropertyMap("CMD_BP_START", "FAIR.SELECTOR.C=1:S=1:P=1", static_cast<std::uint64_t>(1000))}, // OK
@@ -554,9 +554,9 @@ const boost::ut::suite PicoscopeTests = [] {
         }; // disarm trigger
 
         auto& ps = flowGraph.emplaceBlock<Picoscope<T, PicoscopeT>>({
-            {"sample_rate", sampleRate},
-            {"pre_samples", preSamples},
-            {"post_samples", postSamples},
+            {"sample_rate", kSampleRate},
+            {"pre_samples", kPreSamples},
+            {"post_samples", kPostSamples},
             {"trigger_arm", "CMD_BP_START/FAIR.SELECTOR.C=1:S=1:P=1"},
             {"trigger_disarm", "CMD_BP_STOP/FAIR.SELECTOR.C=1:S=1:P=1"},
             {"n_captures", gr::Size_t{1}},
@@ -598,14 +598,14 @@ const boost::ut::suite PicoscopeTests = [] {
         std::ignore = sched.exchange(std::move(flowGraph));
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
-        std::this_thread::sleep_for(testDuration);
+        std::this_thread::sleep_for(kTestDuration);
         expect(sched.changeStateTo(lifecycle::State::REQUESTED_STOP).has_value());
 
         expect(ge(sinkA._nSamplesProduced, 1UZ));
-        for (auto& _sample : sinkA._samples) {
-            expect(eq(_sample.signal_values.size(), totalSamples));
+        for (auto& sample : sinkA._samples) {
+            expect(eq(sample.signal_values.size(), kTotalSamples));
         }
-    } | picoscopeTypes{};
+    } | PicoscopeTypes{};
 
     "rapid partial captures"_test = []<PicoscopeImplementationLike PicoscopeT> {
         // This test verifies that if a capture is disarmed before the nCaptures triggers have been processed, we will get an update with all the
@@ -620,12 +620,12 @@ const boost::ut::suite PicoscopeTests = [] {
 
         using T = DataSet<float>;
 
-        constexpr float      sampleRate   = 1000.f;
-        constexpr gr::Size_t postSamples  = 1000;
-        constexpr gr::Size_t preSamples   = 5;
-        constexpr gr::Size_t totalSamples = postSamples + preSamples;
-        constexpr auto       testDuration = 12s;
-        constexpr gr::Size_t nCaptures    = 10;
+        constexpr float      kSampleRate   = 1000.f;
+        constexpr gr::Size_t kPostSamples  = 1000;
+        constexpr gr::Size_t kPreSamples   = 5;
+        constexpr gr::Size_t kTotalSamples = kPostSamples + kPreSamples;
+        constexpr auto       kTestDuration = 12s;
+        constexpr gr::Size_t kNCaptures    = 10;
 
         const auto createTriggerPropertyMap = [](const std::string& triggerName, const std::string& context, std::uint64_t time, float offset = 0.f) { //
             return property_map{
@@ -638,7 +638,7 @@ const boost::ut::suite PicoscopeTests = [] {
 
         Graph flowGraph;
         auto& clockSrc = flowGraph.emplaceBlock<gr::basic::ClockSource<std::uint8_t>>({
-            {"sample_rate", sampleRate},
+            {"sample_rate", kSampleRate},
             {"chunk_size", gr::Size_t{1}},
             {"n_samples_max", gr::Size_t{0}},
             {"name", "ClockSource"},
@@ -651,12 +651,12 @@ const boost::ut::suite PicoscopeTests = [] {
         };
 
         auto& ps = flowGraph.emplaceBlock<Picoscope<T, PicoscopeT>>({
-            {"sample_rate", sampleRate},
-            {"pre_samples", preSamples},
-            {"post_samples", postSamples},
+            {"sample_rate", kSampleRate},
+            {"pre_samples", kPreSamples},
+            {"post_samples", kPostSamples},
             {"trigger_arm", "CMD_BP_START/FAIR.SELECTOR.C=1:S=1:P=1"},
             {"trigger_disarm", "CMD_BP_STOP/FAIR.SELECTOR.C=1:S=1:P=1"},
-            {"n_captures", nCaptures},
+            {"n_captures", kNCaptures},
             {"auto_arm", false},
             {"channel_ids", std::vector<std::string>{"A"}},
             {"channel_ranges", std::vector<float>{5.f}},
@@ -693,22 +693,22 @@ const boost::ut::suite PicoscopeTests = [] {
         expect(nothrow([&ps] { ps.start(); }));
         scheduler::Simple<scheduler::ExecutionPolicy::multiThreaded> sched{};
         std::ignore = sched.exchange(std::move(flowGraph));
-        gr::MsgPortOut _toScheduler;
-        expect(_toScheduler.connect(sched.msgIn).has_value()) << fatal;
+        gr::MsgPortOut toScheduler;
+        expect(toScheduler.connect(sched.msgIn).has_value()) << fatal;
         expect(sched.changeStateTo(lifecycle::State::INITIALISED).has_value());
         expect(sched.changeStateTo(lifecycle::State::RUNNING).has_value());
         // gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::INITIALISED))}}, "test");
         // gr::sendMessage<gr::message::Command::Set>(_toScheduler, sched.unique_name, gr::block::property::kLifeCycleState, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::RUNNING))}}, "test");
-        std::this_thread::sleep_for(testDuration);
+        std::this_thread::sleep_for(kTestDuration);
         std::println("stopping scheduler");
-        gr::emit<gr::message::Command::Set>(_toScheduler, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, {.endpoint = gr::block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
+        gr::emit<gr::message::Command::Set>(toScheduler, {{"state", std::string(magic_enum::enum_name(gr::lifecycle::State::REQUESTED_STOP))}}, {.endpoint = gr::block::property::kLifeCycleState, .serviceName = sched.unique_name, .clientRequestID = "test"});
         std::println("stopped scheduler");
 
         expect(ge(sinkA._nSamplesProduced, 1UZ));
-        for (auto& _sample : sinkA._samples) {
-            expect(eq(_sample.signal_values.size(), totalSamples));
+        for (auto& sample : sinkA._samples) {
+            expect(eq(sample.signal_values.size(), kTotalSamples));
         }
-    } | picoscopeTypes{}; //| std::tuple<Picoscope3000a>{}; //
+    } | PicoscopeTypes{}; //| std::tuple<Picoscope3000a>{}; //
 };
 
 } // namespace fair::picoscope::test

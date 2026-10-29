@@ -47,21 +47,21 @@ ENABLE_REFLECTION_FOR(opencmw::client::cmwlight::NameserverReply, resources)
 namespace opencmw::client::cmwlight {
 class DirectoryLightClient {
     using EndpointMap = std::map<std::string, std::variant<std::expected<std::string, std::string>, std::expected<int, std::string>, std::expected<long, std::string>>, std::less<>>;
-    std::map<std::string, std::string, std::less<>> cache;
-    std::mutex                                      mutex;
-    std::deque<std::string>                         pendingLookups;
-    std::string                                     nameserver;
+    std::map<std::string, std::string, std::less<>> _cache;
+    std::mutex                                      _mutex;
+    std::deque<std::string>                         _pendingLookups;
+    std::string                                     _nameserver;
 
 public:
-    explicit DirectoryLightClient(std::string _nameserver) : nameserver(std::move(_nameserver)) {}
+    explicit DirectoryLightClient(std::string nameserver) : _nameserver(std::move(nameserver)) {}
 
     ~DirectoryLightClient() { cpr::GlobalThreadPool::GetInstance()->Stop(); };
 
     std::optional<std::string> lookup(const std::string_view name, const bool useCache = true) {
         {
-            std::lock_guard lock{mutex};
+            std::lock_guard lock{_mutex};
             if (useCache) {
-                if (const auto& res = cache.find(name); res != cache.end()) {
+                if (const auto& res = _cache.find(name); res != _cache.end()) {
                     if (!res->second.empty()) {
                         return res->second;
                     } else {
@@ -69,15 +69,15 @@ public:
                     }
                 }
             }
-            cache[std::string{name}] = "";
+            _cache[std::string{name}] = "";
         }
         triggerRequest(name);
         return {};
     }
 
     void addStaticLookup(const std::string& deviceName, const std::string_view address) {
-        std::lock_guard lock{mutex};
-        cache[deviceName] = address;
+        std::lock_guard lock{_mutex};
+        _cache[deviceName] = address;
     };
 
     static std::expected<std::string, std::string> urlDecode(std::string_view str) {
@@ -215,7 +215,7 @@ public:
     void triggerRequest(std::string_view name) {
         using namespace std::literals;
         const std::string requestData = std::format(R"""({{ "proxyPreferred" : true, "domains" : [ ], "directServers" : [ ], "redirects" : {{ }}, "names" : [ "{}" ]}})""", name);
-        const auto        uri         = URI<>::factory(URI(std::string(nameserver))).path("/api/v1/devices/search").build();
+        const auto        uri         = URI<>::factory(URI(std::string(_nameserver))).path("/api/v1/devices/search").build();
         std::string       deviceName{name};
         cpr::PostCallback(
             [this, deviceName](const cpr::Response& response) {
@@ -224,13 +224,13 @@ public:
                         if (nameKey != deviceName) {
                             continue;
                         }
-                        std::lock_guard lock{mutex};
-                        cache[std::string{nameKey}] = std::get<std::expected<std::string, std::string>>(data.at("Address")).value();
+                        std::lock_guard lock{_mutex};
+                        _cache[std::string{nameKey}] = std::get<std::expected<std::string, std::string>>(data.at("Address")).value();
                         return;
                     }
                 }
-                std::lock_guard lock{mutex};
-                cache.erase(deviceName); // lookup failed, do not cache failure
+                std::lock_guard lock{_mutex};
+                _cache.erase(deviceName); // lookup failed, do not cache failure
             },
             cpr::Url{uri.str()}, cpr::Body{requestData}, cpr::Header{{"Content-Type", "application/json"}});
     }

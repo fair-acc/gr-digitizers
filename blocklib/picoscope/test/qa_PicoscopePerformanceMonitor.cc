@@ -57,9 +57,9 @@ int main(int argc, char* argv[]) {
     // Replace with your connected Picoscope device
     using PicoscopeT = Picoscope5000a;
 
-    constexpr float      kSampleRate      = 1'000'000.f;
-    constexpr gr::Size_t evaluatePerfRate = 1'000'000;
-    constexpr float      publishRate      = 1.f;
+    constexpr float      kSampleRate       = 1'000'000.f;
+    constexpr gr::Size_t kEvaluatePerfRate = 1'000'000;
+    constexpr float      kPublishRate      = 1.f;
 
     registerDefaultThreadPool();
 
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::string> channelIds    = {"A", "B", "C", "D"};
     std::vector<float>       channelRanges = {5.f, 5.f, 5.f, 5.f};
-    if constexpr (PicoscopeT::N_ANALOG_CHANNELS == 8) {
+    if constexpr (PicoscopeT::kNAnalogChannels == 8) {
         std::ranges::copy(std::array{"E", "F", "G", "H"}, std::back_inserter(channelIds));
         std::ranges::copy(std::array{5.f, 5.f, 5.f, 5.f}, std::back_inserter(channelRanges));
     }
@@ -79,10 +79,10 @@ int main(int argc, char* argv[]) {
         {"channel_ranges", channelRanges},
     }});
 
-    auto& perfMonitorA = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf A"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
-    auto& perfMonitorB = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf B"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
-    auto& perfMonitorC = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf C"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
-    auto& perfMonitorD = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf D"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
+    auto& perfMonitorA = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf A"}, {"evaluate_perf_rate", kEvaluatePerfRate}, {"publish_rate", kPublishRate}});
+    auto& perfMonitorB = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf B"}, {"evaluate_perf_rate", kEvaluatePerfRate}, {"publish_rate", kPublishRate}});
+    auto& perfMonitorC = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf C"}, {"evaluate_perf_rate", kEvaluatePerfRate}, {"publish_rate", kPublishRate}});
+    auto& perfMonitorD = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf D"}, {"evaluate_perf_rate", kEvaluatePerfRate}, {"publish_rate", kPublishRate}});
 
     expect(graph.connect<"out#0", "in">(ps, perfMonitorA).has_value());
     expect(graph.connect<"out#1", "in">(ps, perfMonitorB).has_value());
@@ -92,9 +92,9 @@ int main(int argc, char* argv[]) {
     auto& sinkDigital = graph.emplaceBlock<testing::TagSink<uint16_t, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
     expect(graph.connect<"digitalOut", "in">(ps, sinkDigital).has_value());
 
-    if constexpr (PicoscopeT::N_ANALOG_CHANNELS == 8) {
-        auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
-        auto& perfMonitorF = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf F"}, {"evaluate_perf_rate", evaluatePerfRate}, {"publish_rate", publishRate}});
+    if constexpr (PicoscopeT::kNAnalogChannels == 8) {
+        auto& perfMonitorE = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf E"}, {"evaluate_perf_rate", kEvaluatePerfRate}, {"publish_rate", kPublishRate}});
+        auto& perfMonitorF = graph.emplaceBlock<PerformanceMonitor<SampleType>>({{"name", "Perf F"}, {"evaluate_perf_rate", kEvaluatePerfRate}, {"publish_rate", kPublishRate}});
         auto& sinkG        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
         auto& sinkH        = graph.emplaceBlock<testing::TagSink<SampleType, testing::ProcessFunction::USE_PROCESS_BULK>>({{{"log_samples", false}, {"log_tags", false}}});
 

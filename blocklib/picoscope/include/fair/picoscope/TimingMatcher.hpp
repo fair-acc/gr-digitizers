@@ -50,13 +50,13 @@ struct TimingMatcher {
      * verifies that a timing tag contains all the required fields with correct types, so we do not have to have checks everywhere in the matcher code
      */
     static bool checkValidTimingTag(const gr::property_map& tag) {
-        constexpr std::array<std::string_view, 4> requiredKeys{
+        constexpr std::array<std::string_view, 4> kRequiredKeys{
             gr::tag::kTriggerTime,
             gr::tag::kTriggerOffset,
             gr::tag::kTriggerName,
             gr::tag::kTriggerMetaInfo,
         };
-        if (!std::ranges::all_of(requiredKeys, [&tag](auto& k) { return tag.contains(k); })) {
+        if (!std::ranges::all_of(kRequiredKeys, [&tag](auto& k) { return tag.contains(k); })) {
             return false;
         }
         auto metaMapPtr = tag.get_if<gr::property_map>(gr::tag::kTriggerMetaInfo);
@@ -64,8 +64,8 @@ struct TimingMatcher {
             return false;
         }
         auto&                                     metaMap = *metaMapPtr;
-        constexpr std::array<std::string_view, 2> requiredMetaKeys{gr::tag::kLocalTime, "HW-TRIGGER"};
-        if (!std::ranges::all_of(requiredMetaKeys, [&metaMap](auto& k) { return metaMap.contains(k); })) {
+        constexpr std::array<std::string_view, 2> kRequiredMetaKeys{gr::tag::kLocalTime, "HW-TRIGGER"};
+        if (!std::ranges::all_of(kRequiredMetaKeys, [&metaMap](auto& k) { return metaMap.contains(k); })) {
             return false;
         }
         return true;
@@ -258,10 +258,10 @@ struct TimingMatcher {
             }
 
             if (auto idx = alignTagRelativeToLastMatchedAndStore(result, currentTag)) {
-                constexpr std::size_t indexTolerance = 3;
-                if (std::max(idx->first, currentFlankIndex) - std::min(idx->first, currentFlankIndex) > indexTolerance) {
+                constexpr std::size_t kIndexTolerance = 3;
+                if (std::max(idx->first, currentFlankIndex) - std::min(idx->first, currentFlankIndex) > kIndexTolerance) {
                     result.messages.emplace_back(std::format("Possible wrong matching, lastMatchedTag can be wrongly assigned. Difference between currentTagIndex:{} and currentFlankIndex:{} is more than tolerance ({})", //
-                        idx->first, currentFlankIndex, indexTolerance));
+                        idx->first, currentFlankIndex, kIndexTolerance));
                 }
                 // Note: alignTagRelativeToLastMatchedAndStore already added the map to result.tagMaps
                 result.tagMaps.pop_back(); // undo the addition since we're only using it for diagnostics
