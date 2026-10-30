@@ -1,0 +1,693 @@
+translation units parsed: 7 of 7
+translation units with parse errors (their figures are incomplete): 0
+(1) composition: how far a change can reach (includes, calls, ambient dependencies)
+composition
+  components: 19
+  include edges: 11
+    1 | blocklib/opencmw/CmwLightClient -> blocklib/opencmw/DirectoryLightClient | removing it alone lowers CCD by 2
+    1 | blocklib/opencmw/OpenCmwSource -> blocklib/opencmw/CmwLightClient | removing it alone lowers CCD by 2
+    1 | blocklib/picoscope/Picoscope -> blocklib/picoscope/PicoscopeAPI | removing it alone lowers CCD by 3
+    1 | blocklib/picoscope/Picoscope3000a -> blocklib/picoscope/PicoscopeAPI | removing it alone lowers CCD by 6
+    1 | blocklib/picoscope/PicoscopeAPI -> blocklib/picoscope/StatusMessages | removing it alone lowers CCD by 4
+    1 | blocklib/picoscope/PicoscopeAPI -> blocklib/picoscope/TimingMatcher | removing it alone lowers CCD by 4
+    1 | blocklib/picoscope/picoscope-cli -> blocklib/picoscope/Picoscope3000a | removing it alone lowers CCD by 4
+    1 | blocklib/picoscope/picoscope-cli -> blocklib/picoscope/Picoscope4000a | removing it alone lowers CCD by 1
+    1 | blocklib/picoscope/picoscope-cli -> blocklib/picoscope/Picoscope5000a | removing it alone lowers CCD by 1
+    1 | blocklib/picoscope/picoscope-cli -> blocklib/picoscope/Picoscope6000 | removing it alone lowers CCD by 1
+    1 | blocklib/picoscope/picoscope-cli -> blocklib/picoscope/SettingsEditor | removing it alone lowers CCD by 1
+  components in a cycle: 0
+  CCD: 38 (the places behind it are the include edges)
+  NCCD: 0.56
+  widest reach (other components a component's #includes reach): blocklib/picoscope/picoscope-cli 8, blocklib/picoscope/Picoscope3000a 3, blocklib/picoscope/Picoscope 3
+  translation units under the source roots reaching each library (1 units): other 1, std 1, system 1
+locality
+  calls across components: 16.4 % (42 of 256 calls to own functions)
+    20 | blocklib/picoscope/picoscope-cli -> blocklib/picoscope/SettingsEditor | calls from the first component into the second
+    8 | blocklib/picoscope/PicoscopeAPI -> blocklib/picoscope/StatusMessages | calls from the first component into the second
+    4 | blocklib/picoscope/Picoscope5000a -> blocklib/picoscope/PicoscopeAPI | calls from the first component into the second
+    2 | blocklib/opencmw/CmwLightClient -> blocklib/opencmw/DirectoryLightClient | calls from the first component into the second
+    2 | blocklib/picoscope/Picoscope3000a -> blocklib/picoscope/PicoscopeAPI | calls from the first component into the second
+    2 | blocklib/picoscope/Picoscope4000a -> blocklib/picoscope/PicoscopeAPI | calls from the first component into the second
+    2 | blocklib/picoscope/Picoscope6000 -> blocklib/picoscope/PicoscopeAPI | calls from the first component into the second
+    2 | blocklib/picoscope/picoscope-cli -> blocklib/picoscope/PicoscopeAPI | calls from the first component into the second
+  lone callees: 4 (one call site, in another component, no test)
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::SettingsEditor() <- blocklib/picoscope/picoscope-cli | line 34, 9 lines
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::getTerminalSize() <- blocklib/picoscope/picoscope-cli | line 182, 15 lines
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::processInput(const char) <- blocklib/picoscope/picoscope-cli | line 57, 28 lines
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::renderEditor() <- blocklib/picoscope/picoscope-cli | line 169, 12 lines
+  unused functions: 265 (defined under the source roots, named by no own code, tests included)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightDataContext::acqStamp() | line 95, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightDataContext::cycleName() | line 93, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightDataContext::cycleStamp() | line 94, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightDataContext::data() | line 96, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightHeaderOptions::sessionBody() | line 49, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightRequestContext::data() | line 83, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::ContextAcqStamp(Args &&...) | line 100, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::ContextCycleStamp(Args &&...) | line 100, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::ContextData(Args &&...) | line 100, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::Message(Args &&...) | line 100, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::Type(Args &&...) | line 100, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::b(Args &&...) | line 101, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::c(Args &&...) | line 104, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::d(Args &&...) | line 102, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::e(Args &&...) | line 101, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::f(Args &&...) | line 102, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x(Args &&...) | line 104, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_0(Args &&...) | line 102, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_1(Args &&...) | line 102, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_2(Args &&...) | line 102, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_3(Args &&...) | line 102, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_4(Args &&...) | line 105, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_5(Args &&...) | line 105, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_6(Args &&...) | line 105, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_7(Args &&...) | line 102, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_8(Args &&...) | line 104, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp refl_impl::metadata::type_info__::member::remap::x_9(Args &&...) | line 103, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp refl_impl::metadata::type_info__::member::remap::domain(Args &&...) | line 34, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp refl_impl::metadata::type_info__::member::remap::endpoint(Args &&...) | line 34, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp refl_impl::metadata::type_info__::member::remap::location(Args &&...) | line 35, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp refl_impl::metadata::type_info__::member::remap::name(Args &&...) | line 35, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp refl_impl::metadata::type_info__::member::remap::resources(Args &&...) | line 37, 1 lines
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp refl_impl::metadata::type_info__::member::remap::server(Args &&...) | line 36, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::analogCoupling() | line 191, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::changePowerSource(PICO_STATUS) | line 169, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::closeUnit() | line 165, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::conditionDontCare() | line 193, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::conditionsInfoAdd() | line 196, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::conditionsInfoClear() | line 195, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertSampleRateToTimebase(const float) | line 82, 32 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertTimeUnits(TimeUnits) | line 66, 11 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertToCoupling(Coupling) | line 115, 8 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertToThresholdDirection(TriggerDirection) | line 124, 10 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::driverStop() | line 225, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::enumerateUnits(int16_t *, int8_t *, int16_t *) | line 293, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::extTriggerMaxValue() | line 185, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::extTriggerMaxValueVoltage() | line 188, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::extTriggerMinValue() | line 186, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::extTriggerMinValueVoltage() | line 189, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getDeviceResolution(int16_t, DeviceResolutionType *) | line 245, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getNoOfCaptures(uint32_t *) | line 177, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getNoOfProcessedCaptures(uint32_t *) | line 179, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getStreamingLatestValues(StreamingReadyType, void *) | line 231, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getTimebase2(uint32_t, int32_t, float *, int32_t *, uint32_t) | line 144, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getUnitInfo(int8_t *, int16_t, int16_t *, PICO_INFO) | line 243, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getValues(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, int16_t *) | line 233, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getValuesBulk(uint32_t *, uint32_t, uint32_t, uint32_t, RatioModeType, int16_t *) | line 235, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getValuesOverlappedBulk(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, uint32_t, int16_t *) | line 237, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::getValuesTriggerTimeOffsetBulk64(int64_t *, TimeUnitsType *, uint32_t, uint32_t) | line 241, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::isOpened() | line 167, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::isReady(int16_t *) | line 239, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::maxChannel() | line 183, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::maximumValue(int16_t *) | line 171, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::memorySegments(uint32_t, int32_t *) | line 173, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::openUnit(const std::string &) | line 146, 8 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::openUnitAsync(std::int16_t *, const std::string &) | line 155, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::openUnitProgress(std::int16_t *, std::int16_t *) | line 163, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::runBlock(int32_t, int32_t, uint32_t, int32_t *, uint32_t, BlockReadyType, void *) | line 227, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::runStreaming(uint32_t *, TimeUnitsType, uint32_t, uint32_t, int16_t, uint32_t, RatioModeType, uint32_t) | line 229, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setChannel(ChannelType, int16_t, CouplingType, ChannelRangeType, float) | line 181, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setDataBuffer(ChannelType, int16_t *, int32_t, RatioModeType) | line 140, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setDataBuffer(ChannelType, int16_t *, int32_t, uint32_t, RatioModeType) | line 142, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setDigitalPorts(int16_t, int16_t) | line 247, 9 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setNoOfCaptures(uint32_t) | line 175, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setSimpleTrigger(int16_t, ChannelType, int16_t, ThresholdDirectionType, uint32_t, int16_t) | line 198, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setTriggerChannelConditions(const ConditionType *, int16_t, ConditionsInfoType) | line 220, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setTriggerDigitalPort(uint, TriggerDirection) | line 257, 35 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::uncertainty() | line 135, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::analogCoupling() | line 179, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::changePowerSource(PICO_STATUS) | line 155, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::closeUnit() | line 153, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::conditionDontCare() | line 181, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::conditionFalse() | line 183, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::conditionTrue() | line 182, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::conditionsInfoAdd() | line 186, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::conditionsInfoClear() | line 185, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertSampleRateToTimebase(float) | line 76, 25 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertTimeUnits(TimeUnits) | line 62, 11 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertToCoupling(Coupling) | line 102, 8 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertToThresholdDirection(TriggerDirection) | line 111, 10 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::driverStop() | line 192, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::enumerateUnits(int16_t *, int8_t *, int16_t *) | line 253, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::extTriggerMaxValue() | line 171, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::extTriggerMaxValueVoltage() | line 175, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::extTriggerMinValue() | line 173, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::extTriggerMinValueVoltage() | line 177, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getDeviceResolution(DeviceResolutionType *) | line 212, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getNoOfCaptures(uint32_t *) | line 163, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getNoOfProcessedCaptures(uint32_t *) | line 165, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getStreamingLatestValues(StreamingReadyType, void *) | line 198, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getTimebase2(uint32_t, int32_t, float *, int32_t *, uint32_t) | line 131, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getUnitInfo(int8_t *, int16_t, int16_t *, PICO_INFO) | line 210, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getValues(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, int16_t *) | line 200, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getValuesBulk(uint32_t *, uint32_t, uint32_t, uint32_t, RatioModeType, int16_t *) | line 202, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getValuesOverlappedBulk(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, uint32_t, int16_t *) | line 204, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::getValuesTriggerTimeOffsetBulk64(int64_t *, TimeUnitsType *, uint32_t, uint32_t) | line 208, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::isOpened() | line 151, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::isReady(int16_t *) | line 206, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::maxChannel() | line 169, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::maximumValue(int16_t *) | line 157, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::memorySegments(uint32_t, int32_t *) | line 159, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::openUnit(const std::string &) | line 133, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::openUnitAsync(std::int16_t *, const std::string &) | line 141, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::openUnitProgress(std::int16_t *, std::int16_t *) | line 149, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::runBlock(int32_t, int32_t, uint32_t, int32_t *, uint32_t, BlockReadyType, void *) | line 194, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::runStreaming(uint32_t *, TimeUnitsType, uint32_t, uint32_t, int16_t, uint32_t, RatioModeType, uint32_t) | line 196, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::setChannel(ChannelType, int16_t, CouplingType, RangeType, float) | line 167, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::setDataBuffer(ChannelType, int16_t *, int32_t, RatioModeType) | line 127, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::setDataBuffer(ChannelType, int16_t *, int32_t, uint32_t, RatioModeType) | line 129, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::setNoOfCaptures(uint32_t) | line 161, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::setSimpleTrigger(int16_t, ChannelType, int16_t, ThresholdDirectionType, uint32_t, int16_t) | line 188, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::setTriggerChannelConditions(ConditionType *, int16_t, ConditionsInfoType) | line 190, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::uncertainty() | line 122, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::analogCoupling() | line 248, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::changePowerSource(PICO_STATUS) | line 224, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::closeUnit() | line 222, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::conditionDontCare() | line 250, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::conditionFalse() | line 252, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::conditionTrue() | line 251, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::conditionsInfoAdd() | line 256, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::conditionsInfoClear() | line 254, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertSampleRateToTimebase(const float) | line 72, 99 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertTimeUnits(TimeUnits) | line 60, 11 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertToCoupling(Coupling) | line 172, 8 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertToThresholdDirection(TriggerDirection) | line 181, 10 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::driverStop() | line 262, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::enumerateUnits(int16_t *, int8_t *, int16_t *) | line 326, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::extTriggerMaxValue() | line 240, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::extTriggerMaxValueVoltage() | line 244, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::extTriggerMinValue() | line 242, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::extTriggerMinValueVoltage() | line 246, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getNoOfCaptures(uint32_t *) | line 232, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getNoOfProcessedCaptures(uint32_t *) | line 234, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getStreamingLatestValues(StreamingReadyType, void *) | line 268, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getTimebase2(uint32_t, int32_t, float *, int32_t *, uint32_t) | line 200, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getUnitInfo(int8_t *, int16_t, int16_t *, PICO_INFO) | line 280, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getValues(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, int16_t *) | line 270, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getValuesBulk(uint32_t *, uint32_t, uint32_t, uint32_t, RatioModeType, int16_t *) | line 272, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getValuesOverlappedBulk(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, uint32_t, int16_t *) | line 274, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::getValuesTriggerTimeOffsetBulk64(int64_t *, TimeUnitsType *, uint32_t, uint32_t) | line 278, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::isOpened() | line 220, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::isReady(int16_t *) | line 276, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::maxChannel() | line 238, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::maximumValue(int16_t *) | line 226, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::memorySegments(uint32_t, int32_t *) | line 228, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::openUnit(const std::string &) | line 202, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::openUnitAsync(std::int16_t *, const std::string &) | line 210, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::openUnitProgress(std::int16_t *, std::int16_t *) | line 218, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::runBlock(int32_t, int32_t, uint32_t, int32_t *, uint32_t, BlockReadyType, void *) | line 264, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::runStreaming(uint32_t *, TimeUnitsType, uint32_t, uint32_t, int16_t, uint32_t, RatioModeType, uint32_t) | line 266, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setChannel(ChannelType, int16_t, CouplingType, ChannelRangeType, float) | line 236, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setDataBuffer(ChannelType, int16_t *, int32_t, RatioModeType) | line 196, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setDataBuffer(ChannelType, int16_t *, int32_t, uint32_t, RatioModeType) | line 198, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setDigitalPorts(int16_t, int16_t) | line 286, 9 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setNoOfCaptures(uint32_t) | line 230, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setSimpleTrigger(int16_t, ChannelType, int16_t, ThresholdDirectionType, uint32_t, int16_t) | line 258, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setTriggerChannelConditions(ConditionType *, int16_t, ConditionsInfoType) | line 260, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setTriggerDigitalPort(uint, TriggerDirection) | line 296, 29 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::uncertainty() | line 192, 3 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::analogCoupling() | line 211, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::changePowerSource(PICO_STATUS) | line 180, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::closeUnit() | line 178, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::conditionDontCare() | line 213, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::conditionsInfoAdd() | line 216, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::conditionsInfoClear() | line 215, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertSampleRateToTimebase(const float) | line 78, 39 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertTimeUnits(TimeUnits) | line 66, 11 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertToCoupling(Coupling) | line 118, 10 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertToThresholdDirection(TriggerDirection) | line 129, 10 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::driverStop() | line 246, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::enumerateUnits(int16_t *, int8_t *, int16_t *) | line 272, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::extTriggerMaxValue() | line 205, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::extTriggerMaxValueVoltage() | line 208, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::extTriggerMinValue() | line 206, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::extTriggerMinValueVoltage() | line 209, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getDeviceResolution(DeviceResolutionType *) | line 270, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getNoOfCaptures(uint32_t *) | line 197, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getNoOfProcessedCaptures(uint32_t *) | line 199, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getStreamingLatestValues(StreamingReadyType, void *) | line 256, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getTimebase2(uint32_t, int32_t, float *, int32_t *, uint32_t) | line 149, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getUnitInfo(int8_t *, int16_t, int16_t *, PICO_INFO) | line 268, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getValues(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, int16_t *) | line 258, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getValuesBulk(uint32_t *, uint32_t, uint32_t, uint32_t, RatioModeType, int16_t *) | line 260, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getValuesOverlappedBulk(uint32_t, uint32_t *, uint32_t, RatioModeType, uint32_t, uint32_t, int16_t *) | line 262, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::getValuesTriggerTimeOffsetBulk64(int64_t *, TimeUnitsType *, uint32_t, uint32_t) | line 266, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::isOpened() | line 176, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::isReady(int16_t *) | line 264, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::maxChannel() | line 203, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::maximumValue(int16_t *) | line 182, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::memorySegments(uint32_t, int32_t *) | line 187, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::openUnit(const std::string &) | line 157, 8 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::openUnitAsync(std::int16_t *, const std::string &) | line 166, 7 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::openUnitProgress(std::int16_t *, std::int16_t *) | line 174, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::runBlock(int32_t, int32_t, uint32_t, int32_t *, uint32_t, BlockReadyType, void *) | line 248, 3 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::runStreaming(uint32_t *, TimeUnitsType, uint32_t, uint32_t, int16_t, uint32_t, RatioModeType, uint32_t) | line 252, 3 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::setChannel(ChannelType, int16_t, CouplingType, ChannelRangeType, float) | line 201, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::setDataBuffer(ChannelType, int16_t *, int32_t, RatioModeType) | line 145, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::setDataBuffer(ChannelType, int16_t *, int32_t, uint32_t, RatioModeType) | line 147, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::setNoOfCaptures(uint32_t) | line 195, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::setSimpleTrigger(int16_t, ChannelType, int16_t, ThresholdDirectionType, uint32_t, int16_t) | line 218, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::setTriggerChannelConditions(const ConditionType *, int16_t, ConditionsInfoType) | line 241, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::uncertainty() | line 140, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::OpeningContext::ready() | line 218, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::poll(const HandlerT &) | line 277, 49 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::poll(const HandlerT &) | line 453, 88 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::configureChannel(std::size_t, ChannelConfig) | line 901, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::configureTrigger(TriggerConfig) | line 908, 4 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::convertToOutputIndex(const std::string_view) | line 915, 8 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::getChannelConfig(std::size_t) | line 899, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::getChannelIds() | line 892, 6 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::getDeviceInfo() | line 886, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::getLastError() | line 888, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::getTriggerConfig() | line 906, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::poll(const HandlerT &) | line 822, 63 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::ready() | line 890, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::setPaused(const bool) | line 913, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::startStreamingAcquisition(float, bool) | line 806, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::startTriggeredAcquisition(float, std::size_t, std::size_t, std::size_t, const std::function<void ()> &, bool) | line 808, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::stopAcquisition() | line 810, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::toAnalogChannelRangeValue(const AnalogChannelRange) | line 65, 6 lines
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::toChannelString(const ChannelName) | line 84, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp fair::picoscope::detail::getErrorMessage(const PICO_STATUS) | line 418, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp std::__1::formatter::parse(std::format_parse_context &) | line 12, 1 lines
+    1 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp fair::picoscope::timingmatcher::TimingMatcher::reset() | line 322, 1 lines
+ambient reach (sources; write-only logging excluded; indirect calls not resolved, so a lower bound)
+  functions without ambient reach: 94.1 % (402 of 427; the places are the 25 that reach something)
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::start() | line 51: environment, global
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::stop() | line 95: environment, global
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::getGloablClientContext() | line 26: environment, global (directly: clientContext, zctx)
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::initGlobalClientContext(::opencmw::zmq::Context &) | line 13: environment (directly: getenv)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::connect(detail::Connection &) | line 305: global
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::handleMessage(mdp::Message &, detail::Connection &) | line 547: clock, global (directly: now)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::handleServerReply(mdp::Message &, detail::Connection &, const auto) | line 402: clock (directly: now)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::housekeeping(const timePoint &) | line 609: clock, global, io
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::receive(mdp::Message &) | line 584: clock, global
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::CmwLightClientCtx(const zmq::Context &, std::string, const TimeUnit, std::string) | line 778: clock
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::poll(const std::stop_token &) | line 882: clock (directly: now)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::createClientId() | line 180: clock, global (directly: now, program_invocation_short_name)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::createClientInfo() | line 161: clock, global (directly: now, program_invocation_short_name)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::getIdentity() | line 141: global (directly: channelIdGenerator, connectionIdGenerator)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::sendConnectRequest(Connection &) | line 263: clock, global
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::lookup(const std::string_view, const bool) | line 60: io
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::triggerRequest(std::string_view) | line 215: io (directly: Body, PostCallback, Url, map)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::~DirectoryLightClient() | line 58: io (directly: GetInstance, Stop)
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::processBulk(gr::InputSpanLike auto &, std::span<TOutSpan> &, gr::OutputSpanLike auto &) | line 176: clock, global (directly: now, lastAcquisitionTime)
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::poll(const HandlerT &) | line 453: global
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::restart() | line 649: global
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::start() | line 553: global (directly: redirector)
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::handleError(const Error &) | line 812: clock (directly: now)
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::poll(const HandlerT &) | line 822: clock (directly: now)
+    1 | blocklib/picoscope/src/picoscope-cli.cpp main() | line 78: clock (directly: now)
+  functions reaching each: clock 13, environment 4, global 15, io 4
+  core functions with ambient reach: 0
+(2) cognitive complexity: how much a reader must hold
+complexity (sources; code-metrics.sh --cognitive)
+  cognitive complexity: 1607 (122 functions scored)
+    166 | blocklib/picoscope/src/picoscope-cli.cpp main() | line 78
+    109 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::housekeeping(const timePoint &) | line 609
+    100 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp fair::picoscope::timingmatcher::TimingMatcher::match(const std::span<const gr::property_map>, const std::span<const std::size_t> &, const std::size_t, const std::chrono::nanoseconds) | line 131
+    92 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::start() | line 553
+    83 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::processBulk(gr::InputSpanLike auto &, std::span<TOutSpan> &, gr::OutputSpanLike auto &) | line 176
+    66 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::poll(const HandlerT &) | line 453
+    58 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::start() | line 337
+    58 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::renderSetting(std::pair<int, int>, int, T &, std::string_view) | line 87
+    52 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::settingsChanged(const gr::property_map &, const gr::property_map &) | line 515
+    40 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::setTrigger(TriggerConfig) | line 714
+    35 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::OpeningContext::poll() | line 220
+    32 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::urlDecode(std::string_view) | line 83
+    27 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::ExtractFromMap::processBulk(gr::InputSpanLike auto &, gr::OutputSpanLike auto &) | line 129
+    27 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::poll(const std::stop_token &) | line 882
+    27 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::poll(const HandlerT &) | line 822
+    26 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::findAnalogTriggers(const std::size_t, std::span<TSample>) | line 708
+    24 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::poll(const HandlerT &) | line 277
+    23 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::tagContainsTrigger(const gr::property_map &, const TriggerNameAndCtx &) | line 56
+    21 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::findDigitalTriggers(const uint, std::span<std::uint16_t>) | line 752
+    18 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertSampleRateToTimebase(const float) | line 72
+    16 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::handleMessage(mdp::Message &, detail::Connection &) | line 547
+    16 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::parseEndpoint(std::string_view) | line 151
+    16 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::processTagsTriggered(gr::InputSpanLike auto &) | line 451
+    15 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::start() | line 51
+    15 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::receive(mdp::Message &) | line 584
+    15 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::handleRequests() | line 849
+    13 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::handleServerReply(mdp::Message &, detail::Connection &, const auto) | line 402
+    11 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::request(Command) | line 807
+    9 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::triggerRequest(std::string_view) | line 215
+    9 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::initialize() | line 622
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::start() | line 600
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertToTriggerConditions(const ConditionType *, int16_t) | line 200
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertToTriggerConditions(const ConditionType *, int16_t) | line 220
+    8 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::processInput(const char) | line 57
+    7 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::lookup(const std::string_view, const bool) | line 60
+    7 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertSampleRateToTimebase(const float) | line 78
+    7 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::renderEditor() | line 169
+    6 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::parseEndpointString(std::string_view, std::string_view) | line 121
+    6 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp fair::picoscope::timingmatcher::TimingMatcher::alignTagRelativeToLastMatchedAndStore(MatcherResult &, const gr::property_map &) | line 88
+    5 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::processBulk(gr::OutputSpanLike auto &) | line 103
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::createDataset(const std::size_t, std::size_t) | line 645
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::parseDigitalTriggerSource(std::string_view) | line 23
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertSampleRateToTimebase(const float) | line 82
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setDigitalPorts(int16_t, int16_t) | line 247
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setDigitalPorts(int16_t, int16_t) | line 286
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setTriggerDigitalPort(uint, TriggerDirection) | line 296
+    5 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::setChannel(const std::size_t, ChannelConfig) | line 694
+    4 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::percentEncode(const std::string_view &) | line 148
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::createTriggerNameAndCtx(const std::string &) | line 46
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setTriggerDigitalPort(uint, TriggerDirection) | line 257
+    4 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::detail::convertSampleRateToTimeInterval(const float) | line 98
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::connect(detail::Connection &) | line 305
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::parseNameserverReply(const std::string &) | line 202
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::getChannelSetting(const std::span<P>, const std::size_t, const P &) | line 505
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertToCoupling(Coupling) | line 118
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::stop() | line 327
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::stop() | line 542
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::convertToOutputIndex(const std::string_view) | line 915
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::toChannelEnum(ChannelName) | line 779
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::toRangeEnum(AnalogChannelRange) | line 788
+    3 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp fair::picoscope::timingmatcher::TimingMatcher::checkValidTimingTag(const gr::property_map &) | line 52
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::findConnection(const URI<> &) | line 322
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::getClient(const URI<> &) | line 788
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::sendCmd(const URI<> &, mdp::Command, const std::size_t, IoBuffer) | line 835
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::createClientId() | line 180
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::createClientInfo() | line 161
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::getHostName() | line 129
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::findChannelSettingIndex(const ChannelName) | line 483
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertToCoupling(Coupling) | line 115
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::openUnit(const std::string &) | line 146
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::openUnitAsync(std::int16_t *, const std::string &) | line 155
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertSampleRateToTimebase(float) | line 76
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertToCoupling(Coupling) | line 102
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::openUnit(const std::string &) | line 133
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::openUnitAsync(std::int16_t *, const std::string &) | line 141
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertToCoupling(Coupling) | line 172
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::openUnit(const std::string &) | line 202
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::openUnitAsync(std::int16_t *, const std::string &) | line 210
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::openUnit(const std::string &) | line 157
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::openUnitAsync(std::int16_t *, const std::string &) | line 166
+    2 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::restart() | line 412
+    2 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::restart() | line 649
+    2 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::detail::convertTimeIntervalToSampleRate(const TimeInterval) | line 119
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::stop() | line 95
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::initGlobalClientContext(::opencmw::zmq::Context &) | line 13
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::housekeeping(const timePoint) | line 914
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::send(const zmq::Socket &, const int, std::string_view, auto &&) | line 243
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::parseEndpointLong(std::string_view) | line 141
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::createDatasetDigital(std::size_t) | line 689
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::convertToEnum(std::string_view) | line 81
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::isAnalogTrigger(const std::string_view) | line 21
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::isDigitalTrigger(const std::string_view) | line 20
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertTimeUnits(TimeUnits) | line 66
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertToThresholdDirection(TriggerDirection) | line 124
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertTimeUnits(TimeUnits) | line 62
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertToThresholdDirection(TriggerDirection) | line 111
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertTimeUnits(TimeUnits) | line 60
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertToThresholdDirection(TriggerDirection) | line 181
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertTimeUnits(TimeUnits) | line 66
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertToThresholdDirection(TriggerDirection) | line 129
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::Error::getDescription() | line 36
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::Error::getError() | line 35
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::~StreamingAcquisitionContext() | line 422
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::~TriggeredAcquisitionContext() | line 659
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::configureChannel(std::size_t, ChannelConfig) | line 901
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::configureTrigger(TriggerConfig) | line 908
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::handleError(const Error &) | line 812
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::~PicoscopeWrapper<TPSImpl>() | line 799
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::toAnalogChannelRange(const float) | line 59
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::toAnalogChannelRangeValue(const AnalogChannelRange) | line 65
+    1 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp fair::picoscope::detail::statusToString(PICO_STATUS) | line 19
+    1 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp fair::picoscope::detail::statusToStringVerbose(PICO_STATUS) | line 221
+    1 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp fair::picoscope::timingmatcher::TimingMatcher::getOffsetAdjustedTagAndStore(MatcherResult &, std::size_t, std::chrono::nanoseconds, const gr::property_map &) | line 116
+  highest: main 166, housekeeping 109, match 100, processBulk 94, start 92
+  split-invariant complexity: 1812 (49 single-use callees folded in at their call depth)
+    188 | blocklib/picoscope/src/picoscope-cli.cpp main() | line 78, 166 before folding
+    138 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::poll(const HandlerT &) | line 822, 27 before folding
+    111 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp fair::picoscope::timingmatcher::TimingMatcher::match(const std::span<const gr::property_map>, const std::span<const std::size_t> &, const std::size_t, const std::chrono::nanoseconds) | line 131, 100 before folding
+    109 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::housekeeping(const timePoint &) | line 609, 109 before folding
+    105 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::parseNameserverReply(const std::string &) | line 202, 3 before folding
+    93 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::receive(mdp::Message &) | line 584, 15 before folding
+    92 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::start() | line 553, 92 before folding
+    91 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::processBulk(gr::InputSpanLike auto &, std::span<TOutSpan> &, gr::OutputSpanLike auto &) | line 176, 83 before folding
+    70 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::poll(const HandlerT &) | line 453, 66 before folding
+    68 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::CmwLightClientCtx(const zmq::Context &, std::string, const TimeUnit, std::string) | line 778, 0 before folding
+    67 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::start() | line 337, 58 before folding
+    58 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::renderSetting(std::pair<int, int>, int, T &, std::string_view) | line 87, 58 before folding
+    56 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::settingsChanged(const gr::property_map &, const gr::property_map &) | line 515, 52 before folding
+    35 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::OpeningContext::OpeningContext(PicoscopeWrapper<TPSImpl> &) | line 213, 0 before folding
+    30 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::poll(const HandlerT &) | line 277, 24 before folding
+    27 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::ExtractFromMap::processBulk(gr::InputSpanLike auto &, gr::OutputSpanLike auto &) | line 129, 27 before folding
+    26 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::findAnalogTriggers(const std::size_t, std::span<TSample>) | line 708, 26 before folding
+    23 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::tagContainsTrigger(const gr::property_map &, const TriggerNameAndCtx &) | line 56, 23 before folding
+    21 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::findDigitalTriggers(const uint, std::span<std::uint16_t>) | line 752, 21 before folding
+    18 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertSampleRateToTimebase(const float) | line 72, 18 before folding
+    17 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::start() | line 600, 8 before folding
+    16 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp opencmw::client::cmwlight::DirectoryLightClient::lookup(const std::string_view, const bool) | line 60, 7 before folding
+    16 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::processTagsTriggered(gr::InputSpanLike auto &) | line 451, 16 before folding
+    15 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::start() | line 51, 15 before folding
+    13 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::request(Command) | line 807, 11 before folding
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setTriggerChannelConditions(const ConditionType *, int16_t, ConditionsInfoType) | line 220, 0 before folding
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::setTriggerChannelConditions(const ConditionType *, int16_t, ConditionsInfoType) | line 241, 0 before folding
+    7 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertSampleRateToTimebase(const float) | line 78, 7 before folding
+    6 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp fair::picoscope::timingmatcher::TimingMatcher::alignTagRelativeToLastMatchedAndStore(MatcherResult &, const gr::property_map &) | line 88, 6 before folding
+    5 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::processBulk(gr::OutputSpanLike auto &) | line 103, 5 before folding
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::parseDigitalTriggerSource(std::string_view) | line 23, 5 before folding
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertSampleRateToTimebase(const float) | line 82, 5 before folding
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setDigitalPorts(int16_t, int16_t) | line 247, 5 before folding
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setDigitalPorts(int16_t, int16_t) | line 286, 5 before folding
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::setTriggerDigitalPort(uint, TriggerDirection) | line 296, 5 before folding
+    4 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::percentEncode(const std::string_view &) | line 148, 4 before folding
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::createTriggerNameAndCtx(const std::string &) | line 46, 4 before folding
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::setTriggerDigitalPort(uint, TriggerDirection) | line 257, 4 before folding
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::connect(detail::Connection &) | line 305, 3 before folding
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::Picoscope::getChannelSetting(const std::span<P>, const std::size_t, const P &) | line 505, 3 before folding
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertToCoupling(Coupling) | line 118, 3 before folding
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::stop() | line 327, 3 before folding
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::stop() | line 542, 3 before folding
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::convertToOutputIndex(const std::string_view) | line 915, 3 before folding
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CMWLightClient::findConnection(const URI<> &) | line 322, 2 before folding
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::createClientId() | line 180, 2 before folding
+    2 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::getHostName() | line 129, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertToCoupling(Coupling) | line 115, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::openUnit(const std::string &) | line 146, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::openUnitAsync(std::int16_t *, const std::string &) | line 155, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertSampleRateToTimebase(float) | line 76, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertToCoupling(Coupling) | line 102, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::openUnit(const std::string &) | line 133, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::openUnitAsync(std::int16_t *, const std::string &) | line 141, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertToCoupling(Coupling) | line 172, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::openUnit(const std::string &) | line 202, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::openUnitAsync(std::int16_t *, const std::string &) | line 210, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::openUnit(const std::string &) | line 157, 2 before folding
+    2 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::openUnitAsync(std::int16_t *, const std::string &) | line 166, 2 before folding
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::OpenCmwSource::stop() | line 95, 1 before folding
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::getGloablClientContext() | line 26, 0 before folding
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::CmwLightClientCtx::housekeeping(const timePoint) | line 914, 1 before folding
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp opencmw::client::cmwlight::detail::send(const zmq::Socket &, const int, std::string_view, auto &&) | line 243, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::convertToEnum(std::string_view) | line 81, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::isAnalogTrigger(const std::string_view) | line 21, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp fair::picoscope::detail::isDigitalTrigger(const std::string_view) | line 20, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertTimeUnits(TimeUnits) | line 66, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp fair::picoscope::Picoscope3000a::convertToThresholdDirection(TriggerDirection) | line 124, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertTimeUnits(TimeUnits) | line 62, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp fair::picoscope::Picoscope4000a::convertToThresholdDirection(TriggerDirection) | line 111, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertTimeUnits(TimeUnits) | line 60, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp fair::picoscope::Picoscope5000a::convertToThresholdDirection(TriggerDirection) | line 181, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertTimeUnits(TimeUnits) | line 66, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp fair::picoscope::Picoscope6000::convertToThresholdDirection(TriggerDirection) | line 129, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::Error::getDescription() | line 36, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::Error::getError() | line 35, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::StreamingAcquisitionContext::~StreamingAcquisitionContext() | line 422, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::TriggeredAcquisitionContext::~TriggeredAcquisitionContext() | line 659, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::configureChannel(std::size_t, ChannelConfig) | line 901, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::configureTrigger(TriggerConfig) | line 908, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::handleError(const Error &) | line 812, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::PicoscopeWrapper::~PicoscopeWrapper<TPSImpl>() | line 799, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::toAnalogChannelRange(const float) | line 59, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp fair::picoscope::toAnalogChannelRangeValue(const AnalogChannelRange) | line 65, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp fair::picoscope::detail::statusToString(PICO_STATUS) | line 19, 1 before folding
+    1 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp fair::picoscope::detail::statusToStringVerbose(PICO_STATUS) | line 221, 1 before folding
+  highest split-invariant: main 188, poll 138, match 111, housekeeping 109, parseNameserverReply 105
+  scored functions without a definition found: 9
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/opencmw/test/ProcessHelper.hpp:14 Process
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/opencmw/test/ProcessHelper.hpp:30 ~Process
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/opencmw/test/qa_OpenCmwClient.cpp:46 waitFor
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/picoscope/include/fair/picoscope/Picoscope.hpp:319 processBulk
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/picoscope/test/qa_Picoscope.cc:190 testStreamingBasics
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/picoscope/test/qa_Picoscope.cc:36 promptForTestCase
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/picoscope/test/qa_Picoscope.cc:68 testRapidBlockBasic
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/picoscope/test/qa_PicoscopePerformanceMonitor.cc:15 createWatchdog
+    without a definition: /__w/gr-digitizers/gr-digitizers/blocklib/picoscope/test/qa_PicoscopePerformanceMonitor.cc:43 main
+shape
+  live mutable locals: 13 (locals written in more than one top-level statement)
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: get: req | line 336, written in 2 statements
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: set: req | line 348, written in 2 statements
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: subscribe: sub | line 361, written in 2 statements
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: createDataset: ds | line 645, written in 4 statements
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: createDatasetDigital: ds | line 689, written in 3 statements
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp: setTriggerDigitalPort: pinTrig | line 257, written in 2 statements
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp: setTriggerDigitalPort: cond | line 296, written in 2 statements
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp: setTriggerDigitalPort: pinTrig | line 296, written in 2 statements
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: : acquisitionData | line 293, written in 2 statements
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp: SettingsEditor: newt | line 34, written in 2 statements
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp: getTerminalSize: size | line 182, written in 2 statements
+    1 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp: match: result | line 131, written in 3 statements
+    1 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp: match: unmatchedEvents | line 131, written in 2 statements
+  write-only fields: 17 (fields under the source roots that no own code reads, tests included)
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp: OpenCmwSource::nameserver | line 44, never read
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: CMWLightClient::_sourceName | line 296, never read
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: Connection::_subscriptionIdGenerator | line 236, never read
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: OpenSubscription::nextTry | line 212, never read
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: OpenSubscription::updateId | line 208, never read
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: Request::timestamp_received | line 23, never read
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: Subscription::timestamp_received | line 29, never read
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp: DirectoryLightClient::_pendingLookups | line 52, never read
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: Picoscope::_actualSampleRate | line 148, never read
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: Picoscope::trigger_filter | line 132, never read
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp: tPS3000ACondition::condition | line 13, never read
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp: tPS3000ACondition::source | line 12, never read
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: PicoscopeWrapper::_acquisitionMode | line 676, never read
+    1 | blocklib/picoscope/src/picoscope-cli.cpp: ChannelData::overrange | line 50, never read
+    1 | blocklib/picoscope/src/picoscope-cli.cpp: PicoscopeState::active_channels | line 68, never read
+    1 | blocklib/picoscope/src/picoscope-cli.cpp: PicoscopeState::data_type | line 67, never read
+    1 | blocklib/picoscope/src/picoscope-cli.cpp: PicoscopeState::picoscope_model | line 70, never read
+  nested ternaries: 1 (a ?: holding another in the same expression)
+    1 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp fair::opencmw::ExtractFromMap::processBulk(gr::InputSpanLike auto &, gr::OutputSpanLike auto &) | line 129
+  flag arguments: 0 (parameters some call fills with a literal true or false)
+  same argument everywhere: 1 (parameters every call passes the same constant)
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp fair::ui_helpers::SettingsEditor::renderSetting(std::pair<int, int>, int, T &, std::string_view): #2 | always 1, at 16 calls
+  unscoped pairs: 0 (0 pairs opened and closed by hand in one function; +1 per exit or branch that could skip the closing)
+(3) reading volume: how much there is to read
+volume
+  tokens + comment words: 51188 (47494 tokens and 3694 comment words in 13 files; 581 comment lines)
+    9670 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp | 8757 tokens, 913 comment words, 835 SLOC
+    9251 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp | 8713 tokens, 538 comment words, 868 SLOC
+    8198 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp | 7595 tokens, 603 comment words, 693 SLOC
+    3572 | blocklib/picoscope/src/picoscope-cli.cpp | 3380 tokens, 192 comment words, 279 SLOC
+    3217 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp | 2668 tokens, 549 comment words, 279 SLOC
+    2541 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp | 2489 tokens, 52 comment words, 407 SLOC
+    2484 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp | 2342 tokens, 142 comment words, 221 SLOC
+    2319 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp | 2188 tokens, 131 comment words, 218 SLOC
+    2254 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp | 2070 tokens, 184 comment words, 198 SLOC
+    2205 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp | 2065 tokens, 140 comment words, 186 SLOC
+    2127 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp | 2024 tokens, 103 comment words, 212 SLOC
+    1758 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp | 1748 tokens, 10 comment words, 146 SLOC
+    1592 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp | 1455 tokens, 137 comment words, 182 SLOC
+  SLOC: 4724 (lines holding code)
+  lines over 160 characters: 264
+    54 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp | lines in this file
+    53 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp | lines in this file
+    35 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp | lines in this file
+    19 | blocklib/picoscope/src/picoscope-cli.cpp | lines in this file
+    17 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp | lines in this file
+    15 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp | lines in this file
+    15 | blocklib/picoscope/include/fair/picoscope/StatusMessages.hpp | lines in this file
+    14 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp | lines in this file
+    13 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp | lines in this file
+    12 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp | lines in this file
+    9 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp | lines in this file
+    7 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp | lines in this file
+    1 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp | lines in this file
+  lines over 250 characters: 57
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope3000a.hpp | lines in this file
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope4000a.hpp | lines in this file
+    8 | blocklib/picoscope/include/fair/picoscope/Picoscope5000a.hpp | lines in this file
+    7 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp | lines in this file
+    7 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp | lines in this file
+    6 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp | lines in this file
+    4 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp | lines in this file
+    3 | blocklib/opencmw/include/fair/opencmw/OpenCmwSource.hpp | lines in this file
+    3 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp | lines in this file
+    2 | blocklib/picoscope/src/picoscope-cli.cpp | lines in this file
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp | lines in this file
+  repeated expressions: 220 (63 expressions of 8 tokens or more written 3 times or more in one file; counted beyond the first writing)
+    19 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: std::unexpected(Error(res)) | written 19 times
+    16 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: std::chrono::system_clock::now() | written 16 times
+    11 | blocklib/picoscope/src/picoscope-cli.cpp: std::pair{psCol++,row} | written 11 times
+    8 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: con._frames[2].data() | written 8 times
+    7 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: std::format("{}",header.id()) | written 7 times
+    6 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: output.clientRequestID=IoBuffer{clientRequestID.data(),clientRequestID.size()} | written 6 times
+    6 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: uri.path()->find('/',1) | written 6 times
+    6 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: std::unexpected(Error{status}) | written 6 times
+    6 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp: result.tags.back().index | written 6 times
+    6 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp: {streamIdx,result.tagMaps[mapIdx]} | written 6 times
+    5 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: con._frames[1].data() | written 5 times
+    5 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: con._frames[2].data().data() | written 5 times
+    5 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: output.arrivalTime=std::chrono::system_clock::now() | written 5 times
+    5 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: output.serviceName=output.topic.path().value_or("/") | written 5 times
+    5 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp: (*iterator).size() | written 5 times
+    5 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: std::format("{}::settingsChanged()",this->name) | written 5 times
+    5 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: handleError(result.error()) | written 5 times
+    5 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp: std::pair{0,0} | written 5 times
+    5 | blocklib/picoscope/src/picoscope-cli.cpp: std::chrono::high_resolution_clock::now() | written 5 times
+    4 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: [std::format("{}",header.id())] | written 4 times
+    4 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: cmd.data()[0] | written 4 times
+    4 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: opencmw::deserialise<CmwLight,ProtocolCheck::LENIENT> | written 4 times
+    4 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp: &(*iterator).front() | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: (samples[i]&mask) | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: static_cast<std::ptrdiff_t>(index) | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: std::chrono::duration_cast<std::chrono::nanoseconds> | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: std::is_same_v<TSample,float> | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: scope._data.data()+j*segmentSize | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: static_cast<std::size_t>(noOfSamples) | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: std::declval<typename T::ChannelType>() | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: std::holds_alternative<unsigned int>(scope._triggerConfig.source) | written 4 times
+    4 | blocklib/picoscope/include/fair/picoscope/SettingsEditor.hpp: _movement=std::pair{0,0} | written 4 times
+    4 | blocklib/picoscope/src/picoscope-cli.cpp: std::pair{col++,row} | written 4 times
+    4 | blocklib/picoscope/src/picoscope-cli.cpp: std::ranges::to<std::vector>() | written 4 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: checkHeaderInfo<CmwLight>(errorData,DeserialiserInfo{},ProtocolCheck::LENIENT) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: ctx.filters().try_emplace(key,value.value_or("")) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: detail::send(con._socket,ZMQ_SNDMORE,"failed to send context frame"sv,std::move(buffer)) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: errorData(con._frames[2].data().data(),con._frames[2].data().size()) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: opencmw::deserialise<CmwLight,ProtocolCheck::LENIENT>(errorData,error) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: output.command=mdp::Command::Notify | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: serialise<CmwLight>(buffer,ctx) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: std::make_unique<CmwLightHeaderOptions>() | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: std::to_underlying(detail::MessageType::CLIENT_REQ) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: uri.path()->substr(1,uri.path()->find('/',1)-1) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: uri.path()->substr(uri.path()->find('/',1)+1) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp: ++iterator==tokens.end() | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp: result.try_emplace("parserError",std::expected<std::string,std::string>(std::unexpected(std::format("incomplete field {} in endpoint {}",fieldname,endpoint)))) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp: result.try_emplace(fieldname,value) | written 3 times
+    3 | blocklib/opencmw/include/fair/opencmw/cmwlight/DirectoryLightClient.hpp: std::to_address(str2.end()) | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: .threshold=static_cast<std::int16_t>(trigger_threshold*5.0f*32767.0f) | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: getChannelSetting(std::span(signal_names.value),channelIdx,{}) | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: getChannelSetting(std::span(signal_units.value),channelIdx,{}) | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: outputs[channelIdx][nCaptures].signal_values[j] | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: std::is_same_v<TSample,gr::UncertainValue<float>> | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: std::span(channel_ranges.value) | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: std::views::iota(0UZ) | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: scope._channelConfig|std::views::values | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: static_cast<int16_t>(string.size()) | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: std::declval<typename T::RatioModeType>() | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: {reinterpret_cast<char*>(string.data()),static_cast<std::size_t>(len-1)} | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp: !result.tags.empty() | written 3 times
+    3 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp: result.messages.emplace_back(std::format("Failed to realign tag relative to last matched trigger: {}",currentTag)) | written 3 times
+    3 | blocklib/picoscope/src/picoscope-cli.cpp: picoscope.data|std::views::filter([](const ChannelData&x){return x.channelConfig.enable;}) | written 3 times
+comments
+  restating comments: 40
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: /**  * UpdateType  */ | line 124
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // ACQ_STAMP | line 90
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // CYCLE_NAME | line 88
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // CYCLE_STAMP | line 89
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // SESSION_BODY | line 45
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // deserialise header frames[1] | line 407
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // handle connection state | line 615
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // reset back-off | line 463
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // send message header | line 721
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // send rda3 connect message | line 316
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: // send requestContext | line 733
+    1 | blocklib/opencmw/include/fair/opencmw/cmwlight/CmwLightClient.hpp: /// std::size_t | line 520
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: // consume timing tags | line 298
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: // generate time axis | line 699
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: // only trigger_name | line 68
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: // reset the tag matcher whenever we drop samples | line 261
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: // the trigger is not one of the enabled channels | line 248
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope.hpp: // trigger_name and ctx | line 57
+    1 | blocklib/picoscope/include/fair/picoscope/Picoscope6000.hpp: // n  = (156.25e6 / desiredFreq) + 4 | line 112
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: // Trigger Async Open | line 221
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: // time unit of the interval | line 395
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: // update maximum value | line 618
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: //{ picoScopeImpl.extTriggerMaxValue() } -> std::same_as<int>; | line 148
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: //{ picoScopeImpl.extTriggerMaxValueVoltage() } -> std::same_as<float>; | line 150
+    1 | blocklib/picoscope/include/fair/picoscope/PicoscopeAPI.hpp: //{ picoScopeImpl.extTriggerMinValue() } -> std::same_as<int>; | line 149
+    1 | blocklib/picoscope/include/fair/picoscope/TimingMatcher.hpp: // align all previously unaligned tags relative to this one | line 272
+(4) naming and API consistency: devtools/naming-check
+(5) hot paths: instructions per item, binary and .wasm size: devtools/code-metrics.sh --hot-paths
+(6) compile time: not measured yet
